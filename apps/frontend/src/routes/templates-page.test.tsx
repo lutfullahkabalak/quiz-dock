@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { mockApi, renderApp } from '../test/harness';
 
@@ -31,6 +31,32 @@ describe('TemplatesPage (galerie)', () => {
       'href',
       `/templates/${ENTRY.id}`,
     );
+    localStorage.clear();
+  });
+
+  it('narrows by tag and language, and shows as a list when asked', async () => {
+    localStorage.setItem('live.localUser', 'Marc');
+    mockApi([
+      {
+        method: 'GET',
+        path: '/store',
+        body: [
+          ENTRY,
+          { ...ENTRY, id: '01ARZ3NDEKTSV4RRFFQ69G5FAW', title: 'Fromages', tags: ['food'] },
+          { ...ENTRY, id: '01ARZ3NDEKTSV4RRFFQ69G5FAX', title: 'World ports', language: 'en' },
+        ],
+      },
+    ]);
+    renderApp('/templates');
+    expect(await screen.findByText('Fromages')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'geo' }));
+    expect(screen.queryByText('Fromages')).toBeNull();
+    fireEvent.change(screen.getByLabelText('Langue'), { target: { value: 'en' } });
+    expect(screen.queryByText('Ports du monde')).toBeNull();
+    expect(screen.getByText('World ports')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Liste' }));
+    expect(localStorage.getItem('quizdock.templates.view')).toBe('list');
     localStorage.clear();
   });
 

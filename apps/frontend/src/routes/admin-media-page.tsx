@@ -22,11 +22,13 @@ import { Card } from '@/components/ui/card';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import { Segmented } from '@/components/ui/segmented';
 import { Select } from '@/components/ui/select';
 import { WaveformPlayer } from '@/components/waveform-player';
 import { formatDimensions } from '@/lib/dimensions';
 import { formatAgo, formatBytes } from '@/lib/format';
 import { readyForUpload } from '@/lib/media-pipeline';
+import { useStoredView } from '@/lib/use-stored-view';
 import { type MediaKind, MediaCheckError } from '@/lib/media-prepare';
 import { errorText } from '../api/error-text';
 import { apiErrorText } from '../api/http';
@@ -215,29 +217,6 @@ function Overview() {
 }
 
 type Scope = 'all' | 'global';
-type View = 'list' | 'grid';
-const VIEW_KEY = 'quizdock.adminMedia.view';
-
-/** The view last chosen, kept in this browser only (a convenience, never required). */
-function useStoredView(): [View, (view: View) => void] {
-  const [view, setView] = useState<View>(() => {
-    try {
-      return localStorage.getItem(VIEW_KEY) === 'grid' ? 'grid' : 'list';
-    } catch {
-      return 'list';
-    }
-  });
-  const choose = (next: View) => {
-    setView(next);
-    try {
-      localStorage.setItem(VIEW_KEY, next);
-    } catch {
-      // private window, storage blocked: the choice lasts this visit
-    }
-  };
-  return [view, choose];
-}
-
 /**
  * Every file of the instance, one list: *All*, or *Global* — the media the
  * instance provides to every host (#62), owned by "Global", added here or from
@@ -249,7 +228,7 @@ function Files() {
   const overview = useMediaAdminControllerOverview();
   const owners = (overview.data?.data.byOwner ?? []).filter((o) => o.ownerId !== GLOBAL);
   const [scope, setScope] = useState<Scope>('all');
-  const [view, setView] = useStoredView();
+  const [view, setView] = useStoredView('quizdock.adminMedia.view');
   const [kind, setKind] = useState('');
   const [ownerId, setOwnerId] = useState('');
   const [legacy, setLegacy] = useState(false);
@@ -489,50 +468,6 @@ function Files() {
         }}
       />
     </section>
-  );
-}
-
-/** A two- or three-way switch, as a row of pressed buttons. */
-function Segmented<T extends string>({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: T;
-  onChange: (value: T) => void;
-  options: Array<{ value: T; label: string; icon?: typeof ListIcon }>;
-}) {
-  return (
-    <div role="group" aria-label={label} className="bg-muted flex gap-1 rounded-md p-1 text-sm">
-      {options.map((o) => {
-        const Icon = o.icon;
-        return (
-          <button
-            key={o.value}
-            type="button"
-            aria-pressed={value === o.value}
-            onClick={() => onChange(o.value)}
-            title={Icon ? o.label : undefined}
-            className={
-              value === o.value
-                ? 'bg-background flex items-center gap-1 rounded px-2.5 py-1 font-medium shadow-sm'
-                : 'text-muted-foreground flex items-center gap-1 rounded px-2.5 py-1'
-            }
-          >
-            {Icon ? (
-              <>
-                <Icon className="size-4" />
-                <span className="sr-only">{o.label}</span>
-              </>
-            ) : (
-              o.label
-            )}
-          </button>
-        );
-      })}
-    </div>
   );
 }
 

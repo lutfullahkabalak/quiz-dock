@@ -1,6 +1,16 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { Pencil, Play, Plus, Search, Sparkles, Upload } from 'lucide-react';
+import {
+  LayoutGrid,
+  List as ListIcon,
+  ListChecks,
+  Pencil,
+  Play,
+  Plus,
+  Search,
+  Sparkles,
+  Upload,
+} from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -8,8 +18,11 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import { Segmented } from '@/components/ui/segmented';
 import { Select } from '@/components/ui/select';
+import { TagFilter, tagsOf } from '@/components/tag-filter';
 import { fold } from '@/lib/text';
+import { useStoredView } from '@/lib/use-stored-view';
 import { useRole } from '../auth/use-role';
 import { useLaunchSession } from '../game/use-launch-session';
 import {
@@ -18,6 +31,7 @@ import {
   useQuizzesControllerImportQuiz,
   useQuizzesControllerList,
 } from '../api/generated/quizzes/quizzes';
+import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
@@ -30,7 +44,7 @@ const STATUS_VARIANT: Record<string, 'default' | 'success' | 'muted'> = {
 };
 
 export function DashboardPage() {
-  const { t } = useTranslation(['dashboard', 'common']);
+  const { t, i18n } = useTranslation(['dashboard', 'common']);
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuizzesControllerList();
   const create = useQuizzesControllerCreate();
@@ -48,7 +62,12 @@ export function DashboardPage() {
   const [search, setSearch] = useState('');
   const [status, setStatus] = useState<'all' | 'draft' | 'ready' | 'archived'>('all');
   const [sort, setSort] = useState<'recent' | 'title' | 'questions'>('recent');
+  const [language, setLanguage] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  const [view, setView] = useStoredView('quizdock.quizzes.view');
+  const languages = useMemo(() => [...new Set(quizzes.map((q) => q.language))].sort(), [quizzes]);
+  const allTags = useMemo(() => tagsOf(quizzes), [quizzes]);
 
   // A bank grows past what one screen holds: filter first, then sort, then cut
   // into pages. All three are client-side — the API returns the caller's quizzes,
@@ -57,19 +76,23 @@ export function DashboardPage() {
     const needle = fold(search);
     const kept = quizzes.filter(
       (q) =>
-        (status === 'all' || q.status === status) && (!needle || fold(q.title).includes(needle)),
+        (status === 'all' || q.status === status) &&
+        (!language || q.language === language) &&
+        tags.every((tag) => q.tags.includes(tag)) &&
+        (!needle || fold(`${q.title} ${q.description ?? ''}`).includes(needle)),
     );
     const sorted = [...kept];
     if (sort === 'title') sorted.sort((a, b) => a.title.localeCompare(b.title));
     else if (sort === 'questions') sorted.sort((a, b) => b.questionCount - a.questionCount);
     else sorted.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return sorted;
-  }, [quizzes, search, status, sort]);
+  }, [quizzes, search, status, language, tags, sort]);
 
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   // Filtering can leave the current page behind the end of the list.
   const current = Math.min(page, pageCount);
   const visible = shown.slice((current - 1) * PAGE_SIZE, current * PAGE_SIZE);
+  const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
   const narrow = (next: () => void) => {
     next();
     setPage(1);
@@ -205,6 +228,22 @@ export function DashboardPage() {
                 <option value="archived">{t('common:quizStatus.archived')}</option>
               </Select>
             </label>
+            {languages.length > 1 ? (
+              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+                {t('filterLanguage')}
+                <Select
+                  value={language}
+                  onChange={(e) => narrow(() => setLanguage(e.target.value))}
+                >
+                  <option value="">{t('languageAll')}</option>
+                  {languages.map((l) => (
+                    <option key={l} value={l}>
+                      {l.toUpperCase()}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            ) : null}
             <label className="text-muted-foreground flex flex-col gap-1 text-xs">
               {t('sortBy')}
               <Select
@@ -216,7 +255,22 @@ export function DashboardPage() {
                 <option value="questions">{t('sortQuestions')}</option>
               </Select>
             </label>
+            <Segmented
+              label={t('display')}
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'list', label: t('viewList'), icon: ListIcon },
+                { value: 'grid', label: t('viewGrid'), icon: LayoutGrid },
+              ]}
+            />
           </div>
+          <TagFilter
+            label={t('filterTags')}
+            tags={allTags}
+            selected={tags}
+            onChange={(next) => narrow(() => setTags(next))}
+          />
           <p className="text-muted-foreground text-sm" role="status">
             {t('matchCount', { count: shown.length })}
           </p>
@@ -227,33 +281,13 @@ export function DashboardPage() {
         <p className="text-muted-foreground rounded-lg border border-dashed p-6">{t('noMatch')}</p>
       ) : null}
 
-      <ul className="flex flex-col gap-2">
-        {visible.map((quiz) => (
-          <li
-            key={quiz.id}
-            className="hover:bg-accent flex flex-col gap-3 rounded-lg border p-4 transition-colors sm:flex-row sm:items-center sm:gap-4"
-          >
-            {/* Le titre peut être long : il tronque au lieu de pousser les actions hors écran. */}
-            <Link
-              to="/quizzes/$quizId"
-              params={{ quizId: quiz.id }}
-              className="min-w-0 flex-1 truncate font-semibold"
-            >
-              {quiz.title}
-            </Link>
-            <span className="flex flex-wrap items-center gap-x-3 gap-y-1">
-              {quiz.ownerName ? (
-                <span className="text-muted-foreground text-sm">
-                  {t('ownedBy', { name: quiz.ownerName })}
-                </span>
-              ) : null}
-              <Badge variant={STATUS_VARIANT[quiz.status] ?? 'default'}>
-                {t(`common:quizStatus.${quiz.status}`, { defaultValue: quiz.status })}
-              </Badge>
-              <span className="text-muted-foreground text-sm">
-                {t('questionCount', { count: quiz.questionCount })}
-              </span>
-            </span>
+      <ul
+        className={
+          view === 'grid' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-2'
+        }
+      >
+        {visible.map((quiz) => {
+          const actions = (
             <span className="flex flex-wrap gap-2">
               <Link to="/quizzes/$quizId" params={{ quizId: quiz.id }}>
                 <Button type="button" size="sm" variant="outline">
@@ -274,11 +308,105 @@ export function DashboardPage() {
                 </Button>
               )}
             </span>
-          </li>
-        ))}
+          );
+          const facts = <QuizFacts quiz={quiz} date={date} />;
+          return view === 'grid' ? (
+            <li key={quiz.id} className="flex flex-col overflow-hidden rounded-lg border">
+              <Link
+                to="/quizzes/$quizId"
+                params={{ quizId: quiz.id }}
+                className="hover:bg-accent flex flex-1 flex-col transition-colors"
+              >
+                <QuizCover quiz={quiz} className="aspect-video w-full" />
+                <span className="flex flex-1 flex-col gap-2 p-4">
+                  <span className="flex items-start justify-between gap-2">
+                    <span className="font-semibold">{quiz.title}</span>
+                    <StatusBadge status={quiz.status} />
+                  </span>
+                  {quiz.description ? (
+                    <span className="text-muted-foreground line-clamp-2 text-sm">
+                      {quiz.description}
+                    </span>
+                  ) : null}
+                  <span className="mt-auto pt-1">{facts}</span>
+                </span>
+              </Link>
+              <span className="border-t p-3">{actions}</span>
+            </li>
+          ) : (
+            <li
+              key={quiz.id}
+              className="hover:bg-accent flex flex-col gap-3 rounded-lg border p-3 transition-colors sm:flex-row sm:items-center sm:gap-4"
+            >
+              <QuizCover quiz={quiz} className="hidden size-14 shrink-0 rounded-md sm:flex" />
+              {/* Le titre peut être long : il tronque au lieu de pousser les actions hors écran. */}
+              <span className="flex min-w-0 flex-1 flex-col gap-1">
+                <span className="flex min-w-0 items-center gap-2">
+                  <Link
+                    to="/quizzes/$quizId"
+                    params={{ quizId: quiz.id }}
+                    className="min-w-0 truncate font-semibold"
+                  >
+                    {quiz.title}
+                  </Link>
+                  <StatusBadge status={quiz.status} />
+                </span>
+                {facts}
+              </span>
+              {actions}
+            </li>
+          );
+        })}
       </ul>
 
       <Pagination page={current} pages={pageCount} onChange={setPage} />
     </section>
+  );
+}
+
+function StatusBadge({ status }: { status: string }) {
+  const { t } = useTranslation('common');
+  return (
+    <Badge variant={STATUS_VARIANT[status] ?? 'default'} className="shrink-0">
+      {t(`quizStatus.${status}`, { defaultValue: status })}
+    </Badge>
+  );
+}
+
+/** The quiz's cover, or a neutral tile: a list of pictures reads faster than titles alone. */
+function QuizCover({ quiz, className }: { quiz: QuizDto; className?: string }) {
+  return quiz.coverMediaId ? (
+    <img
+      src={`/api/v1/media/${quiz.coverMediaId}`}
+      alt=""
+      loading="lazy"
+      className={cn('object-cover', className)}
+    />
+  ) : (
+    <span
+      className={cn('bg-muted text-muted-foreground flex items-center justify-center', className)}
+    >
+      <ListChecks className="size-6" aria-hidden />
+    </span>
+  );
+}
+
+/** What tells one quiz from another at a glance: size, language, when, whose, tags, licence. */
+function QuizFacts({ quiz, date }: { quiz: QuizDto; date: (iso: string) => string }) {
+  const { t } = useTranslation('dashboard');
+  return (
+    <span className="text-muted-foreground flex flex-wrap items-center gap-x-2 gap-y-1 text-xs">
+      <span>{t('questionCount', { count: quiz.questionCount })}</span>
+      <span>· {quiz.language.toUpperCase()}</span>
+      <span>· {t('updatedOn', { date: date(quiz.updatedAt) })}</span>
+      {quiz.ownerName ? <span>· {t('ownedBy', { name: quiz.ownerName })}</span> : null}
+      {quiz.license ? <span>· {quiz.license}</span> : null}
+      {quiz.tags.slice(0, 3).map((tag) => (
+        <span key={tag} className="bg-muted rounded px-1">
+          {tag}
+        </span>
+      ))}
+      {quiz.tags.length > 3 ? <span>+{quiz.tags.length - 3}</span> : null}
+    </span>
   );
 }

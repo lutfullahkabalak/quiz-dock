@@ -74,9 +74,13 @@ export function RootLayout() {
           }
         >
           {shell === 'participant' ? (
-            <span className="flex items-center gap-2 text-lg font-bold">
-              <BrandLogo className="h-7 w-auto rounded-md" />
-              <span className="hidden sm:inline">{APP_NAME}</span>
+            <span className="flex items-center gap-3">
+              <span className="flex items-center gap-2 text-lg font-bold">
+                <BrandLogo className="h-7 w-auto rounded-md" />
+                <span className="hidden sm:inline">{APP_NAME}</span>
+              </span>
+              {/* Filled by the player page (the answers / big screen switch) through a portal. */}
+              <span id="participant-topbar-start" className="flex items-center" />
             </span>
           ) : (
             <Link

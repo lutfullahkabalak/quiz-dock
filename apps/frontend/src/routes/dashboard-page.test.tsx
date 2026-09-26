@@ -33,6 +33,39 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('Histoire')).toBeInTheDocument();
   });
 
+  it('narrows by language and tag, and shows what tells quizzes apart', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [
+          quiz({ id: 'a', title: 'Capitales', tags: ['geo'], questionCount: 3 }),
+          quiz({ id: 'b', title: 'Capitals', language: 'en', tags: ['geo'], license: 'CC-BY-4.0' }),
+          quiz({ id: 'c', title: 'Fromages', tags: ['food'] }),
+        ],
+      },
+    ]);
+    renderApp('/quizzes');
+    expect(await screen.findByText('Capitales')).toBeInTheDocument();
+    expect(screen.getByText(/3 questions/)).toBeInTheDocument();
+    expect(screen.getByText(/CC-BY-4.0/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Langue'), { target: { value: 'fr' } });
+    expect(screen.queryByText('Capitals')).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'geo' }));
+    expect(screen.getByText('Capitales')).toBeInTheDocument();
+    expect(screen.queryByText('Fromages')).toBeNull();
+  });
+
+  it('switches to a grid, and remembers it in this browser', async () => {
+    mockApi([{ method: 'GET', path: '/quizzes', body: [quiz({ title: 'Histoire' })] }]);
+    renderApp('/quizzes');
+    await screen.findByText('Histoire');
+    fireEvent.click(screen.getByRole('button', { name: 'Grille' }));
+    expect(screen.getByRole('button', { name: 'Grille' })).toHaveAttribute('aria-pressed', 'true');
+    expect(localStorage.getItem('quizdock.quizzes.view')).toBe('grid');
+  });
+
   it('affiche un état vide sans quiz', async () => {
     mockApi([{ method: 'GET', path: '/quizzes', body: [] }]);
     renderApp('/quizzes');
