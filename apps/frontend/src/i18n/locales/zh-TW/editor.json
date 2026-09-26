@@ -210,10 +210,12 @@
     "waveformSizeLabel": "波形大小",
     "waveformSizeHint": "聲音波形在投影與手機上顯示的粗細。",
     "waveformPreview": "波形預覽",
+    "waveformHiddenNote": "在投影與手機上隱藏——聲音照常播放，你的控制台仍會顯示波形。",
     "waveformSize": {
       "S": "小",
       "M": "中",
-      "L": "大"
+      "L": "大",
+      "hidden": "隱藏"
     },
     "pointsLabel": "分數",
     "pointsMode": {

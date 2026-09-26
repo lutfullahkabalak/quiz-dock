@@ -481,12 +481,18 @@ export function QuestionForm({
                         ))}
                       </Select>
                     </Label>
-                    {/* As the screens will draw it, at their type size. */}
+                    {/* As the screens will draw it, at their type size — or, hidden,
+                        the one place it still shows (faded, with why). */}
+                    {field.state.value === 'hidden' ? (
+                      <p className="text-muted-foreground text-xs">
+                        {t('questionForm.waveformHiddenNote')}
+                      </p>
+                    ) : null}
                     <Waveform
                       peaks={media.audio?.peaks ?? []}
                       progress={0}
                       size={field.state.value}
-                      className="text-base"
+                      className={cn('text-base', field.state.value === 'hidden' && 'opacity-40')}
                       label={t('questionForm.waveformPreview')}
                     />
                   </div>

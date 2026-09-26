@@ -637,6 +637,7 @@ export function ControlPage() {
           key={view.question?.questionIndex}
           media={view.question?.media}
           mode="still"
+          showHiddenWaveform
           boxClassName="h-56"
         />
         {view.state === 'ANSWERING' &&

@@ -133,6 +133,26 @@ describe('QuestionMediaStage', () => {
     render(<QuestionMediaStage media={large} mode="still" />);
     expect(screen.getByRole('img', { name: /Forme d’onde/ })).toHaveClass('h-[5em]');
   });
+  it('a hidden waveform: the sound plays, nothing is drawn — except on the console', async () => {
+    const hidden = { ...sound, audio: { ...sound.audio!, size: 'hidden' as const } };
+    const { unmount } = render(<QuestionMediaStage media={hidden} mode="play" />);
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    expect(screen.queryByRole('img', { name: /Forme d’onde/ })).toBeNull();
+    unmount();
+
+    render(
+      <QuestionMediaStage
+        media={hidden}
+        mode="still"
+        follow={{ questionIndex: 0, t: 0, playing: false, receivedAt: performance.now() }}
+      />,
+    );
+    expect(screen.queryByRole('img', { name: /Forme d’onde/ })).toBeNull();
+    cleanup();
+
+    render(<QuestionMediaStage media={hidden} mode="still" showHiddenWaveform />);
+    expect(screen.getByRole('img', { name: /Forme d’onde/ })).toHaveClass('h-[2.5em]');
+  });
   it('the projection says where it is in the sound, for the other screens', async () => {
     const onPosition = vi.fn();
     render(<QuestionMediaStage media={sound} mode="play" onPosition={onPosition} />);
