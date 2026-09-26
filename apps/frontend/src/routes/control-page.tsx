@@ -1,3 +1,4 @@
+import { GameSoundsPanel } from '../game/game-sounds-panel';
 import { NextQuizButton, RoomStandingsPanel, roomLabel } from '../game/room-components';
 import {
   AUDIO_TARGETS,
@@ -298,6 +299,12 @@ export function ControlPage() {
             <span className="text-muted-foreground">{t('control.audioTargetHint')}</span>
           </label>
         ) : null}
+
+        {/* The room's game sounds (#93): kept from one quiz to the next. */}
+        <GameSoundsPanel
+          sounds={view.sounds}
+          onChange={(patch) => socket?.emit('host:sounds', { pin, ...patch })}
+        />
 
         {/* Capture intégrale (§3.1 / RG-13) : choix avant le démarrage, verrouillé une
             fois la partie lancée (cette vue lobby disparaît au start). Les joueurs déjà

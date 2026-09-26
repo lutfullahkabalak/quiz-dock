@@ -13,6 +13,7 @@ import type {
   AnswerValue,
   AudioTarget,
   ClientToServerEvents,
+  RoomSoundsSettings,
   GameMode,
   GameStep,
   ParticipantAccess,
@@ -378,6 +379,16 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     @MessageBody() payload: { pin: string; archive?: boolean },
   ): Promise<void> {
     await this.engine.end(payload.pin, this.requireHostId(socket), payload.archive === true);
+  }
+
+  /** `host:sounds` (#93): the room's game sounds. */
+  @SubscribeMessage('host:sounds')
+  async hostSounds(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string } & RoomSoundsSettings,
+  ): Promise<void> {
+    const { pin, ...patch } = payload;
+    await this.engine.setSounds(pin, this.requireHostId(socket), patch);
   }
 
   /** `player:ready` (#104): the participant is ready, or not yet, in the lobby. */

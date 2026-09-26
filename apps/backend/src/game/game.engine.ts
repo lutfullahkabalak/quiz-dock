@@ -14,6 +14,8 @@ import type {
   PlayerPresence,
   PodiumPayload,
   QuestionRevealPayload,
+  RoomSoundsPayload,
+  RoomSoundsSettings,
   ServerToClientEvents,
 } from '@quiz-dock/contracts';
 import type { Server } from 'socket.io';
@@ -38,6 +40,7 @@ import type {
   PlayerRecord,
   PlayerScore,
   QuizSnapshot,
+  RoomSounds,
   SnapshotQuestion,
 } from './game.types';
 import { noticeOf } from './game.types';
@@ -1110,6 +1113,8 @@ export class GameEngine {
     // le host:create — doit voir ce que la session enregistre de lui.
     socket.emit('notice', noticeOf(meta));
     socket.emit('room:info', { name: meta.roomName || null, hostName: meta.hostName });
+    const room = await this.game.getRoom(pin);
+    if (room) socket.emit('room:sounds', soundsPayload(room.sounds));
     const snapshotForNav = await this.game.getSnapshot(meta.id);
     if (snapshotForNav) {
       // Every device asks for sound at once when the quiz will need it (a phone too:
@@ -1614,6 +1619,13 @@ export class GameEngine {
     return true;
   }
 
+  /** `host:sounds` (#93): the room's game sounds, at any time; every screen is told. */
+  async setSounds(pin: string, hostUserId: string, patch: RoomSoundsSettings): Promise<void> {
+    await this.requireHost(pin, hostUserId);
+    const sounds = await this.game.setSounds(pin, hostUserId, patch);
+    this.server.to(pin).emit('room:sounds', soundsPayload(sounds));
+  }
+
   /** Every timer of the room: its game is over or replaced. */
   private cancelAllTimers(pin: string): void {
     this.clearTimer(pin);
@@ -2020,6 +2032,19 @@ export class GameEngine {
     }
     return snapshot;
   }
+}
+
+/** What the screens are sent of the room's sounds: URLs and levels, never media ids. */
+function soundsPayload(s: RoomSounds): RoomSoundsPayload {
+  return {
+    tick: s.tick,
+    gong: s.gong,
+    tickUrl: s.tickUrl,
+    gongUrl: s.gongUrl,
+    musicUrl: s.musicUrl,
+    musicLevel: s.musicLevel,
+    sfxLevel: s.sfxLevel,
+  };
 }
 
 /** The longest room name kept (the projection shows it as a title). */

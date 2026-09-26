@@ -106,6 +106,8 @@ export const ClientEvents = {
   HostEnd: 'host:end',
   /** The participant is ready, or not yet, in the lobby (#104). */
   PlayerReady: 'player:ready',
+  /** The room's game sounds (#93). */
+  HostSounds: 'host:sounds',
   /** Names the room (from its lobby); every screen shows it. */
   HostRoomName: 'host:room-name',
   /** Opens the next quiz in the room (from its lobby or its podium); the players stay. */
@@ -451,6 +453,37 @@ export interface LeaderboardPayload {
  * The room's standings across the quizzes played so far (#89): the scores add up,
  * a player who left stays ranked. `you` is the player's own, on their socket only.
  */
+/**
+ * The room's game sounds (#93, SPECIFICATIONS-MEDIA §9): a tick at each answer,
+ * a gong when a question ends, a background track while players answer. The
+ * effects are synthesised unless a sample replaces them; the levels are the
+ * MUSIC and SFX buses'. Played by the projection and remote participants only.
+ */
+export interface RoomSoundsPayload {
+  tick: boolean;
+  gong: boolean;
+  /** A sample replacing the synthesised tick / gong (a sound of the library), null = synthesised. */
+  tickUrl: string | null;
+  gongUrl: string | null;
+  /** The background track, looped while players answer; null = none. */
+  musicUrl: string | null;
+  /** Levels of the MUSIC and SFX buses, 0..1. */
+  musicLevel: number;
+  sfxLevel: number;
+}
+
+/** What the host sets (media ids, not URLs); every field optional. */
+export interface RoomSoundsSettings {
+  tick?: boolean;
+  gong?: boolean;
+  /** A media id of the library ('' = back to the synthesised effect / no track). */
+  tickId?: string;
+  gongId?: string;
+  musicId?: string;
+  musicLevel?: number;
+  sfxLevel?: number;
+}
+
 export interface RoomStandingsPayload {
   quizzesPlayed: number;
   /** Top 10, by total score then arrival in the room. */
@@ -526,6 +559,8 @@ export interface ClientToServerEvents {
    * of the quiz just played, as `host:end` does). The players stay in, at 0; the
    * host's choices (capture, tracking, lock, pace, audio target) carry over.
    */
+  /** The room's game sounds (#93), at any time (a volume may move mid-quiz). */
+  'host:sounds': (p: { pin: string } & RoomSoundsSettings) => void;
   /** The participant is ready (or not yet) in the lobby (#104); never blocks the start. */
   'player:ready': (p: { pin: string; ready: boolean }, ack: (res: { ok: boolean }) => void) => void;
   /** The room's own name (≤ 60 characters), from its lobby; blank = the default. */
@@ -666,6 +701,8 @@ export interface ServerToClientEvents {
    * and its host's name: on attach, and when the host renames it in the lobby.
    */
   'room:info': (p: { name: string | null; hostName: string }) => void;
+  /** The room's game sounds (#93): on attach, and when the host changes them. */
+  'room:sounds': (p: RoomSoundsPayload) => void;
   /** To a participant back in a lobby: whether they already said they are ready (#104). */
   'lobby:you': (p: { ready: boolean }) => void;
   /** The room's standings: at a podium, in the lobby of the next quiz, and when the room closes. */

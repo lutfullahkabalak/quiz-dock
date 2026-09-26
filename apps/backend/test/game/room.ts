@@ -3,6 +3,7 @@ import { GAME_TTL_S, gameKeys } from '../../src/game/game.keys';
 import { GameService } from '../../src/game/game.service';
 import { RedisService } from '../../src/redis/redis.service';
 import { UserRole } from '@prisma/client';
+import { MediaService } from '../../src/media/media.service';
 import { QuizzesService } from '../../src/quizzes/quizzes.service';
 import { type GameContext, nextEvent, settle, stateEvent } from '../game-harness';
 
@@ -276,6 +277,64 @@ export function roomTests(ctx: GameContext): void {
     await nextQuiz(host, pin, (await ctx.h.seedQuiz({ title: 'Ready again' })).id);
     expect(await seen).toMatchObject({ ready: 0, total: 1 });
     void ivy;
+  });
+
+  it('keeps the room’s game sounds: tick and gong on, a track of the host’s, never someone else’s (#93)', async () => {
+    const prisma = ctx.h.prisma;
+    const other = await prisma.user.upsert({
+      where: { oidcSubject: 'local:sound-stranger' },
+      create: { oidcSubject: 'local:sound-stranger', displayName: 'Stranger' },
+      update: {},
+    });
+    const sound = (ownerId: string, name: string) =>
+      prisma.mediaAsset.create({
+        data: {
+          ownerId,
+          url: `/api/v1/media/${name}`,
+          mime: 'audio/mp4',
+          sizeBytes: 1n,
+          kind: 'audio',
+          durationMs: 30_000,
+          peaks: [],
+          // Old enough for the hourly sweep, used by no quiz.
+          createdAt: new Date(Date.now() - 2 * 86_400_000),
+        },
+      });
+    const mine = await sound(ctx.h.hostUserId, 'room-track');
+    const theirs = await sound(other.id, 'not-mine');
+    try {
+      const host = connect({ localUser: 'Animateur' });
+      const pin = await ctx.h.createGame(host, ctx.quizId);
+      const screen = connect();
+      const first = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
+      await screen.emitWithAck('spectator:join', { pin });
+      expect(await first).toEqual({
+        tick: true,
+        gong: true,
+        tickUrl: null,
+        gongUrl: null,
+        musicUrl: null,
+        musicLevel: 0.5,
+        sfxLevel: 0.8,
+      });
+
+      const changed = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
+      host.emit('host:sounds', { pin, tick: false, musicId: mine.id, musicLevel: 2 });
+      expect(await changed).toMatchObject({
+        tick: false,
+        musicUrl: '/api/v1/media/room-track',
+        musicLevel: 1, // clamped
+      });
+      const refused = nextEvent<{ code: string }>(host, 'error');
+      host.emit('host:sounds', { pin, gongId: theirs.id });
+      expect((await refused).code).toBe('media.not_found');
+
+      // The hourly sweep keeps a track an open room plays, used by no quiz.
+      await ctx.h.app.get(MediaService).sweepOrphans(0);
+      expect(await prisma.mediaAsset.findUnique({ where: { id: mine.id } })).not.toBeNull();
+    } finally {
+      await prisma.mediaAsset.deleteMany({ where: { id: { in: [mine.id, theirs.id] } } });
+    }
   });
 
   describe('standings', () => {
