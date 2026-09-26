@@ -71,6 +71,8 @@ const view = (partial: Partial<GameView>): GameView => ({
   feedbackEnabled: true,
   players: [],
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -498,6 +500,35 @@ describe('PlayerPage (client participant)', () => {
       answer: 'opt-paris',
     });
     expect(await screen.findByText(/Réponse enregistrée/)).toBeInTheDocument();
+  });
+
+  it('a refused answer is never shown as saved: too late, it says so; too early, the tiles come back', async () => {
+    const answering = (over: Partial<GameView>) =>
+      view({
+        state: GameState.Answering,
+        questionIndex: 0,
+        question: {
+          questionIndex: 0,
+          type: 'single_choice',
+          prompt: 'Capitale ?',
+          options: [PARIS],
+          timeLimitS: 5,
+          basePoints: 1000,
+          startedAt: Date.now(),
+          endsAt: Date.now() + 5000,
+        } as never,
+        ...over,
+      });
+    hookState.value = answering({ answerAccepted: false, answerRefusal: 'late', answerAckAt: 1 });
+    const { unmount } = renderApp('/join/771122');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/trop tard/);
+    expect(screen.queryByText(/Réponse enregistrée/)).toBeNull();
+    unmount();
+
+    hookState.value = answering({ answerAccepted: false, answerRefusal: 'early', answerAckAt: 2 });
+    renderApp('/join/771122');
+    expect(await screen.findByText(/Trop tôt/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Paris/ })).toBeEnabled();
   });
 
   it('multi-réponses : sélectionner plusieurs puis Valider (pas de submit au 1ᵉʳ clic)', async () => {

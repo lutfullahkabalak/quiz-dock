@@ -1,5 +1,11 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
-import { AUDIO_TARGETS, GameState, mediaDurationMs } from '@quiz-dock/contracts';
+import {
+  AUDIO_TARGETS,
+  type AnswerAck,
+  type AnswerRefusal,
+  GameState,
+  mediaDurationMs,
+} from '@quiz-dock/contracts';
 import type {
   AnswerValue,
   AudioTarget,
@@ -1938,21 +1944,29 @@ export class GameEngine {
     questionIndex: number,
     answer: AnswerValue,
     receivedAt: number,
-  ): Promise<{ accepted: boolean; receivedAt: number }> {
+  ): Promise<AnswerAck> {
     const meta = await this.game.getMeta(pin);
-    const reject = { accepted: false, receivedAt };
+    // A refused answer is not counted, and the player's device says so: logged, so a
+    // lost answer can be traced (it would otherwise only show as a question timed out).
+    const reject = (reason: AnswerRefusal): AnswerAck => {
+      this.log.log(`answer refused ${pin} q${questionIndex} ${playerId}: ${reason}`);
+      return { accepted: false, receivedAt, reason };
+    };
     if (!meta || meta.state !== GameState.Answering || meta.currentIndex !== questionIndex) {
-      return reject; // mauvaise question / fenêtre fermée
+      return reject('closed'); // mauvaise question / fenêtre fermée
     }
-    if (receivedAt < meta.questionStartedAt || receivedAt > meta.questionEndsAt + GRACE_MS) {
-      return reject; // trop tôt (lecture) ou hors délai (§6)
+    if (receivedAt < meta.questionStartedAt) {
+      return reject('early'); // trop tôt : fenêtre de lecture (§6)
+    }
+    if (receivedAt > meta.questionEndsAt + GRACE_MS) {
+      return reject('late'); // hors délai (§6)
     }
 
     const player = await this.getPlayer(pin, playerId);
     const scored = await this.game.getScore(meta.id, playerId);
     const snapshot = await this.game.getSnapshot(meta.id);
     if (!player || !scored || !snapshot) {
-      return reject; // gone, not in this game, or the game is gone
+      return reject('unknown'); // gone, not in this game, or the game is gone
     }
     const question = snapshot.questions[questionIndex];
 
@@ -1975,7 +1989,7 @@ export class GameEngine {
       JSON.stringify(record),
     );
     if (won === 0) {
-      return reject;
+      return reject('duplicate');
     }
     await this.redis.expire(gameKeys.answers(meta.id, questionIndex), GAME_TTL_S);
 

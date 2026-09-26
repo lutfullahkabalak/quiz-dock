@@ -187,6 +187,10 @@ export function PlayerPage() {
     setFreeValue('');
     setSubmitted(false);
   }, [view.questionIndex]);
+  // Refused as too early (the answers were not open yet): the answer box comes back.
+  useEffect(() => {
+    if (view.answerRefusal === 'early') setSubmitted(false);
+  }, [view.answerRefusal, view.answerAckAt]);
   // L'ordre de départ suit l'arrivée de la question (remise en ordre).
   useEffect(() => {
     setOrder(question?.options?.map((o) => o.id) ?? []);
@@ -704,7 +708,11 @@ export function PlayerPage() {
   }
 
   if ((view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && question) {
-    const done = submitted || view.answerAccepted === true;
+    // A refused answer is never shown as saved: too early, the box is back; an
+    // earlier answer that counts is the saved one; otherwise it did not count.
+    const refusal = view.answerAccepted === false ? view.answerRefusal : null;
+    const lost = refusal === 'closed' || refusal === 'late' || refusal === 'unknown';
+    const done = !lost && refusal !== 'early' && (submitted || view.answerAccepted === true);
     // Tap tiles (QCM, V-F, poll): pinned to the bottom of the screen. Typed answers
     // and ordering stay in the flow (the keyboard would fight a pin).
     const tiled =
@@ -798,10 +806,21 @@ export function PlayerPage() {
               {question.listenFirst ? t('player.listenFirst') : t('player.readQuestion')}{' '}
               <span className="tabular-nums">{readingLeft}</span>
             </p>
+          ) : lost ? (
+            <p role="alert" className="text-destructive text-[1.1em] font-semibold">
+              {t(`player.answerRefused.${refusal}`)}
+            </p>
           ) : done ? (
             <p className="text-[1.25em] font-semibold">{t('player.answerSaved')}</p>
           ) : (
-            renderAnswerInput()
+            <>
+              {refusal === 'early' ? (
+                <p role="alert" className="text-muted-foreground">
+                  {t('player.answerRefused.early')}
+                </p>
+              ) : null}
+              {renderAnswerInput()}
+            </>
           )}
         </div>
       </section>

@@ -240,6 +240,12 @@
     "waitingQuestion": "等待题目…",
     "readQuestion": "📖 仔细阅读题目…",
     "answerSaved": "回答已保存 ✓",
+    "answerRefused": {
+      "early": "太早了：答题尚未开放，请重新作答。",
+      "closed": "你的回答在题目结束后才到达，不计分。",
+      "late": "你的回答到达太晚，不计分。",
+      "unknown": "你的回答无法计入：你没有参与这个测验。"
+    },
     "timeRemaining": "剩余时间",
     "inSession": "你已进入房间！",
     "saveAvatar": "保存头像",

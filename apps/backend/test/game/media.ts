@@ -725,11 +725,12 @@ export function mediaTests(ctx: GameContext): void {
       expect(start.endsAt - start.startedAt).toBe(5000);
 
       // An answer while the sound still plays is refused.
-      const early = new Promise<{ accepted: boolean }>((resolve) =>
+      const early = new Promise<{ accepted: boolean; reason?: string }>((resolve) =>
         player.once('answer:ack', resolve),
       );
       player.emit('player:submit', { pin, questionIndex: 0, answer: start.options[0].id });
-      expect((await early).accepted).toBe(false);
+      // Refused with its reason, so the phone asks again instead of showing it saved.
+      expect(await early).toMatchObject({ accepted: false, reason: 'early' });
       host.emit('host:end', { pin });
     } finally {
       await prisma.quiz.delete({ where: { id: quiz.id } });

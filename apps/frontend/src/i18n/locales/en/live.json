@@ -240,6 +240,12 @@
     "waitingQuestion": "Waiting for the question…",
     "readQuestion": "📖 Read the question carefully…",
     "answerSaved": "Answer saved ✓",
+    "answerRefused": {
+      "early": "Too early: the answers were not open yet. Answer again.",
+      "closed": "Your answer arrived after the question closed: it is not counted.",
+      "late": "Your answer arrived too late: it is not counted.",
+      "unknown": "Your answer could not be counted: you are not playing this quiz."
+    },
     "timeRemaining": "Time remaining",
     "inSession": "You're in the room!",
     "saveAvatar": "Save avatar",

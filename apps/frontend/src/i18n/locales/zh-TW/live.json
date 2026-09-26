@@ -240,6 +240,12 @@
     "waitingQuestion": "等待題目…",
     "readQuestion": "📖 仔細閱讀題目…",
     "answerSaved": "回答已儲存 ✓",
+    "answerRefused": {
+      "early": "太早了：作答尚未開放，請重新作答。",
+      "closed": "你的回答在題目結束後才送達，不計分。",
+      "late": "你的回答送達太晚，不計分。",
+      "unknown": "你的回答無法計入：你沒有參與這個測驗。"
+    },
     "timeRemaining": "剩餘時間",
     "inSession": "你已進入房間！",
     "saveAvatar": "儲存頭像",

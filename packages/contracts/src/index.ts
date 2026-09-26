@@ -666,6 +666,20 @@ export interface SessionNotice {
 }
 
 /** Map des events serveur → client. */
+
+/**
+ * Why an answer was not counted: `closed` (the question is over, or another
+ * one runs), `early` (the answers are not open yet), `late` (past the time),
+ * `unknown` (not a player of this quiz), `duplicate` (an earlier answer counts).
+ */
+export type AnswerRefusal = 'closed' | 'early' | 'late' | 'unknown' | 'duplicate';
+export interface AnswerAck {
+  accepted: boolean;
+  receivedAt: number;
+  /** Set when `accepted` is false. */
+  reason?: AnswerRefusal;
+}
+
 export interface ServerToClientEvents {
   'game:created': (p: { pin: string }) => void;
   /**
@@ -691,7 +705,7 @@ export interface ServerToClientEvents {
   'question:start': (p: QuestionStartPayload) => void;
   /** A content slide is shown (state `SLIDE_SHOW`, #7); re-sent on (re)attach. */
   'slide:show': (p: SlideShowPayload) => void;
-  'answer:ack': (p: { accepted: boolean; receivedAt: number }) => void;
+  'answer:ack': (p: AnswerAck) => void;
   'answer:count': (p: { answered: number; total: number }) => void;
   'question:reveal': (p: QuestionRevealPayload) => void;
   leaderboard: (p: LeaderboardPayload) => void;

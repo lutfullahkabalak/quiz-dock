@@ -1,4 +1,6 @@
 import type {
+  AnswerAck,
+  AnswerRefusal,
   AudioTarget,
   GameMode,
   GameModePayload,
@@ -70,6 +72,10 @@ export interface GameView {
   feedbackEnabled: boolean;
   players: RosterPlayer[];
   answerAccepted: boolean | null;
+  /** Why the last answer was not counted (with `answerAccepted` false). */
+  answerRefusal: AnswerRefusal | null;
+  /** Server time of the last acknowledgement: a new one, even with the same verdict. */
+  answerAckAt: number | null;
   fullCapture: boolean;
   /** Suivi individuel (RG-16) : faux = seuls les résultats du groupe sont archivés. */
   personalTracking: boolean;
@@ -151,6 +157,8 @@ const INITIAL: GameView = {
   feedbackEnabled: true,
   players: [],
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -198,6 +206,8 @@ const PER_QUIZ: Partial<GameView> = {
   leaderboard: null,
   podium: null,
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
   mediaWait: null,
   mediaPosition: null,
   mediaControl: null,
@@ -237,7 +247,14 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         nav: p.nav ?? null,
         // Nouvelle question : on purge le résultat/accusé précédent.
         ...(p.state === 'ANSWERING'
-          ? { reveal: null, result: null, answerAccepted: null, rateable: null }
+          ? {
+              reveal: null,
+              result: null,
+              answerAccepted: null,
+              answerRefusal: null,
+              answerAckAt: null,
+              rateable: null,
+            }
           : {}),
         // Back to a lobby (the room's next quiz): nothing of the last one shows.
         ...(p.state === 'LOBBY' ? { ...PER_QUIZ, nav: p.nav ?? null } : {}),
@@ -299,7 +316,12 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
           : prev,
       );
     const onCount = (p: { answered: number; total: number }) => patch({ answerCount: p });
-    const onAck = (p: { accepted: boolean }) => patch({ answerAccepted: p.accepted });
+    const onAck = (p: AnswerAck) =>
+      patch({
+        answerAccepted: p.accepted,
+        answerRefusal: p.accepted ? null : (p.reason ?? 'closed'),
+        answerAckAt: p.receivedAt,
+      });
     const onSlide = (p: SlideShowPayload) => patch({ slide: p });
     const onReveal = (p: QuestionRevealPayload) =>
       patch({ reveal: p, result: p.yourResult ?? null });

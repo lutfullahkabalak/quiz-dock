@@ -240,6 +240,12 @@
     "waitingQuestion": "Esperando la pregunta…",
     "readQuestion": "📖 Lee bien la pregunta…",
     "answerSaved": "Respuesta guardada ✓",
+    "answerRefused": {
+      "early": "Demasiado pronto: las respuestas aún no estaban abiertas. Responde de nuevo.",
+      "closed": "Tu respuesta llegó después del cierre de la pregunta: no cuenta.",
+      "late": "Tu respuesta llegó demasiado tarde: no cuenta.",
+      "unknown": "Tu respuesta no se pudo contar: no juegas este quiz."
+    },
     "timeRemaining": "Tiempo restante",
     "inSession": "¡Estás en la sala!",
     "saveAvatar": "Guardar avatar",
