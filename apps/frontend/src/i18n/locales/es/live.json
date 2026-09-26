@@ -149,7 +149,12 @@
     "pickQuizPlaceholder": "Escribe para buscar un quiz…",
     "noQuizMatch": "Ningún quiz coincide.",
     "quizQuestions_one": "{{count}} pregunta",
-    "quizQuestions_other": "{{count}} preguntas"
+    "quizQuestions_other": "{{count}} preguntas",
+    "pickerLanguage": "Idioma",
+    "pickerAllLanguages": "Todos los idiomas",
+    "pickerTags": "Etiquetas",
+    "pickerJustPlayed": "recién jugado",
+    "pickerUpdated": "modificado el {{date}}"
   },
   "screen": {
     "sessionUnavailable": "Sesión no disponible.",

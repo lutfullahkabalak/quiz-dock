@@ -267,6 +267,10 @@ docker compose up -d
 # Front: http://localhost:15173   ·   API: http://localhost:13000   ·   API docs: http://localhost:13000/api/docs
 ```
 
+A hundred ready quizzes to stress the lists (`[stress]` titles, given to the host-seat holder;
+`--count N`, `--owner <subject>`, `--clean` to remove them):
+`pnpm --filter @quiz-dock/backend db:seed-stress`.
+
 Design references live in [`specifications/`](https://github.com/quizdock/quiz-dock/blob/main/specifications/README.md);
 ongoing notes and decisions in [`docs/`](https://github.com/quizdock/quiz-dock/blob/main/docs/README.md)
 (see the [ADRs](https://github.com/quizdock/quiz-dock/tree/main/docs/adr)).

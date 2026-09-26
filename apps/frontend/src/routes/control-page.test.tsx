@@ -1,5 +1,5 @@
 import { GameState } from '@quiz-dock/contracts';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameView } from '../game/use-game-session';
 import { mockApi, renderApp } from '../test/harness';
@@ -107,7 +107,8 @@ describe('ControlPage: the room’s next quiz (#89)', () => {
         method: 'GET',
         path: '/quizzes',
         body: [
-          quiz('q2', 'Round two'),
+          quiz('q2', 'Round two', { tags: ['geo'], description: 'Rivers and mountains' }),
+          quiz('q6', 'Round three', { tags: ['history'] }),
           quiz('q3', 'A draft', { status: 'draft' }),
           quiz('q4', 'Someone else’s', { ownerId: 'other' }),
           quiz('q5', 'Empty', { questionCount: 0 }),
@@ -134,7 +135,13 @@ describe('ControlPage: the room’s next quiz (#89)', () => {
     expect(screen.queryByRole('option', { name: /A draft/ })).toBeNull();
     expect(screen.queryByRole('option', { name: /Someone else’s/ })).toBeNull();
     expect(screen.queryByRole('option', { name: /Empty/ })).toBeNull();
-    fireEvent.change(picker, { target: { value: 'two' } });
+    // A tag narrows the list; the search looks into the description too.
+    fireEvent.click(screen.getByRole('button', { name: 'history' }));
+    expect(screen.queryByRole('option', { name: /Round two/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'history' }));
+    fireEvent.change(picker, { target: { value: 'mountains' } });
+    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('1 quiz'); // counted after the search
     fireEvent.click(screen.getByRole('option', { name: /Round two/ }));
     fireEvent.click(screen.getByRole('button', { name: /Ouvrir ce quiz/ }));
     expect(fakeSocket.emit).toHaveBeenCalledWith(

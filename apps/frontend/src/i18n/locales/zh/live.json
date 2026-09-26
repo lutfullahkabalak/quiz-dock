@@ -149,7 +149,12 @@
     "pickQuizPlaceholder": "输入以搜索测验…",
     "noQuizMatch": "没有匹配的测验。",
     "quizQuestions_one": "{{count}} 道题",
-    "quizQuestions_other": "{{count}} 道题"
+    "quizQuestions_other": "{{count}} 道题",
+    "pickerLanguage": "语言",
+    "pickerAllLanguages": "所有语言",
+    "pickerTags": "标签",
+    "pickerJustPlayed": "刚刚进行过",
+    "pickerUpdated": "修改于 {{date}}"
   },
   "screen": {
     "sessionUnavailable": "会话不可用。",

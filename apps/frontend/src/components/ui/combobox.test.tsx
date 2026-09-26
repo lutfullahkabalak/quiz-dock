@@ -70,4 +70,35 @@ describe('Combobox', () => {
     expect(screen.queryByRole('listbox')).toBeNull();
     expect(outer).not.toHaveBeenCalled();
   });
+
+  it('inline: the list stays shown, searches the keywords, and Escape clears the search only', () => {
+    const outer = vi.fn();
+    render(
+      <div onKeyDown={outer}>
+        <Combobox
+          inline
+          aria-label="Quiz"
+          value=""
+          onChange={vi.fn()}
+          emptyText="Nothing"
+          options={[
+            { value: 'a', label: 'Capitals', keywords: 'geography europe' },
+            { value: 'b', label: 'Rivers', keywords: 'water' },
+          ]}
+          renderOption={(o) => <b>{o.label}!</b>}
+        />
+      </div>,
+    );
+    expect(screen.getAllByRole('option')).toHaveLength(2);
+    expect(screen.getByText('Capitals!')).toBeInTheDocument();
+    const input = screen.getByRole('combobox', { name: 'Quiz' });
+    fireEvent.change(input, { target: { value: 'europe' } });
+    expect(screen.getAllByRole('option').map((o) => o.textContent)).toEqual(['Capitals!']);
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(input).toHaveValue('');
+    expect(screen.getAllByRole('option')).toHaveLength(2); // still shown
+    // With nothing typed, Escape is the dialog's again.
+    fireEvent.keyDown(input, { key: 'Escape' });
+    expect(outer).toHaveBeenCalledTimes(1);
+  });
 });
