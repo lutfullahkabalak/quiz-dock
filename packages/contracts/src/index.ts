@@ -556,7 +556,15 @@ export interface ClientToServerEvents {
   /** Ajoute/retire `deltaS` secondes au chrono de la question courante. */
   'host:adjust-time': (p: { pin: string; deltaS: number }) => void;
   /** Rejoint la room en lecture seule (fenêtre projetée) — aucune auth, le PIN suffit. */
-  'spectator:join': (p: { pin: string }, ack: (res: { ok: boolean }) => void) => void;
+  /**
+   * A projection window joins read-only. `follow`: a participant's copy of it on
+   * another device (#104) — it follows the projection's position, is never waited
+   * for, and never speaks for the sound.
+   */
+  'spectator:join': (
+    p: { pin: string; follow?: boolean },
+    ack: (res: { ok: boolean }) => void,
+  ) => void;
   /**
    * Before joining: whether the quiz plays sound, so the join form offers the
    * presence choice, and whether an account is needed to get in.

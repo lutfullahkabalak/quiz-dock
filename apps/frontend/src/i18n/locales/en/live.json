@@ -249,7 +249,13 @@
     "listening": "Listening",
     "roomRank": "In the room: #{{rank}} — {{score}} pts",
     "waitingNextQuiz": "Waiting for the next quiz…",
-    "enableSound": "Enable sound"
+    "enableSound": "Enable sound",
+    "showScreen": "Show the big screen",
+    "showAnswers": "Back to my answers",
+    "shareProjection": "Share the projection",
+    "shareProjectionHint": "Open it on a tablet or a computer: the whole question, big.",
+    "projectionLinkCopied": "Link copied — or scan this code with the other device.",
+    "shareProjectionTitle": "{{appName}} — the projection"
   },
   "reveal": {
     "explanation": "Explanation",

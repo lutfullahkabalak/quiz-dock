@@ -110,6 +110,16 @@ describe('useGameSession', () => {
     expect(result.current.view.rateable).toBeNull();
   });
 
+  it('a participant’s copy of the projection joins as a follower (#104)', async () => {
+    renderHook(() => useGameSession('482913', 'spectator', { follow: true }));
+    await waitFor(() =>
+      expect(emitted).toContainEqual({
+        event: 'spectator:join',
+        payload: { pin: '482913', follow: true },
+      }),
+    );
+  });
+
   it('a participant who joined at the podium has no quiz to rate', async () => {
     loadPlayerSession.mockReturnValue({ pin: '482913', sessionToken: 't', playerId: 'p2' });
     const { result } = renderHook(() => useGameSession('482913', 'player'));

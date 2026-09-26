@@ -29,7 +29,9 @@ import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
 import { Surface } from '../game/surface';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { joinHostLabel, joinUrlFor } from '../game/join-url';
-import { useGameSession } from '../game/use-game-session';
+import { type GameView, useGameSession } from '../game/use-game-session';
+import type { GameSocket } from '../game/game-client';
+import { playsSound } from '@quiz-dock/contracts';
 
 /**
  * Écran de jeu projeté (grand écran, §4). Socket **spectateur** en lecture seule :
@@ -43,14 +45,73 @@ export function ScreenPage() {
 }
 
 /**
- * The projected screen itself; also embedded in the host console's Projection
- * tab. Only the projection window (`playMedia`) plays the questions' videos and
- * sounds — the console's copy shows them still, or the room would hear
- * everything twice.
+ * A participant's copy of the projection (#104), opened from the link they
+ * shared: it follows the big screen; `?sound=1` (a remote participant) plays
+ * the sound meant for remote devices, after this device's own unlocking click.
  */
-export function ScreenView({ pin, playMedia = false }: { pin: string; playMedia?: boolean }) {
+export function FollowScreenPage() {
+  const { pin } = useParams({ from: '/join/$pin/screen' });
+  const sound = new URLSearchParams(window.location.search).get('sound') === '1';
+  return <ScreenView pin={pin} follow={{ sound }} />;
+}
+
+/**
+ * How a projected screen takes part:
+ * - `lead` — the projection window: it plays the media and tells the room where
+ *   it is in the sound;
+ * - `preview` — the console's Projection tab: media shown still, or the room
+ *   would hear everything twice;
+ * - `follow` — a participant's copy (#104): it plays along with the projection's
+ *   position, muted unless `sound`, never waited for and never a position source.
+ */
+export type ScreenRole = 'lead' | 'preview' | 'follow';
+
+/**
+ * The projected screen itself; also embedded in the host console's Projection
+ * tab (`preview`) and opened by a participant on a device of their own (`follow`).
+ */
+export function ScreenView({
+  pin,
+  playMedia = false,
+  follow,
+}: {
+  pin: string;
+  playMedia?: boolean;
+  /** A participant's copy (#104); `sound` when it plays the sound (a remote participant). */
+  follow?: { sound: boolean };
+}) {
+  const session = useGameSession(pin, 'spectator', { follow: !!follow });
+  return (
+    <ScreenSurface
+      pin={pin}
+      view={session.view}
+      socket={session.socket}
+      role={follow ? 'follow' : playMedia ? 'lead' : 'preview'}
+      sound={follow?.sound ?? true}
+    />
+  );
+}
+
+/**
+ * The projected screen for a game view already followed — a projection's own,
+ * or a participant's when they switch their phone to the screen (#104).
+ */
+export function ScreenSurface({
+  pin,
+  view,
+  socket,
+  role,
+  sound = true,
+}: {
+  pin: string;
+  view: GameView;
+  socket: GameSocket | null;
+  role: ScreenRole;
+  /** Whether a `follow` copy plays the sound (the others decide by their role). */
+  sound?: boolean;
+}) {
   const { t } = useTranslation('live');
-  const { view, socket } = useGameSession(pin, 'spectator');
+  const playMedia = role === 'lead';
   // The projection tells the room where it is in the sound (the playheads elsewhere follow).
   const questionIndex = view.question?.questionIndex ?? -1;
   const sayPosition = useCallback(
@@ -64,17 +125,18 @@ export function ScreenView({ pin, playMedia = false }: { pin: string; playMedia?
   // the console hears when it is ready to play.
   useEffect(() => {
     const next = view.preload;
-    if (!playMedia || !next) return;
+    if (role === 'preview' || !next) return;
     let cancelled = false;
     void preloadMedia(next.media, next.images).then(() => {
-      if (!cancelled && waitedFor(next.media)) {
+      // A copy fetches ahead too, but is never waited for: it says nothing.
+      if (!cancelled && playMedia && waitedFor(next.media)) {
         socket?.emit('media:ready', { pin, questionIndex: next.questionIndex });
       }
     });
     return () => {
       cancelled = true;
     };
-  }, [playMedia, view.preload, socket, pin]);
+  }, [role, playMedia, view.preload, socket, pin]);
   const { ref, isFullscreen, toggle, supported } = useFullscreen<HTMLDivElement>();
   const remaining = useGameRemaining(view);
   // Listen first: until the media has played, the count is to the answers' opening.
@@ -207,6 +269,13 @@ export function ScreenView({ pin, playMedia = false }: { pin: string; playMedia?
     );
   } else if ((view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && view.question) {
     const visual = !!view.question.media?.visual;
+    // A copy hears the question only when asked to (a remote participant) and when
+    // its sound is meant for remote devices.
+    const copyHears =
+      role === 'follow' &&
+      sound &&
+      !!view.question.audioTarget &&
+      playsSound(view.question.audioTarget, 'remote');
     // Nobody scrolls a projector: the page is the screen's height, the answers keep
     // their room and the picture takes what is left (#92).
     body = (
@@ -241,11 +310,20 @@ export function ScreenView({ pin, playMedia = false }: { pin: string; playMedia?
           <QuestionMediaStage
             key={view.question.questionIndex}
             media={view.question.media}
-            mode={!playMedia || view.nav?.review ? 'still' : view.paused ? 'pause' : 'play'}
+            mode={role === 'preview' || view.nav?.review ? 'still' : view.paused ? 'pause' : 'play'}
+            // A copy plays the sound only when asked (a remote participant), and only
+            // when the question's sound is for remote devices.
+            audible={role !== 'follow' || copyHears}
             className={visual ? 'min-h-[6em] flex-1' : 'shrink-0'}
             boxClassName={visual ? 'aspect-auto h-full min-h-0 w-full flex-1' : undefined}
             resumeKey={playMedia ? `${pin}:${view.question.questionIndex}` : null}
-            follow={playMedia ? undefined : followed(view, view.question.questionIndex)}
+            // The projection plays on its own; the console's tab draws its position; a copy
+            // that plays the sound starts on the common instant and catches up with it,
+            // as a remote participant's phone does.
+            follow={
+              playMedia || copyHears ? undefined : followed(view, view.question.questionIndex)
+            }
+            catchUp={role === 'follow' ? followed(view, view.question.questionIndex) : undefined}
             onPosition={playMedia ? sayPosition : undefined}
             startAt={view.question.mediaStartAt ?? null}
             restartSignal={
@@ -341,7 +419,10 @@ export function ScreenView({ pin, playMedia = false }: { pin: string; playMedia?
       {fullscreenBtn}
       {/* A quiz with sound asks for the unlocking click as soon as this window opens,
           whatever the moment of the session; a silent quiz never asks. */}
-      {playMedia && !soundUnlocked && view.quizHasSound && view.state !== 'ENDED' ? (
+      {(playMedia || (role === 'follow' && sound)) &&
+      !soundUnlocked &&
+      view.quizHasSound &&
+      view.state !== 'ENDED' ? (
         <SoundUnlockOverlay />
       ) : null}
       {view.nav?.review ? (

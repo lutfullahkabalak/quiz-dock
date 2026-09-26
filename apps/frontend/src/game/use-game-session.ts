@@ -207,7 +207,8 @@ const PER_QUIZ: Partial<GameView> = {
  * Le rôle `player` n'émet rien tant qu'aucune session locale n'existe (`no-session`
  * → écran Rejoindre) ; `markJoined` est appelé par le formulaire après un join réussi.
  */
-export function useGameSession(pin: string, role: LiveRole) {
+export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boolean } = {}) {
+  const follow = opts.follow === true;
   const { t } = useTranslation('live');
   const [view, setView] = useState<GameView>(INITIAL);
   const socketRef = useRef<GameSocket | null>(null);
@@ -398,7 +399,7 @@ export function useGameSession(pin: string, role: LiveRole) {
             if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
           });
         } else if (role === 'spectator') {
-          sock.emit('spectator:join', { pin }, (res: { ok: boolean }) => {
+          sock.emit('spectator:join', { pin, follow }, (res: { ok: boolean }) => {
             if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
           });
         } else {
@@ -457,7 +458,7 @@ export function useGameSession(pin: string, role: LiveRole) {
       s.off('notice', onNotice);
       s.off('kicked', onKicked);
     };
-  }, [pin, role, t]);
+  }, [pin, role, follow, t]);
 
   /** Joueur : à appeler après un `player:join` réussi pour quitter `no-session`. */
   const markJoined = () => setView((prev) => ({ ...prev, status: 'ready' }));

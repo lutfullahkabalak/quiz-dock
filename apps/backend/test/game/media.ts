@@ -439,6 +439,9 @@ export function mediaTests(ctx: GameContext): void {
 
       const screen = connect();
       await screen.emitWithAck('spectator:join', { pin });
+      // A participant's copy of the projection (#104) is never waited for.
+      const copy = connect();
+      await copy.emitWithAck('spectator:join', { pin, follow: true });
       const room = connect();
       await room.emitWithAck('player:join', { pin, nickname: 'Ada' });
       const remote = connect();
@@ -481,6 +484,10 @@ export function mediaTests(ctx: GameContext): void {
     const atPlayer = new Promise((resolve) => player.once('media:position', resolve));
 
     player.emit('media:position', { pin, questionIndex: 0, t: 9, playing: true }); // ignored
+    // A participant's copy of the projection follows; it never speaks for the sound (#104).
+    const copy = connect();
+    await copy.emitWithAck('spectator:join', { pin, follow: true });
+    copy.emit('media:position', { pin, questionIndex: 0, t: 7, playing: true }); // ignored
     screen.emit('media:position', { pin, questionIndex: 0, t: 1.5, playing: true });
     expect(await atPlayer).toEqual({ questionIndex: 0, t: 1.5, playing: true });
     await settle();

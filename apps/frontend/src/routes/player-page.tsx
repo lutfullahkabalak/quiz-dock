@@ -1,6 +1,21 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { type PlayerPresence, playsSound } from '@quiz-dock/contracts';
-import { Check, LogIn, LogOut, Shuffle, Users, Volume2, VolumeX, Wifi } from 'lucide-react';
+import {
+  Check,
+  ListChecks,
+  LogIn,
+  LogOut,
+  MonitorPlay,
+  Share2,
+  Shuffle,
+  Users,
+  Volume2,
+  VolumeX,
+  Wifi,
+} from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { APP_NAME } from '../config';
+import { ScreenSurface } from './screen-page';
 import { type FormEvent, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -86,6 +101,10 @@ export function PlayerPage() {
     setMuted(!muted);
     saveMuted(!muted);
   };
+  // The big screen on this phone (#104), in place of the answers, and back.
+  const [showScreen, setShowScreen] = useState(false);
+  // "Share the projection": the link once copied (and its QR code) when the phone cannot share.
+  const [sharedLink, setSharedLink] = useState<string | null>(null);
   // Leaving on purpose: the seat and the score are gone, so it is confirmed first.
   const [confirmLeave, setConfirmLeave] = useState(false);
   const navigate = useNavigate();
@@ -221,6 +240,25 @@ export function PlayerPage() {
     }
   };
 
+  /** Shares the projection's copy: the share sheet where there is one, else the link copied and its QR code. */
+  const shareProjection = async () => {
+    const remoteHere = view.players.find((p) => p.playerId === myId)?.presence === 'remote';
+    const url = `${window.location.origin}/join/${pin}/screen${remoteHere ? '?sound=1' : ''}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: t('player.shareProjectionTitle', { appName: APP_NAME }),
+          url,
+        });
+        return;
+      }
+      await navigator.clipboard?.writeText(url);
+    } catch {
+      /* cancelled or refused: the QR code below still carries it */
+    }
+    setSharedLink(url);
+  };
+
   const submit = (answer: string | string[] | number) => {
     setSubmitted(true);
     socket?.emit('player:submit', { pin, questionIndex: view.questionIndex, answer });
@@ -340,6 +378,18 @@ export function PlayerPage() {
             >
               <LogOut className="size-4" />
               {t('player.leave')}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8"
+              aria-pressed={showScreen}
+              aria-label={showScreen ? t('player.showAnswers') : t('player.showScreen')}
+              title={showScreen ? t('player.showAnswers') : t('player.showScreen')}
+              onClick={() => setShowScreen(!showScreen)}
+            >
+              {showScreen ? <ListChecks className="size-4" /> : <MonitorPlay className="size-4" />}
             </Button>
             {hears ? (
               <Button
@@ -470,6 +520,23 @@ export function PlayerPage() {
           {t('player.kickedDescription', { count: view.kicked.minutes })}
         </p>
       </>,
+    );
+  }
+
+  // The big screen on this phone (#104): the projection as it is, from this
+  // participant's own session — the sound only where it would play here anyway.
+  if (showScreen && view.state && view.state !== 'ENDED') {
+    return (
+      <div className="-mx-4 -my-4 min-h-[calc(100dvh-4rem)]">
+        {participantBar}
+        <ScreenSurface
+          pin={pin}
+          view={view}
+          socket={socket}
+          role="follow"
+          sound={presence === 'remote' && !muted}
+        />
+      </div>
     );
   }
 
@@ -781,6 +848,32 @@ export function PlayerPage() {
             </Button>
           ) : null}
           <p className="text-muted-foreground border-t pt-2 text-sm">{trackingNotice(t, view)}</p>
+          {/* The whole question, big, on a tablet or a computer (#104). The link
+              carries the PIN, never this participant's seat. */}
+          <div className="flex w-full flex-col items-center gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void shareProjection()}
+            >
+              <Share2 className="size-4" />
+              {t('player.shareProjection')}
+            </Button>
+            <p className="text-muted-foreground text-xs">{t('player.shareProjectionHint')}</p>
+            {sharedLink ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="rounded-md bg-white p-2">
+                  <QRCodeSVG
+                    value={sharedLink}
+                    size={120}
+                    aria-label={t('player.shareProjection')}
+                  />
+                </div>
+                <p className="text-muted-foreground text-xs">{t('player.projectionLinkCopied')}</p>
+              </div>
+            ) : null}
+          </div>
         </CardContent>
       </Card>
       {/* The host moved on while they were rating the quiz just played: it stays open. */}

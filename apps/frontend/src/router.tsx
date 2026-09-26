@@ -10,7 +10,7 @@ import { LandingPage } from './routes/landing-page';
 import { LoginPage } from './routes/login-page';
 import { PlayerPage } from './routes/player-page';
 import { PreviewPage } from './routes/preview-page';
-import { ScreenPage } from './routes/screen-page';
+import { FollowScreenPage, ScreenPage } from './routes/screen-page';
 import { SessionDetailPage, SessionPlayerPage, SessionsPage } from './routes/sessions-page';
 import { LivePage } from './routes/live-page';
 import { ProfilePage } from './routes/profile-page';
@@ -238,6 +238,17 @@ export const joinWithPinRoute = createRoute({
   component: PlayerPage,
 });
 
+/**
+ * A participant's copy of the projection on a device of their own (#104): the
+ * same access rules as joining; `?sound=1` when it plays the sound.
+ */
+export const joinScreenRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/join/$pin/screen',
+  beforeLoad: requireAuthWhenOidc,
+  component: FollowScreenPage,
+});
+
 /** The instance's media, for administrators (#54). */
 export const adminMediaRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -267,6 +278,7 @@ export const routeTree = rootRoute.addChildren([
   sessionRedirectRoute,
   joinRoute,
   joinWithPinRoute,
+  joinScreenRoute,
   ...legacyRedirects,
 ]);
 

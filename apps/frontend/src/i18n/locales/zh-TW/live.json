@@ -249,7 +249,13 @@
     "listening": "正在收聽",
     "roomRank": "房間內：#{{rank}} — {{score}} 分",
     "waitingNextQuiz": "等待下一個測驗…",
-    "enableSound": "開啟聲音"
+    "enableSound": "開啟聲音",
+    "showScreen": "顯示大螢幕",
+    "showAnswers": "返回我的作答",
+    "shareProjection": "分享投影",
+    "shareProjectionHint": "在平板或電腦上開啟：完整的題目，大字顯示。",
+    "projectionLinkCopied": "連結已複製 — 或用另一台裝置掃描此碼。",
+    "shareProjectionTitle": "{{appName}} — 投影"
   },
   "reveal": {
     "explanation": "解析",

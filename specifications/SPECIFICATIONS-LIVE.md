@@ -240,7 +240,7 @@ implemented.
 Each `GameState` (technique §8) binds to a rendering and to the events that drive it.
 The wireframes (UI §3–§5) give the *look*; this matrix gives the *binding*.
 
-| State | Control (host) | Projection (spectator) | Player | Triggering events |
+| State | Control (host) | Projection (spectator; a participant's copy follows it, #104) | Player | Triggering events |
 |---|---|---|---|---|
 | `LOBBY` | the player list + the session options (full capture, personalised tracking, chosen display name) + **Start**; in a room (#89) also **Change quiz** and the room's standings | PIN/QR + the player list (UI §4.1); in a room, the next quiz's title and the room's standings | "You are in the game" (UI §5.2); in a room, their rank in it, "Waiting for the next quiz", the last quiz still to rate, **Enable sound** when the next quiz has some | `player:joined`/`left`, `room:standings`, `game:media` |
 | `QUESTION_SHOW`* | question number + prompt | prompt + media, **answers hidden** | a minimal prompt, the grid **locked** | `question:start` (the reading window, `startedAt` in the future) |
