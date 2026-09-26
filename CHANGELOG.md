@@ -25,6 +25,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The projection on a participant's device in unreleased *(changelog)*
 - The room on screen in unreleased *(changelog)*
 - The next quiz's picker is a small index *(ui)*
 - The room in history in unreleased *(changelog)*
@@ -59,6 +60,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- "Ready!" in the lobby, and one count for the host *(live)*
 - The projection on a participant's own device *(live)*
 - A room of its own name, not the quiz's *(live)*
 - The next quiz picked from a small index of the host's quizzes *(live)*
