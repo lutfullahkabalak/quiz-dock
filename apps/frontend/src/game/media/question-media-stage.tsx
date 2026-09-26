@@ -4,7 +4,8 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { applyGain, unlockAudio, useAudioUnlocked } from './audio-unlock';
+import { routeElement } from './audio-mixer';
+import { unlockAudio, useAudioUnlocked } from './audio-unlock';
 import { releaseMedia, takeMedia } from './media-pool';
 import { clearPosition, readPosition, resumeAt, writePosition } from './media-position';
 import { Waveform } from './waveform';
@@ -151,7 +152,7 @@ function usePlayback(
     const start = async () => {
       if (silent) el.muted = true;
       else if (unlocked && el.muted) el.muted = false; // the video that went on muted gets its sound
-      await applyGain(el, gainDb);
+      await routeElement(el, gainDb);
       if (!cancelled) await el.play();
       if (!cancelled) setBlocked(null);
     };
@@ -187,7 +188,7 @@ function usePlayback(
     if (!el) return;
     await unlockAudio();
     el.muted = false;
-    await applyGain(el, gainDb);
+    await routeElement(el, gainDb);
     try {
       await el.play();
       setBlocked(null);

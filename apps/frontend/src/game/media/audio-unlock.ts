@@ -69,32 +69,3 @@ export function useAudioUnlocked(): boolean {
     () => false,
   );
 }
-
-/**
- * Routes a media element through a gain (the loudness correction) when the
- * context runs; otherwise leaves it alone — a suspended context would silence
- * it. An element can be routed once in its life, which is all it needs.
- */
-const routed = new WeakMap<HTMLMediaElement, GainNode>();
-
-export async function applyGain(el: HTMLMediaElement, gainDb: number): Promise<void> {
-  const existing = routed.get(el);
-  const linear = 10 ** (gainDb / 20);
-  if (existing) {
-    existing.gain.value = linear;
-    return;
-  }
-  const ctx = gainDb === 0 ? null : audioContext();
-  if (!ctx) return;
-  // Another click in this window (the fullscreen button) unlocked sound too: wake the context.
-  if (ctx.state === 'suspended' && isAudioUnlocked()) await ctx.resume().catch(() => undefined);
-  if (ctx.state !== 'running') return;
-  try {
-    const gain = ctx.createGain();
-    gain.gain.value = linear;
-    ctx.createMediaElementSource(el).connect(gain).connect(ctx.destination);
-    routed.set(el, gain);
-  } catch {
-    // Already routed elsewhere, or not allowed: it plays at its own level.
-  }
-}
