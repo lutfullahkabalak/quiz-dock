@@ -216,6 +216,9 @@ interface sounds (to come) ───────────────► UI  
 - **Sources**: the effects are synthesised in the browser (no file, no licence); a host may replace one by a sound of
   their media library. The background track is always a sound of the library. Nothing is bundled.
 - **Settings**: the MUSIC and SFX levels are the room's (the lobby); QUIZ stays at its normalised level.
+- **Fades**: no source starts or stops on a cut. A question's media fades in (~60 ms) at each start or resume and
+  out (~120 ms) before a pause; a host's seek fades out, jumps, fades back in. A sample comes in from silence (~60 ms)
+  and leaves with a fade; the background track in and out over ~0.8 s.
 
 ### 9.1 The game's sounds (#93)
 
