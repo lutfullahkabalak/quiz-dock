@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import type { Socket } from 'socket.io-client';
 import { MediaService } from '../../src/media/media.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { type GameContext, type GameHarness, settle } from '../game-harness';
+import { type GameContext, type GameHarness, nextEvent, settle } from '../game-harness';
 
 /** Sound and video: what each device receives, remote play, who hears the sound, readiness, synchronised start, listen first, media administration. */
 export function mediaTests(ctx: GameContext): void {
@@ -476,8 +476,13 @@ export function mediaTests(ctx: GameContext): void {
         pressed: true,
       });
       // In the room, nothing to load: saying so is enough.
+      const counted = nextEvent<{ ready: number; total: number }>(remote, 'lobby:count', {
+        where: (c: { ready: number }) => c.ready === 2,
+      });
       await room.emitWithAck('player:ready', { pin, ready: true });
       r = await until((x) => x.ready === 2);
+      // The participants hear the count alone: who said they are ready, not whose media.
+      expect(await counted).toEqual({ ready: 2, total: 2 });
       // Changing one's mind counts too.
       await room.emitWithAck('player:ready', { pin, ready: false });
       r = await until((x) => x.ready === 1);
@@ -725,11 +730,12 @@ export function mediaTests(ctx: GameContext): void {
       expect(start.endsAt - start.startedAt).toBe(5000);
 
       // An answer while the sound still plays is refused.
-      const early = new Promise<{ accepted: boolean }>((resolve) =>
+      const early = new Promise<{ accepted: boolean; reason?: string }>((resolve) =>
         player.once('answer:ack', resolve),
       );
       player.emit('player:submit', { pin, questionIndex: 0, answer: start.options[0].id });
-      expect((await early).accepted).toBe(false);
+      // Refused with its reason, so the phone asks again instead of showing it saved.
+      expect(await early).toMatchObject({ accepted: false, reason: 'early' });
       host.emit('host:end', { pin });
     } finally {
       await prisma.quiz.delete({ where: { id: quiz.id } });

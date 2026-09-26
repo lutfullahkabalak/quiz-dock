@@ -71,6 +71,9 @@ const view = (partial: Partial<GameView>): GameView => ({
   feedbackEnabled: true,
   players: [],
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
+  lobbyCount: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -221,6 +224,36 @@ describe('PlayerPage (client participant)', () => {
         pin: '771122',
         ready: true,
       });
+    });
+
+    it('once ready, tells what the room waits for: the quiz to come and who is ready', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({
+        state: GameState.Lobby,
+        youReady: true,
+        quizTitle: 'Capitales',
+        lobbyCount: { ready: 2, total: 5 },
+      });
+      renderApp('/join/771122');
+      expect(await screen.findByText(/À suivre : Capitales/)).toBeInTheDocument();
+      expect(screen.getByText(/5 joueurs dans le salon/)).toBeInTheDocument();
+      expect(screen.getByText(/2 sur 5 prêts/)).toBeInTheDocument();
+    });
+
+    it('a new avatar stays a draft until saved: the top bar keeps the room’s, Cancel goes back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      await screen.findByText(/Tu es dans le salon/);
+      const topbarAvatar = () =>
+        document.getElementById('participant-topbar')?.querySelector('svg, img')?.outerHTML;
+      const before = topbarAvatar();
+      expect(before).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: /Avatar aléatoire/ }));
+      expect(topbarAvatar()).toBe(before);
+      expect(fakeSocket.emit).not.toHaveBeenCalledWith('player:avatar', expect.anything());
+      fireEvent.click(screen.getByRole('button', { name: 'Garder l’avatar actuel' }));
+      expect(screen.queryByRole('button', { name: 'Garder l’avatar actuel' })).toBeNull();
     });
 
     it('once ready, waits for the host and can take it back', async () => {
@@ -498,6 +531,35 @@ describe('PlayerPage (client participant)', () => {
       answer: 'opt-paris',
     });
     expect(await screen.findByText(/Réponse enregistrée/)).toBeInTheDocument();
+  });
+
+  it('a refused answer is never shown as saved: too late, it says so; too early, the tiles come back', async () => {
+    const answering = (over: Partial<GameView>) =>
+      view({
+        state: GameState.Answering,
+        questionIndex: 0,
+        question: {
+          questionIndex: 0,
+          type: 'single_choice',
+          prompt: 'Capitale ?',
+          options: [PARIS],
+          timeLimitS: 5,
+          basePoints: 1000,
+          startedAt: Date.now(),
+          endsAt: Date.now() + 5000,
+        } as never,
+        ...over,
+      });
+    hookState.value = answering({ answerAccepted: false, answerRefusal: 'late', answerAckAt: 1 });
+    const { unmount } = renderApp('/join/771122');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/trop tard/);
+    expect(screen.queryByText(/Réponse enregistrée/)).toBeNull();
+    unmount();
+
+    hookState.value = answering({ answerAccepted: false, answerRefusal: 'early', answerAckAt: 2 });
+    renderApp('/join/771122');
+    expect(await screen.findByText(/Trop tôt/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Paris/ })).toBeEnabled();
   });
 
   it('multi-réponses : sélectionner plusieurs puis Valider (pas de submit au 1ᵉʳ clic)', async () => {
