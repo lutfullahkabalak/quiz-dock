@@ -14,6 +14,7 @@ import {
   GameState,
   type ParticipantAccess,
   type PlayerPresence,
+  type RoomSoundsSettings,
 } from '@quiz-dock/contracts';
 import { QuizStatus } from '@prisma/client';
 import { allowsAnonymousParticipants, isOidcMode } from '../auth/auth-mode';
@@ -23,6 +24,7 @@ import { normalizeAnswer } from '../questions/dto/question-content.schema';
 import { RedisService } from '../redis/redis.service';
 import { GAME_TTL_S, type GameId, gameKeys } from './game.keys';
 import { type PlayerStats, type SeriesStats, answerStats, sumGames } from './player-stats';
+import { DEFAULT_ROOM_SOUNDS, type RoomSounds } from './game.types';
 import type {
   AnswerRecord,
   GameFields,
@@ -173,6 +175,7 @@ export class GameService {
       joinBaseUrl: '',
       openedAt: Date.now(),
       name: '',
+      sounds: DEFAULT_ROOM_SOUNDS,
       hostName:
         (
           await this.prisma.user.findUnique({
@@ -542,6 +545,44 @@ export class GameService {
     return { quizzesPlayed: games.length, ranked };
   }
 
+  /**
+   * The room's game sounds (#93) changed by its host: a sample or a track must
+   * be a sound of theirs or of the instance. Returns what the screens are sent.
+   */
+  async setSounds(pin: string, hostUserId: string, patch: RoomSoundsSettings): Promise<RoomSounds> {
+    const room = await this.getRoom(pin);
+    if (!room) throw new NotFoundException('session.not_found');
+    const next: RoomSounds = { ...room.sounds };
+    if (typeof patch.tick === 'boolean') next.tick = patch.tick;
+    if (typeof patch.gong === 'boolean') next.gong = patch.gong;
+    const level = (v: unknown, fallback: number) =>
+      typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback;
+    next.musicLevel = level(patch.musicLevel, next.musicLevel);
+    next.sfxLevel = level(patch.sfxLevel, next.sfxLevel);
+    for (const [idKey, urlKey] of [
+      ['tickId', 'tickUrl'],
+      ['gongId', 'gongUrl'],
+      ['musicId', 'musicUrl'],
+    ] as const) {
+      const id = patch[idKey];
+      if (id === undefined) continue;
+      if (id === '') {
+        next[idKey] = '';
+        next[urlKey] = null;
+        continue;
+      }
+      const asset = await this.prisma.mediaAsset.findFirst({
+        where: { id, kind: 'audio', OR: [{ ownerId: hostUserId }, { instance: true }] },
+        select: { url: true },
+      });
+      if (!asset) throw new BadRequestException('media.not_found');
+      next[idKey] = id;
+      next[urlKey] = asset.url;
+    }
+    await this.redis.hset(gameKeys.room(pin), { sounds: JSON.stringify(next) });
+    return next;
+  }
+
   /** A player's score in a game (null when they do not play it). */
   async getScore(gameId: GameId, playerId: string): Promise<PlayerScore | null> {
     const raw = await this.redis.hget(gameKeys.scores(gameId), playerId);
@@ -833,6 +874,7 @@ function serializeRoom(room: RoomMeta): Record<string, string> {
     openedAt: String(room.openedAt),
     name: room.name,
     hostName: room.hostName,
+    sounds: JSON.stringify(room.sounds),
   };
 }
 
@@ -851,6 +893,9 @@ function deserializeRoom(raw: Record<string, string>): RoomMeta {
     openedAt: Number(raw.openedAt),
     name: raw.name ?? '',
     hostName: raw.hostName ?? '',
+    sounds: raw.sounds
+      ? { ...DEFAULT_ROOM_SOUNDS, ...(JSON.parse(raw.sounds) as Partial<RoomSounds>) }
+      : DEFAULT_ROOM_SOUNDS,
   };
 }
 

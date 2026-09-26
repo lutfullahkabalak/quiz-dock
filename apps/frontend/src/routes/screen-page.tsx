@@ -21,6 +21,7 @@ import {
   TYPE_BASE,
 } from '../game/live-components';
 import { useAudioUnlocked } from '../game/media/audio-unlock';
+import { useGameSounds } from '../game/media/game-sounds';
 import { preloadMedia, waitedFor } from '../game/media/media-pool';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { ReadinessMeter } from '../game/media/readiness-meter';
@@ -120,6 +121,21 @@ export function ScreenSurface({
     [socket, pin, questionIndex],
   );
   const soundUnlocked = useAudioUnlocked();
+  // The game's sounds (#93): the projection, and a copy that plays the sound for a
+  // remote participant when the room's sound reaches remote devices.
+  const soundsOn =
+    !!view.sounds && (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
+  useGameSounds(
+    view.sounds,
+    {
+      state: view.state,
+      questionIndex: view.questionIndex,
+      answered: view.answerCount?.answered ?? 0,
+      paused: view.paused,
+      media: view.question?.media,
+    },
+    role === 'lead' || (role === 'follow' && sound && view.gameAudioTarget !== 'projection'),
+  );
 
   // In the lobby and while the leaderboard is up, what comes next buffers here;
   // the console hears when it is ready to play.
@@ -421,7 +437,7 @@ export function ScreenSurface({
           whatever the moment of the session; a silent quiz never asks. */}
       {(playMedia || (role === 'follow' && sound)) &&
       !soundUnlocked &&
-      view.quizHasSound &&
+      (view.quizHasSound || soundsOn) &&
       view.state !== 'ENDED' ? (
         <SoundUnlockOverlay />
       ) : null}

@@ -216,3 +216,17 @@ interface sounds (to come) ───────────────► UI  
 - **Sources**: the effects are synthesised in the browser (no file, no licence); a host may replace one by a sound of
   their media library. The background track is always a sound of the library. Nothing is bundled.
 - **Settings**: the MUSIC and SFX levels are the room's (the lobby); QUIZ stays at its normalised level.
+
+### 9.1 The game's sounds (#93)
+
+- **The tick** plays at each new answer while players answer (from `answer:count`), **the gong** when a question moves
+  to its reveal — no event of their own. Both are on in a new room; each can take a sound of the library instead of
+  the synthesised one.
+- **The background track** loops while players answer, never over a question that plays its own sound or video; a
+  pause ducks it (it picks up where it was).
+- **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
+  (`host:sounds`), sent to every screen as URLs and levels (`room:sounds`). A sample or a track must be a sound of the
+  host's or of the instance's; the hourly media sweep keeps what an open room plays.
+- **Played** by the projection, and by a remote participant's phone or copy when the room's audio target reaches
+  remote devices; the participant's mute is the MASTER. Nothing plays before the device's unlocking click: the
+  projection and a remote phone ask for it when the room has game sounds, even for a silent quiz.

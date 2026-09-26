@@ -162,7 +162,24 @@
     "readyCount_one": "Prêts : {{ready}} / {{count}} participant",
     "readyCount_other": "Prêts : {{ready}} / {{count}} participants",
     "participantReady": "Prêt",
-    "participantLoading": "Prêt, médias en chargement"
+    "participantLoading": "Prêt, médias en chargement",
+    "sounds": {
+      "title": "Sons du jeu",
+      "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique se tait quand une question joue son propre son.",
+      "tick": "Tic",
+      "gong": "Gong",
+      "music": "Musique",
+      "off": "Désactivés",
+      "tickLabel": "Un tic à chaque réponse",
+      "gongLabel": "Un gong à la fin de la question",
+      "sample": "Son",
+      "synth": "Intégré (synthétisé)",
+      "musicLabel": "Musique de fond pendant les réponses",
+      "noMusic": "Aucune",
+      "musicLevel": "Musique",
+      "sfxLevel": "Effets",
+      "instanceMedia": "{{name}} (instance)"
+    }
   },
   "screen": {
     "sessionUnavailable": "Salon indisponible.",

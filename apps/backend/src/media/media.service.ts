@@ -26,7 +26,7 @@ import {
 import type { MediaAsset, MediaKind } from '@prisma/client';
 import { GameState, type MediaRejection, sniffMedia } from '@quiz-dock/contracts';
 import { isDemoMode } from '../demo/demo.config';
-import { type GameId, gameKeys } from '../game/game.keys';
+import { type GameId, ROOM_HASH_KEY, gameKeys } from '../game/game.keys';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { parseUploadMeta } from './dto/media-upload-meta';
@@ -735,8 +735,13 @@ export class MediaService implements OnModuleInit {
       games.map((id) => this.redis.hget(gameKeys.game(id), 'state')),
     );
     const live = keys.filter((_k, i) => states[i] && states[i] !== GameState.Ended);
-    if (live.length === 0) return [];
-    return (await this.redis.mget(...live)).filter((v): v is string => typeof v === 'string');
+    const snapshots = live.length
+      ? (await this.redis.mget(...live)).filter((v): v is string => typeof v === 'string')
+      : [];
+    // An open room's game sounds (#93): its track and samples play there too.
+    const rooms = (await this.redis.keys(gameKeys.room('*'))).filter((k) => ROOM_HASH_KEY.test(k));
+    const sounds = await Promise.all(rooms.map((k) => this.redis.hget(k, 'sounds')));
+    return [...snapshots, ...sounds.filter((v): v is string => typeof v === 'string')];
   }
 
   /** A media row, then its file if no other media shares it. */

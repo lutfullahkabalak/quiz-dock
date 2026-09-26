@@ -150,7 +150,37 @@ export interface RoomMeta {
   name: string;
   /** The host's display name when the room opened, for that default. */
   hostName: string;
+  /** The room's game sounds (#93): what the host set, and what the screens are sent. */
+  sounds: RoomSounds;
 }
+
+/** The room's game sounds as kept: the host's choices (media ids) and their URLs. */
+export interface RoomSounds {
+  tick: boolean;
+  gong: boolean;
+  tickId: string;
+  gongId: string;
+  musicId: string;
+  tickUrl: string | null;
+  gongUrl: string | null;
+  musicUrl: string | null;
+  musicLevel: number;
+  sfxLevel: number;
+}
+
+/** A new room's sounds: the tick and the gong on, no track (SPECIFICATIONS-MEDIA §9). */
+export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
+  tick: true,
+  gong: true,
+  tickId: '',
+  gongId: '',
+  musicId: '',
+  tickUrl: null,
+  gongUrl: null,
+  musicUrl: null,
+  musicLevel: 0.5,
+  sfxLevel: 0.8,
+};
 
 /** The room fields, as the game view (`GameMeta`) carries them. */
 export const ROOM_FIELDS = [
@@ -167,6 +197,7 @@ export const ROOM_FIELDS = [
   'openedAt',
   'name',
   'hostName',
+  'sounds',
 ] as const;
 
 /**

@@ -291,7 +291,7 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 | Key | Type | Contents |
 |-----|------|----------|
 | `pin:{pin}` | String | The room id; atomic allocation (`SET NX`), guarantees the PIN's **uniqueness** *(RG-04)*. Deleted when the room closes. |
-| `room:{pin}` | Hash | `roomId`, `hostUserId`, `gameId` (the game it plays), `name` (its own name, '' = "<host>'s room"), `hostName`, `fullCapture`, `personalTracking`, `pickOwnName`, `participantAccess`, `joinLocked`, `joinBaseUrl`, `openedAt` — what the players were told when they came in. |
+| `room:{pin}` | Hash | `roomId`, `hostUserId`, `gameId` (the game it plays), `name` (its own name, '' = "<host>'s room"), `hostName`, `sounds` (JSON: the game's sounds, #93), `fullCapture`, `personalTracking`, `pickOwnName`, `participantAccess`, `joinLocked`, `joinBaseUrl`, `openedAt` — what the players were told when they came in. |
 | `room:{pin}:players` | Hash `playerId → JSON` | Who each player is: `nickname`, `avatar`, `userId` (null = a guest), `connected`, `joinedAt`, `latencyMs`, `presence`. No score: it belongs to each game. |
 | `room:{pin}:nicknames` | Set | The normalized nicknames (atomic deduplication). |
 | `room:{pin}:ban:{nickname}` | String | A banned normalized nickname; the key's TTL is the ban's length *(RG-12)*. |

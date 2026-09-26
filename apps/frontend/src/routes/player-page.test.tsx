@@ -21,6 +21,9 @@ vi.mock('../game/media/media-pool', () => ({
 vi.mock('../game/media/audio-unlock', () => ({
   unlockAudio: () => Promise.resolve(true),
   useAudioUnlocked: () => true,
+  // No Web Audio here: the mixer builds nothing and every sound call is a no-op.
+  audioContext: () => null,
+  isAudioUnlocked: () => true,
 }));
 // The stage plays real media elements; here it only says how it was asked to play.
 vi.mock('../game/media/question-media-stage', () => ({
@@ -93,6 +96,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   nav: null,
   joinBaseUrl: null,
   youReady: false,
+  sounds: null,
   roomName: null,
   hostName: null,
   standings: null,

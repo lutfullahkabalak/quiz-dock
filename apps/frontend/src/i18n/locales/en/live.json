@@ -162,7 +162,24 @@
     "readyCount_one": "Ready: {{ready}} / {{count}} participant",
     "readyCount_other": "Ready: {{ready}} / {{count}} participants",
     "participantReady": "Ready",
-    "participantLoading": "Ready, loading the media"
+    "participantLoading": "Ready, loading the media",
+    "sounds": {
+      "title": "Game sounds",
+      "hint": "Played by the projection and by participants following from home, never by phones in the room. The track stops while a question plays its own sound.",
+      "tick": "Tick",
+      "gong": "Gong",
+      "music": "Music",
+      "off": "Off",
+      "tickLabel": "A tick at each answer",
+      "gongLabel": "A gong when the question ends",
+      "sample": "Sound",
+      "synth": "Built-in (synthesised)",
+      "musicLabel": "Background track while players answer",
+      "noMusic": "None",
+      "musicLevel": "Music",
+      "sfxLevel": "Effects",
+      "instanceMedia": "{{name}} (instance)"
+    }
   },
   "screen": {
     "sessionUnavailable": "Room unavailable.",

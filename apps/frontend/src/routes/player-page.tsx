@@ -60,6 +60,8 @@ import {
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
 import { followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
+import { setMasterMuted } from '../game/media/audio-mixer';
+import { useGameSounds } from '../game/media/game-sounds';
 import { roomLabel } from '../game/room-components';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
@@ -138,6 +140,27 @@ export function PlayerPage() {
   // (la même que sur le podium, la projection et la console) — un rechargement
   // sans graine locale ou un choix non enregistré ne doivent pas diverger.
   const myId = loadPlayerSession()?.playerId;
+  const remoteHere = view.players.find((p) => p.playerId === myId)?.presence === 'remote';
+  // The game's sounds (#93) on a remote phone, when the room's sound reaches remote
+  // devices; on the big screen view (#104), the projection's surface plays them.
+  const gameSoundsHere =
+    remoteHere &&
+    view.gameAudioTarget !== 'projection' &&
+    !!view.sounds &&
+    (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
+  useGameSounds(
+    view.sounds,
+    {
+      state: view.state,
+      questionIndex: view.questionIndex,
+      answered: view.answerCount?.answered ?? 0,
+      paused: view.paused,
+      media: view.question?.media,
+    },
+    gameSoundsHere && !showScreen,
+  );
+  // The participant's own mute: the whole page (the question, the track, the effects).
+  useEffect(() => setMasterMuted(muted), [muted]);
   const serverAvatar = view.players.find((p) => p.playerId === myId)?.avatar;
   const inLobby = view.state === null || view.state === 'LOBBY';
   const avatarName =
@@ -848,7 +871,7 @@ export function PlayerPage() {
           </p>
           {/* The next quiz plays sound and this device never enabled it (it joined a
             silent one): the tap is the only way a phone lets it play later. */}
-          {view.quizHasSound && !soundReady ? (
+          {(view.quizHasSound || gameSoundsHere) && !soundReady ? (
             <Button type="button" variant="outline" size="sm" onClick={claimSound}>
               <Volume2 className="size-4" />
               {t('player.enableSound')}

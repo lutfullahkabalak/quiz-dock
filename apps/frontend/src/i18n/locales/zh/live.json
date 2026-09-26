@@ -162,7 +162,24 @@
     "readyCount_one": "已就绪：{{ready}} / {{count}} 名参与者",
     "readyCount_other": "已就绪：{{ready}} / {{count}} 名参与者",
     "participantReady": "已就绪",
-    "participantLoading": "已就绪，媒体加载中"
+    "participantLoading": "已就绪，媒体加载中",
+    "sounds": {
+      "title": "游戏音效",
+      "hint": "由投影和远程参与者播放，房间内的手机不播放。题目自带声音时，背景音乐会停止。",
+      "tick": "滴答",
+      "gong": "锣声",
+      "music": "音乐",
+      "off": "关闭",
+      "tickLabel": "每次作答时滴答一声",
+      "gongLabel": "题目结束时敲锣",
+      "sample": "声音",
+      "synth": "内置（合成）",
+      "musicLabel": "作答时的背景音乐",
+      "noMusic": "无",
+      "musicLevel": "音乐",
+      "sfxLevel": "音效",
+      "instanceMedia": "{{name}}（实例）"
+    }
   },
   "screen": {
     "sessionUnavailable": "房间不可用。",

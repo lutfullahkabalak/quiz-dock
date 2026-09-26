@@ -18,6 +18,7 @@ import type {
   QuestionRevealPayload,
   QuestionStartPayload,
   QuestionTimePayload,
+  RoomSoundsPayload,
   RoomStandingsPayload,
   SessionNotice,
   SlideShowPayload,
@@ -117,6 +118,8 @@ export interface GameView {
   gameAudioTarget: AudioTarget | null;
   /** Host navigation over played steps (`game:state.nav`); `review` = a past step is on screen. */
   nav: { prev: GameStep | null; next: GameStep | null; review: boolean } | null;
+  /** The room's game sounds (#93); null until told. */
+  sounds: RoomSoundsPayload | null;
   /** Whether this participant said they are ready in the lobby (#104). */
   youReady: boolean;
   /** The room's own name (null = the default, "<host>'s room") and its host's name. */
@@ -174,6 +177,7 @@ const INITIAL: GameView = {
   mediaWait: null,
   nav: null,
   youReady: false,
+  sounds: null,
   roomName: null,
   hostName: null,
   standings: null,
@@ -319,6 +323,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       });
     const onStandings = (p: RoomStandingsPayload) => patch({ standings: p });
     const onLobbyYou = (p: { ready: boolean }) => patch({ youReady: p.ready });
+    const onSounds = (p: RoomSoundsPayload) => patch({ sounds: p });
     const onRoomInfo = (p: { name: string | null; hostName: string }) =>
       patch({ roomName: p.name, hostName: p.hostName });
     const onMediaControl = (p: { questionIndex: number; action: 'restart' }) =>
@@ -391,6 +396,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       sock.on('room:standings', onStandings);
       sock.on('room:info', onRoomInfo);
       sock.on('lobby:you', onLobbyYou);
+      sock.on('room:sounds', onSounds);
       sock.on('game:ended', onEnded);
       sock.on('notice', onNotice);
       sock.on('kicked', onKicked);
@@ -461,6 +467,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       s.off('room:standings', onStandings);
       s.off('room:info', onRoomInfo);
       s.off('lobby:you', onLobbyYou);
+      s.off('room:sounds', onSounds);
       s.off('game:ended', onEnded);
       s.off('notice', onNotice);
       s.off('kicked', onKicked);

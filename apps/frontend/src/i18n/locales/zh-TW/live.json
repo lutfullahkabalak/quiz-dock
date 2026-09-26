@@ -162,7 +162,24 @@
     "readyCount_one": "已就緒：{{ready}} / {{count}} 名參與者",
     "readyCount_other": "已就緒：{{ready}} / {{count}} 名參與者",
     "participantReady": "已就緒",
-    "participantLoading": "已就緒，媒體載入中"
+    "participantLoading": "已就緒，媒體載入中",
+    "sounds": {
+      "title": "遊戲音效",
+      "hint": "由投影和遠端參與者播放，房間內的手機不播放。題目自帶聲音時，背景音樂會停止。",
+      "tick": "滴答",
+      "gong": "鑼聲",
+      "music": "音樂",
+      "off": "關閉",
+      "tickLabel": "每次作答時滴答一聲",
+      "gongLabel": "題目結束時敲鑼",
+      "sample": "聲音",
+      "synth": "內建（合成）",
+      "musicLabel": "作答時的背景音樂",
+      "noMusic": "無",
+      "musicLevel": "音樂",
+      "sfxLevel": "音效",
+      "instanceMedia": "{{name}}（執行個體）"
+    }
   },
   "screen": {
     "sessionUnavailable": "房間無法使用。",

@@ -162,7 +162,24 @@
     "readyCount_one": "Listos: {{ready}} / {{count}} participante",
     "readyCount_other": "Listos: {{ready}} / {{count}} participantes",
     "participantReady": "Listo",
-    "participantLoading": "Listo, cargando los medios"
+    "participantLoading": "Listo, cargando los medios",
+    "sounds": {
+      "title": "Sonidos del juego",
+      "hint": "Los reproducen la proyección y los participantes a distancia, nunca los teléfonos de la sala. La música se calla cuando una pregunta tiene su propio sonido.",
+      "tick": "Tic",
+      "gong": "Gong",
+      "music": "Música",
+      "off": "Desactivados",
+      "tickLabel": "Un tic con cada respuesta",
+      "gongLabel": "Un gong al final de la pregunta",
+      "sample": "Sonido",
+      "synth": "Integrado (sintetizado)",
+      "musicLabel": "Música de fondo mientras responden",
+      "noMusic": "Ninguna",
+      "musicLevel": "Música",
+      "sfxLevel": "Efectos",
+      "instanceMedia": "{{name}} (instancia)"
+    }
   },
   "screen": {
     "sessionUnavailable": "Sala no disponible.",

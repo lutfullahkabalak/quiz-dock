@@ -56,6 +56,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   nav: null,
   joinBaseUrl: null,
   youReady: false,
+  sounds: null,
   roomName: null,
   hostName: null,
   standings: null,
