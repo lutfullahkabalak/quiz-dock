@@ -3272,7 +3272,8 @@
                   "enum": [
                     "S",
                     "M",
-                    "L"
+                    "L",
+                    "hidden"
                   ]
                 },
                 "timerAfterMedia": {
@@ -5824,7 +5825,8 @@
             "enum": [
               "S",
               "M",
-              "L"
+              "L",
+              "hidden"
             ]
           },
           "timerAfterMedia": {
@@ -6182,7 +6184,8 @@
             "enum": [
               "S",
               "M",
-              "L"
+              "L",
+              "hidden"
             ]
           },
           "timerAfterMedia": {
@@ -6602,7 +6605,8 @@
             "enum": [
               "S",
               "M",
-              "L"
+              "L",
+              "hidden"
             ]
           },
           "timerAfterMedia": {

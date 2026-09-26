@@ -15,7 +15,7 @@ import { QUESTION_MEDIA_INCLUDE } from '../../questions/question-media';
 import { type SlideContent, slideContentSchema } from '../../slides/dto/slide-content.schema';
 import {
   BUNDLE_FORMAT,
-  BUNDLE_VERSION,
+  bundleVersionOf,
   type QuestionBundleItem,
   type QuizBundle,
   type BundleMediaMeta,
@@ -212,7 +212,7 @@ export function toBundle(
   for (const s of slidesBefore.get(null) ?? []) items.push(slideOut(s, pathFor));
   return {
     format: BUNDLE_FORMAT,
-    version: BUNDLE_VERSION,
+    version: bundleVersionOf(items),
     quiz: {
       slug: slugOf(quiz),
       namespace: quiz.namespace,

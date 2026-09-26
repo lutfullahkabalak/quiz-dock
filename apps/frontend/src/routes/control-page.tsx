@@ -661,6 +661,7 @@ export function ControlPage() {
           }
           mode="still"
           follow={view.question ? followed(view, view.question.questionIndex) : null}
+          showHiddenWaveform
           boxClassName="h-56"
         />
         {steerable && view.question?.media ? (

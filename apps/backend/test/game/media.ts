@@ -138,6 +138,56 @@ export function mediaTests(ctx: GameContext): void {
     }
   }, 15_000);
 
+  it('a waveform hidden from the screens is stored and sent as such (manifest v4)', async () => {
+    const asset = await prisma.mediaAsset.create({
+      data: {
+        ownerId: hostUserId,
+        url: '/api/v1/media/hidden-wave-test',
+        mime: 'audio/mpeg',
+        sizeBytes: 1n,
+        kind: 'audio',
+        durationMs: 2000,
+        peaks: new Array(200).fill(0.5),
+      },
+    });
+    const quiz = await h.seedQuiz({
+      title: 'Hidden waveform test',
+      status: 'ready',
+      questionCount: 1,
+      questions: {
+        create: {
+          orderIndex: 0,
+          type: 'single_choice',
+          prompt: 'Which tune?',
+          timeLimitS: 5,
+          audioMediaId: asset.id,
+          waveformSize: 'hidden',
+          options: {
+            create: [
+              { orderIndex: 0, text: 'A', color: 'red', shape: 'triangle', isCorrect: true },
+              { orderIndex: 1, text: 'B', color: 'blue', shape: 'diamond' },
+            ],
+          },
+        },
+      },
+    });
+    try {
+      const host = connect({ localUser: 'Animateur' });
+      const { pin } = await host.emitWithAck('host:create', { quizId: quiz.id });
+      const screen = connect();
+      await screen.emitWithAck('spectator:join', { pin });
+      const q = new Promise<{ media?: { audio?: { size?: string } } }>((resolve) =>
+        screen.once('question:start', resolve),
+      );
+      host.emit('host:start', { pin });
+      expect((await q).media?.audio?.size).toBe('hidden');
+      host.emit('host:end', { pin });
+    } finally {
+      await prisma.quiz.delete({ where: { id: quiz.id } });
+      await prisma.mediaAsset.delete({ where: { id: asset.id } });
+    }
+  }, 15_000);
+
   it("keeps the instance's media administration from a host (#54)", async () => {
     const res = await fetch(url.replace(/\/game$/, '/admin/media/overview'), {
       headers: { 'X-Local-User': 'Animateur' },

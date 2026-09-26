@@ -122,6 +122,7 @@ enum WaveformSize {
   S
   M
   L
+  hidden
 }
 
 /// Which devices play a question's sound (see AudioTarget in @quiz-dock/contracts).

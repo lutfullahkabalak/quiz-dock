@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import Ajv2020 from 'ajv/dist/2020';
+import addFormats from 'ajv-formats';
 import { Prisma } from '@prisma/client';
 import {
   BundleContentError,
@@ -7,7 +11,7 @@ import {
   fromBundle,
   toBundle,
 } from './quiz-bundle';
-import { quizBundleSchema } from './quiz-bundle.schema';
+import { BUNDLE_VERSION, quizBundleSchema } from './quiz-bundle.schema';
 
 const IMG = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
 const BG = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
@@ -188,6 +192,29 @@ describe('quiz bundle', () => {
     );
   });
 
+  it('stamps the lowest version a bundle needs: 3, or 4 once a waveform is hidden', () => {
+    const src = makeQuiz();
+    const plain = toBundle(src, pathFor);
+    expect(plain.version).toBe(3);
+    // What makes it true: the published v3 schema, the one a 0.8 instance's importer matches, takes it.
+    const v3 = JSON.parse(
+      readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'schema', 'quiz-bundle.v3.json'),
+        'utf8',
+      ),
+    ) as object;
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(v3);
+    expect(validate(JSON.parse(JSON.stringify(plain)))).toBe(true);
+    src.questions[0].waveformSize = 'hidden';
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(4);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    // A hidden waveform comes back hidden: the screens draw nothing, the console still does.
+    expect(fromBundle(bundle, idFor).questions[0]).toMatchObject({ waveformSize: 'hidden' });
+  });
+
   it('round-trips through import with the API content rules applied', () => {
     const src = makeQuiz();
     const imported = fromBundle(toBundle(src, pathFor), idFor);
@@ -295,7 +322,9 @@ describe('quiz bundle', () => {
       audioTarget: 'projection_remote', // the default
     });
     // But never a bundle from a schema newer than this build.
-    expect(quizBundleSchema.safeParse({ ...rest, version: 4 }).success).toBe(false);
+    expect(quizBundleSchema.safeParse({ ...rest, version: BUNDLE_VERSION + 1 }).success).toBe(
+      false,
+    );
   });
 
   it('validates the Store fields: kebab-case slug and tags, five tags at most, SPDX-like license', () => {

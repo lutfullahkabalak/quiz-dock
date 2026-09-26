@@ -335,6 +335,7 @@ function AudioTrack({
   onPosition,
   catchUp,
   startAt,
+  showHidden,
 }: {
   audio: LiveAudio;
   mode: StageMode;
@@ -344,6 +345,7 @@ function AudioTrack({
   onPosition?: (t: number, playing: boolean) => void;
   catchUp?: FollowedPosition | null;
   startAt: number | null;
+  showHidden: boolean;
 }) {
   const { t } = useTranslation('live');
   const key = resumeKey && `${resumeKey}:${audio.url}`;
@@ -389,12 +391,15 @@ function AudioTrack({
 
   return (
     <div className="flex w-full flex-col items-center gap-[0.5em]">
-      <Waveform
-        peaks={audio.peaks}
-        progress={progress}
-        size={audio.size}
-        label={t('media.waveform')}
-      />
+      {/* A hidden waveform: the sound plays, nothing is drawn (the console still draws it). */}
+      {audio.size !== 'hidden' || showHidden ? (
+        <Waveform
+          peaks={audio.peaks}
+          progress={progress}
+          size={audio.size}
+          label={t('media.waveform')}
+        />
+      ) : null}
       {blocked ? <SoundNotice kind="audio" onEnable={() => void enableSound()} /> : null}
       {slow ? <SlowNotice /> : null}
     </div>
@@ -408,9 +413,12 @@ function AudioTrack({
 export function FollowedWaveform({
   audio,
   follow,
+  showHidden = false,
 }: {
   audio: LiveAudio;
   follow: FollowedPosition | null;
+  /** The host's console: a waveform hidden from the screens is still drawn here. */
+  showHidden?: boolean;
 }) {
   const { t } = useTranslation('live');
   const [progress, setProgress] = useState(0);
@@ -431,6 +439,7 @@ export function FollowedWaveform({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [follow, audio.durationMs]);
+  if (audio.size === 'hidden' && !showHidden) return null;
   return (
     <div className="w-full max-w-[40em]">
       <Waveform
@@ -464,10 +473,13 @@ export function QuestionMediaStage({
   catchUp,
   startAt = null,
   zoomable = false,
+  showHiddenWaveform = false,
 }: {
   media: LiveQuestionMedia | null | undefined;
   /** A phone's picture: sized by `boxClassName`, a tap opens it over the whole screen. */
   zoomable?: boolean;
+  /** The host's console: draws a waveform the author hid from the screens. */
+  showHiddenWaveform?: boolean;
   mode: StageMode;
   /** False on a device the sound is not meant for: the video plays muted, the sound is left out. */
   audible?: boolean;
@@ -532,7 +544,7 @@ export function QuestionMediaStage({
         />
       ) : null}
       {audio && (mode === 'still' || !audible) && follow !== undefined ? (
-        <FollowedWaveform audio={audio} follow={follow} />
+        <FollowedWaveform audio={audio} follow={follow} showHidden={showHiddenWaveform} />
       ) : audio ? (
         <div className="w-full max-w-[40em]">
           <AudioTrack
@@ -544,6 +556,7 @@ export function QuestionMediaStage({
             onPosition={onPosition}
             catchUp={catchUp}
             startAt={startAt}
+            showHidden={showHiddenWaveform}
           />
         </div>
       ) : null}

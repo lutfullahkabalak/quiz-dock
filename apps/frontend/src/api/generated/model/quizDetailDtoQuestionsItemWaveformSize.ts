@@ -13,4 +13,5 @@ export const QuizDetailDtoQuestionsItemWaveformSize = {
   S: 'S',
   M: 'M',
   L: 'L',
+  hidden: 'hidden',
 } as const;

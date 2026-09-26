@@ -2,6 +2,7 @@ import type { RoomStandingsPayload } from '@quiz-dock/contracts';
 import { ListChecks, ListPlus } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { TagFilter, tagsOf } from '@/components/tag-filter';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Combobox } from '@/components/ui/combobox';
@@ -187,7 +188,7 @@ function QuizPicker({
   const [tags, setTags] = useState<string[]>([]);
   const [language, setLanguage] = useState('');
   const [sort, setSort] = useState<'recent' | 'title' | 'questions'>('recent');
-  const allTags = [...new Set(quizzes.flatMap((q) => q.tags))].sort((a, b) => a.localeCompare(b));
+  const allTags = tagsOf(quizzes);
   const languages = [...new Set(quizzes.map((q) => q.language))].sort();
   const kept = quizzes
     .filter((q) => tags.every((tag) => q.tags.includes(tag)))
@@ -198,10 +199,6 @@ function QuizPicker({
         : sort === 'questions'
           ? b.questionCount - a.questionCount
           : b.updatedAt.localeCompare(a.updatedAt),
-    );
-  const toggle = (tag: string) =>
-    setTags((current) =>
-      current.includes(tag) ? current.filter((x) => x !== tag) : [...current, tag],
     );
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
 
@@ -235,31 +232,12 @@ function QuizPicker({
           <option value="questions">{t('dashboard:sortQuestions')}</option>
         </Select>
       </div>
-      {allTags.length ? (
-        // Many tags: the row scrolls rather than pushing the list out of the dialog.
-        <div
-          className="flex max-h-14 shrink-0 flex-wrap gap-1 overflow-y-auto"
-          role="group"
-          aria-label={t('control.pickerTags')}
-        >
-          {allTags.map((tag) => (
-            <button
-              key={tag}
-              type="button"
-              aria-pressed={tags.includes(tag)}
-              onClick={() => toggle(tag)}
-              className={cn(
-                'rounded-full border px-2 py-0.5 text-xs transition-colors',
-                tags.includes(tag)
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'hover:bg-accent',
-              )}
-            >
-              {tag}
-            </button>
-          ))}
-        </div>
-      ) : null}
+      <TagFilter
+        label={t('control.pickerTags')}
+        tags={allTags}
+        selected={tags}
+        onChange={setTags}
+      />
       <Combobox
         inline
         className="min-h-0 flex-1"

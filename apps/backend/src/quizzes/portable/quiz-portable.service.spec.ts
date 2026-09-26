@@ -2,6 +2,7 @@ import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { strToU8, unzipSync, zipSync } from 'fflate';
 import type { MediaService } from '../../media/media.service';
 import type { PrismaService } from '../../prisma/prisma.service';
+import { BUNDLE_VERSION } from './quiz-bundle.schema';
 import { QuizPortableService, slugify } from './quiz-portable.service';
 
 const OWNER = 'owner-1';
@@ -263,7 +264,7 @@ describe('QuizPortableService', () => {
     it('refuses a bundle from a newer schema, a bad slug, too many tags', async () => {
       const only = [manifest().items[1]];
       for (const json of [
-        manifest({ items: only, version: 4 }),
+        manifest({ items: only, version: BUNDLE_VERSION + 1 }),
         manifest({ items: only, quiz: { title: 'X', slug: 'Not A Slug' } }),
         manifest({ items: only, quiz: { title: 'X', tags: ['a', 'b', 'c', 'd', 'e', 'f'] } }),
       ]) {

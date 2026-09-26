@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import Ajv2020 from 'ajv/dist/2020';
 import addFormats from 'ajv-formats';
 import { BUNDLE_SCHEMA_FILE, bundleJsonSchema, bundleJsonSchemaText } from './bundle-json-schema';
-import { quizBundleSchema } from './quiz-bundle.schema';
+import { BUNDLE_VERSION, quizBundleSchema } from './quiz-bundle.schema';
 
 const ROOT = join(__dirname, '..', '..', '..', '..', '..');
 
@@ -53,7 +53,7 @@ const VALID: [string, unknown][] = [
 const INVALID: [string, unknown][] = [
   ['a blank title', bundle({ title: '   ' })],
   ['a title too long', bundle({ title: 'x'.repeat(201) })],
-  ['a newer version', bundle({}, { version: 4 })],
+  ['a newer version', bundle({}, { version: BUNDLE_VERSION + 1 })],
   ['another format', bundle({}, { format: 'kahoot' })],
   ['a slug that is not kebab-case', bundle({ slug: 'Not A Slug' })],
   ['six tags', bundle({ tags: ['a', 'b', 'c', 'd', 'e', 'f'] })],
