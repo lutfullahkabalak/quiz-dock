@@ -210,10 +210,12 @@
     "waveformSizeLabel": "Taille de la forme d’onde",
     "waveformSizeHint": "Épaisseur de la forme d’onde du son sur la projection et les téléphones.",
     "waveformPreview": "Aperçu de la forme d’onde",
+    "waveformHiddenNote": "Masquée sur la projection et les téléphones — le son est joué quand même, et votre console l’affiche toujours.",
     "waveformSize": {
       "S": "Petite",
       "M": "Moyenne",
-      "L": "Grande"
+      "L": "Grande",
+      "hidden": "Masquée"
     },
     "pointsLabel": "Points",
     "pointsMode": {

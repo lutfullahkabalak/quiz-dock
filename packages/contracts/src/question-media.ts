@@ -137,8 +137,12 @@ export const peakDbfsSchema = z.number().min(-100).max(6);
 
 // ─── Waveform size ────────────────────────────────────────────────────────
 
-/** How thick a question's waveform is drawn on the screens: S 1em, M 2.5em, L 5em. */
-export const WAVEFORM_SIZES = ['S', 'M', 'L'] as const;
+/**
+ * How thick a question's waveform is drawn on the screens: S 1em, M 2.5em, L 5em;
+ * `hidden`: not drawn on the projection nor the phones (the sound still plays),
+ * only on the host's console, which needs it to follow and steer the sound.
+ */
+export const WAVEFORM_SIZES = ['S', 'M', 'L', 'hidden'] as const;
 export type WaveformSize = (typeof WAVEFORM_SIZES)[number];
 export const WAVEFORM_SIZE_DEFAULT: WaveformSize = 'M';
 

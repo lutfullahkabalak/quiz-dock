@@ -210,10 +210,12 @@
     "waveformSizeLabel": "Waveform size",
     "waveformSizeHint": "How thick the sound's waveform is drawn on the projection and the phones.",
     "waveformPreview": "Waveform preview",
+    "waveformHiddenNote": "Hidden on the projection and the phones — the sound still plays, and your console still shows it.",
     "waveformSize": {
       "S": "Small",
       "M": "Medium",
-      "L": "Large"
+      "L": "Large",
+      "hidden": "Hidden"
     },
     "pointsLabel": "Points",
     "pointsMode": {

@@ -28,8 +28,19 @@ export const BUNDLE_FORMAT = 'quizdock/quiz';
  * Schema version of the manifest. A bundle written before this field existed
  * reads as version 0 (same layout, every Store field absent); the importer
  * accepts anything up to the current version and fills the defaults.
+ * Version 4: a question's waveform may be `hidden`.
  */
-export const BUNDLE_VERSION = 3;
+export const BUNDLE_VERSION = 4;
+
+/**
+ * The lowest version a bundle needs: an export stamps it rather than the latest,
+ * so an instance whose importer stops at an older version still takes a quiz
+ * that uses nothing newer.
+ */
+export function bundleVersionOf(items: QuizBundle['items']): number {
+  const hides = items.some((it) => it.kind === 'question' && it.waveformSize === 'hidden');
+  return hides ? 4 : 3;
+}
 
 /** What a bundle says about one media file (all optional: an image carries at most its alt). */
 export const bundleMediaMetaSchema = z.object({

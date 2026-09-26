@@ -3,7 +3,13 @@ import { useEffect, useRef } from 'react';
 import { cn } from '@/lib/utils';
 
 /** The thickness the author picked, relative to the screen's type size. */
-const HEIGHT: Record<WaveformSize, string> = { S: 'h-[1em]', M: 'h-[2.5em]', L: 'h-[5em]' };
+const HEIGHT: Record<WaveformSize, string> = {
+  S: 'h-[1em]',
+  M: 'h-[2.5em]',
+  L: 'h-[5em]',
+  // Drawn only where a screen shows it anyway (the host's console): as M.
+  hidden: 'h-[2.5em]',
+};
 
 /**
  * A sound drawn from its stored peaks, SoundCloud-style: one bar per value,

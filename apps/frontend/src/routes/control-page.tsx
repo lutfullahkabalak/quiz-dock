@@ -640,6 +640,7 @@ export function ControlPage() {
           media={view.question?.media}
           mode="still"
           follow={view.question ? followed(view, view.question.questionIndex) : null}
+          showHiddenWaveform
           boxClassName="h-56"
         />
         {view.state === 'ANSWERING' &&
