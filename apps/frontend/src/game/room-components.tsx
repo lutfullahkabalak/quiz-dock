@@ -14,6 +14,16 @@ import { useQuizzesControllerList } from '../api/generated/quizzes/quizzes';
 import { type GameSocket, emitWithAckOrError } from './game-client';
 import { LeaderboardList } from './live-components';
 
+/** The room's name as the screens show it: its own, else "<host>'s room". */
+export function roomLabel(
+  t: (key: string, options?: Record<string, unknown>) => string,
+  name: string | null | undefined,
+  hostName: string | null | undefined,
+): string {
+  if (name) return name;
+  return hostName ? t('live:room.defaultName', { host: hostName }) : t('live:room.fallbackName');
+}
+
 /**
  * The room's standings over its quizzes so far (#89): the top of the room, the
  * viewer's own line highlighted when they have one.

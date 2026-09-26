@@ -204,6 +204,53 @@ export function roomTests(ctx: GameContext): void {
     await ctx.h.prisma.quizFeedback.deleteMany({ where: { pin } });
   });
 
+  it('names the room in its lobby, never mid-quiz, and keeps the name with each archived session', async () => {
+    const host = connect({ localUser: 'Animateur' });
+    const [a, b] = [
+      await ctx.h.seedQuiz({ title: 'Named A' }),
+      await ctx.h.seedQuiz({ title: 'Named B' }),
+    ];
+    const pin = await ctx.h.createGame(host, a.id);
+    const { socket: player } = await ctx.h.join(pin, 'Noa');
+    const screen = connect();
+    // On attach: no name yet, the host's name for the default.
+    const first = nextEvent<{ name: string | null; hostName: string }>(screen, 'room:info');
+    await screen.emitWithAck('spectator:join', { pin });
+    expect(await first).toEqual({ name: null, hostName: 'Animateur' });
+
+    const renamed = nextEvent<{ name: string | null }>(player, 'room:info');
+    host.emit('host:room-name', { pin, name: '  Friday   quiz night  ' });
+    expect((await renamed).name).toBe('Friday quiz night');
+
+    await playParis(host, pin, [player]);
+    const refused = nextEvent<{ code: string }>(host, 'error');
+    host.emit('host:room-name', { pin, name: 'Too late' });
+    expect((await refused).code).toBe('session.already_started');
+
+    await toPodium(host, pin, player);
+    await nextQuiz(host, pin, b.id, true);
+    host.emit('host:room-name', { pin, name: 'Friday night, round two' });
+    await playParis(host, pin, [player]);
+    await toPodium(host, pin, player);
+    const ended = nextEvent(player, 'game:ended');
+    host.emit('host:end', { pin, archive: true });
+    await ended;
+
+    const sessions = await ctx.h.prisma.gameSessionLog.findMany({
+      where: { pin },
+      orderBy: { startedAt: 'asc' },
+    });
+    expect(sessions.map((s) => s.roomName)).toEqual([
+      'Friday quiz night',
+      'Friday night, round two',
+    ]);
+    const detail = await ctx.h.app
+      .get(QuizzesService)
+      .sessionDetail({ id: ctx.h.hostUserId, roles: [UserRole.host] }, a.id, sessions[0].id);
+    expect(detail.room).toMatchObject({ name: 'Friday night, round two', hostName: 'Animateur' });
+    await ctx.h.prisma.gameSessionLog.deleteMany({ where: { pin } });
+  });
+
   describe('standings', () => {
     type Standings = {
       quizzesPlayed: number;

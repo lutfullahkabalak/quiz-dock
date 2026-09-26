@@ -154,7 +154,11 @@
     "pickerAllLanguages": "Toutes les langues",
     "pickerTags": "Étiquettes",
     "pickerJustPlayed": "vient d’être joué",
-    "pickerUpdated": "modifié le {{date}}"
+    "pickerUpdated": "modifié le {{date}}",
+    "renameRoom": "Renommer le salon",
+    "roomNameLabel": "Nom du salon",
+    "roomNameHint": "Vide : « {{default}} ».",
+    "quizLabel": "Quiz :"
   },
   "screen": {
     "sessionUnavailable": "Salon indisponible.",
@@ -179,7 +183,8 @@
     "listening": "Écoute en cours",
     "credits": "Crédits :",
     "nextQuiz": "Quiz suivant :",
-    "roomPodium": "🏆 Podium du salon"
+    "roomPodium": "🏆 Podium du salon",
+    "quizLabel": "Quiz :"
   },
   "player": {
     "joinFailed": "Impossible de rejoindre le salon.",
@@ -322,6 +327,8 @@
   "room": {
     "standingsTitle": "Classement du salon",
     "afterQuizzes_one": "après {{count}} quiz",
-    "afterQuizzes_other": "après {{count}} quiz"
+    "afterQuizzes_other": "après {{count}} quiz",
+    "defaultName": "Salon de {{host}}",
+    "fallbackName": "Salon"
   }
 }

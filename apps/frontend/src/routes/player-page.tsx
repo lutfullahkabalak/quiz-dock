@@ -45,6 +45,7 @@ import {
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
 import { followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
+import { roomLabel } from '../game/room-components';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from '../auth/auth-context';
@@ -736,6 +737,7 @@ export function PlayerPage() {
       <Card className="w-full">
         <CardHeader>
           <CardTitle>{t('player.inSession')}</CardTitle>
+          <p className="text-lg font-semibold">{roomLabel(t, view.roomName, view.hostName)}</p>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-2">
           <Avatar name={avatarName} size={72} />

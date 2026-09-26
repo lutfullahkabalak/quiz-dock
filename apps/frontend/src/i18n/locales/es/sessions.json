@@ -64,7 +64,8 @@
       "noPersonalTracking": "Sin clasificación de la sala: al menos una de sus sesiones no hizo seguimiento individual de los participantes.",
       "thQuizzes": "Quizzes",
       "exportCsv": "Exportar clasificación (CSV)",
-      "csvFilename": "sala"
+      "csvFilename": "sala",
+      "defaultName": "Sala de {{host}}"
     }
   },
   "player": {

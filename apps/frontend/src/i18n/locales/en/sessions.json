@@ -64,7 +64,8 @@
       "noPersonalTracking": "No room standings: at least one of its sessions did not track participants individually.",
       "thQuizzes": "Quizzes",
       "exportCsv": "Export standings (CSV)",
-      "csvFilename": "room"
+      "csvFilename": "room",
+      "defaultName": "{{host}}'s room"
     }
   },
   "player": {

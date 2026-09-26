@@ -172,6 +172,14 @@ export class GameService {
       joinLocked: false,
       joinBaseUrl: '',
       openedAt: Date.now(),
+      name: '',
+      hostName:
+        (
+          await this.prisma.user.findUnique({
+            where: { id: hostUserId },
+            select: { displayName: true },
+          })
+        )?.displayName ?? '',
     };
 
     const pipe = this.redis.multi();
@@ -460,6 +468,8 @@ export class GameService {
       ...deserializeGame(raw),
       id: room.gameId,
       roomId: room.roomId,
+      roomName: room.name,
+      hostName: room.hostName,
       hostUserId: room.hostUserId,
       fullCapture: room.fullCapture,
       personalTracking: room.personalTracking,
@@ -821,6 +831,8 @@ function serializeRoom(room: RoomMeta): Record<string, string> {
     joinLocked: room.joinLocked ? '1' : '0',
     joinBaseUrl: room.joinBaseUrl,
     openedAt: String(room.openedAt),
+    name: room.name,
+    hostName: room.hostName,
   };
 }
 
@@ -837,6 +849,8 @@ function deserializeRoom(raw: Record<string, string>): RoomMeta {
     joinLocked: raw.joinLocked === '1',
     joinBaseUrl: raw.joinBaseUrl ?? '',
     openedAt: Number(raw.openedAt),
+    name: raw.name ?? '',
+    hostName: raw.hostName ?? '',
   };
 }
 

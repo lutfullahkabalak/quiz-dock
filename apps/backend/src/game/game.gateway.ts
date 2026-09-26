@@ -374,6 +374,15 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     await this.engine.end(payload.pin, this.requireHostId(socket), payload.archive === true);
   }
 
+  /** `host:room-name`: the room's own name, from its lobby. */
+  @SubscribeMessage('host:room-name')
+  async hostRoomName(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string; name: string },
+  ): Promise<void> {
+    await this.engine.setRoomName(payload.pin, this.requireHostId(socket), payload.name);
+  }
+
   /** `host:next-quiz`: the room's next quiz, in its lobby; the consoles get its outline. */
   @SubscribeMessage('host:next-quiz')
   async hostNextQuiz(

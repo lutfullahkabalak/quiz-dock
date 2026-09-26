@@ -55,6 +55,8 @@ const view = (partial: Partial<GameView>): GameView => ({
   mediaWait: null,
   nav: null,
   joinBaseUrl: null,
+  roomName: null,
+  hostName: null,
   standings: null,
   rateable: null,
   ...partial,
@@ -80,6 +82,30 @@ const quiz = (id: string, title: string, over: Record<string, unknown> = {}) => 
   updatedAt: '2026-01-01T00:00:00.000Z',
   archivedAt: null,
   ...over,
+});
+
+describe('ControlPage: the room’s name (#89)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('shows the default name, then renames the room from its lobby', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({ hostName: 'Billy', quizTitle: 'Capitals' });
+    renderApp('/session/482913/console');
+    expect(await screen.findByRole('heading', { name: 'Salon de Billy' })).toBeInTheDocument();
+    expect(screen.getByText('Capitals')).toBeInTheDocument(); // the quiz, under the room
+
+    fireEvent.click(screen.getByRole('button', { name: 'Renommer le salon' }));
+    const input = screen.getByRole('textbox', { name: 'Nom du salon' });
+    fireEvent.change(input, { target: { value: 'Soirée quiz' } });
+    fireEvent.submit(input.closest('form')!);
+    expect(fakeSocket.emit).toHaveBeenCalledWith('host:room-name', {
+      pin: '482913',
+      name: 'Soirée quiz',
+    });
+  });
 });
 
 describe('ControlPage: the room’s next quiz (#89)', () => {

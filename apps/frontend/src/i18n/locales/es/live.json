@@ -154,7 +154,11 @@
     "pickerAllLanguages": "Todos los idiomas",
     "pickerTags": "Etiquetas",
     "pickerJustPlayed": "recién jugado",
-    "pickerUpdated": "modificado el {{date}}"
+    "pickerUpdated": "modificado el {{date}}",
+    "renameRoom": "Renombrar la sala",
+    "roomNameLabel": "Nombre de la sala",
+    "roomNameHint": "Vacío: «{{default}}».",
+    "quizLabel": "Quiz:"
   },
   "screen": {
     "sessionUnavailable": "Sala no disponible.",
@@ -179,7 +183,8 @@
     "listening": "Escuchando",
     "credits": "Créditos:",
     "nextQuiz": "Siguiente quiz:",
-    "roomPodium": "🏆 Podio de la sala"
+    "roomPodium": "🏆 Podio de la sala",
+    "quizLabel": "Quiz:"
   },
   "player": {
     "joinFailed": "No se pudo unir a la sala.",
@@ -322,6 +327,8 @@
   "room": {
     "standingsTitle": "Clasificación de la sala",
     "afterQuizzes_one": "tras {{count}} quiz",
-    "afterQuizzes_other": "tras {{count}} quizzes"
+    "afterQuizzes_other": "tras {{count}} quizzes",
+    "defaultName": "Sala de {{host}}",
+    "fallbackName": "Sala"
   }
 }

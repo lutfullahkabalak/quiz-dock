@@ -1080,6 +1080,7 @@ export class GameEngine {
     // Transparence (§2.10, RG-16) : tout (ré)attaché — dont les joueurs arrivés après
     // le host:create — doit voir ce que la session enregistre de lui.
     socket.emit('notice', noticeOf(meta));
+    socket.emit('room:info', { name: meta.roomName || null, hostName: meta.hostName });
     const snapshotForNav = await this.game.getSnapshot(meta.id);
     if (snapshotForNav) {
       // Every device asks for sound at once when the quiz will need it (a phone too:
@@ -1545,6 +1546,22 @@ export class GameEngine {
     }
   }
 
+  /**
+   * `host:room-name`: the room's own name, in the lobby only (never during a
+   * quiz). Blank = the default the screens show ("<host>'s room"). Every screen
+   * is told.
+   */
+  async setRoomName(pin: string, hostUserId: string, raw: string): Promise<void> {
+    const meta = await this.requireHost(pin, hostUserId);
+    if (meta.state !== GameState.Lobby) throw new BadRequestException('session.already_started');
+    const name = String(raw ?? '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, ROOM_NAME_MAX);
+    await this.redis.hset(gameKeys.room(pin), { name });
+    this.server.to(pin).emit('room:info', { name: name || null, hostName: meta.hostName });
+  }
+
   /** Every timer of the room: its game is over or replaced. */
   private cancelAllTimers(pin: string): void {
     this.clearTimer(pin);
@@ -1952,6 +1969,9 @@ export class GameEngine {
     return snapshot;
   }
 }
+
+/** The longest room name kept (the projection shows it as a title). */
+const ROOM_NAME_MAX = 60;
 
 /** `q<i>` / `s<i>` ↔ GameStep. */
 function stepKey(step: GameStep): string {

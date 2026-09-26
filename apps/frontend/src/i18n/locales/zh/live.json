@@ -154,7 +154,11 @@
     "pickerAllLanguages": "所有语言",
     "pickerTags": "标签",
     "pickerJustPlayed": "刚刚进行过",
-    "pickerUpdated": "修改于 {{date}}"
+    "pickerUpdated": "修改于 {{date}}",
+    "renameRoom": "重命名房间",
+    "roomNameLabel": "房间名称",
+    "roomNameHint": "留空：“{{default}}”。",
+    "quizLabel": "测验："
   },
   "screen": {
     "sessionUnavailable": "房间不可用。",
@@ -179,7 +183,8 @@
     "listening": "正在收听",
     "credits": "署名：",
     "nextQuiz": "下一个测验：",
-    "roomPodium": "🏆 房间领奖台"
+    "roomPodium": "🏆 房间领奖台",
+    "quizLabel": "测验："
   },
   "player": {
     "joinFailed": "无法加入房间。",
@@ -322,6 +327,8 @@
   "room": {
     "standingsTitle": "房间排名",
     "afterQuizzes_one": "共 {{count}} 个测验后",
-    "afterQuizzes_other": "共 {{count}} 个测验后"
+    "afterQuizzes_other": "共 {{count}} 个测验后",
+    "defaultName": "{{host}} 的房间",
+    "fallbackName": "房间"
   }
 }

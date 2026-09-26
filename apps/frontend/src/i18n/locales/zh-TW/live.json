@@ -154,7 +154,11 @@
     "pickerAllLanguages": "所有語言",
     "pickerTags": "標籤",
     "pickerJustPlayed": "剛剛進行過",
-    "pickerUpdated": "修改於 {{date}}"
+    "pickerUpdated": "修改於 {{date}}",
+    "renameRoom": "重新命名房間",
+    "roomNameLabel": "房間名稱",
+    "roomNameHint": "留空：「{{default}}」。",
+    "quizLabel": "測驗："
   },
   "screen": {
     "sessionUnavailable": "房間無法使用。",
@@ -179,7 +183,8 @@
     "listening": "正在收聽",
     "credits": "出處：",
     "nextQuiz": "下一個測驗：",
-    "roomPodium": "🏆 房間頒獎臺"
+    "roomPodium": "🏆 房間頒獎臺",
+    "quizLabel": "測驗："
   },
   "player": {
     "joinFailed": "無法加入房間。",
@@ -322,6 +327,8 @@
   "room": {
     "standingsTitle": "房間排名",
     "afterQuizzes_one": "共 {{count}} 個測驗後",
-    "afterQuizzes_other": "共 {{count}} 個測驗後"
+    "afterQuizzes_other": "共 {{count}} 個測驗後",
+    "defaultName": "{{host}} 的房間",
+    "fallbackName": "房間"
   }
 }

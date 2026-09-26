@@ -154,7 +154,11 @@
     "pickerAllLanguages": "All languages",
     "pickerTags": "Tags",
     "pickerJustPlayed": "just played",
-    "pickerUpdated": "modified {{date}}"
+    "pickerUpdated": "modified {{date}}",
+    "renameRoom": "Rename the room",
+    "roomNameLabel": "Room name",
+    "roomNameHint": "Blank: “{{default}}”.",
+    "quizLabel": "Quiz:"
   },
   "screen": {
     "sessionUnavailable": "Room unavailable.",
@@ -179,7 +183,8 @@
     "listening": "Listening",
     "credits": "Credits:",
     "nextQuiz": "Next quiz:",
-    "roomPodium": "🏆 Room podium"
+    "roomPodium": "🏆 Room podium",
+    "quizLabel": "Quiz:"
   },
   "player": {
     "joinFailed": "Could not join the room.",
@@ -322,6 +327,8 @@
   "room": {
     "standingsTitle": "Room standings",
     "afterQuizzes_one": "after {{count}} quiz",
-    "afterQuizzes_other": "after {{count}} quizzes"
+    "afterQuizzes_other": "after {{count}} quizzes",
+    "defaultName": "{{host}}'s room",
+    "fallbackName": "Room"
   }
 }

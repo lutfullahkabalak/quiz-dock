@@ -117,6 +117,9 @@ export interface GameView {
   gameAudioTarget: AudioTarget | null;
   /** Host navigation over played steps (`game:state.nav`); `review` = a past step is on screen. */
   nav: { prev: GameStep | null; next: GameStep | null; review: boolean } | null;
+  /** The room's own name (null = the default, "<host>'s room") and its host's name. */
+  roomName: string | null;
+  hostName: string | null;
   /** The room's standings over its quizzes so far (#89); null before the first is over. */
   standings: RoomStandingsPayload | null;
   /**
@@ -168,6 +171,8 @@ const INITIAL: GameView = {
   mediaPosition: null,
   mediaWait: null,
   nav: null,
+  roomName: null,
+  hostName: null,
   standings: null,
   rateable: null,
 };
@@ -308,6 +313,8 @@ export function useGameSession(pin: string, role: LiveRole) {
         ...(p.title !== undefined ? { quizTitle: p.title } : {}),
       });
     const onStandings = (p: RoomStandingsPayload) => patch({ standings: p });
+    const onRoomInfo = (p: { name: string | null; hostName: string }) =>
+      patch({ roomName: p.name, hostName: p.hostName });
     const onMediaControl = (p: { questionIndex: number; action: 'restart' }) =>
       setView((prev) => ({
         ...prev,
@@ -376,6 +383,7 @@ export function useGameSession(pin: string, role: LiveRole) {
       sock.on('game:media', onGameMedia);
       sock.on('game:podium', onPodium);
       sock.on('room:standings', onStandings);
+      sock.on('room:info', onRoomInfo);
       sock.on('game:ended', onEnded);
       sock.on('notice', onNotice);
       sock.on('kicked', onKicked);
@@ -444,6 +452,7 @@ export function useGameSession(pin: string, role: LiveRole) {
       s.off('game:media', onGameMedia);
       s.off('game:podium', onPodium);
       s.off('room:standings', onStandings);
+      s.off('room:info', onRoomInfo);
       s.off('game:ended', onEnded);
       s.off('notice', onNotice);
       s.off('kicked', onKicked);

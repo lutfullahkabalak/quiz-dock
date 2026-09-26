@@ -64,7 +64,8 @@
       "noPersonalTracking": "没有房间排名：至少有一个会话未对参与者进行个人追踪。",
       "thQuizzes": "测验",
       "exportCsv": "导出排名（CSV）",
-      "csvFilename": "room"
+      "csvFilename": "room",
+      "defaultName": "{{host}} 的房间"
     }
   },
   "player": {

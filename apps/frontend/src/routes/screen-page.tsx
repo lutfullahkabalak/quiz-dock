@@ -1,4 +1,4 @@
-import { RoomStandingsPanel } from '../game/room-components';
+import { RoomStandingsPanel, roomLabel } from '../game/room-components';
 import { useParams } from '@tanstack/react-router';
 import { Maximize, Minimize, Users } from 'lucide-react';
 import { useCallback, useEffect } from 'react';
@@ -275,9 +275,13 @@ export function ScreenView({ pin, playMedia = false }: { pin: string; playMedia?
     const nextInRoom = view.standings ? view.standings : null;
     body = (
       <div className="flex flex-col items-center gap-[1.5em]">
-        {nextInRoom && view.quizTitle ? (
-          <p className="text-[1.5em]">
-            <span className="text-muted-foreground">{t('screen.nextQuiz')}</span>{' '}
+        {/* The room's name, then the quiz it plays (the next one, from its second). */}
+        <h1 className="text-[2.25em] font-bold">{roomLabel(t, view.roomName, view.hostName)}</h1>
+        {view.quizTitle ? (
+          <p className="-mt-[1em] text-[1.5em]">
+            <span className="text-muted-foreground">
+              {nextInRoom ? t('screen.nextQuiz') : t('screen.quizLabel')}
+            </span>{' '}
             <span className="font-semibold">{view.quizTitle}</span>
           </p>
         ) : null}

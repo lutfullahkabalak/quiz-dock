@@ -104,6 +104,8 @@ export const ClientEvents = {
   HostReveal: 'host:reveal',
   HostKick: 'host:kick',
   HostEnd: 'host:end',
+  /** Names the room (from its lobby); every screen shows it. */
+  HostRoomName: 'host:room-name',
   /** Opens the next quiz in the room (from its lobby or its podium); the players stay. */
   HostNextQuiz: 'host:next-quiz',
   /** Bannit un joueur pour une durée donnée (exclusion immédiate, RG-12). */
@@ -516,6 +518,8 @@ export interface ClientToServerEvents {
    * of the quiz just played, as `host:end` does). The players stay in, at 0; the
    * host's choices (capture, tracking, lock, pace, audio target) carry over.
    */
+  /** The room's own name (≤ 60 characters), from its lobby; blank = the default. */
+  'host:room-name': (p: { pin: string; name: string }) => void;
   'host:next-quiz': (
     p: { pin: string; quizId: string; archive?: boolean },
     ack: (res: { ok: boolean }) => void,
@@ -639,6 +643,11 @@ export interface ServerToClientEvents {
   'question:reveal': (p: QuestionRevealPayload) => void;
   leaderboard: (p: LeaderboardPayload) => void;
   'game:podium': (p: PodiumPayload) => void;
+  /**
+   * The room's own name (null = the default the screens show, "<host>'s room")
+   * and its host's name: on attach, and when the host renames it in the lobby.
+   */
+  'room:info': (p: { name: string | null; hostName: string }) => void;
   /** The room's standings: at a podium, in the lobby of the next quiz, and when the room closes. */
   'room:standings': (p: RoomStandingsPayload) => void;
   /** `quizId`: the quiz that ended, which a rating goes to (several share a room's PIN). */

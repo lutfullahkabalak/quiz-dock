@@ -129,8 +129,13 @@ not drop.
      stays open in the next lobby if the host moved on meanwhile; the server takes it for the previous quiz then, and
      never for one they did not play (a player joining at the podium sees no rating). **Enable sound** when the next
      quiz has some and this device never enabled it (`game:media` now reaches the phones, with the quiz's title).
-   - A room of one quiz looks as before, apart from *Change quiz* in its lobby and *Next quiz* at its podium. The
-     lobby keeps room for #104.
+   - **The room's own name**: *<host>'s room* by default, renamed by the host in the lobby (never during a quiz);
+     the console, the projection and the phones show it above the quiz being played, and each archived session keeps
+     a copy (`room_name`), read back in *History*'s room card.
+   - **Words**: the interface says *room* for what participants join with the PIN and stay in, *quiz* for the one
+     being played, and *session* only for what *History* keeps (i18n glossary).
+   - A room of one quiz looks as before, apart from its name, *Change quiz* in its lobby and *Next quiz* at its
+     podium. The lobby keeps room for #104.
 
 The playlist first planned as a step 6 is left to the *Programme* (§7), which prepares a series instead of
 improvising it.
