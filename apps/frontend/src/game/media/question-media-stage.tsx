@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { routeElement } from './audio-mixer';
+import { fadeElement, muteElementForFade, routeElement } from './audio-mixer';
 import { unlockAudio, useAudioUnlocked } from './audio-unlock';
 import { releaseMedia, takeMedia } from './media-pool';
 import { clearPosition, readPosition, resumeAt, writePosition } from './media-position';
@@ -123,23 +123,47 @@ function usePlayback(
   // Sound unlocked meanwhile (the projection's overlay): what was refused plays now.
   const unlocked = useAudioUnlocked();
 
+  // Every pause fades out first; a play (or a newer pause) cancels one still fading.
+  const fading = useRef(0);
+
   // The host's anchor wins over everything else: where it is now on the server's clock.
+  // Moved while it plays, the media fades out, jumps, and fades back in.
   const anchored = useRef<number | null>(null);
   useEffect(() => {
     if (!el || !anchor || anchored.current === anchor.seq) return;
     anchored.current = anchor.seq;
     if (positionKey) clearPosition(positionKey);
-    const moved = anchor.playing ? Math.max(0, serverNow() - anchor.at) / 1000 : 0;
-    seekTo(el, anchor.t + moved);
+    const jump = () => {
+      const moved = anchor.playing ? Math.max(0, serverNow() - anchor.at) / 1000 : 0;
+      seekTo(el, anchor.t + moved);
+    };
+    if (el.paused || !anchor.playing) {
+      jump();
+      return;
+    }
+    const token = ++fading.current;
+    void fadeElement(el, 'out').then(() => {
+      if (fading.current !== token) return;
+      jump();
+      void fadeElement(el, 'in');
+    });
   }, [el, anchor, positionKey]);
 
   useEffect(() => {
     if (!el) return;
     // Held by the host, or the game paused: nothing plays.
     if (mode !== 'play' || anchor?.playing === false) {
-      el.pause();
+      const token = ++fading.current;
+      if (el.paused) {
+        el.pause();
+        return;
+      }
+      void fadeElement(el, 'out').then(() => {
+        if (fading.current === token) el.pause();
+      });
       return;
     }
+    fading.current++; // a pause still fading out: it does not stop what plays now
     // Played to its end before an interruption (or anchored past it): it does not
     // start again on its own.
     if (!anchor && positionKey && readPosition(positionKey)?.ended) return;
@@ -164,11 +188,17 @@ function usePlayback(
       if (silent) el.muted = true;
       else if (unlocked && el.muted) el.muted = false; // the video that went on muted gets its sound
       await routeElement(el, gainDb);
+      // From silence, a short fade in: a start (or a resume) never clicks.
+      const fromSilence = el.paused;
+      if (fromSilence) muteElementForFade(el);
       if (!cancelled) await el.play();
       if (!cancelled) setBlocked(null);
+      void fadeElement(el, 'in');
     };
     const go = () =>
       start().catch((err: DOMException) => {
+        // Refused after the silence a fade starts from: back to its level.
+        void fadeElement(el, 'in');
         if (cancelled || err.name !== 'NotAllowedError') return;
         if (el instanceof HTMLVideoElement) {
           // Picture without sound beats nothing: the room still sees the question.
@@ -203,6 +233,7 @@ function usePlayback(
     try {
       await el.play();
       setBlocked(null);
+      void fadeElement(el, 'in');
     } catch {
       // Still refused: the indicator stays, the host can try again.
     }
