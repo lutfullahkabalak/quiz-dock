@@ -25,6 +25,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The projection on a device, Ready! and the game's sounds in the feature list
+- The sound button and the mixers in unreleased *(changelog)*
 - The game's sounds in unreleased *(changelog)*
 - The audio mixer in unreleased *(changelog)*
 - Ready in the lobby in unreleased *(changelog)*
@@ -63,6 +65,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- A format guide from the importer, and a chatbot prompt to bring a quiz in *(bundle)*
 - A sound button, and a mixer for the room and for each device *(live)*
 - The game's sounds — a tick, a gong, a background track *(live)*
 - An audio mixer — every source into a bus, then the master *(media)*
