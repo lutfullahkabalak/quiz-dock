@@ -14,6 +14,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- A fade in of a few milliseconds, just the click off the attack *(media)*
+- The format guide writes the version it needs; a hidden waveform through the database *(bundle)*
+- The transport holds its locks through a pause, and works without a projection *(live)*
+- The console's waveform follows the sound, the screen's sound button top left *(live)*
+- A refused answer is never shown as saved, and the server says why *(live)*
 - Room, quiz, session — one word for each level *(i18n)*
 - No way out to another PIN from a room's podium *(live)*
 - Ask a phone for sound until its media elements are claimed *(live)*
@@ -25,6 +30,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The fades of the audio routing *(spec)*
+- The format guide and the chatbot prompt in unreleased *(changelog)*
 - The projection on a device, Ready! and the game's sounds in the feature list
 - The sound button and the mixers in unreleased *(changelog)*
 - The game's sounds in unreleased *(changelog)*
@@ -65,6 +72,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- Fades on every start and stop — the host's transport, the samples, the track *(media)*
+- My quizzes and the templates — filters, a list or a grid, richer items *(ui)*
+- A waveform hidden from the screens, still on the console — manifest v4 *(media)*
+- The host steers the question's media from the console *(live)*
+- The participant's lobby — an avatar draft, a ready button that breathes *(live)*
 - A format guide from the importer, and a chatbot prompt to bring a quiz in *(bundle)*
 - A sound button, and a mixer for the room and for each device *(live)*
 - The game's sounds — a tick, a gong, a background track *(live)*
