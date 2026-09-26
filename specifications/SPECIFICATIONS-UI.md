@@ -282,8 +282,9 @@ Shown on joining, **before** anything is collected, in the wording the two switc
 ### 5.6 Several quizzes in one room (#89)
 The screens above, with what a room adds (SPECIFICATIONS-ROOM §6, step 5):
 
-- **Console** — at the podium, **Next quiz** opens a picker of the host's own playable quizzes (*keep the results*
-  checked, as when ending); in the lobby, **Change quiz** replaces the one picked. From the room's second quiz, its
+- **Console** — at the podium, **Next quiz** opens a small index of the host's own playable quizzes — a search into
+  titles, descriptions and tags, tags and language as filters, a sort, a line per quiz with its cover, the start of
+  its description, size, language, tags and last change — with *keep the results* checked, as when ending; in the lobby, **Change quiz** replaces the one picked. From the room's second quiz, its
   standings sit under the podium and in the next lobby.
 - **Projection** — the next lobby names the quiz coming and shows the room's standings (top 5); the podium is the
   quiz's, then the room's; a room of several quizzes closes on its own podium.
