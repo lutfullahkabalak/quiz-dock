@@ -188,13 +188,13 @@ const routed = new WeakMap<HTMLMediaElement, GainNode>();
 const levels = new WeakMap<HTMLMediaElement, number>();
 
 /**
- * The fades every start and stop gets, so nothing clicks in: a media the host
- * plays, pauses or moves, a sample, the background track. Short enough to
- * keep an effect's attack, long enough not to hear a cut.
+ * The fades every start and stop gets: a media the host plays, pauses or moves,
+ * a sample, the background track. In, just enough to take the click off the
+ * attack (the sound keeps its punch); out, long enough not to hear a cut.
  */
-export const FADE_IN_S = 0.06;
+export const FADE_IN_S = 0.005;
 export const FADE_OUT_S = 0.12;
-/** A background track comes in and goes out slower: it is a bed, not an event. */
+/** A background track goes out slower: it is a bed, not an event. */
 export const TRACK_FADE_S = 0.8;
 
 /**

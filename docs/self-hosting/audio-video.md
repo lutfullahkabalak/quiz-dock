@@ -182,10 +182,11 @@ opens later lands there too. This moves the media only: the question's timer run
 on (use the timer's +/− or the game's pause for that), so a sound taken back may
 be cut at the reveal.
 
-**Fades.** Nothing starts or stops with a click: a question's media fades in when
-it starts or resumes and out before a pause, a move of the host fades out, jumps
-and fades back in (a few hundredths of a second), and the game's samples come in
-from silence the same way — the background track slower, as a bed.
+**Fades.** Nothing starts or stops with a click: every start — a question's media,
+its resume, a sample, the background track — comes in over a few milliseconds,
+just enough to take the click off the attack; a pause or a stop fades out over a
+tenth of a second (the background track slower, as a bed), and a move of the host
+fades out, jumps and comes back in.
 
 ## Remote participants
 

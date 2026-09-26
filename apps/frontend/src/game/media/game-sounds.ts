@@ -170,7 +170,6 @@ export function useGameSounds(
       if (!cancelled && buffer) {
         stop = playBuffer(buffer, 'music', {
           loop: true,
-          fadeInS: TRACK_FADE_S,
           fadeOutS: TRACK_FADE_S,
         });
       }
