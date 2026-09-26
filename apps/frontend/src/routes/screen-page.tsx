@@ -184,6 +184,9 @@ export function ScreenSurface({
     </div>
   );
 
+  // This screen's own sound (#93): the projection, or a copy that plays it.
+  const soundButton = role === 'lead' || (role === 'follow' && sound);
+
   const fullscreenBtn = supported ? (
     <Button
       type="button"
@@ -312,8 +315,8 @@ export function ScreenSurface({
             icon={listening ? '🎧' : view.paused ? '⏸' : '⏱'}
             label={listening ? t('screen.listening') : t('screen.timeRemaining')}
             paused={view.paused}
-            // Clear of the fullscreen button, top right.
-            className="shrink-0 pr-[2.5em] text-[1.6em]"
+            // Clear of the fullscreen button, top right, and of the sound button, top left.
+            className={cn('shrink-0 pr-[2.5em] text-[1.6em]', soundButton && 'pl-[2.5em]')}
           />
         ) : null}
         {/* Under the clock: centred when short, the picture filling what is left otherwise. */}
@@ -436,11 +439,11 @@ export function ScreenSurface({
       )}
     >
       {fullscreenBtn}
-      {/* This screen's own sound (#93): the projection, or a copy that plays it. */}
-      {role === 'lead' || (role === 'follow' && sound) ? (
+      {soundButton ? (
         <SoundButton
           size="lg"
-          className="absolute top-4 right-16 z-40"
+          align="start"
+          className="absolute top-4 left-4 z-40"
           onUnmute={() => void unlockAudio()}
         />
       ) : null}

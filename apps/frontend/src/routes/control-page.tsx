@@ -44,6 +44,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
+import { followed } from '../game/media/followed';
 import { serverNow } from '../game/clock';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -632,11 +633,13 @@ export function ControlPage() {
 
         <ProgressBar pct={timePct} barClassName={timeTone} />
 
-        {/* Shown still: the projection is the one place that plays the sound. */}
+        {/* Shown still: the projection is the one place that plays the sound; its
+            waveform follows where the projection is in it. */}
         <QuestionMediaStage
           key={view.question?.questionIndex}
           media={view.question?.media}
           mode="still"
+          follow={view.question ? followed(view, view.question.questionIndex) : null}
           boxClassName="h-56"
         />
         {view.state === 'ANSWERING' &&

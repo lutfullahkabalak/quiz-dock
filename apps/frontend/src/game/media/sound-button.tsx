@@ -25,10 +25,13 @@ export function SoundButton({
   onUnmute,
   className,
   size = 'sm',
+  align = 'end',
 }: {
   onUnmute?: () => void;
   className?: string;
   size?: 'sm' | 'lg';
+  /** Which edge the volume panel lines up with: `start` for a button on the left. */
+  align?: 'start' | 'end';
 }) {
   const { t } = useTranslation('live');
   const sound = useDeviceSound();
@@ -61,7 +64,12 @@ export function SoundButton({
         <Icon className={size === 'lg' ? 'size-5' : 'size-4'} />
       </Button>
       {open ? (
-        <div className="bg-background absolute top-full right-0 z-50 flex w-56 flex-col gap-2 rounded-lg border p-3 text-sm shadow-lg">
+        <div
+          className={cn(
+            'bg-background absolute top-full z-50 flex w-56 flex-col gap-2 rounded-lg border p-3 text-sm shadow-lg',
+            align === 'start' ? 'left-0' : 'right-0',
+          )}
+        >
           {hover ? null : (
             // On a phone the button opened this: the mute is here.
             <Button type="button" variant="outline" size="sm" onClick={toggle}>
