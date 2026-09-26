@@ -17,7 +17,10 @@ vi.mock('../game/media/media-pool', () => ({
   claimMediaElements: () => claimMediaElements(),
   mediaElementsClaimed: () => audio.unlocked,
 }));
-vi.mock('../game/media/audio-unlock', () => ({ unlockAudio: () => Promise.resolve(true) }));
+vi.mock('../game/media/audio-unlock', () => ({
+  unlockAudio: () => Promise.resolve(true),
+  useAudioUnlocked: () => true,
+}));
 // The stage plays real media elements; here it only says how it was asked to play.
 vi.mock('../game/media/question-media-stage', () => ({
   FollowedWaveform: (p: { follow: { t: number } | null }) => (
@@ -194,6 +197,49 @@ describe('PlayerPage (client participant)', () => {
 
     expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
     expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
+  });
+
+  describe('the projection on another device, or on this one (#104)', () => {
+    const session = { pin: '771122', nickname: 'Bob', sessionToken: 't', playerId: 'p1' };
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    });
+
+    it('shares the projection’s link: the PIN, never the seat; with sound for a remote participant', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      const share = vi.fn(() => Promise.resolve());
+      Object.defineProperty(navigator, 'share', { value: share, configurable: true });
+      hookState.value = view({
+        state: GameState.Lobby,
+        players: [{ playerId: 'p1', nickname: 'Bob', presence: 'remote' }],
+      });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: /Partager la projection/ }));
+      await waitFor(() => expect(share).toHaveBeenCalled());
+      const { url } = (share.mock.calls[0] as unknown as [{ url: string }])[0];
+      expect(url).toMatch(/\/join\/771122\/screen\?sound=1$/);
+    });
+
+    it('without a share sheet, shows the link as a QR code', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: /Partager la projection/ }));
+      expect(await screen.findByText(/Lien copié/)).toBeInTheDocument();
+    });
+
+    it('switches this phone to the big screen and back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby, hostName: 'Billy' });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: 'Afficher le grand écran' }));
+      // The projection's lobby: the PIN in big, the room's name as its title.
+      expect(await screen.findByRole('heading', { name: 'Salon de Billy' })).toBeInTheDocument();
+      expect(screen.queryByText(/Tu es dans le salon/)).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Revenir à mes réponses' }));
+      expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
+    });
   });
 
   describe('in a room, between two quizzes (#89)', () => {

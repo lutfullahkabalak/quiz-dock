@@ -249,7 +249,13 @@
     "listening": "Écoute en cours",
     "roomRank": "Dans le salon : #{{rank}} — {{score}} pts",
     "waitingNextQuiz": "En attente du quiz suivant…",
-    "enableSound": "Activer le son"
+    "enableSound": "Activer le son",
+    "showScreen": "Afficher le grand écran",
+    "showAnswers": "Revenir à mes réponses",
+    "shareProjection": "Partager la projection",
+    "shareProjectionHint": "À ouvrir sur une tablette ou un ordinateur : toute la question, en grand.",
+    "projectionLinkCopied": "Lien copié — ou scannez ce code avec l’autre appareil.",
+    "shareProjectionTitle": "{{appName}} — la projection"
   },
   "reveal": {
     "explanation": "Explication",

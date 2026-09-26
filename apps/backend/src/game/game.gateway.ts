@@ -40,6 +40,11 @@ export interface GameSocketData {
   pin?: string;
   /** Vrai pour une fenêtre de **contrôle** hôte (host:create / host:attach) — §7. */
   isHostControl?: boolean;
+  /**
+   * A copy of the projection a participant opened on a device of their own (#104):
+   * it follows the projection, is never waited for, never speaks for the sound.
+   */
+  follower?: boolean;
 }
 
 type GameServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -227,15 +232,16 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('spectator:join')
   async spectatorJoin(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string },
+    @MessageBody() payload: { pin: string; follow?: boolean },
   ): Promise<{ ok: boolean }> {
     await this.pins.guard(ipOf(socket), async () => {
       if (!(await this.game.getMeta(payload.pin))) throw new WsException('session.not_found');
     });
     socket.data.pin = payload.pin;
+    socket.data.follower = payload.follow === true;
     await socket.join(payload.pin);
     await this.engine.sendStateTo(socket, payload.pin);
-    // A projection counts among the devices waited for.
+    // A projection counts among the devices waited for (a participant's copy does not).
     await this.engine.broadcastReadiness(payload.pin);
     return { ok: true };
   }
@@ -528,8 +534,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     @ConnectedSocket() socket: GameSocket,
     @MessageBody() payload: { pin: string; questionIndex: number; t: number; playing: boolean },
   ): void {
-    const { pin, playerId, isHostControl } = socket.data;
-    if (!pin || pin !== payload.pin || playerId || isHostControl) return;
+    const { pin, playerId, isHostControl, follower } = socket.data;
+    if (!pin || pin !== payload.pin || playerId || isHostControl || follower) return;
     const { questionIndex, t, playing } = payload;
     if (!Number.isInteger(questionIndex) || !Number.isFinite(t) || t < 0) return;
     socket.to(pin).emit('media:position', { questionIndex, t, playing: playing === true });

@@ -296,6 +296,15 @@ The room's name (*<host>'s room* until the host renames it from the lobby) heads
 and the phone's waiting screen, above the quiz being played. A room of one quiz looks as before otherwise, apart from
 *Change quiz* in its lobby and *Next quiz* at its podium.
 
+### 5.7 The projection on a participant's own device (#104)
+- **Share the projection** (the phone's lobby): the share sheet where there is one, else the link copied and shown as a
+  QR code for the other device. The link, `/join/<pin>/screen`, carries the PIN, never the participant's seat;
+  `?sound=1` when the participant is remote.
+- **The copy** is the projected screen, full page, following the big screen: never waited for, never a position
+  source. Muted in the room; with `?sound=1` it plays the sound meant for remote devices, after its own unlocking
+  click.
+- **On the same phone**, an icon in the participant's top bar switches between the answers and the big screen.
+
 ---
 
 ## 6. The session report (host)

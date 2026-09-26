@@ -298,6 +298,7 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `host:next-quiz` | `{ pin, quizId, archive? }` | the host | From the lobby or the podium: opens the room's next quiz in its lobby, the players still in (SPECIFICATIONS-ROOM §6) |
 | `host:end` | `{ pin, archive? }` | the host | Closes the room (the game ends, the PIN is freed) |
 | `player:join` | `{ pin, nickname, authToken? }` | a player | Joins the LOBBY; returns a `sessionToken` and the **nickname the server retained** (the account's name when the host did not open the choice, a suffix when a homonym was already there). Refused without a valid token under `AUTH_MODE=oidc` unless the game is in open access, where everyone joins as a guest; refused once the host closed the game (RG-15) |
+| `spectator:join` | `{ pin, follow? }` | a projection | Joins read-only; `follow`: a participant's copy of the projection (#104) — never waited for, never a position source |
 | `player:peek` | `{ pin }` | a player | Before joining: whether the quiz plays sound and whether an account is needed (`participantAccess`) |
 | `player:reconnect` | `{ sessionToken }` | a player | Takes back their seat and score |
 | `player:submit` | `{ pin, questionIndex, answer }` | a player | Submits an answer |

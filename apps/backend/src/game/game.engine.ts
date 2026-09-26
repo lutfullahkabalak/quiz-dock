@@ -339,11 +339,11 @@ export class GameEngine {
     const ready = new Set(await this.redis.smembers(gameKeys.ready(ref.id, index)));
     const sockets = await this.server.in(pin).fetchSockets();
     const screens = hasSoundOrVideo(question.media)
-      ? sockets.filter(
-          (s) =>
-            !(s.data as { playerId?: string }).playerId &&
-            !(s.data as { isHostControl?: boolean }).isHostControl,
-        )
+      ? sockets.filter((s) => {
+          const d = s.data as { playerId?: string; isHostControl?: boolean; follower?: boolean };
+          // The projection windows; not a console, not a participant's copy (#104).
+          return !d.playerId && !d.isHostControl && !d.follower;
+        })
       : [];
     const screensReady = screens.filter((s) => ready.has(`screen:${s.id}`)).length;
     const players: { playerId: string; ready: boolean }[] = [];
