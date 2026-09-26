@@ -10,22 +10,22 @@ reference, the others follow its sense, not its words.
 
 ## Roles and places
 
-| Term        | en              | fr                   | es                   | zh            | zh-TW         | Where                                   |
-| ----------- | --------------- | -------------------- | -------------------- | ------------- | ------------- | --------------------------------------- |
-| quiz        | quiz            | quiz                 | quiz                 | 测验          | 測驗          | everywhere                              |
-| my quizzes  | My quizzes      | Mes quiz             | Mis quizzes          | 我的测验      | 我的測驗      | topbar, `/quizzes`                      |
-| editor      | Editor          | Éditeur              | Editor               | 编辑器        | 編輯器        | `/quizzes/:id`                          |
-| host        | Host            | Animateur            | Anfitrión            | 主持人        | 主持人        | live                                    |
-| host seat   | Host seat       | Siège hôte           | Asiento de anfitrión | 主持席位      | 主持席位      | local auth mode                         |
-| participant | Participant     | Participant          | Participante         | 参与者        | 參與者        | live, console tab                       |
-| nickname    | Nickname        | Pseudo               | Apodo                | 昵称          | 匿稱          | join                                    |
-| session     | Session         | Session              | Sesión               | 会话          | 會話          | a quiz being played                     |
-| room        | Room            | Salon                | Sala                 | 房间          | 房間          | one PIN, several quizzes in a row (#89) |
-| console     | Console         | Console              | Consola              | 控制台        | 控制台        | `/session/:pin/console`                 |
-| projection  | Projection      | Projection           | Proyección           | 投影          | 投影          | `/session/:pin/projection`              |
-| join / PIN  | Join · PIN code | Rejoindre · Code PIN | Unirse · Código PIN  | 加入 · PIN 码 | 加入 · PIN 碼 | `/join`                                 |
-| reviews     | Reviews         | Avis                 | Opiniones            | 评价          | 回饋          | `/quizzes/:id/reviews`                  |
-| history     | History         | Historique           | Historial            | 历史          | 歷史          | `/quizzes/:id/history`                  |
+| Term        | en              | fr                   | es                   | zh            | zh-TW         | Where                                                                          |
+| ----------- | --------------- | -------------------- | -------------------- | ------------- | ------------- | ------------------------------------------------------------------------------ |
+| quiz        | quiz            | quiz                 | quiz                 | 测验          | 測驗          | everywhere                                                                     |
+| my quizzes  | My quizzes      | Mes quiz             | Mis quizzes          | 我的测验      | 我的測驗      | topbar, `/quizzes`                                                             |
+| editor      | Editor          | Éditeur              | Editor               | 编辑器        | 編輯器        | `/quizzes/:id`                                                                 |
+| host        | Host            | Animateur            | Anfitrión            | 主持人        | 主持人        | live                                                                           |
+| host seat   | Host seat       | Siège hôte           | Asiento de anfitrión | 主持席位      | 主持席位      | local auth mode                                                                |
+| participant | Participant     | Participant          | Participante         | 参与者        | 參與者        | live, console tab                                                              |
+| nickname    | Nickname        | Pseudo               | Apodo                | 昵称          | 匿稱          | join                                                                           |
+| room        | Room            | Salon                | Sala                 | 房间          | 房間          | live: what one joins with the PIN and stays in, several quizzes in a row (#89) |
+| session     | Session         | Session              | Sesión               | 会话          | 會話          | afterwards: one quiz played in a room, as _History_ keeps it                   |
+| console     | Console         | Console              | Consola              | 控制台        | 控制台        | `/session/:pin/console`                                                        |
+| projection  | Projection      | Projection           | Proyección           | 投影          | 投影          | `/session/:pin/projection`                                                     |
+| join / PIN  | Join · PIN code | Rejoindre · Code PIN | Unirse · Código PIN  | 加入 · PIN 码 | 加入 · PIN 碼 | `/join`                                                                        |
+| reviews     | Reviews         | Avis                 | Opiniones            | 评价          | 回饋          | `/quizzes/:id/reviews`                                                         |
+| history     | History         | Historique           | Historial            | 历史          | 歷史          | `/quizzes/:id/history`                                                         |
 
 ## Content
 
@@ -70,10 +70,17 @@ reference, the others follow its sense, not its words.
 - **quiz, not questionnaire.** Product name and common usage; "questionnaire"
   reads like a survey. Kept as `quiz` in every locale (it is a loanword in
   fr/es); Chinese uses 测验/測驗 (a test one plays), not 问卷 (a survey).
-- **session** (a quiz being played) rather than _game_ or _party_: neutral
-  enough for classrooms and teams. fr _session_, not _partie_.
-- **room** (one PIN, the participants joining once, several quizzes played in
-  a row) vs **session** (one quiz played): fr _salon_, not _partie_ nor _soirée_.
+- **room, quiz, session**: three levels since the multi-quiz room (#89).
+  - **room** (fr _salon_): what participants join with the PIN and stay in —
+    joining, sharing, locking, leaving, being removed, closing (_Close the
+    room_, never _End the session_);
+  - **quiz**: the one being played in it — starting, pace, pause, who hears
+    the sound, archiving its results (_Start the quiz_, _Quiz paused_);
+  - **session**: afterwards only — one quiz played, as _History_ archives it.
+
+  Never _partie_ / _game_ in the interface; `session` stays in code
+  identifiers and routes.
+
 - **host / animateur**: the person presenting. fr uses _animateur_
   (presenter/facilitator) — _hôte_ is kept only in _siège hôte_, where the
   seat is a technical lock, not a person.

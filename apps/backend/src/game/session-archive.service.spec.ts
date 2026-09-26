@@ -58,6 +58,8 @@ describe('SessionArchiveService', () => {
   const meta: GameMeta = {
     id: GAME,
     roomId: 'r1',
+    roomName: '',
+    hostName: 'Host',
     quizId: 'quiz1',
     hostUserId: 'host1',
     state: 'PODIUM',

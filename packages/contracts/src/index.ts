@@ -104,6 +104,8 @@ export const ClientEvents = {
   HostReveal: 'host:reveal',
   HostKick: 'host:kick',
   HostEnd: 'host:end',
+  /** Names the room (from its lobby); every screen shows it. */
+  HostRoomName: 'host:room-name',
   /** Opens the next quiz in the room (from its lobby or its podium); the players stay. */
   HostNextQuiz: 'host:next-quiz',
   /** Bannit un joueur pour une durée donnée (exclusion immédiate, RG-12). */
@@ -461,6 +463,8 @@ export interface RoomStandingsPayload {
 
 export interface PodiumPayload {
   podium: LeaderboardRow[];
+  /** The quiz of this podium: a rating goes to it (several quizzes share a room's PIN). */
+  quizId?: string;
   you?: { score: number; rank: number };
   /** Whether the end-of-session rating panel is offered (§2.11); absent = yes. */
   feedbackEnabled?: boolean;
@@ -514,6 +518,8 @@ export interface ClientToServerEvents {
    * of the quiz just played, as `host:end` does). The players stay in, at 0; the
    * host's choices (capture, tracking, lock, pace, audio target) carry over.
    */
+  /** The room's own name (≤ 60 characters), from its lobby; blank = the default. */
+  'host:room-name': (p: { pin: string; name: string }) => void;
   'host:next-quiz': (
     p: { pin: string; quizId: string; archive?: boolean },
     ack: (res: { ok: boolean }) => void,
@@ -637,9 +643,15 @@ export interface ServerToClientEvents {
   'question:reveal': (p: QuestionRevealPayload) => void;
   leaderboard: (p: LeaderboardPayload) => void;
   'game:podium': (p: PodiumPayload) => void;
+  /**
+   * The room's own name (null = the default the screens show, "<host>'s room")
+   * and its host's name: on attach, and when the host renames it in the lobby.
+   */
+  'room:info': (p: { name: string | null; hostName: string }) => void;
   /** The room's standings: at a podium, in the lobby of the next quiz, and when the room closes. */
   'room:standings': (p: RoomStandingsPayload) => void;
-  'game:ended': (p: { feedbackEnabled?: boolean }) => void;
+  /** `quizId`: the quiz that ended, which a rating goes to (several share a room's PIN). */
+  'game:ended': (p: { feedbackEnabled?: boolean; quizId?: string }) => void;
   /** Mode/pause courants (à chaque changement et au (ré)attache). */
   'game:mode': (p: GameModePayload) => void;
   /** Base URL of the invitations chosen by the host (null = the page's own origin). */
@@ -663,11 +675,14 @@ export interface ServerToClientEvents {
   /** The host restarts the current question's media from the top. */
   'media:control': (p: { questionIndex: number; action: 'restart' }) => void;
   /**
-   * Whether the quiz plays any sound (an MP3, a video), sent on attach to the
-   * screens that are not players: the projection then asks for the click that
-   * unlocks sound as soon as it opens, whatever the moment of the session.
+   * Whether the quiz plays any sound (an MP3, a video), sent on attach to every
+   * device: the projection (and a phone that never enabled it) then asks for the
+   * click that unlocks sound, whatever the moment of the session — the room's
+   * next quiz may play sound where the first did not (#89).
    */
   'game:media': (p: {
+    /** The quiz's title: the room's projection shows the quiz coming next. */
+    title?: string;
     hasSound: boolean;
     /** Whether any question or slide carries a media (the lobby then says they are sent ahead). */
     hasMedia: boolean;

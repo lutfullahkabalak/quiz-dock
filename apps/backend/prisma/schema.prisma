@@ -436,6 +436,8 @@ model GameSessionLog {
   pin              String        @db.Char(6)
   /// The room it was played in (#89): its sessions are read together. Null before rooms.
   roomId           String?       @map("room_id") @db.Char(32)
+  /// The room's own name when the session was archived (a copy: no room table). Null = the default.
+  roomName         String?       @map("room_name") @db.VarChar(60)
   status           SessionStatus @default(ended)
   language         String
   playerCount      Int           @default(0) @map("player_count")

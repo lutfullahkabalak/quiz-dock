@@ -135,6 +135,8 @@ export interface RoomMeta {
   hostUserId: string;
   /** The game the room plays (the last one, once it is over). */
   gameId: GameId;
+  /** The game before it, when the host moved on: its podium's ratings may still arrive. */
+  previousGameId?: GameId;
   fullCapture: boolean;
   personalTracking: boolean;
   pickOwnName: boolean;
@@ -144,6 +146,10 @@ export interface RoomMeta {
   joinBaseUrl: string;
   /** When the room opened (ms epoch); each game keeps its own `createdAt`. */
   openedAt: number;
+  /** The room's own name, chosen by the host; '' = the default ("<host>'s room", shown by the screens). */
+  name: string;
+  /** The host's display name when the room opened, for that default. */
+  hostName: string;
 }
 
 /** The room fields, as the game view (`GameMeta`) carries them. */
@@ -151,6 +157,7 @@ export const ROOM_FIELDS = [
   'roomId',
   'hostUserId',
   'gameId',
+  'previousGameId',
   'fullCapture',
   'personalTracking',
   'pickOwnName',
@@ -158,6 +165,8 @@ export const ROOM_FIELDS = [
   'joinLocked',
   'joinBaseUrl',
   'openedAt',
+  'name',
+  'hostName',
 ] as const;
 
 /**
@@ -169,6 +178,9 @@ export interface GameMeta {
   id: GameId;
   /** The room it is played in. */
   roomId: string;
+  /** The room's name ('' = the default) and its host's name. */
+  roomName: string;
+  hostName: string;
   quizId: string;
   hostUserId: string;
   state: string;
@@ -229,7 +241,7 @@ export interface GameMeta {
 }
 
 /** The fields of the game hash (`game:{id}`): everything in `GameMeta` the room does not hold. */
-export type GameFields = Omit<GameMeta, 'id' | (typeof ROOM_FIELDS)[number]>;
+export type GameFields = Omit<GameMeta, 'id' | 'roomName' | (typeof ROOM_FIELDS)[number]>;
 
 /** Réponse gradée stockée au submit (Redis hash `:answers:{idx}`) — REVEAL la relit. */
 export interface AnswerRecord {

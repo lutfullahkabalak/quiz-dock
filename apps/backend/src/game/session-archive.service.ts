@@ -144,6 +144,8 @@ export class SessionArchiveService {
       hostId: meta.hostUserId,
       pin,
       roomId: meta.roomId,
+      // A copy per session: there is no room table to hold it (SPECIFICATIONS-ROOM §5).
+      roomName: meta.roomName || null,
       status,
       language: meta.language,
       playerCount,

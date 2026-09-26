@@ -294,6 +294,7 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `host:next` | `{ pin }` | the host | The next question / the podium |
 | `host:reveal` | `{ pin }` | the host | Forces the reveal |
 | `host:kick` | `{ pin, playerId }` | the host | Throws a player out |
+| `host:room-name` | `{ pin, name }` | the host | From the room's lobby: its own name (≤ 60 characters; blank = "<host>'s room") |
 | `host:next-quiz` | `{ pin, quizId, archive? }` | the host | From the lobby or the podium: opens the room's next quiz in its lobby, the players still in (SPECIFICATIONS-ROOM §6) |
 | `host:end` | `{ pin, archive? }` | the host | Closes the room (the game ends, the PIN is freed) |
 | `player:join` | `{ pin, nickname, authToken? }` | a player | Joins the LOBBY; returns a `sessionToken` and the **nickname the server retained** (the account's name when the host did not open the choice, a suffix when a homonym was already there). Refused without a valid token under `AUTH_MODE=oidc` unless the game is in open access, where everyone joins as a guest; refused once the host closed the game (RG-15) |
@@ -316,9 +317,11 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `answer:count` | `{ answered, total }` | the host |
 | `question:reveal` | `{ correctOptionIds \| correctValue, distribution, yourResult:{ correct, points, totalScore, rank } }` | the room (the personal result aimed per socket) |
 | `leaderboard` | `{ top:[{nickname, score, rank}], you?:{score,rank} }` | the room |
-| `game:podium` | `{ podium:[top3], you?:{score,rank} }` | the room |
+| `game:podium` | `{ podium:[top3], quizId?, you?:{score,rank} }` | the room (`quizId`: the quiz a rating goes to) |
+| `room:info` | `{ name \| null, hostName }` | the room | The room's name (null = the default) and its host's: on attach and when renamed |
 | `room:standings` | `{ quizzesPlayed, top:[top10], you?:{score, rank, correct, answered, avgResponseMs, maxStreak, quizzes} }` | the room (`you` on each player's socket) | The room's standings over its quizzes: at a podium, in the next lobby, when the room closes (SPECIFICATIONS-ROOM §6) |
-| `game:ended` | `{ }` | the room |
+| `game:ended` | `{ feedbackEnabled?, quizId? }` | the room |
+| `game:media` | `{ title?, hasSound, hasMedia, audioTarget }` | every device (a phone asks for sound when a room's next quiz has some; the projection shows the next quiz's title) |
 | `error` | `{ code, message }` | targeted |
 | `pong` | `{ t0, t1 }` | the sender |
 

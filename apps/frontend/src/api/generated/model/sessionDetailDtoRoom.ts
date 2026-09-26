@@ -12,6 +12,9 @@ import type { SessionDetailDtoRoomStandingsItem } from './sessionDetailDtoRoomSt
  * @nullable
  */
 export type SessionDetailDtoRoom = {
+  /** @nullable */
+  name: string | null;
+  hostName: string;
   sessions: SessionDetailDtoRoomSessionsItem[];
   /** @nullable */
   standings: SessionDetailDtoRoomStandingsItem[] | null;

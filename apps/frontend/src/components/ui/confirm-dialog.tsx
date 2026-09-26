@@ -1,3 +1,4 @@
+import { cn } from '@/lib/utils';
 import { type ReactNode, useEffect, useId, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './button';
@@ -15,6 +16,7 @@ export function ConfirmDialog({
   cancelLabel,
   destructive,
   confirmDisabled,
+  wide,
   children,
   onConfirm,
   onCancel,
@@ -27,6 +29,8 @@ export function ConfirmDialog({
   destructive?: boolean;
   /** The confirm button waits until what the dialog asks for is right. */
   confirmDisabled?: boolean;
+  /** Room for more than a sentence (a list to pick from). */
+  wide?: boolean;
   /** Contenu additionnel (ex. case à cocher) inséré entre le texte et les actions. */
   children?: ReactNode;
   onConfirm: () => void;
@@ -64,9 +68,13 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === ref.current) onCancel(); // clic sur le backdrop
       }}
-      className="bg-background text-foreground m-auto w-[90vw] max-w-md rounded-lg border p-0 shadow-lg backdrop:bg-black/50"
+      className={cn(
+        'bg-background text-foreground m-auto w-[90vw] rounded-lg border p-0 shadow-lg backdrop:bg-black/50',
+        // Wide (a list inside): never taller than the viewport; the list takes what is left.
+        wide ? 'max-h-[calc(100dvh-2rem)] max-w-2xl open:flex open:flex-col' : 'max-w-md',
+      )}
     >
-      <div className="flex flex-col gap-4 p-6">
+      <div className={cn('flex flex-col gap-4 p-6', wide && 'min-h-0 flex-1 overflow-y-auto')}>
         <h2 id={titleId} className="text-lg font-semibold">
           {title}
         </h2>

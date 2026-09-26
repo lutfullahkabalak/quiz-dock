@@ -254,13 +254,13 @@ export class GameEngine {
     const snapshot = await this.game.getSnapshot(ref.id);
     if (!snapshot) return;
     const payload = {
+      title: snapshot.title,
       hasSound: snapshotHasSound(snapshot),
       hasMedia: snapshotHasMedia(snapshot),
       audioTarget: gameAudioTarget(snapshot, target),
     };
-    for (const socket of await this.server.in(pin).fetchSockets()) {
-      if (!(socket.data as { playerId?: string }).playerId) socket.emit('game:media', payload);
-    }
+    // Every device: a phone that never enabled sound asks for it when the quiz has some.
+    this.server.to(pin).emit('game:media', payload);
     // Who needs what may have changed (the phones in the room, for every device).
     await this.emitPreload(ref, snapshot, 0);
     await this.broadcastReadiness(pin);
@@ -1059,6 +1059,7 @@ export class GameEngine {
     const me = playerId ? ranked.find((p) => p.id === playerId) : undefined;
     return {
       podium,
+      ...(snapshot ? { quizId: snapshot.quizId } : {}),
       feedbackEnabled: snapshot?.feedbackEnabled ?? true,
       ...(snapshot?.credits?.length ? { credits: snapshot.credits } : {}),
       you: me ? { score: me.score, rank: rankOf.get(me.id) ?? ranked.length } : undefined,
@@ -1079,10 +1080,13 @@ export class GameEngine {
     // Transparence (§2.10, RG-16) : tout (ré)attaché — dont les joueurs arrivés après
     // le host:create — doit voir ce que la session enregistre de lui.
     socket.emit('notice', noticeOf(meta));
+    socket.emit('room:info', { name: meta.roomName || null, hostName: meta.hostName });
     const snapshotForNav = await this.game.getSnapshot(meta.id);
-    if (!playerId && snapshotForNav) {
-      // The projection asks for sound at once when the quiz will need it.
+    if (snapshotForNav) {
+      // Every device asks for sound at once when the quiz will need it (a phone too:
+      // the next quiz of a room may play sound where the first did not).
       socket.emit('game:media', {
+        title: snapshotForNav.title,
         hasSound: snapshotHasSound(snapshotForNav),
         hasMedia: snapshotHasMedia(snapshotForNav),
         audioTarget: gameAudioTarget(snapshotForNav, meta.audioTarget),
@@ -1398,7 +1402,7 @@ export class GameEngine {
     this.server
       .to(pin)
       .emit('game:state', { state: GameState.Ended, questionIndex: -1, totalQuestions: 0 });
-    this.server.to(pin).emit('game:ended', { feedbackEnabled: await this.feedbackEnabled(ref.id) });
+    this.server.to(pin).emit('game:ended', await this.endedPayload(ref.id));
   }
 
   /**
@@ -1495,9 +1499,7 @@ export class GameEngine {
     this.server
       .to(pin)
       .emit('game:state', { state: GameState.Ended, questionIndex: -1, totalQuestions: 0 });
-    this.server
-      .to(pin)
-      .emit('game:ended', { feedbackEnabled: await this.feedbackEnabled(meta.id) });
+    this.server.to(pin).emit('game:ended', await this.endedPayload(meta.id));
   }
 
   /**
@@ -1542,6 +1544,22 @@ export class GameEngine {
       this.log.warn(`Session ${pin}: quiz ${meta.quizId} no longer exists, ended without archive`);
       this.server.to(pin).emit('error', { code: 'session.archive_quiz_gone' });
     }
+  }
+
+  /**
+   * `host:room-name`: the room's own name, in the lobby only (never during a
+   * quiz). Blank = the default the screens show ("<host>'s room"). Every screen
+   * is told.
+   */
+  async setRoomName(pin: string, hostUserId: string, raw: string): Promise<void> {
+    const meta = await this.requireHost(pin, hostUserId);
+    if (meta.state !== GameState.Lobby) throw new BadRequestException('session.already_started');
+    const name = String(raw ?? '')
+      .trim()
+      .replace(/\s+/g, ' ')
+      .slice(0, ROOM_NAME_MAX);
+    await this.redis.hset(gameKeys.room(pin), { name });
+    this.server.to(pin).emit('room:info', { name: name || null, hostName: meta.hostName });
   }
 
   /** Every timer of the room: its game is over or replaced. */
@@ -1804,10 +1822,15 @@ export class GameEngine {
     await this.next(pin, hostUserId);
   }
 
-  /** Whether players may rate this quiz (§2.11); defaults to true when the snapshot is gone. */
-  private async feedbackEnabled(gameId: GameId): Promise<boolean> {
+  /** `game:ended`: whether players may rate the quiz (§2.11; yes when the snapshot is gone), and which. */
+  private async endedPayload(
+    gameId: GameId,
+  ): Promise<{ feedbackEnabled: boolean; quizId?: string }> {
     const snapshot = await this.game.getSnapshot(gameId);
-    return snapshot?.feedbackEnabled ?? true;
+    return {
+      feedbackEnabled: snapshot?.feedbackEnabled ?? true,
+      ...(snapshot ? { quizId: snapshot.quizId } : {}),
+    };
   }
 
   /** Lit les réponses gradées d'une question (playerId → enregistrement). */
@@ -1946,6 +1969,9 @@ export class GameEngine {
     return snapshot;
   }
 }
+
+/** The longest room name kept (the projection shows it as a title). */
+const ROOM_NAME_MAX = 60;
 
 /** `q<i>` / `s<i>` ↔ GameStep. */
 function stepKey(step: GameStep): string {

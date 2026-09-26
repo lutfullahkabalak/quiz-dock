@@ -64,7 +64,8 @@
       "noPersonalTracking": "Pas de classement du salon : au moins une de ses sessions n’a pas suivi les participants individuellement.",
       "thQuizzes": "Quiz",
       "exportCsv": "Exporter le classement (CSV)",
-      "csvFilename": "salon"
+      "csvFilename": "salon",
+      "defaultName": "Salon de {{host}}"
     }
   },
   "player": {

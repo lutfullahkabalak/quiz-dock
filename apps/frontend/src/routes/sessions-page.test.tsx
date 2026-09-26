@@ -27,6 +27,8 @@ const detail = (room: unknown) => ({
 });
 
 const room = (standings: unknown) => ({
+  name: null,
+  hostName: 'Billy',
   sessions: [
     {
       id: 's1',
@@ -90,6 +92,8 @@ describe('Session history: the room (#89)', () => {
     const other = await screen.findByRole('link', { name: 'Manche B' });
     expect(other).toHaveAttribute('href', '/quizzes/q2/history/s2');
     expect(screen.getByText('(cette session)')).toBeInTheDocument();
+    // No name of its own: the default one, from its host.
+    expect(screen.getByText('Salon de Billy')).toBeInTheDocument();
     const row = screen.getByText('Hana').closest('tr')!;
     expect(within(row).getByText('1800')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Exporter le classement/ })).toBeEnabled();

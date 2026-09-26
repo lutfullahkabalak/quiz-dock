@@ -1,3 +1,4 @@
+import { NextQuizButton, RoomStandingsPanel, roomLabel } from '../game/room-components';
 import {
   AUDIO_TARGETS,
   type AudioTarget,
@@ -22,6 +23,7 @@ import {
   Hand,
   MonitorPlay,
   Pause,
+  Pencil,
   Play,
   Radio,
   RotateCcw,
@@ -37,6 +39,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
@@ -223,7 +226,11 @@ export function ControlPage() {
   if (view.state === 'LOBBY' || view.state === null) {
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-6')}>
-        <RecapHeader view={view} pin={pin} />
+        <RecapHeader
+          view={view}
+          pin={pin}
+          onRename={(name) => socket?.emit('host:room-name', { pin, name })}
+        />
 
         {/* Invitation discrète : simple info, pas le grand écran de projection. */}
         <div className="flex flex-col gap-3 rounded-lg border p-4">
@@ -267,6 +274,9 @@ export function ControlPage() {
           <ReadinessLine readiness={view.readiness} />
           <ParticipantsList players={view.players} readiness={view.readiness} onBan={banPlayer} />
         </div>
+
+        {/* A room's next quiz (#89): where the room stands before it starts. */}
+        {view.standings ? <RoomStandingsPanel standings={view.standings} max={5} /> : null}
 
         {/* Who hears the sound, for this game: replaces the quiz's default; a question
             with its own setting keeps it. Only when the quiz has something to hear. */}
@@ -395,7 +405,17 @@ export function ControlPage() {
         <ActionBar
           status={<ModeToggle mode={view.mode} onChange={setMode} />}
           end={<EndGameButton label={t('control.stopSession')} onConfirm={endGame} />}
-          nav={screenButton}
+          nav={
+            <>
+              <NextQuizButton
+                pin={pin}
+                socket={socket}
+                fromPodium={false}
+                currentQuizId={view.quizId}
+              />
+              {screenButton}
+            </>
+          }
           primary={
             <Tooltip label={t('control.startTooltip')}>
               <Button
@@ -550,10 +570,15 @@ export function ControlPage() {
       <section className={cn(CONSOLE_SECTION, 'items-center gap-6')}>
         <h2 className="text-2xl font-bold">{t('control.podium')}</h2>
         {view.podium ? <Podium rows={view.podium.podium} /> : null}
+        {/* The quiz's podium first, then the room's (#89) once it has played more than one. */}
+        {view.standings && view.standings.quizzesPlayed > 1 ? (
+          <RoomStandingsPanel standings={view.standings} />
+        ) : null}
         <ActionBar
+          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
           nav={navBar}
           primary={
-            <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            <NextQuizButton pin={pin} socket={socket} fromPodium currentQuizId={view.quizId} />
           }
         />
       </section>
@@ -740,12 +765,82 @@ function PlayersBadge({ count }: { count: number }) {
   );
 }
 
-/** Récap compact du quiz (titre + PIN) — en-tête du tableau de bord. */
-function RecapHeader({ view, pin }: { view: GameView; pin: string }) {
+/**
+ * The console's header: the room's name (renamed from its lobby, `onRename`),
+ * then the quiz being played in it, its description and the PIN.
+ */
+function RecapHeader({
+  view,
+  pin,
+  onRename,
+}: {
+  view: GameView;
+  pin: string;
+  onRename?: (name: string) => void;
+}) {
   const { t } = useTranslation('live');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const label = roomLabel(t, view.roomName, view.hostName);
+  const fallback = roomLabel(t, null, view.hostName);
+  const save = () => {
+    setEditing(false);
+    if (draft.trim() !== (view.roomName ?? '')) onRename?.(draft);
+  };
   return (
     <div className="flex flex-col gap-0.5">
-      <h1 className="text-xl font-bold">{view.quizTitle ?? t('control.sessionInProgress')}</h1>
+      {editing ? (
+        <form
+          className="flex flex-col gap-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
+        >
+          <Input
+            autoFocus
+            value={draft}
+            maxLength={60}
+            placeholder={fallback}
+            aria-label={t('control.roomNameLabel')}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={save}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setEditing(false);
+            }}
+            className="max-w-md text-xl font-bold"
+          />
+          <span className="text-muted-foreground text-xs">
+            {t('control.roomNameHint', { default: fallback })}
+          </span>
+        </form>
+      ) : (
+        <div className="flex items-center gap-1">
+          <h1 className="text-xl font-bold">{label}</h1>
+          {onRename ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label={t('control.renameRoom')}
+              title={t('control.renameRoom')}
+              onClick={() => {
+                setDraft(view.roomName ?? '');
+                setEditing(true);
+              }}
+            >
+              <Pencil className="size-4" />
+            </Button>
+          ) : null}
+        </div>
+      )}
+      {view.quizTitle ? (
+        <p className="font-medium">
+          <span className="text-muted-foreground font-normal">{t('control.quizLabel')}</span>{' '}
+          {view.quizTitle}
+        </p>
+      ) : null}
       {view.quizDescription ? (
         <Markdown profile="inline" className="text-muted-foreground block max-w-prose text-sm">
           {view.quizDescription}

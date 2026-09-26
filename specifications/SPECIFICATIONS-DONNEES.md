@@ -194,6 +194,7 @@ CHECKs, in SQL or in the application, depending on the type:
 | `quiz_id` | char(26) | FK→`quiz.id`, NN, IDX | The quiz that was played (a snapshot is advised, see the note) |
 | `host_id` | char(26) | FK→`user.id`, NN, IDX | The host who ran it |
 | `pin` | char(6) | NN | The PIN used (historical; not unique over time) |
+| `room_name` | varchar(60) | nullable | The room's own name when the session was archived — a copy on each session, as there is no room table. Null = the default ("<host>'s room") |
 | `room_id` | char(32) | nullable, IDX | The room it was played in (SPECIFICATIONS-ROOM): the archived sessions of one room are read together — its quizzes, and standings summed from their `player_result_log` (nothing stored twice). Null for sessions archived before rooms |
 | `status` | enum `session_status` | NN, DEF `ended` | `ended` \| `archived` (the live `lobby`/`in_progress` states live in Redis) |
 | `language` | text | NN | The session's language |
@@ -290,7 +291,7 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 | Key | Type | Contents |
 |-----|------|----------|
 | `pin:{pin}` | String | The room id; atomic allocation (`SET NX`), guarantees the PIN's **uniqueness** *(RG-04)*. Deleted when the room closes. |
-| `room:{pin}` | Hash | `roomId`, `hostUserId`, `gameId` (the game it plays), `fullCapture`, `personalTracking`, `pickOwnName`, `participantAccess`, `joinLocked`, `joinBaseUrl`, `openedAt` — what the players were told when they came in. |
+| `room:{pin}` | Hash | `roomId`, `hostUserId`, `gameId` (the game it plays), `name` (its own name, '' = "<host>'s room"), `hostName`, `fullCapture`, `personalTracking`, `pickOwnName`, `participantAccess`, `joinLocked`, `joinBaseUrl`, `openedAt` — what the players were told when they came in. |
 | `room:{pin}:players` | Hash `playerId → JSON` | Who each player is: `nickname`, `avatar`, `userId` (null = a guest), `connected`, `joinedAt`, `latencyMs`, `presence`. No score: it belongs to each game. |
 | `room:{pin}:nicknames` | Set | The normalized nicknames (atomic deduplication). |
 | `room:{pin}:ban:{nickname}` | String | A banned normalized nickname; the key's TTL is the ban's length *(RG-12)*. |

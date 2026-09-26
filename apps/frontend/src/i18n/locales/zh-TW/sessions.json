@@ -64,7 +64,8 @@
       "noPersonalTracking": "沒有房間排名：至少有一個會話未對參與者進行個人追蹤。",
       "thQuizzes": "測驗",
       "exportCsv": "匯出排名 CSV",
-      "csvFilename": "room"
+      "csvFilename": "room",
+      "defaultName": "{{host}} 的房間"
     }
   },
   "player": {

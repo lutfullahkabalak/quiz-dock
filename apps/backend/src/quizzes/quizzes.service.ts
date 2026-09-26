@@ -205,6 +205,8 @@ export class QuizzesService {
         startedAt: true,
         personalTracking: true,
         quizSnapshot: true,
+        roomName: true,
+        host: { select: { displayName: true } },
         playerResults: {
           select: {
             nickname: true,
@@ -219,6 +221,9 @@ export class QuizzesService {
     });
     if (sessions.length < 2) return null;
     return {
+      // The name it had last (the host may rename the room between two quizzes).
+      name: sessions[sessions.length - 1].roomName,
+      hostName: sessions[0].host.displayName,
       sessions: sessions.map((s) => ({
         id: s.id,
         quizId: s.quizId,
