@@ -183,3 +183,36 @@ The projection's "media not loaded in time" (`media.slow`).
 
 Specified in [SPECIFICATIONS-MEDIA-LIBRARY.md](./SPECIFICATIONS-MEDIA-LIBRARY.md): one format per kind converted in the
 author's browser, files shared between uses, a media input module, an administration page.
+
+## 9. Audio routing
+
+Several sources may sound at once on one device — a question's sound, a background track, the game's effects — and
+they are not the same kind of sound. Every page routes them through **buses** on one Web Audio context
+(`game/media/audio-mixer.ts`); no source plays straight to the speakers.
+
+```
+question's sound / video ─ loudness gain ─► QUIZ  ─┐
+background track (a sound of the library) ─► MUSIC ─┤
+tick, gong (synthesised, or a sample) ────► SFX   ─┼─► MASTER ─► limiter ─► speakers
+interface sounds (to come) ───────────────► UI    ─┘
+```
+
+- **A bus is two gains in a row**: its *level* (a host's volume) and its *duck* (automatic), so a volume change never
+  fights a duck. **MASTER** carries the participant's own mute; a **limiter** after it keeps simultaneous sources from
+  clipping.
+- **The rules follow the game's state, not the signal**: while a question plays its own sound or video, MUSIC ducks to
+  silence and comes back after; SFX is never ducked (the effects are short).
+- **QUIZ** keeps its per-media loudness correction (§2); it is not a host's volume. A media element joins the bus once
+  the context runs (a suspended context would silence it) and once in its life — the phones reuse theirs.
+- **Which buses a device plays**:
+
+  | Device | QUIZ | MUSIC, SFX |
+  |--------|------|------------|
+  | the projection | yes | yes |
+  | a remote participant's phone | per the question's audio target (§5.2) | per the room's audio target |
+  | a phone in the room | only when the target is *everyone* | never |
+  | a participant's copy of the projection (#104) | muted, unless `?sound=1` — then as a remote phone | as a remote phone |
+
+- **Sources**: the effects are synthesised in the browser (no file, no licence); a host may replace one by a sound of
+  their media library. The background track is always a sound of the library. Nothing is bundled.
+- **Settings**: the MUSIC and SFX levels are the room's (the lobby); QUIZ stays at its normalised level.
