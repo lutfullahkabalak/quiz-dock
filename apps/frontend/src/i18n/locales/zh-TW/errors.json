@@ -9,30 +9,30 @@
   },
   "host": {
     "auth_required": "需要主持人身份驗證。",
-    "forbidden": "您不是本會話的主持人。"
+    "forbidden": "你不是此房間的主持人。"
   },
   "quiz": {
     "not_found": "未找到測驗。",
-    "not_ready": "測驗必須處於「就緒」狀態才能開始會話（RG-02）。",
+    "not_ready": "測驗必須處於「就緒」狀態才能進行（RG-02）。",
     "empty": "測驗沒有任何題目。",
     "requires_question": "測驗至少需要一道題目才能變為「就緒」（RG-02）。",
     "transition_forbidden": "禁止的狀態轉換：{{from}} → {{target}}。",
-    "in_use": "該測驗正在某個場次中進行：請先結束該場次。"
+    "in_use": "此測驗正在某個房間中進行：請先關閉房間。"
   },
   "session": {
-    "not_found": "未找到會話或會話已結束。",
-    "ended": "會話已結束。",
-    "banned": "您已被主持人踢出本會話。",
-    "join_required": "請先加入會話再作答。",
-    "already_started": "會話已經開始。",
+    "not_found": "未找到房間或房間已關閉。",
+    "ended": "房間已關閉。",
+    "banned": "你已被主持人移出此房間。",
+    "join_required": "請先加入房間再作答。",
+    "already_started": "測驗已經開始。",
     "reveal_required": "僅在揭曉答案後才能執行該操作。",
     "timer_not_adjustable": "僅在答題進行中才能調整計時器。",
     "snapshot_not_found": "未找到會話快照。",
-    "capture_locked": "完整記錄僅可在會話開始前更改。",
-    "options_locked": "會話選項只能在會話開始前變更。",
+    "capture_locked": "完整記錄只能在測驗開始前更改。",
+    "options_locked": "這些選項只能在測驗開始前更改。",
     "join_url_invalid": "加入位址無效（應為 http(s)://主機[:連接埠]）。",
-    "archive_quiz_gone": "測驗在場次進行中被刪除：場次已結束但未歸檔。",
-    "locked": "本場已不再接受新的參與者。",
+    "archive_quiz_gone": "測驗在進行中被刪除：結束時沒有歸檔。",
+    "locked": "此房間不再接受新的參與者。",
     "open_access_forbidden": "此伺服器不允許開放存取。",
     "open_access_guests_only": "開放存取時參與者沒有帳號：沒有個人追蹤，也不使用帳號名稱。"
   },
@@ -40,7 +40,7 @@
     "not_found": "未找到玩家。"
   },
   "nickname": {
-    "taken": "該匿稱在本會話中已被使用。",
+    "taken": "此匿稱在本房間中已被使用。",
     "invalid_length": "匿稱長度必須在 {{min}} 到 {{max}} 個字元之間。"
   },
   "pin": {
@@ -69,7 +69,7 @@
     "too_long": "即使壓縮後也超出此類媒體 {{maxMb}} MB 的上限。請先剪短。",
     "canceled": "已取消轉換。",
     "in_use": "這個媒體仍被測驗或遊戲使用：請先從那裡移除。",
-    "playing": "有遊戲正在播放這個媒體：請在遊戲結束後再試。",
+    "playing": "某個房間正在播放此媒體：請在其關閉後重試。",
     "not_adopted_yet": "這個檔案正在移至共用儲存空間：請稍後再試。"
   },
   "import": {

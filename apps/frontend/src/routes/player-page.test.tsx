@@ -190,7 +190,7 @@ describe('PlayerPage (client participant)', () => {
     hookState.value = view({ state: GameState.Lobby });
     renderApp('/join/771122');
 
-    expect(await screen.findByText(/Tu es dans la session/)).toBeInTheDocument();
+    expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
     expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
   });
 
@@ -263,7 +263,7 @@ describe('PlayerPage (client participant)', () => {
     hookState.value = view({ state: GameState.Lobby });
     const guest = renderApp('/join/771122');
     expect(
-      await screen.findByText(/enregistrés avec les résultats de la session/i),
+      await screen.findByText(/enregistrés avec les résultats de chaque quiz/i),
     ).toBeInTheDocument();
     guest.unmount();
 

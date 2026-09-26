@@ -189,7 +189,7 @@ describe('ControlPage (console hôte)', () => {
     });
     renderApp('/session/482913/console');
 
-    const select = await screen.findByLabelText('Qui entend le son dans cette session');
+    const select = await screen.findByLabelText('Qui entend le son dans ce quiz');
     expect(select).toHaveValue('projection_remote');
     expect(screen.getByLabelText('Participe à distance')).toBeInTheDocument();
     // Who is still loading the first question's sound: Alice, the projection is ready.
@@ -210,7 +210,7 @@ describe('ControlPage (console hôte)', () => {
     hookState.value = view({ quizHasSound: false, gameAudioTarget: 'projection_remote' });
     renderApp('/session/482913/console');
     await screen.findByLabelText('Code PIN');
-    expect(screen.queryByText('Qui entend le son dans cette session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Qui entend le son dans ce quiz')).not.toBeInTheDocument();
   });
 
   it('MEDIA_LOADING: names who is still loading, and starts anyway on request', async () => {
@@ -284,7 +284,7 @@ describe('ControlPage (console hôte)', () => {
     renderApp('/session/482913/console');
 
     const lock = await screen.findByRole('switch', {
-      name: 'Fermer la partie aux nouveaux participants',
+      name: 'Fermer le salon aux nouveaux participants',
     });
     act(() => fireEvent.click(lock));
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:lock', { pin: '482913', locked: true });
@@ -312,7 +312,7 @@ describe('ControlPage (console hôte)', () => {
     renderApp('/session/482913/console');
 
     const lock = await screen.findByRole('button', {
-      name: 'Fermer la partie aux nouveaux participants',
+      name: 'Fermer le salon aux nouveaux participants',
     });
     expect(lock).toHaveAttribute('aria-pressed', 'true');
     act(() => lock.click());

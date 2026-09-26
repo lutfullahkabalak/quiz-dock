@@ -73,11 +73,11 @@
     "restore": "恢復",
     "archiveTitle": "歸檔",
     "archiveHelp": "歸檔的測驗會從主清單中隱藏，可以隨時還原。",
-    "fullCaptureNext": "下一場次完整記錄回答"
+    "fullCaptureNext": "下次進行時完整記錄回答"
   },
   "feedback": {
     "enableLabel": "允許參與者提供回饋",
-    "enableHelp": "每場結束時向參與者提供回饋界面。",
+    "enableHelp": "每次測驗結束時向參與者提供回饋界面。",
     "title": "玩家回饋",
     "empty": "暫無回饋。",
     "starsAriaLabel": "{{value}} / 5 星",
@@ -206,7 +206,7 @@
     "revealDelayHint": "自動模式下：進入下一題前在答案上停留的時間。留空 = 預設設定。",
     "audioTargetLabel": "誰聽得到這個聲音",
     "audioTargetHint": "哪些裝置播放本題的聲音或影片。「所有裝置」包含現場的手機，若共處一室會產生回音。",
-    "audioTargetDefault": "本次會話的設定",
+    "audioTargetDefault": "房間中本測驗的設定",
     "waveformSizeLabel": "波形大小",
     "waveformSizeHint": "聲音波形在投影與手機上顯示的粗細。",
     "waveformPreview": "波形預覽",
@@ -356,7 +356,7 @@
     },
     "creditLabel": "出處",
     "creditPlaceholder": "例如 照片：林偉，CC BY 4.0，openverse.org",
-    "creditHelp": "作者、授權與來源。顯示在預覽與遊戲結束時——CC-BY 授權要求這樣做。"
+    "creditHelp": "作者、授權與來源。顯示在預覽與測驗結束時——CC-BY 授權要求這樣做。"
   },
   "background": {
     "legend": "背景",
@@ -391,11 +391,11 @@
     "poll": "僅收集意見：沒有正確答案，不計分；揭曉時顯示分布。"
   },
   "sessions": {
-    "running_one": "{{count}} 場進行中",
-    "running_other": "{{count}} 場進行中",
+    "running_one": "{{count}} 個房間正在進行",
+    "running_other": "{{count}} 個房間正在進行",
     "players_one": "{{count}} 名玩家",
     "players_other": "{{count}} 名玩家",
-    "liveEditsHint": "版面修改（背景、對比度、解析、簡報）會在進行中的場次下一步生效；題目和答案保持啟動時的版本。"
+    "liveEditsHint": "版面修改（背景、對比度、解析、簡報）會在正在進行它的房間的下一步生效；題目和答案保持啟動時的版本。"
   },
   "publication": {
     "open": "匯出以發布",

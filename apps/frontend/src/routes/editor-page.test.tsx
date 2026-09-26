@@ -511,7 +511,7 @@ describe('EditorPage', () => {
     const { router } = renderApp('/quizzes/q1');
 
     // Only this quiz's sessions, each linking to its console.
-    expect(await screen.findByText('1 session en cours')).toBeInTheDocument();
+    expect(await screen.findByText('1 salon le joue')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /111111/ })).toHaveAttribute(
       'href',
       '/session/111111/console',

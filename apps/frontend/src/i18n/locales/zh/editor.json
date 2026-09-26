@@ -73,11 +73,11 @@
     "restore": "恢复",
     "archiveTitle": "归档",
     "archiveHelp": "归档的测验会从主列表中隐藏，可以随时恢复。",
-    "fullCaptureNext": "下一场次完整记录回答"
+    "fullCaptureNext": "下次进行时完整记录回答"
   },
   "feedback": {
     "enableLabel": "允许参与者评价",
-    "enableHelp": "每场结束时向参与者提供评分面板。",
+    "enableHelp": "每次测验结束时向参与者提供评分面板。",
     "title": "玩家评价",
     "empty": "暂无评价。",
     "starsAriaLabel": "5 星中的 {{value}} 星",
@@ -206,7 +206,7 @@
     "revealDelayHint": "自动模式下：进入下一题前在答案上停留的时间。留空 = 默认设置。",
     "audioTargetLabel": "谁能听到这个声音",
     "audioTargetHint": "哪些设备播放本题的声音或视频。“所有设备”包括现场的手机，若共处一室会产生回声。",
-    "audioTargetDefault": "本次会话的设置",
+    "audioTargetDefault": "房间中本测验的设置",
     "waveformSizeLabel": "波形大小",
     "waveformSizeHint": "声音波形在投影和手机上显示的粗细。",
     "waveformPreview": "波形预览",
@@ -356,7 +356,7 @@
     },
     "creditLabel": "署名",
     "creditPlaceholder": "例如 照片：林伟，CC BY 4.0，openverse.org",
-    "creditHelp": "作者、许可和来源。显示在预览和游戏结束时——CC-BY 许可要求这样做。"
+    "creditHelp": "作者、许可和来源。显示在预览和测验结束时——CC-BY 许可要求这样做。"
   },
   "background": {
     "legend": "背景",
@@ -391,11 +391,11 @@
     "poll": "仅收集意见：没有正确答案，不计分；揭晓时显示分布。"
   },
   "sessions": {
-    "running_one": "{{count}} 场进行中",
-    "running_other": "{{count}} 场进行中",
+    "running_one": "{{count}} 个房间正在进行",
+    "running_other": "{{count}} 个房间正在进行",
     "players_one": "{{count}} 名玩家",
     "players_other": "{{count}} 名玩家",
-    "liveEditsHint": "版式修改（背景、对比度、解析、幻灯片）会在进行中的场次下一步生效；题目和答案保持启动时的版本。"
+    "liveEditsHint": "版式修改（背景、对比度、解析、幻灯片）会在正在进行它的房间的下一步生效；题目和答案保持启动时的版本。"
   },
   "publication": {
     "open": "导出以发布",

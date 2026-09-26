@@ -16,7 +16,7 @@ describe('LandingPage — demo limitations', () => {
   it('says nothing on an ordinary instance', async () => {
     mockApi([]);
     renderApp('/');
-    expect(await screen.findByText(/Rejoindre une session/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Rejoindre un salon/i)).toBeInTheDocument();
     expect(screen.queryByText(/Ce que cette démo ne fait pas/i)).not.toBeInTheDocument();
   });
 

@@ -73,11 +73,11 @@
     "restore": "Restaurar",
     "archiveTitle": "Archivo",
     "archiveHelp": "Un cuestionario archivado sale de la lista principal; se puede restaurar.",
-    "fullCaptureNext": "Captura completa de respuestas para la próxima sesión"
+    "fullCaptureNext": "Captura completa de respuestas la próxima vez que se juegue"
   },
   "feedback": {
     "enableLabel": "Permitir opiniones de los participantes",
-    "enableHelp": "Se ofrece un panel de valoración al final de cada sesión.",
+    "enableHelp": "Se ofrece un panel de valoración al final del quiz, cada vez que se juega.",
     "title": "Opiniones de los jugadores",
     "empty": "Aún no hay opiniones.",
     "starsAriaLabel": "{{value}} de 5",
@@ -206,7 +206,7 @@
     "revealDelayHint": "En modo automático: tiempo en la respuesta antes de la siguiente pregunta. Vacío = ajuste por defecto.",
     "audioTargetLabel": "Quién oye este sonido",
     "audioTargetHint": "Qué dispositivos reproducen el sonido o el vídeo de esta pregunta. «Todos los dispositivos» incluye los móviles de la sala, que producen eco si la comparten.",
-    "audioTargetDefault": "Ajuste de la sesión",
+    "audioTargetDefault": "Ajuste del quiz en la sala",
     "waveformSizeLabel": "Tamaño de la forma de onda",
     "waveformSizeHint": "Grosor de la forma de onda del sonido en la proyección y los móviles.",
     "waveformPreview": "Vista previa de la forma de onda",
@@ -356,7 +356,7 @@
     },
     "creditLabel": "Crédito",
     "creditPlaceholder": "p. ej. Foto: Lin Wei, CC BY 4.0, openverse.org",
-    "creditHelp": "Autor, licencia y fuente. Se muestra en la vista previa y al final de la partida — una licencia CC-BY lo exige."
+    "creditHelp": "Autor, licencia y fuente. Se muestra en la vista previa y al final del quiz — una licencia CC-BY lo exige."
   },
   "background": {
     "legend": "Fondo",
@@ -391,11 +391,11 @@
     "poll": "Sondeo de opinión: sin respuesta correcta ni puntos; la distribución se muestra al revelar."
   },
   "sessions": {
-    "running_one": "{{count}} sesión en curso",
-    "running_other": "{{count}} sesiones en curso",
+    "running_one": "{{count}} sala lo está jugando",
+    "running_other": "{{count}} salas lo están jugando",
     "players_one": "{{count}} jugador",
     "players_other": "{{count}} jugadores",
-    "liveEditsHint": "Los cambios de forma (fondos, contraste, explicaciones, diapositivas) llegan a las sesiones en curso en su siguiente paso; preguntas y respuestas quedan como se lanzaron."
+    "liveEditsHint": "Los cambios de forma (fondos, contraste, explicaciones, diapositivas) llegan a las salas que lo juegan en su siguiente paso; preguntas y respuestas quedan como se lanzaron."
   },
   "publication": {
     "open": "Exportar para publicar",

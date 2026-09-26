@@ -9,30 +9,30 @@
   },
   "host": {
     "auth_required": "需要主持人身份验证。",
-    "forbidden": "您不是本会话的主持人。"
+    "forbidden": "你不是此房间的主持人。"
   },
   "quiz": {
     "not_found": "未找到测验。",
-    "not_ready": "测验必须处于“就绪”状态才能开始会话（RG-02）。",
+    "not_ready": "测验必须处于“就绪”状态才能进行（RG-02）。",
     "empty": "测验没有任何题目。",
     "requires_question": "测验至少需要一道题目才能变为“就绪”（RG-02）。",
     "transition_forbidden": "禁止的状态转换：{{from}} → {{target}}。",
-    "in_use": "该测验正在某个场次中进行：请先结束该场次。"
+    "in_use": "此测验正在某个房间中进行：请先关闭房间。"
   },
   "session": {
-    "not_found": "未找到会话或会话已结束。",
-    "ended": "会话已结束。",
-    "banned": "您已被主持人移出本会话。",
-    "join_required": "请先加入会话再作答。",
-    "already_started": "会话已经开始。",
+    "not_found": "未找到房间或房间已关闭。",
+    "ended": "房间已关闭。",
+    "banned": "你已被主持人移出此房间。",
+    "join_required": "请先加入房间再作答。",
+    "already_started": "测验已经开始。",
     "reveal_required": "仅在揭晓答案后才能执行该操作。",
     "timer_not_adjustable": "仅在答题进行中才能调整计时器。",
     "snapshot_not_found": "未找到会话快照。",
-    "capture_locked": "完整记录仅可在会话开始前更改。",
-    "options_locked": "会话选项只能在会话开始前更改。",
+    "capture_locked": "完整记录只能在测验开始前更改。",
+    "options_locked": "这些选项只能在测验开始前更改。",
     "join_url_invalid": "加入地址无效（应为 http(s)://主机[:端口]）。",
-    "archive_quiz_gone": "测验在场次进行中被删除：场次已结束但未归档。",
-    "locked": "本场已不再接受新的参与者。",
+    "archive_quiz_gone": "测验在进行中被删除：结束时没有归档。",
+    "locked": "此房间不再接受新的参与者。",
     "open_access_forbidden": "此服务器不允许开放访问。",
     "open_access_guests_only": "开放访问时参与者没有账号：没有个人跟踪，也不使用账号名称。"
   },
@@ -40,7 +40,7 @@
     "not_found": "未找到玩家。"
   },
   "nickname": {
-    "taken": "该昵称在本会话中已被占用。",
+    "taken": "此昵称在本房间中已被使用。",
     "invalid_length": "昵称长度必须在 {{min}} 到 {{max}} 个字符之间。"
   },
   "pin": {
@@ -69,7 +69,7 @@
     "too_long": "即使压缩后也超出此类媒体 {{maxMb}} MB 的上限。请先剪短。",
     "canceled": "转换已取消。",
     "in_use": "此媒体仍被测验或游戏使用：请先从那里移除。",
-    "playing": "有游戏正在播放此媒体：请在游戏结束后重试。",
+    "playing": "某个房间正在播放此媒体：请在其关闭后重试。",
     "not_adopted_yet": "此文件正在移至共享存储：请稍后重试。"
   },
   "import": {
