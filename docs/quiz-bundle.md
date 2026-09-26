@@ -12,7 +12,17 @@ QuizDock (a community store, a CI check) validates exactly what an import
 accepts. A published version is never rewritten: a change to the format comes
 with a new manifest version and a new file. The schema is structural, like the
 first step of an import; the per-type rules of each question and slide are
-checked afterwards. Contributors changing the bundle schema run
+checked afterwards.
+
+**Format guide.** [`schema/quiz-format-guide.md`](../schema/quiz-format-guide.md)
+is the same format in prose, text only, rules per type included: what someone —
+or a chatbot — needs to write a `quiz.json` by hand
+([self-hosting/import-from-other-tools.md](self-hosting/import-from-other-tools.md)).
+It is generated too, from the content schemas this time, and follows the
+importer rather than a manifest version. A test fails when a field of the
+format is neither described in it nor listed as left out.
+
+Contributors changing the bundle schema or a content schema run
 `pnpm generate:schema` and commit the result.
 
 > **Videos and sounds (version 3).** A question's visual may be an MP4 video
@@ -40,6 +50,9 @@ checked afterwards. Contributors changing the bundle schema run
   `qd quiz:import <file> <sub|email>`. The result is a **new draft** owned by
   the importer, with its own copies of the media. Nothing is merged or
   overwritten.
+- **From another tool** — no converter yet: a chatbot prompt writes the
+  `quiz.json` from a PDF, screenshots or a spreadsheet
+  ([self-hosting/import-from-other-tools.md](self-hosting/import-from-other-tools.md)).
 
 ## `quiz.json`
 
