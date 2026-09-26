@@ -25,6 +25,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The audio mixer in unreleased *(changelog)*
 - Ready in the lobby in unreleased *(changelog)*
 - The projection on a participant's device in unreleased *(changelog)*
 - The room on screen in unreleased *(changelog)*
@@ -61,6 +62,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- The game's sounds — a tick, a gong, a background track *(live)*
 - An audio mixer — every source into a bus, then the master *(media)*
 - "Ready!" in the lobby, and one count for the host *(live)*
 - The projection on a participant's own device *(live)*
