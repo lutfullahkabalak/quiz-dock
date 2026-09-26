@@ -25,6 +25,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The room on screen in unreleased *(changelog)*
 - The next quiz's picker is a small index *(ui)*
 - The room in history in unreleased *(changelog)*
 - The playlist goes to a later Programme, out of the room *(spec)*
@@ -58,6 +59,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- The projection on a participant's own device *(live)*
 - A room of its own name, not the quiz's *(live)*
 - The next quiz picked from a small index of the host's quizzes *(live)*
 - A searchable picker for the room's next quiz *(live)*
