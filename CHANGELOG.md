@@ -14,6 +14,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- Room, quiz, session — one word for each level *(i18n)*
+- No way out to another PIN from a room's podium *(live)*
+- Ask a phone for sound until its media elements are claimed *(live)*
 - Smoother French for the remote presence hint *(i18n)*
 - Compare the OIDC issuer exactly, trailing slash included *(auth)*
 - A manager reads another host's quiz, and a failed save says so *(editor)*
@@ -22,6 +25,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The next quiz's picker is a small index *(ui)*
+- The room in history in unreleased *(changelog)*
 - The playlist goes to a later Programme, out of the room *(spec)*
 - The room's standings in unreleased *(changelog)*
 - The next quiz in the room in unreleased *(changelog)*
@@ -53,6 +58,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- A room of its own name, not the quiz's *(live)*
+- The next quiz picked from a small index of the host's quizzes *(live)*
+- A searchable picker for the room's next quiz *(live)*
+- The room on the console, the projection and the phones *(live)*
+- Ratings and sound follow the room's quizzes *(game)*
 - A session played in a room shows its room *(history)*
 - The room's standings, summed over its quizzes *(game)*
 - The next quiz in the same room, the players still in *(game)*
