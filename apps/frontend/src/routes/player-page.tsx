@@ -10,7 +10,6 @@ import {
   Shuffle,
   Users,
   Volume2,
-  VolumeX,
   Wifi,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
@@ -60,7 +59,8 @@ import {
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
 import { followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
-import { setMasterMuted } from '../game/media/audio-mixer';
+import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
+import { SoundButton } from '../game/media/sound-button';
 import { useGameSounds } from '../game/media/game-sounds';
 import { roomLabel } from '../game/room-components';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
@@ -98,11 +98,8 @@ export function PlayerPage() {
   // Asked only when the quiz plays sound: a remote player then gets it on their device.
   const [hasSound, setHasSound] = useState(false);
   const [wantedPresence, setPresence] = useState<PlayerPresence>('room');
-  const [muted, setMuted] = useState(loadMuted);
-  const toggleMuted = () => {
-    setMuted(!muted);
-    saveMuted(!muted);
-  };
+  // This device's own sound (SPECIFICATIONS-MEDIA §9.2): its mute, kept on it.
+  const { muted } = useDeviceSound();
   // The big screen on this phone (#104), in place of the answers, and back.
   const [showScreen, setShowScreen] = useState(false);
   // "Share the projection": the link once copied (and its QR code) when the phone cannot share.
@@ -159,8 +156,6 @@ export function PlayerPage() {
     },
     gameSoundsHere && !showScreen,
   );
-  // The participant's own mute: the whole page (the question, the track, the effects).
-  useEffect(() => setMasterMuted(muted), [muted]);
   const serverAvatar = view.players.find((p) => p.playerId === myId)?.avatar;
   const inLobby = view.state === null || view.state === 'LOBBY';
   const avatarName =
@@ -421,19 +416,8 @@ export function PlayerPage() {
             >
               {showScreen ? <ListChecks className="size-4" /> : <MonitorPlay className="size-4" />}
             </Button>
-            {hears ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-pressed={muted}
-                aria-label={muted ? t('player.unmute') : t('player.mute')}
-                onClick={() => toggleMuted()}
-              >
-                {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-              </Button>
-            ) : null}
+            {/* This device's sound: when it plays something (the question here, or the game's). */}
+            {hears || gameSoundsHere || remoteHere ? <SoundButton onUnmute={claimSound} /> : null}
             <span className="hidden max-w-[10rem] truncate text-sm font-medium sm:inline">
               {nickname}
             </span>
@@ -871,11 +855,25 @@ export function PlayerPage() {
           </p>
           {/* The next quiz plays sound and this device never enabled it (it joined a
             silent one): the tap is the only way a phone lets it play later. */}
-          {(view.quizHasSound || gameSoundsHere) && !soundReady ? (
-            <Button type="button" variant="outline" size="sm" onClick={claimSound}>
-              <Volume2 className="size-4" />
-              {t('player.enableSound')}
-            </Button>
+          {(view.quizHasSound || gameSoundsHere) && !soundReady && !muted ? (
+            <div className="flex flex-col items-center gap-1">
+              <Button type="button" variant="outline" size="sm" onClick={claimSound}>
+                <Volume2 className="size-4" />
+                {t('player.enableSound')}
+              </Button>
+              {/* The tap still readies the phone; its sound stays off until the sound button. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  claimSound();
+                  setDeviceMuted(true);
+                }}
+              >
+                {t('media.withoutSound')}
+              </Button>
+            </div>
           ) : null}
           <p className="text-muted-foreground border-t pt-2 text-sm">{trackingNotice(t, view)}</p>
           {/* "Ready!" (#104): the host sees one count and still starts when they choose. */}
@@ -988,21 +986,4 @@ function PresenceChoice({
       ))}
     </fieldset>
   );
-}
-
-/** The participant's own mute, kept for the tab's life (a reload keeps it). */
-const MUTED_KEY = 'live.muted';
-function loadMuted(): boolean {
-  try {
-    return sessionStorage.getItem(MUTED_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-function saveMuted(muted: boolean): void {
-  try {
-    sessionStorage.setItem(MUTED_KEY, muted ? '1' : '0');
-  } catch {
-    /* storage unavailable: the choice lasts until the page closes */
-  }
 }

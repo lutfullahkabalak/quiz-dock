@@ -306,6 +306,9 @@ and the phone's waiting screen, above the quiz being played. A room of one quiz 
 - **On the same phone**, an icon in the participant's top bar switches between the answers and the big screen.
 - **Game sounds** (the console's lobby, folded; #93): a tick at each answer and a gong at the end of a question, each
   synthesised or a sound of the library; a background track while players answer; the music and effects levels.
+- **Sound button** (projection, remote phone, a copy that plays the sound; #93): volume and mute, *Mixer* for this
+  device's own trims; the console's control bar has *Game sounds*, the room's mixer, at any moment. The *Turn sound on*
+  overlay offers *Without sound* (SPECIFICATIONS-MEDIA §9.2).
 - **Ready!** (the phone's lobby): the participant says they are ready, or takes it back (*Not yet*). The console shows
   one count, *Ready: x / y participants*: ready once they said so **and** their device has loaded the first question's
   media when it plays some; a check per participant, a spinner while their media still load. It never blocks the

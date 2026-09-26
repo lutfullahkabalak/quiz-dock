@@ -141,3 +141,39 @@ describe('audio mixer (SPECIFICATIONS-MEDIA §9)', () => {
     expect(spy).not.toHaveBeenCalled();
   });
 });
+
+describe('this device’s sound (SPECIFICATIONS-MEDIA §9.2)', () => {
+  let mod: typeof import('./audio-mixer');
+  beforeEach(async () => {
+    vi.resetModules();
+    localStorage.clear();
+    vi.stubGlobal('AudioContext', FakeContext);
+    mod = await import('./audio-mixer');
+  });
+  afterEach(() => vi.unstubAllGlobals());
+
+  it('plays a bus at the room’s level times this device’s trim, and keeps the choice on the device', () => {
+    const mixer = mod.getMixer()!;
+    const music = mixer.strips.music.level as unknown as FakeGain;
+    mod.setRoomLevel('music', 0.5);
+    mod.setLocalTrim('music', 0.4);
+    expect(music.gain.targets.at(-1)).toBeCloseTo(0.2);
+    expect(JSON.parse(localStorage.getItem('live.sound')!).trims.music).toBe(0.4);
+  });
+
+  it('mutes and sets the volume on the master; a new page starts from what was chosen', async () => {
+    mod.setDeviceVolume(0.6);
+    mod.setDeviceMuted(true);
+    const master = mod.getMixer()!.master as unknown as FakeGain;
+    expect(master.gain.targets.at(-1)).toBe(0);
+    mod.setDeviceMuted(false);
+    expect(master.gain.targets.at(-1)).toBe(0.6);
+    // A reload: the new mixer is built with the device's choice.
+    vi.resetModules();
+    const again = await import('./audio-mixer');
+    again.setDeviceMuted(true);
+    vi.resetModules();
+    const third = await import('./audio-mixer');
+    expect((third.getMixer()!.master as unknown as FakeGain).gain.value).toBe(0);
+  });
+});

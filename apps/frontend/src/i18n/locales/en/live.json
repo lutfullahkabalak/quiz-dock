@@ -256,8 +256,6 @@
     "moveDown": "Move down",
     "unsupportedType": "Unsupported question type.",
     "leave": "Leave",
-    "mute": "Turn the sound off",
-    "unmute": "Turn the sound on",
     "leaveConfirmTitle": "Leave the room?",
     "leaveConfirmDescription": "You will lose your seat and your score. To come back you will have to join again with the PIN.",
     "joinAnother": "Join another room",
@@ -337,7 +335,8 @@
     "soundBlocked": "Sound blocked by the browser",
     "videoMuted": "Video started without sound (blocked by the browser)",
     "slow": "The media has not loaded yet…",
-    "waveform": "Waveform of the question’s sound"
+    "waveform": "Waveform of the question’s sound",
+    "withoutSound": "Without sound"
   },
   "launchAccess": {
     "title": "Participant access",
@@ -360,5 +359,19 @@
     "afterQuizzes_other": "after {{count}} quizzes",
     "defaultName": "{{host}}'s room",
     "fallbackName": "Room"
+  },
+  "sound": {
+    "mute": "Mute",
+    "unmute": "Turn sound on",
+    "volume": "Volume",
+    "mixer": "Mixer",
+    "mixerTitle": "This device’s mix",
+    "mixerHint": "Only what this device plays. The host sets the room’s music and effects.",
+    "bus": {
+      "quiz": "Questions",
+      "music": "Music",
+      "sfx": "Effects",
+      "ui": "Interface"
+    }
   }
 }

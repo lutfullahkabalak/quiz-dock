@@ -256,8 +256,6 @@
     "moveDown": "Bajar",
     "unsupportedType": "Tipo de pregunta no compatible.",
     "leave": "Salir",
-    "mute": "Silenciar",
-    "unmute": "Activar el sonido",
     "leaveConfirmTitle": "¿Salir de la sala?",
     "leaveConfirmDescription": "Perderás tu sitio y tu puntuación. Para volver tendrás que unirte de nuevo con el PIN.",
     "joinAnother": "Unirse a otra sala",
@@ -337,7 +335,8 @@
     "soundBlocked": "Sonido bloqueado por el navegador",
     "videoMuted": "Vídeo iniciado sin sonido (bloqueado por el navegador)",
     "slow": "El medio aún no se ha cargado…",
-    "waveform": "Forma de onda del sonido de la pregunta"
+    "waveform": "Forma de onda del sonido de la pregunta",
+    "withoutSound": "Sin sonido"
   },
   "launchAccess": {
     "title": "Acceso de los participantes",
@@ -360,5 +359,19 @@
     "afterQuizzes_other": "tras {{count}} quizzes",
     "defaultName": "Sala de {{host}}",
     "fallbackName": "Sala"
+  },
+  "sound": {
+    "mute": "Silenciar",
+    "unmute": "Activar el sonido",
+    "volume": "Volumen",
+    "mixer": "Mezclador",
+    "mixerTitle": "La mezcla de este dispositivo",
+    "mixerHint": "Solo lo que reproduce este dispositivo. El anfitrión ajusta la música y los efectos de la sala.",
+    "bus": {
+      "quiz": "Preguntas",
+      "music": "Música",
+      "sfx": "Efectos",
+      "ui": "Interfaz"
+    }
   }
 }

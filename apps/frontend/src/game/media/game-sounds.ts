@@ -1,6 +1,6 @@
 import type { LiveQuestionMedia, RoomSoundsPayload } from '@quiz-dock/contracts';
 import { useEffect, useRef } from 'react';
-import { busInput, getMixer, playBuffer, setBusDucked, setBusLevel } from './audio-mixer';
+import { busInput, getMixer, playBuffer, setBusDucked, setRoomLevel } from './audio-mixer';
 
 /**
  * The game's sounds (#93, SPECIFICATIONS-MEDIA §9): a tick at each answer, a
@@ -114,8 +114,8 @@ export function useGameSounds(
   // The levels of the two buses follow the room's settings.
   useEffect(() => {
     if (!on || !sounds) return;
-    setBusLevel('music', sounds.musicLevel);
-    setBusLevel('sfx', sounds.sfxLevel);
+    setRoomLevel('music', sounds.musicLevel);
+    setRoomLevel('sfx', sounds.sfxLevel);
   }, [on, sounds]);
 
   const last = useRef<{ state: string | null; questionIndex: number; answered: number }>({

@@ -1,4 +1,4 @@
-import { GameSoundsPanel } from '../game/game-sounds-panel';
+import { GameSoundsPanel, RoomSoundsButton } from '../game/game-sounds-panel';
 import { NextQuizButton, RoomStandingsPanel, roomLabel } from '../game/room-components';
 import {
   AUDIO_TARGETS,
@@ -219,6 +219,12 @@ export function ControlPage() {
         onBan={banPlayer}
         onLock={setJoinLocked}
         screenButton={screenButton}
+        soundsButton={
+          <RoomSoundsButton
+            sounds={view.sounds}
+            onChange={(patch) => socket?.emit('host:sounds', { pin, ...patch })}
+          />
+        }
       />
     </>
   );
@@ -872,6 +878,7 @@ function ControlBar({
   onBan,
   onLock,
   screenButton,
+  soundsButton,
 }: {
   view: GameView;
   pin: string;
@@ -880,6 +887,8 @@ function ControlBar({
   onBan: (playerId: string, minutes: number) => void;
   onLock: (locked: boolean) => void;
   screenButton: React.ReactNode;
+  /** The room's mixer (#93), at any moment of a quiz. */
+  soundsButton?: React.ReactNode;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
@@ -895,6 +904,7 @@ function ControlBar({
           // A wait for media has its own way out (Start anyway); a pause would not hold it.
           <PauseButton paused={view.paused} onToggle={onPause} />
         ) : null}
+        {soundsButton}
         {screenButton}
       </div>
     </header>
