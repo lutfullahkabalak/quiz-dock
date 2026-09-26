@@ -158,7 +158,11 @@
     "renameRoom": "Renombrar la sala",
     "roomNameLabel": "Nombre de la sala",
     "roomNameHint": "Vacío: «{{default}}».",
-    "quizLabel": "Quiz:"
+    "quizLabel": "Quiz:",
+    "readyCount_one": "Listos: {{ready}} / {{count}} participante",
+    "readyCount_other": "Listos: {{ready}} / {{count}} participantes",
+    "participantReady": "Listo",
+    "participantLoading": "Listo, cargando los medios"
   },
   "screen": {
     "sessionUnavailable": "Sala no disponible.",
@@ -255,7 +259,10 @@
     "shareProjection": "Compartir la proyección",
     "shareProjectionHint": "Ábrela en una tableta o un ordenador: toda la pregunta, en grande.",
     "projectionLinkCopied": "Enlace copiado — o escanea este código con el otro dispositivo.",
-    "shareProjectionTitle": "{{appName}} — la proyección"
+    "shareProjectionTitle": "{{appName}} — la proyección",
+    "ready": "¡Estoy listo!",
+    "readyDone": "Listo — esperando al anfitrión",
+    "notYet": "Todavía no"
   },
   "reveal": {
     "explanation": "Explicación",

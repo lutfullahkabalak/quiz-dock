@@ -251,6 +251,33 @@ export function roomTests(ctx: GameContext): void {
     await ctx.h.prisma.gameSessionLog.deleteMany({ where: { pin } });
   });
 
+  it('asks each quiz of the room again whether the participants are ready, and tells a phone back what it said', async () => {
+    const host = connect({ localUser: 'Animateur' });
+    const pin = await ctx.h.createGame(host, ctx.quizId);
+    const { socket: ivy, sessionToken } = await ctx.h.join(pin, 'Ivy');
+    const count = (ready: number) =>
+      nextEvent<{ ready: number; total: number }>(host, 'media:readiness', {
+        where: (r) => r.ready === ready,
+      });
+    let seen = count(1);
+    await ivy.emitWithAck('player:ready', { pin, ready: true });
+    expect(await seen).toMatchObject({ ready: 1, total: 1 });
+
+    // Back after a lost connection: the phone is told it already said so.
+    const again = connect();
+    const told = nextEvent<{ ready: boolean }>(again, 'lobby:you');
+    await again.emitWithAck('player:reconnect', { sessionToken });
+    expect(await told).toEqual({ ready: true });
+
+    // The next quiz asks again.
+    await playParis(host, pin, [again]);
+    await toPodium(host, pin, again);
+    seen = count(0);
+    await nextQuiz(host, pin, (await ctx.h.seedQuiz({ title: 'Ready again' })).id);
+    expect(await seen).toMatchObject({ ready: 0, total: 1 });
+    void ivy;
+  });
+
   describe('standings', () => {
     type Standings = {
       quizzesPlayed: number;

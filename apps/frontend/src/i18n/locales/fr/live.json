@@ -158,7 +158,11 @@
     "renameRoom": "Renommer le salon",
     "roomNameLabel": "Nom du salon",
     "roomNameHint": "Vide : « {{default}} ».",
-    "quizLabel": "Quiz :"
+    "quizLabel": "Quiz :",
+    "readyCount_one": "Prêts : {{ready}} / {{count}} participant",
+    "readyCount_other": "Prêts : {{ready}} / {{count}} participants",
+    "participantReady": "Prêt",
+    "participantLoading": "Prêt, médias en chargement"
   },
   "screen": {
     "sessionUnavailable": "Salon indisponible.",
@@ -255,7 +259,10 @@
     "shareProjection": "Partager la projection",
     "shareProjectionHint": "À ouvrir sur une tablette ou un ordinateur : toute la question, en grand.",
     "projectionLinkCopied": "Lien copié — ou scannez ce code avec l’autre appareil.",
-    "shareProjectionTitle": "{{appName}} — la projection"
+    "shareProjectionTitle": "{{appName}} — la projection",
+    "ready": "Je suis prêt !",
+    "readyDone": "Prêt — en attente de l’animateur",
+    "notYet": "Pas encore"
   },
   "reveal": {
     "explanation": "Explication",

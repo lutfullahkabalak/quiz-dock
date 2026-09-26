@@ -90,7 +90,7 @@ function trackingNotice(
 export function PlayerPage() {
   const { t } = useTranslation('live');
   const { pin } = useParams({ from: '/join/$pin' });
-  const { view, socket, markJoined } = useGameSession(pin, 'player');
+  const { view, socket, markJoined, markReady } = useGameSession(pin, 'player');
   const [nickname, setNickname] = useState(() => loadPlayerSession()?.nickname ?? loadNickname());
   const [joining, setJoining] = useState(false);
   // Asked only when the quiz plays sound: a remote player then gets it on their device.
@@ -238,6 +238,13 @@ export function PlayerPage() {
     } finally {
       setJoining(false);
     }
+  };
+
+  /** "Ready!" or "Not yet" (#104), shown once the server took it. */
+  const sayReady = async (ready: boolean) => {
+    if (!socket) return;
+    const res = await socket.emitWithAck('player:ready', { pin, ready }).catch(() => null);
+    if (res?.ok) markReady(ready);
   };
 
   /** Shares the projection's copy: the share sheet where there is one, else the link copied and its QR code. */
@@ -848,6 +855,29 @@ export function PlayerPage() {
             </Button>
           ) : null}
           <p className="text-muted-foreground border-t pt-2 text-sm">{trackingNotice(t, view)}</p>
+          {/* "Ready!" (#104): the host sees one count and still starts when they choose. */}
+          <div className="flex w-full flex-col items-center gap-1 border-t pt-3">
+            {view.youReady ? (
+              <>
+                <p className="flex items-center gap-1.5 font-semibold text-green-700 dark:text-green-400">
+                  <Check className="size-4" />
+                  {t('player.readyDone')}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void sayReady(false)}
+                >
+                  {t('player.notYet')}
+                </Button>
+              </>
+            ) : (
+              <Button type="button" variant="main-action" onClick={() => void sayReady(true)}>
+                {t('player.ready')}
+              </Button>
+            )}
+          </div>
           {/* The whole question, big, on a tablet or a computer (#104). The link
               carries the PIN, never this participant's seat. */}
           <div className="flex w-full flex-col items-center gap-2 border-t pt-3">

@@ -117,6 +117,8 @@ export interface GameView {
   gameAudioTarget: AudioTarget | null;
   /** Host navigation over played steps (`game:state.nav`); `review` = a past step is on screen. */
   nav: { prev: GameStep | null; next: GameStep | null; review: boolean } | null;
+  /** Whether this participant said they are ready in the lobby (#104). */
+  youReady: boolean;
   /** The room's own name (null = the default, "<host>'s room") and its host's name. */
   roomName: string | null;
   hostName: string | null;
@@ -171,6 +173,7 @@ const INITIAL: GameView = {
   mediaPosition: null,
   mediaWait: null,
   nav: null,
+  youReady: false,
   roomName: null,
   hostName: null,
   standings: null,
@@ -195,6 +198,7 @@ const PER_QUIZ: Partial<GameView> = {
   mediaPosition: null,
   mediaControl: null,
   nav: null,
+  youReady: false,
 };
 
 /**
@@ -314,6 +318,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         ...(p.title !== undefined ? { quizTitle: p.title } : {}),
       });
     const onStandings = (p: RoomStandingsPayload) => patch({ standings: p });
+    const onLobbyYou = (p: { ready: boolean }) => patch({ youReady: p.ready });
     const onRoomInfo = (p: { name: string | null; hostName: string }) =>
       patch({ roomName: p.name, hostName: p.hostName });
     const onMediaControl = (p: { questionIndex: number; action: 'restart' }) =>
@@ -385,6 +390,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       sock.on('game:podium', onPodium);
       sock.on('room:standings', onStandings);
       sock.on('room:info', onRoomInfo);
+      sock.on('lobby:you', onLobbyYou);
       sock.on('game:ended', onEnded);
       sock.on('notice', onNotice);
       sock.on('kicked', onKicked);
@@ -454,6 +460,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       s.off('game:podium', onPodium);
       s.off('room:standings', onStandings);
       s.off('room:info', onRoomInfo);
+      s.off('lobby:you', onLobbyYou);
       s.off('game:ended', onEnded);
       s.off('notice', onNotice);
       s.off('kicked', onKicked);
@@ -462,6 +469,8 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
 
   /** Joueur : à appeler après un `player:join` réussi pour quitter `no-session`. */
   const markJoined = () => setView((prev) => ({ ...prev, status: 'ready' }));
+  /** The participant said (or took back) that they are ready (#104), once the server took it. */
+  const markReady = (ready: boolean) => setView((prev) => ({ ...prev, youReady: ready }));
 
-  return { view, socket: socketRef.current, markJoined };
+  return { view, socket: socketRef.current, markJoined, markReady };
 }

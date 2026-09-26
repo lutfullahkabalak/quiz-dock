@@ -380,6 +380,17 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     await this.engine.end(payload.pin, this.requireHostId(socket), payload.archive === true);
   }
 
+  /** `player:ready` (#104): the participant is ready, or not yet, in the lobby. */
+  @SubscribeMessage('player:ready')
+  async playerReady(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string; ready: boolean },
+  ): Promise<{ ok: boolean }> {
+    const { pin, playerId } = socket.data;
+    if (!pin || pin !== payload.pin || !playerId) return { ok: false };
+    return { ok: await this.engine.setReady(pin, playerId, payload.ready === true) };
+  }
+
   /** `host:room-name`: the room's own name, from its lobby. */
   @SubscribeMessage('host:room-name')
   async hostRoomName(

@@ -955,6 +955,21 @@ function ReadinessLine({ readiness }: { readiness: MediaReadinessPayload | null 
   const { t } = useTranslation('live');
   if (!readiness || readiness.total === 0) return null;
   const { screens } = readiness;
+  // The lobby (#104): one count, the participants; the projection only when it loads something.
+  if (readiness.lobby) {
+    return (
+      <p className="text-muted-foreground text-sm" data-testid="readiness">
+        {t('control.readyCount', { ready: readiness.ready, count: readiness.total })}
+        {screens.total > 0
+          ? ` · ${
+              screens.ready === screens.total
+                ? t('control.readinessProjectionReady')
+                : t('control.readinessProjectionLoading')
+            }`
+          : null}
+      </p>
+    );
+  }
   return (
     <p className="text-muted-foreground text-sm" data-testid="readiness">
       {t('control.readiness', { ready: readiness.ready, total: readiness.total })}
@@ -979,6 +994,10 @@ function ParticipantsList({
   onBan: (playerId: string, minutes: number) => void;
 }) {
   const waited = new Map(readiness?.players.map((p) => [p.playerId, p.ready]));
+  // The lobby (#104): who said they are ready; a spinner while their media still load.
+  const said = new Map(
+    readiness?.lobby ? readiness.players.map((p) => [p.playerId, p.pressed]) : [],
+  );
   const { t } = useTranslation('live');
   if (players.length === 0) {
     return <p className="text-muted-foreground text-sm">{t('control.noParticipants')}</p>;
@@ -992,7 +1011,19 @@ function ParticipantsList({
         >
           <Avatar name={p.avatar || p.nickname} size={24} />
           <span className="max-w-[8rem] truncate">{p.nickname}</span>
-          {waited.has(p.playerId) ? (
+          {readiness?.lobby ? (
+            waited.get(p.playerId) ? (
+              <Check
+                className="size-3.5 text-green-600"
+                aria-label={t('control.participantReady')}
+              />
+            ) : said.get(p.playerId) ? (
+              <Loader2
+                className="text-muted-foreground size-3.5 animate-spin"
+                aria-label={t('control.participantLoading')}
+              />
+            ) : null
+          ) : waited.has(p.playerId) ? (
             waited.get(p.playerId) ? (
               <Check className="size-3.5 text-green-600" aria-label={t('control.mediaReady')} />
             ) : (

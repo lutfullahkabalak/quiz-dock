@@ -158,7 +158,11 @@
     "renameRoom": "重新命名房間",
     "roomNameLabel": "房間名稱",
     "roomNameHint": "留空：「{{default}}」。",
-    "quizLabel": "測驗："
+    "quizLabel": "測驗：",
+    "readyCount_one": "已就緒：{{ready}} / {{count}} 名參與者",
+    "readyCount_other": "已就緒：{{ready}} / {{count}} 名參與者",
+    "participantReady": "已就緒",
+    "participantLoading": "已就緒，媒體載入中"
   },
   "screen": {
     "sessionUnavailable": "房間無法使用。",
@@ -255,7 +259,10 @@
     "shareProjection": "分享投影",
     "shareProjectionHint": "在平板或電腦上開啟：完整的題目，大字顯示。",
     "projectionLinkCopied": "連結已複製 — 或用另一台裝置掃描此碼。",
-    "shareProjectionTitle": "{{appName}} — 投影"
+    "shareProjectionTitle": "{{appName}} — 投影",
+    "ready": "我準備好了！",
+    "readyDone": "已就緒 - 等待主持人",
+    "notYet": "還沒有"
   },
   "reveal": {
     "explanation": "解析",

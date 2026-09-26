@@ -55,6 +55,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   mediaWait: null,
   nav: null,
   joinBaseUrl: null,
+  youReady: false,
   roomName: null,
   hostName: null,
   standings: null,
@@ -82,6 +83,40 @@ const quiz = (id: string, title: string, over: Record<string, unknown> = {}) => 
   updatedAt: '2026-01-01T00:00:00.000Z',
   archivedAt: null,
   ...over,
+});
+
+describe('ControlPage: who is ready in the lobby (#104)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('shows one count of the participants, and each one’s state', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({
+      players: [
+        { playerId: 'p1', nickname: 'Ada' },
+        { playerId: 'p2', nickname: 'Bob' },
+        { playerId: 'p3', nickname: 'Cy' },
+      ],
+      readiness: {
+        questionIndex: 0,
+        ready: 1,
+        total: 3,
+        lobby: true,
+        screens: { ready: 0, total: 0 },
+        players: [
+          { playerId: 'p1', ready: true, pressed: true },
+          { playerId: 'p2', ready: false, pressed: true },
+          { playerId: 'p3', ready: false, pressed: false },
+        ],
+      },
+    });
+    renderApp('/session/482913/console');
+    expect(await screen.findByTestId('readiness')).toHaveTextContent('Prêts : 1 / 3 participants');
+    expect(screen.getByLabelText('Prêt')).toBeInTheDocument(); // Ada
+    expect(screen.getByLabelText('Prêt, médias en chargement')).toBeInTheDocument(); // Bob
+  });
 });
 
 describe('ControlPage: the room’s name (#89)', () => {

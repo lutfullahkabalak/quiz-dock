@@ -92,6 +92,8 @@ export const gameKeys = {
   scores: (id: GameId) => `game:${id}:scores`,
   /** Hash playerId → graded answer (HSETNX = the first answer wins, RG-06). */
   answers: (id: GameId, questionIndex: number) => `game:${id}:answers:${questionIndex}`,
+  /** Set of the players who said they are ready in this game's lobby (#104). */
+  pressed: (id: GameId) => `game:${id}:pressed`,
   /** Set of the devices (playerId, or `screen:<socket id>`) that loaded a question's sound or video. */
   ready: (id: GameId, questionIndex: number) => `game:${id}:ready:${questionIndex}`,
   /** One way out of the media wait of a question (all ready, cap, host, resumed). */
