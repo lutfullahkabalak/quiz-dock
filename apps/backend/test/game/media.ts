@@ -386,7 +386,7 @@ export function mediaTests(ctx: GameContext): void {
     }
   }, 15_000);
 
-  it('counts who has loaded the first question’s sound in the lobby: the projection and remote participants', async () => {
+  it('counts in the lobby every participant, ready once they say so and their device has loaded its media; the projection apart (#104)', async () => {
     const asset = await prisma.mediaAsset.create({
       data: {
         ownerId: hostUserId,
@@ -422,8 +422,9 @@ export function mediaTests(ctx: GameContext): void {
     type Readiness = {
       ready: number;
       total: number;
-      players: { playerId: string; ready: boolean }[];
+      players: { playerId: string; ready: boolean; pressed?: boolean }[];
       screens: { ready: number; total: number };
+      lobby?: boolean;
     };
     try {
       const host = connect({ localUser: 'Animateur' });
@@ -450,17 +451,36 @@ export function mediaTests(ctx: GameContext): void {
         nickname: 'Grace',
         presence: 'remote',
       });
-      // The projection and the remote phone are waited for; the phone in the room is not.
+      // The lobby's one count (#104): every participant, ready once they said so and
+      // their device has loaded what it plays; the projection says its own state.
       let r = await until((x) => x.total === 2);
-      expect(r).toMatchObject({ ready: 0, total: 2, screens: { ready: 0, total: 1 } });
-      expect(r.players).toEqual([{ playerId, ready: false }]);
+      expect(r).toMatchObject({ ready: 0, total: 2, lobby: true, screens: { ready: 0, total: 1 } });
+      expect(r.players.find((p) => p.playerId === playerId)).toEqual({
+        playerId,
+        ready: false,
+        pressed: false,
+      });
 
       screen.emit('media:ready', { pin, questionIndex: 0 });
-      r = await until((x) => x.ready === 1);
-      expect(r.screens).toEqual({ ready: 1, total: 1 });
+      r = await until((x) => x.screens.ready === 1);
+      expect(r.ready).toBe(0); // the projection is not a participant
+      // Loaded but not said: not ready yet.
       remote.emit('media:ready', { pin, questionIndex: 0 });
+      await settle(150);
+      expect(last!.ready).toBe(0);
+      expect((await remote.emitWithAck('player:ready', { pin, ready: true })).ok).toBe(true);
+      r = await until((x) => x.ready === 1);
+      expect(r.players.find((p) => p.playerId === playerId)).toEqual({
+        playerId,
+        ready: true,
+        pressed: true,
+      });
+      // In the room, nothing to load: saying so is enough.
+      await room.emitWithAck('player:ready', { pin, ready: true });
       r = await until((x) => x.ready === 2);
-      expect(r.players).toEqual([{ playerId, ready: true }]);
+      // Changing one's mind counts too.
+      await room.emitWithAck('player:ready', { pin, ready: false });
+      r = await until((x) => x.ready === 1);
 
       // A socket of another game cannot mark this one.
       const stranger = connect();

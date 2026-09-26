@@ -158,7 +158,11 @@
     "renameRoom": "Rename the room",
     "roomNameLabel": "Room name",
     "roomNameHint": "Blank: “{{default}}”.",
-    "quizLabel": "Quiz:"
+    "quizLabel": "Quiz:",
+    "readyCount_one": "Ready: {{ready}} / {{count}} participant",
+    "readyCount_other": "Ready: {{ready}} / {{count}} participants",
+    "participantReady": "Ready",
+    "participantLoading": "Ready, loading the media"
   },
   "screen": {
     "sessionUnavailable": "Room unavailable.",
@@ -255,7 +259,10 @@
     "shareProjection": "Share the projection",
     "shareProjectionHint": "Open it on a tablet or a computer: the whole question, big.",
     "projectionLinkCopied": "Link copied — or scan this code with the other device.",
-    "shareProjectionTitle": "{{appName}} — the projection"
+    "shareProjectionTitle": "{{appName}} — the projection",
+    "ready": "I’m ready!",
+    "readyDone": "Ready — waiting for the host",
+    "notYet": "Not yet"
   },
   "reveal": {
     "explanation": "Explanation",

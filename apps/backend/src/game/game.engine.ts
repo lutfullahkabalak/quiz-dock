@@ -328,7 +328,16 @@ export class GameEngine {
    * projection windows when it has a sound or a video, and the connected
    * participants whose device will play one. Null past the last question.
    */
-  async readiness(ref: GameRef, index: number): Promise<MediaReadinessPayload | null> {
+  async readiness(
+    ref: GameRef,
+    index: number,
+    /**
+     * The lobby's count (#104): every participant of the game, ready once they
+     * said so **and** their device has loaded what it plays; the screens apart.
+     * Otherwise (the wait for media), only the devices that play something.
+     */
+    lobby = false,
+  ): Promise<MediaReadinessPayload | null> {
     const { pin } = ref;
     const snapshot = await this.game.getSnapshot(ref.id);
     const question = snapshot?.questions[index];
@@ -346,17 +355,33 @@ export class GameEngine {
         })
       : [];
     const screensReady = screens.filter((s) => ready.has(`screen:${s.id}`)).length;
-    const players: { playerId: string; ready: boolean }[] = [];
+    const players: { playerId: string; ready: boolean; pressed?: boolean }[] = [];
     // The players of this game, as the answer count has them (not those waiting for the next).
     const inGame = new Set(await this.redis.hkeys(gameKeys.scores(ref.id)));
+    const pressed = lobby ? new Set(await this.redis.smembers(gameKeys.pressed(ref.id))) : null;
     for (const [playerId, json] of Object.entries(
       await this.redis.hgetall(gameKeys.players(pin)),
     )) {
       const rec = JSON.parse(json) as PlayerRecord;
       if (!inGame.has(playerId) || !rec.connected) continue;
-      if (hasSoundOrVideo(mediaForDevice(question.media, target, rec.presence ?? 'room'))) {
+      const plays = hasSoundOrVideo(mediaForDevice(question.media, target, rec.presence ?? 'room'));
+      if (pressed) {
+        const said = pressed.has(playerId);
+        players.push({ playerId, ready: said && (!plays || ready.has(playerId)), pressed: said });
+      } else if (plays) {
         players.push({ playerId, ready: ready.has(playerId) });
       }
+    }
+    if (pressed) {
+      // One count for the host: the participants; the projection says its own state.
+      return {
+        questionIndex: index,
+        ready: players.filter((p) => p.ready).length,
+        total: players.length,
+        players,
+        screens: { ready: screensReady, total: screens.length },
+        lobby: true,
+      };
     }
     return {
       questionIndex: index,
@@ -372,7 +397,11 @@ export class GameEngine {
     const meta = await this.game.getMeta(pin);
     if (!meta || meta.state === GameState.Ended) return;
     const ref = refOf(pin, meta);
-    const payload = await this.readiness(ref, this.upcomingIndex(meta));
+    const payload = await this.readiness(
+      ref,
+      this.upcomingIndex(meta),
+      meta.state === GameState.Lobby,
+    );
     if (!payload) return;
     for (const socket of await this.server.in(pin).fetchSockets()) {
       if (!(socket.data as { playerId?: string }).playerId) socket.emit('media:readiness', payload);
@@ -1092,12 +1121,19 @@ export class GameEngine {
         audioTarget: gameAudioTarget(snapshotForNav, meta.audioTarget),
       });
     }
+    // A participant back in a lobby: whether they already said they are ready (#104),
+    // sent after the state (a new lobby clears the last quiz's on the phone).
+    const saidReady =
+      playerId && meta.state === GameState.Lobby
+        ? (await this.redis.sismember(gameKeys.pressed(meta.id), playerId)) === 1
+        : null;
     socket.emit('game:state', {
       state: meta.state as GameState,
       questionIndex: meta.currentIndex,
       totalQuestions: meta.totalQuestions,
       nav: snapshotForNav && !meta.reviewStep ? this.navFor(meta, snapshotForNav) : undefined,
     });
+    if (saidReady !== null) socket.emit('lobby:you', { ready: saidReady });
     // Instantané du lobby : sans lui, un host/projeté qui (re)charge verrait une
     // liste de joueurs vide (les `player:joined` passés sont perdus). §6/§9.
     socket.emit('game:roster', { players: await this.connectedRoster(pin) });
@@ -1560,6 +1596,22 @@ export class GameEngine {
       .slice(0, ROOM_NAME_MAX);
     await this.redis.hset(gameKeys.room(pin), { name });
     this.server.to(pin).emit('room:info', { name: name || null, hostName: meta.hostName });
+  }
+
+  /**
+   * `player:ready` (#104): a participant says they are ready, or not yet, in the
+   * lobby. It never blocks anything: the host sees one count and starts when
+   * they choose. Kept per game, so each quiz of a room asks again.
+   */
+  async setReady(pin: string, playerId: string, isReady: boolean): Promise<boolean> {
+    const meta = await this.game.getMeta(pin);
+    if (!meta || meta.state !== GameState.Lobby) return false;
+    if (!(await this.game.getScore(meta.id, playerId))) return false; // not in this game
+    const key = gameKeys.pressed(meta.id);
+    if (isReady) await this.redis.multi().sadd(key, playerId).expire(key, GAME_TTL_S).exec();
+    else await this.redis.srem(key, playerId);
+    await this.broadcastReadiness(pin);
+    return true;
   }
 
   /** Every timer of the room: its game is over or replaced. */

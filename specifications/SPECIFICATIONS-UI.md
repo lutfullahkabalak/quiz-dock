@@ -304,6 +304,10 @@ and the phone's waiting screen, above the quiz being played. A room of one quiz 
   source. Muted in the room; with `?sound=1` it plays the sound meant for remote devices, after its own unlocking
   click.
 - **On the same phone**, an icon in the participant's top bar switches between the answers and the big screen.
+- **Ready!** (the phone's lobby): the participant says they are ready, or takes it back (*Not yet*). The console shows
+  one count, *Ready: x / y participants*: ready once they said so **and** their device has loaded the first question's
+  media when it plays some; a check per participant, a spinner while their media still load. It never blocks the
+  start, and each quiz of a room asks again.
 
 ---
 

@@ -298,6 +298,7 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `host:next-quiz` | `{ pin, quizId, archive? }` | the host | From the lobby or the podium: opens the room's next quiz in its lobby, the players still in (SPECIFICATIONS-ROOM §6) |
 | `host:end` | `{ pin, archive? }` | the host | Closes the room (the game ends, the PIN is freed) |
 | `player:join` | `{ pin, nickname, authToken? }` | a player | Joins the LOBBY; returns a `sessionToken` and the **nickname the server retained** (the account's name when the host did not open the choice, a suffix when a homonym was already there). Refused without a valid token under `AUTH_MODE=oidc` unless the game is in open access, where everyone joins as a guest; refused once the host closed the game (RG-15) |
+| `player:ready` | `{ pin, ready }` | a player | In the lobby (#104): ready, or not yet; the host sees one count, it never blocks the start |
 | `spectator:join` | `{ pin, follow? }` | a projection | Joins read-only; `follow`: a participant's copy of the projection (#104) — never waited for, never a position source |
 | `player:peek` | `{ pin }` | a player | Before joining: whether the quiz plays sound and whether an account is needed (`participantAccess`) |
 | `player:reconnect` | `{ sessionToken }` | a player | Takes back their seat and score |
@@ -319,6 +320,7 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `question:reveal` | `{ correctOptionIds \| correctValue, distribution, yourResult:{ correct, points, totalScore, rank } }` | the room (the personal result aimed per socket) |
 | `leaderboard` | `{ top:[{nickname, score, rank}], you?:{score,rank} }` | the room |
 | `game:podium` | `{ podium:[top3], quizId?, you?:{score,rank} }` | the room (`quizId`: the quiz a rating goes to) |
+| `lobby:you` | `{ ready }` | a participant back in a lobby | Whether they already said they are ready (#104) |
 | `room:info` | `{ name \| null, hostName }` | the room | The room's name (null = the default) and its host's: on attach and when renamed |
 | `room:standings` | `{ quizzesPlayed, top:[top10], you?:{score, rank, correct, answered, avgResponseMs, maxStreak, quizzes} }` | the room (`you` on each player's socket) | The room's standings over its quizzes: at a podium, in the next lobby, when the room closes (SPECIFICATIONS-ROOM §6) |
 | `game:ended` | `{ feedbackEnabled?, quizId? }` | the room |

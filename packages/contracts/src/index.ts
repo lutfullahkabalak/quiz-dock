@@ -104,6 +104,8 @@ export const ClientEvents = {
   HostReveal: 'host:reveal',
   HostKick: 'host:kick',
   HostEnd: 'host:end',
+  /** The participant is ready, or not yet, in the lobby (#104). */
+  PlayerReady: 'player:ready',
   /** Names the room (from its lobby); every screen shows it. */
   HostRoomName: 'host:room-name',
   /** Opens the next quiz in the room (from its lobby or its podium); the players stay. */
@@ -313,10 +315,16 @@ export interface MediaReadinessPayload {
   /** Counted devices ready, out of all of them (screens and participants). */
   ready: number;
   total: number;
-  /** The participants counted, ready or not (the console lists them). */
-  players: { playerId: string; ready: boolean }[];
+  /**
+   * The participants counted, ready or not (the console lists them). In the lobby
+   * (#104), every participant: `pressed` when they said they are ready, `ready`
+   * once their device has also loaded what it plays.
+   */
+  players: { playerId: string; ready: boolean; pressed?: boolean }[];
   /** The projection windows counted. */
   screens: { ready: number; total: number };
+  /** The lobby's count (#104): `ready`/`total` are the participants; the screens say their own. */
+  lobby?: boolean;
 }
 
 /**
@@ -518,6 +526,8 @@ export interface ClientToServerEvents {
    * of the quiz just played, as `host:end` does). The players stay in, at 0; the
    * host's choices (capture, tracking, lock, pace, audio target) carry over.
    */
+  /** The participant is ready (or not yet) in the lobby (#104); never blocks the start. */
+  'player:ready': (p: { pin: string; ready: boolean }, ack: (res: { ok: boolean }) => void) => void;
   /** The room's own name (≤ 60 characters), from its lobby; blank = the default. */
   'host:room-name': (p: { pin: string; name: string }) => void;
   'host:next-quiz': (
@@ -656,6 +666,8 @@ export interface ServerToClientEvents {
    * and its host's name: on attach, and when the host renames it in the lobby.
    */
   'room:info': (p: { name: string | null; hostName: string }) => void;
+  /** To a participant back in a lobby: whether they already said they are ready (#104). */
+  'lobby:you': (p: { ready: boolean }) => void;
   /** The room's standings: at a podium, in the lobby of the next quiz, and when the room closes. */
   'room:standings': (p: RoomStandingsPayload) => void;
   /** `quizId`: the quiz that ended, which a rating goes to (several share a room's PIN). */

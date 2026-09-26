@@ -6,11 +6,12 @@ import { configureAnonymousParticipants } from '../config';
 import { renderApp } from '../test/harness';
 
 const { fakeSocket, hookState, audio } = vi.hoisted(() => ({
-  fakeSocket: { emit: vi.fn() },
+  fakeSocket: { emit: vi.fn(), emitWithAck: vi.fn(() => Promise.resolve({ ok: true })) },
   hookState: { value: null as unknown },
   audio: { unlocked: true },
 }));
 const markJoined = vi.fn();
+const markReady = vi.fn();
 const claimMediaElements = vi.fn();
 
 vi.mock('../game/media/media-pool', () => ({
@@ -37,7 +38,7 @@ const peekSession = vi.fn(() =>
 );
 
 vi.mock('../game/use-game-session', () => ({
-  useGameSession: () => ({ view: hookState.value, socket: fakeSocket, markJoined }),
+  useGameSession: () => ({ view: hookState.value, socket: fakeSocket, markJoined, markReady }),
 }));
 vi.mock('../game/game-client', () => ({
   joinSession: (...a: unknown[]) => joinSession(...a),
@@ -91,6 +92,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   mediaWait: null,
   nav: null,
   joinBaseUrl: null,
+  youReady: false,
   roomName: null,
   hostName: null,
   standings: null,
@@ -197,6 +199,31 @@ describe('PlayerPage (client participant)', () => {
 
     expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
     expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
+  });
+
+  describe('“Ready!” in the lobby (#104)', () => {
+    const session = { pin: '771122', nickname: 'Bob', sessionToken: 't', playerId: 'p1' };
+
+    it('says so once the server took it', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: 'Je suis prêt !' }));
+      await waitFor(() => expect(markReady).toHaveBeenCalledWith(true));
+      expect(fakeSocket.emitWithAck).toHaveBeenCalledWith('player:ready', {
+        pin: '771122',
+        ready: true,
+      });
+    });
+
+    it('once ready, waits for the host and can take it back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby, youReady: true });
+      renderApp('/join/771122');
+      expect(await screen.findByText(/Prêt — en attente de l’animateur/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Pas encore' }));
+      await waitFor(() => expect(markReady).toHaveBeenCalledWith(false));
+    });
   });
 
   describe('the projection on another device, or on this one (#104)', () => {

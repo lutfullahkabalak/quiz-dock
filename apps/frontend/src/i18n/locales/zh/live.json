@@ -158,7 +158,11 @@
     "renameRoom": "重命名房间",
     "roomNameLabel": "房间名称",
     "roomNameHint": "留空：“{{default}}”。",
-    "quizLabel": "测验："
+    "quizLabel": "测验：",
+    "readyCount_one": "已就绪：{{ready}} / {{count}} 名参与者",
+    "readyCount_other": "已就绪：{{ready}} / {{count}} 名参与者",
+    "participantReady": "已就绪",
+    "participantLoading": "已就绪，媒体加载中"
   },
   "screen": {
     "sessionUnavailable": "房间不可用。",
@@ -255,7 +259,10 @@
     "shareProjection": "分享投影",
     "shareProjectionHint": "在平板或电脑上打开：完整的题目，大字显示。",
     "projectionLinkCopied": "链接已复制 — 或用另一台设备扫描此码。",
-    "shareProjectionTitle": "{{appName}} — 投影"
+    "shareProjectionTitle": "{{appName}} — 投影",
+    "ready": "我准备好了！",
+    "readyDone": "已就绪 — 等待主持人",
+    "notYet": "还没有"
   },
   "reveal": {
     "explanation": "解析",
