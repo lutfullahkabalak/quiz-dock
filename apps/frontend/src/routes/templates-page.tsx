@@ -1,15 +1,18 @@
 import type { SlideBackground, SlideBlock } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { LibraryBig, ListChecks, Plus, Search } from 'lucide-react';
+import { LayoutGrid, LibraryBig, List as ListIcon, ListChecks, Plus, Search } from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
+import { Segmented } from '@/components/ui/segmented';
 import { Select } from '@/components/ui/select';
+import { TagFilter, tagsOf } from '@/components/tag-filter';
 import { fold } from '@/lib/text';
+import { useStoredView } from '@/lib/use-stored-view';
 import { cn } from '@/lib/utils';
 import type { StoreEntryDto } from '../api/generated/model';
 import { useStoreControllerList, useStoreControllerTake } from '../api/generated/store/store';
@@ -26,7 +29,7 @@ const PAGE_SIZE = 20;
  * questions — et mène à l'aperçu, qui est ce sur quoi on décide vraiment.
  */
 export function TemplatesPage() {
-  const { t, i18n } = useTranslation(['store', 'common']);
+  const { t, i18n } = useTranslation(['store', 'dashboard', 'common']);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const list = useStoreControllerList();
@@ -46,20 +49,29 @@ export function TemplatesPage() {
   };
   const [search, setSearch] = useState('');
   const [sort, setSort] = useState<'recent' | 'title' | 'questions'>('recent');
+  const [language, setLanguage] = useState('');
+  const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(1);
+  // A gallery by default: a template is chosen on what it shows.
+  const [view, setView] = useStoredView('quizdock.templates.view', 'grid');
 
   const entries = useMemo(() => list.data?.data ?? [], [list.data]);
+  const languages = useMemo(() => [...new Set(entries.map((e) => e.language))].sort(), [entries]);
+  const allTags = useMemo(() => tagsOf(entries), [entries]);
   const shown = useMemo(() => {
     const needle = fold(search);
     const kept = entries.filter(
-      (e) => !needle || fold(`${e.title} ${e.description ?? ''} ${e.author.name}`).includes(needle),
+      (e) =>
+        (!language || e.language === language) &&
+        tags.every((tag) => e.tags.includes(tag)) &&
+        (!needle || fold(`${e.title} ${e.description ?? ''} ${e.author.name}`).includes(needle)),
     );
     const sorted = [...kept];
     if (sort === 'title') sorted.sort((a, b) => a.title.localeCompare(b.title));
     else if (sort === 'questions') sorted.sort((a, b) => b.questionCount - a.questionCount);
     else sorted.sort((a, b) => b.sharedAt.localeCompare(a.sharedAt));
     return sorted;
-  }, [entries, search, sort]);
+  }, [entries, search, language, tags, sort]);
 
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   const current = Math.min(page, pageCount);
@@ -99,6 +111,25 @@ export function TemplatesPage() {
                 className="pl-8"
               />
             </label>
+            {languages.length > 1 ? (
+              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+                {t('dashboard:filterLanguage')}
+                <Select
+                  value={language}
+                  onChange={(e) => {
+                    setLanguage(e.target.value);
+                    setPage(1);
+                  }}
+                >
+                  <option value="">{t('dashboard:languageAll')}</option>
+                  {languages.map((l) => (
+                    <option key={l} value={l}>
+                      {l.toUpperCase()}
+                    </option>
+                  ))}
+                </Select>
+              </label>
+            ) : null}
             <label className="text-muted-foreground flex flex-col gap-1 text-xs">
               {t('sortBy')}
               <Select
@@ -113,7 +144,25 @@ export function TemplatesPage() {
                 <option value="questions">{t('sortQuestions')}</option>
               </Select>
             </label>
+            <Segmented
+              label={t('dashboard:display')}
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'list', label: t('dashboard:viewList'), icon: ListIcon },
+                { value: 'grid', label: t('dashboard:viewGrid'), icon: LayoutGrid },
+              ]}
+            />
           </div>
+          <TagFilter
+            label={t('dashboard:filterTags')}
+            tags={allTags}
+            selected={tags}
+            onChange={(next) => {
+              setTags(next);
+              setPage(1);
+            }}
+          />
           <p className="text-muted-foreground text-sm" role="status">
             {t('templateCount', { count: shown.length })}
           </p>
@@ -127,16 +176,40 @@ export function TemplatesPage() {
       {/* Une galerie : on choisit un modèle sur ce qu'il montre, pas sur une ligne
           de texte. La vignette, à défaut de couverture, reste une surface neutre
           plutôt qu'un trou. */}
-      <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <ul
+        className={
+          view === 'grid' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-2'
+        }
+      >
         {visible.map((entry) => (
-          <li key={entry.id} className="flex flex-col overflow-hidden rounded-lg border">
+          <li
+            key={entry.id}
+            className={cn(
+              'flex overflow-hidden rounded-lg border',
+              view === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:items-center',
+            )}
+          >
             <Link
               to="/templates/$templateId"
               params={{ templateId: entry.id }}
-              className="hover:bg-accent group flex flex-1 flex-col transition-colors"
+              className={cn(
+                'hover:bg-accent group flex flex-1 transition-colors',
+                view === 'grid' ? 'flex-col' : 'min-w-0 items-center gap-3',
+              )}
             >
-              <TemplateThumb entry={entry} />
-              <span className="flex flex-1 flex-col gap-2 p-4">
+              {view === 'grid' ? (
+                <TemplateThumb entry={entry} />
+              ) : (
+                <span className="hidden w-28 shrink-0 overflow-hidden sm:block">
+                  <TemplateThumb entry={entry} />
+                </span>
+              )}
+              <span
+                className={cn(
+                  'flex min-w-0 flex-1 flex-col',
+                  view === 'grid' ? 'gap-2 p-4' : 'gap-1 p-3',
+                )}
+              >
                 <span className="font-semibold">{entry.title}</span>
                 {entry.description ? (
                   <span className="text-muted-foreground line-clamp-2 text-sm">
@@ -157,11 +230,11 @@ export function TemplatesPage() {
             {/* L'action est sur la carte : on ne devrait pas avoir à ouvrir un
                 modèle pour pouvoir s'en servir. */}
             {isHost ? (
-              <span className="border-t p-3">
+              <span className={view === 'grid' ? 'border-t p-3' : 'border-t p-3 sm:border-t-0'}>
                 <Button
                   type="button"
                   size="sm"
-                  className="w-full"
+                  className={view === 'grid' ? 'w-full' : 'w-full sm:w-auto'}
                   disabled={take.isPending}
                   onClick={() => void onCreate(entry.id)}
                 >
