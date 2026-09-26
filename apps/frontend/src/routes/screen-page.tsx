@@ -348,10 +348,10 @@ export function ScreenSurface({
             catchUp={role === 'follow' ? followed(view, view.question.questionIndex) : undefined}
             onPosition={playMedia ? sayPosition : undefined}
             startAt={view.question.mediaStartAt ?? null}
-            restartSignal={
+            anchor={
               view.mediaControl?.questionIndex === view.question.questionIndex
-                ? view.mediaControl.seq
-                : 0
+                ? view.mediaControl
+                : null
             }
           />
           <AnswerRules question={view.question} className="shrink-0" />

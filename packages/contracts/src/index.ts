@@ -596,8 +596,8 @@ export interface ClientToServerEvents {
   'host:mode': (p: { pin: string; mode: GameMode }) => void;
   /** Suspend (`paused:true`) ou reprend (`paused:false`) l'auto-progression. */
   'host:pause': (p: { pin: string; paused: boolean }) => void;
-  /** Restart the current question's sound or video from the top, on the projection. */
-  'host:media': (p: { pin: string; action: 'restart' }) => void;
+  /** Steer the current question's sound or video on every device that plays it: restart, play, pause, seek. */
+  'host:media': (p: HostMediaCommand) => void;
   /** Ajoute/retire `deltaS` secondes au chrono de la question courante. */
   'host:adjust-time': (p: { pin: string; deltaS: number }) => void;
   /** Rejoint la room en lecture seule (fenêtre projetée) — aucune auth, le PIN suffit. */
@@ -666,6 +666,28 @@ export interface SessionNotice {
 }
 
 /** Map des events serveur → client. */
+
+/**
+ * Where the host put the current question's media, from the console: at `t`
+ * seconds when the server's clock read `at`, playing on from there or held.
+ * Every device that plays it lands on the same point, late ones included.
+ */
+export interface MediaAnchor {
+  t: number;
+  at: number;
+  playing: boolean;
+}
+export interface MediaControlPayload extends MediaAnchor {
+  questionIndex: number;
+}
+/** The host's command on the question's media: `t` for play, pause and seek (seconds). */
+export interface HostMediaCommand {
+  pin: string;
+  action: 'restart' | 'play' | 'pause' | 'seek';
+  t?: number;
+  /** For a seek: whether it plays on from there (a held media stays held). */
+  playing?: boolean;
+}
 
 /**
  * Why an answer was not counted: `closed` (the question is over, or another
@@ -746,7 +768,7 @@ export interface ServerToClientEvents {
   /** Where the projection is in the current sound: the other screens draw their playhead there. */
   'media:position': (p: MediaPositionPayload) => void;
   /** The host restarts the current question's media from the top. */
-  'media:control': (p: { questionIndex: number; action: 'restart' }) => void;
+  'media:control': (p: MediaControlPayload) => void;
   /**
    * Whether the quiz plays any sound (an MP3, a video), sent on attach to every
    * device: the projection (and a phone that never enabled it) then asks for the

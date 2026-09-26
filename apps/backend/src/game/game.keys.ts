@@ -101,6 +101,8 @@ export const gameKeys = {
     `game:${id}:media-wait-lock:${questionIndex}`,
   /** Atomic lock of the move to REVEAL (one winner, no double reveal). */
   revealLock: (id: GameId, questionIndex: number) => `game:${id}:reveal-lock:${questionIndex}`,
+  /** Where the host put a question's media (`MediaAnchor` JSON), replayed to late screens. */
+  mediaAnchor: (id: GameId, questionIndex: number) => `game:${id}:media-anchor:${questionIndex}`,
   /** Atomic lock of the move to the next step (no double click). */
   /** Step = question index, or `s<slideIndex>` for a content slide (#7). */
   advanceLock: (id: GameId, step: number | string) => `game:${id}:advance-lock:${step}`,

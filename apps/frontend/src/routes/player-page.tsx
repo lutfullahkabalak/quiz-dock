@@ -821,10 +821,10 @@ export function PlayerPage() {
               zoomable
               boxClassName="w-full max-h-[30dvh]"
               resumeKey={`${pin}:${question.questionIndex}`}
-              restartSignal={
+              anchor={
                 view.mediaControl?.questionIndex === question.questionIndex
-                  ? view.mediaControl.seq
-                  : 0
+                  ? view.mediaControl
+                  : null
               }
             />
           ) : (

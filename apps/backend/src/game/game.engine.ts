@@ -13,8 +13,10 @@ import type {
   GameModePayload,
   GameStatePayload,
   GameStep,
+  HostMediaCommand,
   LeaderboardPayload,
   LeaderboardRow,
+  MediaAnchor,
   MediaPreloadPayload,
   MediaReadinessPayload,
   PlayerPresence,
@@ -1206,6 +1208,9 @@ export class GameEngine {
       // Compteur courant : sinon un (re)attache mid-question afficherait « 0/N ».
       const { answered, total } = await this.connectedProgress(ref, meta.currentIndex);
       socket.emit('answer:count', { answered, total });
+      // Where the host put the media, after the question: it wins over the common start.
+      const anchor = await this.readAnchor(meta.id, meta.currentIndex);
+      if (anchor) socket.emit('media:control', { questionIndex: meta.currentIndex, ...anchor });
     } else if (meta.state === GameState.Reveal) {
       const index = meta.currentIndex;
       // The question itself first (prompt, options): a screen that (re)attaches at
@@ -1688,14 +1693,68 @@ export class GameEngine {
    * Idempotent : re-pauser/re-reprendre est sans effet (hors diffusion d'état).
    */
   /**
-   * `host:media` : relays a host command on the current question's media to
-   * the screens — after an interruption the projection resumes a second before
-   * where it was, and this lets the host take the room back to the top.
+   * `host:media` : the host steers the current question's media from the console
+   * — back to the top, play, pause, or a point in it. The command becomes an
+   * anchor (a position at an instant of the server's clock, playing or held),
+   * kept for the question so a screen that loads late lands on it too.
+   * While a listen-first question plays before its answers open, only the top
+   * is allowed: the answers open on a time the server fixed from the sound.
    */
-  async mediaControl(pin: string, hostUserId: string, action: 'restart'): Promise<void> {
+  async mediaControl(pin: string, hostUserId: string, command: HostMediaCommand): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
     if (meta.state !== GameState.Answering) return;
-    this.server.to(pin).emit('media:control', { questionIndex: meta.currentIndex, action });
+    const snapshot = await this.game.getSnapshot(meta.id);
+    const question = snapshot?.questions[meta.currentIndex];
+    if (!question || !hasSoundOrVideo(question.media)) return;
+    const now = Date.now();
+    let anchor: MediaAnchor;
+    if (command.action === 'restart') {
+      anchor = { t: 0, at: now, playing: true };
+    } else {
+      if (question.timerAfterMedia && now < meta.questionStartedAt) return; // listening
+      const durationS = (mediaDurationMs(question.media) ?? 0) / 1000;
+      const t = command.t;
+      if (typeof t !== 'number' || !Number.isFinite(t) || t < 0) return;
+      if (durationS > 0 && t > durationS) return;
+      const playing =
+        command.action === 'play' || (command.action === 'seek' && command.playing !== false);
+      anchor = { t, at: now, playing };
+    }
+    await this.saveAnchor(meta.id, meta.currentIndex, anchor);
+    this.server.to(pin).emit('media:control', { questionIndex: meta.currentIndex, ...anchor });
+  }
+
+  private async saveAnchor(gameId: GameId, index: number, anchor: MediaAnchor): Promise<void> {
+    await this.redis.set(
+      gameKeys.mediaAnchor(gameId, index),
+      JSON.stringify(anchor),
+      'EX',
+      GAME_TTL_S,
+    );
+  }
+
+  private async readAnchor(gameId: GameId, index: number): Promise<MediaAnchor | null> {
+    const raw = await this.redis.get(gameKeys.mediaAnchor(gameId, index));
+    return raw ? (JSON.parse(raw) as MediaAnchor) : null;
+  }
+
+  /**
+   * The clock freezes or thaws (the game's pause, the host gone): a media the host
+   * anchored playing is re-anchored where it stands, so a screen that joins after
+   * the pause does not count the pause as played.
+   */
+  private async reanchor(pin: string, meta: GameMeta, phase: 'freeze' | 'thaw'): Promise<void> {
+    const anchor = await this.readAnchor(meta.id, meta.currentIndex);
+    if (!anchor?.playing) return;
+    const now = Date.now();
+    const next =
+      phase === 'freeze'
+        ? { ...anchor, t: anchor.t + (now - anchor.at) / 1000, at: now }
+        : { ...anchor, at: now };
+    await this.saveAnchor(meta.id, meta.currentIndex, next);
+    if (phase === 'thaw') {
+      this.server.to(pin).emit('media:control', { questionIndex: meta.currentIndex, ...next });
+    }
   }
 
   async setPaused(pin: string, hostUserId: string, paused: boolean): Promise<void> {
@@ -1800,6 +1859,7 @@ export class GameEngine {
     });
     meta.clockFrozen = true;
     meta.pausedRemainingMs = remaining;
+    await this.reanchor(pin, meta, 'freeze');
   }
 
   /**
@@ -1824,6 +1884,7 @@ export class GameEngine {
     meta.questionStartedAt = startedAt;
     meta.questionEndsAt = endsAt;
     this.scheduleReveal(refOf(pin, meta), meta.currentIndex, endsAt + GRACE_MS - now);
+    await this.reanchor(pin, meta, 'thaw');
     return { startedAt, endsAt };
   }
 
