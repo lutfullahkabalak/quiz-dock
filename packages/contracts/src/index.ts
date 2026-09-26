@@ -719,6 +719,8 @@ export interface ServerToClientEvents {
   'room:sounds': (p: RoomSoundsPayload) => void;
   /** To a participant back in a lobby: whether they already said they are ready (#104). */
   'lobby:you': (p: { ready: boolean }) => void;
+  /** To the participants in a lobby (#104): how many said they are ready, out of how many. */
+  'lobby:count': (p: { ready: number; total: number }) => void;
   /** The room's standings: at a podium, in the lobby of the next quiz, and when the room closes. */
   'room:standings': (p: RoomStandingsPayload) => void;
   /** `quizId`: the quiz that ended, which a rating goes to (several share a room's PIN). */

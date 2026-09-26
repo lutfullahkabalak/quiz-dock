@@ -2,7 +2,7 @@ import type { INestApplication } from '@nestjs/common';
 import type { Socket } from 'socket.io-client';
 import { MediaService } from '../../src/media/media.service';
 import { PrismaService } from '../../src/prisma/prisma.service';
-import { type GameContext, type GameHarness, settle } from '../game-harness';
+import { type GameContext, type GameHarness, nextEvent, settle } from '../game-harness';
 
 /** Sound and video: what each device receives, remote play, who hears the sound, readiness, synchronised start, listen first, media administration. */
 export function mediaTests(ctx: GameContext): void {
@@ -476,8 +476,13 @@ export function mediaTests(ctx: GameContext): void {
         pressed: true,
       });
       // In the room, nothing to load: saying so is enough.
+      const counted = nextEvent<{ ready: number; total: number }>(remote, 'lobby:count', {
+        where: (c: { ready: number }) => c.ready === 2,
+      });
       await room.emitWithAck('player:ready', { pin, ready: true });
       r = await until((x) => x.ready === 2);
+      // The participants hear the count alone: who said they are ready, not whose media.
+      expect(await counted).toEqual({ ready: 2, total: 2 });
       // Changing one's mind counts too.
       await room.emitWithAck('player:ready', { pin, ready: false });
       r = await until((x) => x.ready === 1);

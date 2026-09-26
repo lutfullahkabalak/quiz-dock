@@ -11,6 +11,7 @@ import {
   Users,
   Volume2,
   Wifi,
+  X,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { APP_NAME } from '../config';
@@ -158,28 +159,40 @@ export function PlayerPage() {
   );
   const serverAvatar = view.players.find((p) => p.playerId === myId)?.avatar;
   const inLobby = view.state === null || view.state === 'LOBBY';
-  const avatarName =
-    (inLobby ? avatarSeed || serverAvatar : serverAvatar || avatarSeed) || nickname || '?';
-
   // Graine déjà synchronisée vers le serveur (pour n'émettre que sur changement réel).
   const [syncedSeed, setSyncedSeed] = useState(avatarSeed);
+  const joinedRoom = view.status !== 'no-session';
+  // The lobby card previews a new draw; everywhere else (the top bar, the podium)
+  // shows the avatar the room knows, until the player saves the new one.
+  const avatarOf = (seed: string) =>
+    (inLobby ? seed || serverAvatar : serverAvatar || seed) || nickname || '?';
+  const avatarPreview = avatarOf(avatarSeed);
+  const avatarName = avatarOf(syncedSeed);
 
   /**
-   * Randomise l'avatar **localement** uniquement (aperçu + mémorisation) : pas
-   * d'émission réseau ici, pour éviter d'inonder le serveur/animateur à chaque clic.
-   * La synchronisation se fait explicitement via « Enregistrer l'avatar ».
+   * Randomise l'avatar **localement** uniquement (aperçu) : pas d'émission réseau
+   * ici, pour éviter d'inonder le serveur/animateur à chaque clic. Once in the room
+   * the draw waits for « Enregistrer » (or « Annuler »); before joining, the join
+   * itself carries it.
    */
   const randomizeAvatar = () => {
     const seed = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
     setAvatarSeed(seed);
-    saveAvatarSeed(seed);
+    if (!joinedRoom) {
+      setSyncedSeed(seed);
+      saveAvatarSeed(seed);
+    }
   };
 
   /** Synchronise l'avatar choisi vers la room (refusé côté serveur après le démarrage). */
   const commitAvatar = () => {
-    socket?.emit('player:avatar', { pin, avatar: avatarName });
+    socket?.emit('player:avatar', { pin, avatar: avatarPreview });
     setSyncedSeed(avatarSeed);
+    saveAvatarSeed(avatarSeed);
   };
+
+  /** Back to the avatar the room knows. */
+  const cancelAvatar = () => setAvatarSeed(syncedSeed);
 
   // Nouvelle question → réinitialise la saisie locale.
   useEffect(() => {
@@ -384,7 +397,11 @@ export function PlayerPage() {
   // Identity and the way out live in the topbar (same place on every screen), not in the page.
   // The slot exists once the layout is in the DOM (after the first commit), hence the effect.
   const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => setTopbarSlot(document.getElementById('participant-topbar')), []);
+  const [topbarStart, setTopbarStart] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setTopbarSlot(document.getElementById('participant-topbar'));
+    setTopbarStart(document.getElementById('participant-topbar-start'));
+  }, []);
   // Where this device follows from, and whether the current question sounds here.
   const presence = view.players.find((p) => p.playerId === myId)?.presence ?? 'room';
   const device = presence === 'remote' ? 'remote' : 'room';
@@ -394,7 +411,7 @@ export function PlayerPage() {
   const remote = presence === 'remote';
   const playsHere = remote || hears;
 
-  const participantBar =
+  const participantTop =
     topbarSlot && view.status === 'ready' && view.state !== 'ENDED' && !view.kicked
       ? createPortal(
           <>
@@ -407,18 +424,6 @@ export function PlayerPage() {
             >
               <LogOut className="size-4" />
               {t('player.leave')}
-            </Button>
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              className="size-8"
-              aria-pressed={showScreen}
-              aria-label={showScreen ? t('player.showAnswers') : t('player.showScreen')}
-              title={showScreen ? t('player.showAnswers') : t('player.showScreen')}
-              onClick={() => setShowScreen(!showScreen)}
-            >
-              {showScreen ? <ListChecks className="size-4" /> : <MonitorPlay className="size-4" />}
             </Button>
             {/* This device's sound: when it plays something (the question here, or the game's). */}
             {hears || gameSoundsHere || remoteHere ? <SoundButton onUnmute={claimSound} /> : null}
@@ -444,6 +449,49 @@ export function PlayerPage() {
           topbarSlot,
         )
       : null;
+
+  // The answers or the big screen, next to the logo: a switch, both sides always in sight.
+  const screenSwitch =
+    topbarStart && view.status === 'ready' && view.state !== 'ENDED' && !view.kicked
+      ? createPortal(
+          <div
+            role="group"
+            aria-label={t('player.viewSwitch')}
+            className="bg-muted flex items-center rounded-full p-0.5"
+          >
+            {(
+              [
+                [false, ListChecks, t('player.showAnswers')],
+                [true, MonitorPlay, t('player.showScreen')],
+              ] as const
+            ).map(([screenSide, Icon, label]) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={showScreen === screenSide}
+                aria-label={label}
+                title={label}
+                onClick={() => setShowScreen(screenSide)}
+                className={cn(
+                  'flex h-7 w-9 items-center justify-center rounded-full transition-colors',
+                  showScreen === screenSide
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon className="size-4" />
+              </button>
+            ))}
+          </div>,
+          topbarStart,
+        )
+      : null;
+  const participantBar = (
+    <>
+      {participantTop}
+      {screenSwitch}
+    </>
+  );
 
   const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) => (
     <Surface
@@ -494,7 +542,7 @@ export function PlayerPage() {
         <CardContent>
           <form className="flex flex-col gap-4 text-left" onSubmit={(e) => void onJoin(e)}>
             <div className="flex flex-col items-center gap-2">
-              <Avatar name={avatarName} size={88} />
+              <Avatar name={avatarPreview} size={88} />
               <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
                 <Shuffle className="size-4" />
                 {t('player.randomAvatar')}
@@ -840,7 +888,7 @@ export function PlayerPage() {
           <p className="text-lg font-semibold">{roomLabel(t, view.roomName, view.hostName)}</p>
         </CardHeader>
         <CardContent className="flex flex-col items-center gap-2">
-          <Avatar name={avatarName} size={72} />
+          <Avatar name={avatarPreview} size={72} />
           {nickname ? <p className="text-lg font-semibold">« {nickname} »</p> : null}
           {/* Avatar modifiable tant que la partie n'a pas démarré : on randomise en local
             puis on synchronise explicitement (évite d'inonder le serveur à chaque clic). */}
@@ -849,16 +897,29 @@ export function PlayerPage() {
               <Shuffle className="size-4" />
               {t('player.randomAvatar')}
             </Button>
-            <Button
-              type="button"
-              size="icon"
-              onClick={commitAvatar}
-              disabled={avatarSeed === syncedSeed}
-              aria-label={t('player.saveAvatar')}
-              title={t('player.saveAvatar')}
-            >
-              <Check className="size-4" />
-            </Button>
+            {avatarSeed !== syncedSeed ? (
+              <>
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={commitAvatar}
+                  aria-label={t('player.saveAvatar')}
+                  title={t('player.saveAvatar')}
+                >
+                  <Check className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={cancelAvatar}
+                  aria-label={t('player.cancelAvatar')}
+                  title={t('player.cancelAvatar')}
+                >
+                  <X className="size-4" />
+                </Button>
+              </>
+            ) : null}
           </div>
           {/* Between two quizzes of a room (#89): where they stand, then what comes. */}
           {view.standings?.you ? (
@@ -898,10 +959,28 @@ export function PlayerPage() {
           {/* "Ready!" (#104): the host sees one count and still starts when they choose. */}
           <div className="flex w-full flex-col items-center gap-1 border-t pt-3">
             {view.youReady ? (
-              <>
+              // What the wait is about, once ready: the quiz to come and the room filling up.
+              <div className="qd-pop bg-muted/40 flex w-full flex-col items-center gap-1.5 rounded-lg border p-3">
                 <p className="flex items-center gap-1.5 font-semibold text-green-700 dark:text-green-400">
                   <Check className="size-4" />
                   {t('player.readyDone')}
+                </p>
+                {view.quizTitle ? (
+                  <p className="text-sm font-medium">
+                    {t('player.upNext', { title: view.quizTitle })}
+                  </p>
+                ) : null}
+                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                  <Users className="size-4" />
+                  {t('player.lobbyPlayers', {
+                    count: view.lobbyCount?.total ?? view.players.length,
+                  })}
+                  {view.lobbyCount ? (
+                    <span>
+                      {' · '}
+                      {t('player.lobbyReady', view.lobbyCount)}
+                    </span>
+                  ) : null}
                 </p>
                 <Button
                   type="button"
@@ -911,9 +990,15 @@ export function PlayerPage() {
                 >
                   {t('player.notYet')}
                 </Button>
-              </>
+              </div>
             ) : (
-              <Button type="button" variant="main-action" onClick={() => void sayReady(true)}>
+              // Breathes until pressed: the one thing the room waits for from this phone.
+              <Button
+                type="button"
+                variant="main-action"
+                className="qd-breathe transition-transform active:scale-95"
+                onClick={() => void sayReady(true)}
+              >
                 {t('player.ready')}
               </Button>
             )}

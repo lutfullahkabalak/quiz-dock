@@ -128,6 +128,8 @@ export interface GameView {
   sounds: RoomSoundsPayload | null;
   /** Whether this participant said they are ready in the lobby (#104). */
   youReady: boolean;
+  /** The lobby's count, as a participant sees it: ready, out of how many (#104). */
+  lobbyCount: { ready: number; total: number } | null;
   /** The room's own name (null = the default, "<host>'s room") and its host's name. */
   roomName: string | null;
   hostName: string | null;
@@ -185,6 +187,7 @@ const INITIAL: GameView = {
   mediaWait: null,
   nav: null,
   youReady: false,
+  lobbyCount: null,
   sounds: null,
   roomName: null,
   hostName: null,
@@ -213,6 +216,7 @@ const PER_QUIZ: Partial<GameView> = {
   mediaControl: null,
   nav: null,
   youReady: false,
+  lobbyCount: null,
 };
 
 /**
@@ -345,6 +349,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       });
     const onStandings = (p: RoomStandingsPayload) => patch({ standings: p });
     const onLobbyYou = (p: { ready: boolean }) => patch({ youReady: p.ready });
+    const onLobbyCount = (p: { ready: number; total: number }) => patch({ lobbyCount: p });
     const onSounds = (p: RoomSoundsPayload) => patch({ sounds: p });
     const onRoomInfo = (p: { name: string | null; hostName: string }) =>
       patch({ roomName: p.name, hostName: p.hostName });
@@ -418,6 +423,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       sock.on('room:standings', onStandings);
       sock.on('room:info', onRoomInfo);
       sock.on('lobby:you', onLobbyYou);
+      sock.on('lobby:count', onLobbyCount);
       sock.on('room:sounds', onSounds);
       sock.on('game:ended', onEnded);
       sock.on('notice', onNotice);
@@ -489,6 +495,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       s.off('room:standings', onStandings);
       s.off('room:info', onRoomInfo);
       s.off('lobby:you', onLobbyYou);
+      s.off('lobby:count', onLobbyCount);
       s.off('room:sounds', onSounds);
       s.off('game:ended', onEnded);
       s.off('notice', onNotice);

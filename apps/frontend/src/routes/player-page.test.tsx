@@ -73,6 +73,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   answerAccepted: null,
   answerRefusal: null,
   answerAckAt: null,
+  lobbyCount: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -223,6 +224,36 @@ describe('PlayerPage (client participant)', () => {
         pin: '771122',
         ready: true,
       });
+    });
+
+    it('once ready, tells what the room waits for: the quiz to come and who is ready', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({
+        state: GameState.Lobby,
+        youReady: true,
+        quizTitle: 'Capitales',
+        lobbyCount: { ready: 2, total: 5 },
+      });
+      renderApp('/join/771122');
+      expect(await screen.findByText(/À suivre : Capitales/)).toBeInTheDocument();
+      expect(screen.getByText(/5 joueurs dans le salon/)).toBeInTheDocument();
+      expect(screen.getByText(/2 sur 5 prêts/)).toBeInTheDocument();
+    });
+
+    it('a new avatar stays a draft until saved: the top bar keeps the room’s, Cancel goes back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      await screen.findByText(/Tu es dans le salon/);
+      const topbarAvatar = () =>
+        document.getElementById('participant-topbar')?.querySelector('svg, img')?.outerHTML;
+      const before = topbarAvatar();
+      expect(before).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: /Avatar aléatoire/ }));
+      expect(topbarAvatar()).toBe(before);
+      expect(fakeSocket.emit).not.toHaveBeenCalledWith('player:avatar', expect.anything());
+      fireEvent.click(screen.getByRole('button', { name: 'Garder l’avatar actuel' }));
+      expect(screen.queryByRole('button', { name: 'Garder l’avatar actuel' })).toBeNull();
     });
 
     it('once ready, waits for the host and can take it back', async () => {

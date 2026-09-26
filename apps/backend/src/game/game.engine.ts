@@ -412,8 +412,13 @@ export class GameEngine {
       meta.state === GameState.Lobby,
     );
     if (!payload) return;
+    // The participants hear the lobby's count only: who said they are ready, not whose media.
+    const lobbyCount = payload.lobby
+      ? { ready: payload.players.filter((p) => p.pressed).length, total: payload.players.length }
+      : null;
     for (const socket of await this.server.in(pin).fetchSockets()) {
       if (!(socket.data as { playerId?: string }).playerId) socket.emit('media:readiness', payload);
+      else if (lobbyCount) socket.emit('lobby:count', lobbyCount);
     }
     // The last device waited for is ready (or the last one not ready left): go.
     if (meta.state === GameState.MediaLoading && payload.ready >= payload.total) {
