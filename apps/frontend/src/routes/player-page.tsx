@@ -527,9 +527,13 @@ export function PlayerPage() {
         {view.rateable?.feedbackEnabled ? (
           <RatingPanel pin={pin} quizId={view.rateable.quizId} socket={socket} />
         ) : null}
-        <Link to="/join" className="text-muted-foreground text-sm underline underline-offset-2">
-          {t('player.joinAnother')}
-        </Link>
+        {/* Only once the room is closed: at a podium the participant is still in it (the host
+            may open the next quiz), and leaving goes through "Leave", which really leaves. */}
+        {view.state === 'ENDED' ? (
+          <Link to="/join" className="text-muted-foreground text-sm underline underline-offset-2">
+            {t('player.joinAnother')}
+          </Link>
+        ) : null}
       </>,
     );
   }

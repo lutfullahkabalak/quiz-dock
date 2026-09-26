@@ -246,6 +246,8 @@ describe('PlayerPage (client participant)', () => {
       renderApp('/join/771122');
       expect(await screen.findByText('Podium')).toBeInTheDocument();
       expect(screen.queryByRole('button', { name: /Envoyer mon avis/ })).toBeNull();
+      // Still in the room at a podium: no way out to another PIN from here.
+      expect(screen.queryByRole('link', { name: /autre partie|another/i })).toBeNull();
     });
   });
 
