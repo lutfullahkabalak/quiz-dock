@@ -140,6 +140,21 @@ describe('QuestionMediaStage', () => {
     expect(el.currentTime).toBeGreaterThanOrEqual(3);
     expect(el.currentTime).toBeLessThan(3.5);
   });
+  it('the projection’s older position never undoes the host’s anchor', async () => {
+    render(
+      <QuestionMediaStage
+        media={sound}
+        mode="play"
+        catchUp={{ questionIndex: 0, t: 1, playing: true, receivedAt: performance.now() }}
+        anchor={{ seq: 1, t: 3, at: Date.now(), playing: true }}
+      />,
+    );
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    const el = play.mock.calls[0][0] as HTMLMediaElement;
+    el.dispatchEvent(new Event('loadedmetadata'));
+    el.dispatchEvent(new Event('playing'));
+    expect(el.currentTime).toBeGreaterThanOrEqual(3);
+  });
   it('a device that loads after the host moved the media lands where the host put it', async () => {
     render(
       <QuestionMediaStage

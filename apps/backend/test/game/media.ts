@@ -821,6 +821,12 @@ export function mediaTests(ctx: GameContext): void {
       host.emit('host:media', { pin, action: 'pause', t: 1 });
       await settle(200);
       expect(moved).toHaveLength(0);
+      // Paused while listened to, past the time the answers would have opened: still listening.
+      host.emit('host:pause', { pin, paused: true });
+      await settle(Math.max(0, start.startedAt - Date.now()) + 300);
+      host.emit('host:media', { pin, action: 'seek', t: 1 });
+      await settle(200);
+      expect(moved).toHaveLength(0);
       host.emit('host:end', { pin });
     } finally {
       await prisma.quiz.delete({ where: { id: quiz.id } });

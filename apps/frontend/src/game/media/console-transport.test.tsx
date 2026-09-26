@@ -96,4 +96,55 @@ describe('ConsoleTransport', () => {
     fireEvent.click(screen.getByRole('button', { name: /Relancer|Restart/ }));
     expect(onCommand).toHaveBeenCalledWith({ action: 'restart' });
   });
+
+  it('with no projection open, it goes by the host’s last command', () => {
+    const { rerender } = render(
+      <ConsoleTransport
+        media={sound}
+        follow={null}
+        anchor={{ t: 4, at: Date.now(), playing: false, receivedAt: performance.now() }}
+        listening={false}
+        gamePaused={false}
+        onCommand={vi.fn()}
+        onGamePause={vi.fn()}
+      />,
+    );
+    // Held at 0:04: the button offers to play, not to pause again.
+    expect(screen.getByRole('button', { name: 'Lire' })).toBeInTheDocument();
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '4');
+    rerender(
+      <ConsoleTransport
+        media={sound}
+        follow={{ questionIndex: 0, t: 1, playing: false, receivedAt: performance.now() - 5000 }}
+        anchor={{ t: 6, at: Date.now(), playing: false, receivedAt: performance.now() }}
+        listening={false}
+        gamePaused={false}
+        onCommand={vi.fn()}
+        onGamePause={vi.fn()}
+      />,
+    );
+    // The projection's older word loses to the newer anchor.
+    expect(screen.getByRole('slider')).toHaveAttribute('aria-valuenow', '6');
+  });
+
+  it('arrows move the point while held, one command when let go', () => {
+    const onCommand = vi.fn();
+    render(
+      <ConsoleTransport
+        media={sound}
+        follow={{ questionIndex: 0, t: 2, playing: false, receivedAt: performance.now() }}
+        listening={false}
+        gamePaused={false}
+        onCommand={onCommand}
+        onGamePause={vi.fn()}
+      />,
+    );
+    const bar = screen.getByRole('slider');
+    fireEvent.keyDown(bar, { key: 'ArrowRight' });
+    fireEvent.keyDown(bar, { key: 'ArrowRight', repeat: true });
+    expect(onCommand).not.toHaveBeenCalled();
+    fireEvent.keyUp(bar, { key: 'ArrowRight' });
+    expect(onCommand).toHaveBeenCalledTimes(1);
+    expect(onCommand).toHaveBeenCalledWith({ action: 'seek', t: 10, playing: false });
+  });
 });

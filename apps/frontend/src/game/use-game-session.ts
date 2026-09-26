@@ -111,7 +111,7 @@ export interface GameView {
   preload: MediaPreloadPayload | null;
   /** Last host command on the current media; `seq` changes with each one. */
   /** Where the host put the current question's media (numbered: a new anchor each time). */
-  mediaControl: (MediaControlPayload & { seq: number }) | null;
+  mediaControl: (MediaControlPayload & { seq: number; receivedAt: number }) | null;
   /** Whether the quiz plays any sound (projection and console only; null until told). */
   quizHasSound: boolean | null;
   /** The room waits for media before `questionIndex`, until `until` (state `MEDIA_LOADING`). */
@@ -358,7 +358,11 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
     const onMediaControl = (p: MediaControlPayload) =>
       setView((prev) => ({
         ...prev,
-        mediaControl: { ...p, seq: (prev.mediaControl?.seq ?? 0) + 1 },
+        mediaControl: {
+          ...p,
+          seq: (prev.mediaControl?.seq ?? 0) + 1,
+          receivedAt: performance.now(),
+        },
       }));
     const onPodium = (p: PodiumPayload) =>
       patch({

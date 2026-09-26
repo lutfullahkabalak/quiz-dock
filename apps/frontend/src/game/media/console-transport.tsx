@@ -1,8 +1,9 @@
-import type { HostMediaCommand, LiveQuestionMedia } from '@quiz-dock/contracts';
+import type { HostMediaCommand, LiveQuestionMedia, MediaAnchor } from '@quiz-dock/contracts';
 import { Pause, Play, RotateCcw } from 'lucide-react';
 import { type PointerEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
+import { serverNow } from '../clock';
 import type { FollowedPosition } from './question-media-stage';
 import { Waveform } from './waveform';
 
@@ -21,6 +22,7 @@ type Command = Omit<HostMediaCommand, 'pin'>;
 export function ConsoleTransport({
   media,
   follow,
+  anchor = null,
   listening,
   gamePaused,
   onCommand,
@@ -28,6 +30,11 @@ export function ConsoleTransport({
 }: {
   media: LiveQuestionMedia;
   follow: FollowedPosition | null;
+  /**
+   * The host's last command, as the server anchored it: what the console goes by
+   * when it is newer than the projection's word — or when no projection is open.
+   */
+  anchor?: (MediaAnchor & { receivedAt: number }) | null;
   /** A listen-first question, before its answers open. */
   listening: boolean;
   gamePaused: boolean;
@@ -41,14 +48,21 @@ export function ConsoleTransport({
       (media.visual?.kind === 'video' && 'durationMs' in media.visual
         ? (media.visual.durationMs ?? 0)
         : 0)) / 1000;
-  // Until the projection says otherwise, the media plays with the game.
-  const playing = listening ? !gamePaused : (follow?.playing ?? !gamePaused);
+  // The newer word wins: the projection's position, or the host's last anchor.
+  const byAnchor = !!anchor && (!follow || anchor.receivedAt > follow.receivedAt);
+  // Until either says otherwise, the media plays with the game.
+  const playing = listening
+    ? !gamePaused
+    : byAnchor
+      ? anchor!.playing && !gamePaused
+      : (follow?.playing ?? !gamePaused);
 
   // Where the projection is, moved on while it plays; a drag or a fresh seek shows
   // its own point until the projection's next word.
   const [now, setNow] = useState(() => performance.now());
+  const moving = byAnchor ? playing : !!follow?.playing;
   useEffect(() => {
-    if (!follow?.playing) return;
+    if (!moving) return;
     let frame = 0;
     const tick = () => {
       setNow(performance.now());
@@ -56,15 +70,18 @@ export function ConsoleTransport({
     };
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
-  }, [follow]);
-  const followedT = follow
-    ? Math.min(durationS, follow.t + (follow.playing ? (now - follow.receivedAt) / 1000 : 0))
-    : 0;
+  }, [moving]);
+  const followedT = byAnchor
+    ? Math.min(durationS, anchor!.t + (playing ? Math.max(0, serverNow() - anchor!.at) / 1000 : 0))
+    : follow
+      ? Math.min(durationS, follow.t + (follow.playing ? (now - follow.receivedAt) / 1000 : 0))
+      : 0;
   const [pending, setPending] = useState<{ t: number; since: number } | null>(null);
-  // The projection spoke after the seek: its word wins again.
+  // The projection spoke, or the server anchored the command, after the seek: that word wins.
   useEffect(() => {
-    if (pending && follow && follow.receivedAt > pending.since) setPending(null);
-  }, [follow, pending]);
+    const latest = Math.max(follow?.receivedAt ?? 0, anchor?.receivedAt ?? 0);
+    if (pending && latest > pending.since) setPending(null);
+  }, [follow, anchor, pending]);
   const [drag, setDrag] = useState<number | null>(null);
   const shown = drag ?? pending?.t ?? followedT;
 
@@ -125,12 +142,17 @@ export function ConsoleTransport({
               seek(at(e));
             }}
             onPointerCancel={() => setDrag(null)}
+            // Arrows move the point while held; one command when the key is let go.
             onKeyDown={(e) => {
-              if (!canSeek) return;
-              if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
-                e.preventDefault();
-                seek(shown + (e.key === 'ArrowRight' ? 5 : -5));
-              }
+              if (!canSeek || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+              e.preventDefault();
+              const step = e.key === 'ArrowRight' ? 5 : -5;
+              setDrag((d) => Math.min(Math.max((d ?? shown) + step, 0), durationS));
+            }}
+            onKeyUp={(e) => {
+              if (drag === null || (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight')) return;
+              setDrag(null);
+              seek(drag);
             }}
           >
             {/* Drawn here even when the author hid it from the screens. */}

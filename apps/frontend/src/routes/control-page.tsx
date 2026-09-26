@@ -142,10 +142,19 @@ export function ControlPage() {
   // The question's sound or video, steered from here while it runs.
   const steerable =
     view.state === 'ANSWERING' &&
-    !!(view.question?.media?.audio || view.question?.media?.visual?.kind === 'video');
-  // A listen-first question before its answers open: the point cannot move.
+    !!(
+      view.question?.media?.audio ||
+      (view.question?.media?.visual?.kind === 'video' &&
+        view.question.media.visual.source === 'upload')
+    );
+  // A listen-first question before its answers open: the point cannot move. Paused,
+  // the countdown stands still on the server: what is left of the clock says it.
   const listenLeft = useCountdown(view.question?.listenFirst ? view.question.startedAt : null);
-  const listening = !!view.question?.listenFirst && (listenLeft ?? 0) > 0;
+  const listening =
+    !!view.question?.listenFirst &&
+    (view.paused && view.pausedRemainingMs !== null
+      ? view.pausedRemainingMs > view.question.endsAt - view.question.startedAt
+      : (listenLeft ?? 0) > 0);
   const adjustTime = (deltaS: number) => socket?.emit('host:adjust-time', { pin, deltaS });
 
   const remaining = useGameRemaining(view);
@@ -659,6 +668,11 @@ export function ControlPage() {
             key={view.question.questionIndex}
             media={view.question.media}
             follow={followed(view, view.question.questionIndex)}
+            anchor={
+              view.mediaControl?.questionIndex === view.question.questionIndex
+                ? view.mediaControl
+                : null
+            }
             listening={listening}
             gamePaused={view.paused}
             onCommand={(command) => socket?.emit('host:media', { pin, ...command })}

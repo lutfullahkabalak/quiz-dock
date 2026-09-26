@@ -140,8 +140,13 @@ function usePlayback(
       el.pause();
       return;
     }
-    // Played to its end before an interruption: it does not start again on its own.
+    // Played to its end before an interruption (or anchored past it): it does not
+    // start again on its own.
     if (!anchor && positionKey && readPosition(positionKey)?.ended) return;
+    if (anchor && Number.isFinite(el.duration)) {
+      const moved = anchor.playing ? Math.max(0, serverNow() - anchor.at) / 1000 : 0;
+      if (anchor.t + moved >= el.duration) return;
+    }
     let cancelled = false;
     // The common start: every device plays from the same instant of the server's
     // clock. Early, wait for it; late (still loading, joined mid-question), start
@@ -301,8 +306,9 @@ function VideoBox({
     silent,
     startAt,
   );
-  // Without a common start (an older server), a late device follows the projection instead.
-  useCatchUp(el, startAt === null ? catchUp : null);
+  // Without a common start (an older server), a late device follows the projection instead;
+  // never over the host's anchor.
+  useCatchUp(el, startAt === null && !anchor ? catchUp : null);
   usePositionReport(el, onPosition);
 
   useEffect(() => {
@@ -351,7 +357,7 @@ function AudioTrack({
     silent,
     startAt,
   );
-  useCatchUp(el, startAt === null ? catchUp : null);
+  useCatchUp(el, startAt === null && !anchor ? catchUp : null);
   const [progress, setProgress] = useState(0);
 
   // The filled part follows the sound, frame by frame, only while it plays.

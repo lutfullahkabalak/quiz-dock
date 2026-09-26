@@ -1705,13 +1705,19 @@ export class GameEngine {
     if (meta.state !== GameState.Answering) return;
     const snapshot = await this.game.getSnapshot(meta.id);
     const question = snapshot?.questions[meta.currentIndex];
-    if (!question || !hasSoundOrVideo(question.media)) return;
+    // A sound, or a video played from its file (an embed is its provider's to steer).
+    const media = question?.media;
+    if (
+      !media ||
+      !(media.audio || (media.visual?.kind === 'video' && media.visual.source === 'upload'))
+    )
+      return;
     const now = Date.now();
     let anchor: MediaAnchor;
     if (command.action === 'restart') {
       anchor = { t: 0, at: now, playing: true };
     } else {
-      if (question.timerAfterMedia && now < meta.questionStartedAt) return; // listening
+      if (question.timerAfterMedia && this.listening(meta, now)) return;
       const durationS = (mediaDurationMs(question.media) ?? 0) / 1000;
       const t = command.t;
       if (typeof t !== 'number' || !Number.isFinite(t) || t < 0) return;
@@ -1722,6 +1728,17 @@ export class GameEngine {
     }
     await this.saveAnchor(meta.id, meta.currentIndex, anchor);
     this.server.to(pin).emit('media:control', { questionIndex: meta.currentIndex, ...anchor });
+  }
+
+  /**
+   * A listen-first question still before its answers: frozen (the game's pause),
+   * by what is left of the clock, since the start itself only moves at the thaw.
+   */
+  private listening(meta: GameMeta, now: number): boolean {
+    if (meta.clockFrozen) {
+      return (meta.pausedRemainingMs ?? 0) > meta.questionEndsAt - meta.questionStartedAt;
+    }
+    return now < meta.questionStartedAt;
   }
 
   private async saveAnchor(gameId: GameId, index: number, anchor: MediaAnchor): Promise<void> {
