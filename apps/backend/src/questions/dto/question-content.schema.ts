@@ -15,11 +15,37 @@ export function normalizeAnswer(text: string): string {
     .replace(/\s+/g, ' ');
 }
 
+/** Answer colours and shapes, in the order the editor gives them to options 1 to 8. */
+export const OPTION_COLORS = [
+  'red',
+  'blue',
+  'yellow',
+  'green',
+  'purple',
+  'orange',
+  'pink',
+  'teal',
+] as const;
+export const OPTION_SHAPES = [
+  'triangle',
+  'diamond',
+  'circle',
+  'square',
+  'star',
+  'hexagon',
+  'heart',
+  'cross',
+] as const;
+/** How many options a type with options takes. */
+export const OPTIONS_MIN = 2;
+export const OPTIONS_MAX = 8;
+export const POINTS_MODES = ['standard', 'double', 'none', 'fixed'] as const;
+
 const optionInputSchema = z.object({
   text: z.string().trim().max(500).optional(),
   mediaId: z.string().length(26).optional(),
-  color: z.enum(['red', 'blue', 'yellow', 'green', 'purple', 'orange', 'pink', 'teal']),
-  shape: z.enum(['triangle', 'diamond', 'circle', 'square', 'star', 'hexagon', 'heart', 'cross']),
+  color: z.enum(OPTION_COLORS),
+  shape: z.enum(OPTION_SHAPES),
   isCorrect: z.boolean().default(false),
   correctOrderIndex: z.number().int().min(0).optional(),
 });
@@ -80,12 +106,12 @@ export const questionContentSchema = z
     waveformSize: z.enum(WAVEFORM_SIZES).default('M'),
     // Listen first: the timer starts when the media ends (a known duration is needed).
     timerAfterMedia: z.boolean().default(false),
-    pointsMode: z.enum(['standard', 'double', 'none', 'fixed']).default('standard'),
+    pointsMode: z.enum(POINTS_MODES).default('standard'),
     // Per-type scoring rule (see `SCORING_BY_TYPE`); `standard` everywhere by default.
     scoring: z.enum(['standard', 'closest', 'partial', 'lenient']).default('standard'),
     numericValue: z.number().optional(),
     numericTolerance: z.number().min(0).optional(),
-    options: z.array(optionInputSchema).max(8).default([]),
+    options: z.array(optionInputSchema).max(OPTIONS_MAX).default([]),
     acceptedAnswers: z.array(acceptedAnswerInputSchema).max(20).default([]),
   })
   .superRefine((d, ctx) => {
@@ -110,12 +136,12 @@ export const questionContentSchema = z
 
     switch (d.type) {
       case 'single_choice':
-        if (d.options.length < 2 || d.options.length > 8)
+        if (d.options.length < OPTIONS_MIN || d.options.length > OPTIONS_MAX)
           err('Entre 2 et 8 options requises.', ['options']);
         if (correct !== 1) err('Exactement une option correcte requise.', ['options']);
         break;
       case 'multiple_choice':
-        if (d.options.length < 2 || d.options.length > 8)
+        if (d.options.length < OPTIONS_MIN || d.options.length > OPTIONS_MAX)
           err('Entre 2 et 8 options requises.', ['options']);
         if (correct < 1) err('Au moins une option correcte requise.', ['options']);
         break;
@@ -124,12 +150,12 @@ export const questionContentSchema = z
         if (correct !== 1) err('Exactement une option correcte requise.', ['options']);
         break;
       case 'poll':
-        if (d.options.length < 2 || d.options.length > 8)
+        if (d.options.length < OPTIONS_MIN || d.options.length > OPTIONS_MAX)
           err('Entre 2 et 8 options requises.', ['options']);
         if (correct > 0) err('Un sondage n’a pas de bonne réponse.', ['options']);
         break;
       case 'ordering': {
-        if (d.options.length < 2 || d.options.length > 8)
+        if (d.options.length < OPTIONS_MIN || d.options.length > OPTIONS_MAX)
           err('Entre 2 et 8 options requises.', ['options']);
         const idx = d.options.map((o) => o.correctOrderIndex);
         if (idx.some((i) => i == null)) {
