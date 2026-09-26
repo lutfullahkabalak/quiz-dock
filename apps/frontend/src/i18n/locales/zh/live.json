@@ -146,7 +146,10 @@
     "openQuiz": "打开此测验",
     "noPlayableQuiz": "没有其他就绪的测验。在编辑器中将测验设为就绪即可在此进行。",
     "pickQuiz": "测验",
-    "pickQuizPlaceholder": "选择一个测验…"
+    "pickQuizPlaceholder": "输入以搜索测验…",
+    "noQuizMatch": "没有匹配的测验。",
+    "quizQuestions_one": "{{count}} 道题",
+    "quizQuestions_other": "{{count}} 道题"
   },
   "screen": {
     "sessionUnavailable": "会话不可用。",

@@ -146,7 +146,10 @@
     "openQuiz": "Abrir este quiz",
     "noPlayableQuiz": "Ningún otro quiz listo. Marca un quiz como listo en el editor para jugarlo aquí.",
     "pickQuiz": "Quiz",
-    "pickQuizPlaceholder": "Elegir un quiz…"
+    "pickQuizPlaceholder": "Escribe para buscar un quiz…",
+    "noQuizMatch": "Ningún quiz coincide.",
+    "quizQuestions_one": "{{count}} pregunta",
+    "quizQuestions_other": "{{count}} preguntas"
   },
   "screen": {
     "sessionUnavailable": "Sesión no disponible.",

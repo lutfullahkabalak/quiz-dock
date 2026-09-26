@@ -126,14 +126,16 @@ describe('ControlPage: the room’s next quiz (#89)', () => {
     expect(await screen.findByText(/Classement du salon/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Quiz suivant/ }));
     const picker = await screen.findByRole('combobox', { name: 'Quiz' });
+    fireEvent.focus(picker);
     await waitFor(() =>
-      expect(screen.getByRole('option', { name: 'Round two' })).toBeInTheDocument(),
+      expect(screen.getByRole('option', { name: /Round two/ })).toBeInTheDocument(),
     );
     // Only the host's own quizzes that can be played.
-    expect(screen.queryByRole('option', { name: 'A draft' })).toBeNull();
-    expect(screen.queryByRole('option', { name: 'Someone else’s' })).toBeNull();
-    expect(screen.queryByRole('option', { name: 'Empty' })).toBeNull();
-    fireEvent.change(picker, { target: { value: 'q2' } });
+    expect(screen.queryByRole('option', { name: /A draft/ })).toBeNull();
+    expect(screen.queryByRole('option', { name: /Someone else’s/ })).toBeNull();
+    expect(screen.queryByRole('option', { name: /Empty/ })).toBeNull();
+    fireEvent.change(picker, { target: { value: 'two' } });
+    fireEvent.click(screen.getByRole('option', { name: /Round two/ }));
     fireEvent.click(screen.getByRole('button', { name: /Ouvrir ce quiz/ }));
     expect(fakeSocket.emit).toHaveBeenCalledWith(
       'host:next-quiz',

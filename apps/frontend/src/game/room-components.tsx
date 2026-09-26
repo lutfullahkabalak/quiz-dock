@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Select } from '@/components/ui/select';
+import { Combobox } from '@/components/ui/combobox';
 import { Tooltip } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
 import { useMeControllerMe } from '../api/generated/me/me';
@@ -123,23 +123,21 @@ export function NextQuizButton({
         {playable.length === 0 ? (
           <p className="text-muted-foreground text-sm">{t('control.noPlayableQuiz')}</p>
         ) : (
-          <label className="flex flex-col gap-1 text-sm">
+          <div className="flex flex-col gap-1 text-sm">
             <span className="font-medium">{t('control.pickQuiz')}</span>
-            <Select
-              value={picked}
+            <Combobox
               aria-label={t('control.pickQuiz')}
-              onChange={(e) => setQuizId(e.target.value)}
-            >
-              <option value="" disabled>
-                {t('control.pickQuizPlaceholder')}
-              </option>
-              {playable.map((q) => (
-                <option key={q.id} value={q.id}>
-                  {q.title}
-                </option>
-              ))}
-            </Select>
-          </label>
+              value={picked}
+              onChange={setQuizId}
+              placeholder={t('control.pickQuizPlaceholder')}
+              emptyText={t('control.noQuizMatch')}
+              options={playable.map((q) => ({
+                value: q.id,
+                label: q.title,
+                hint: t('control.quizQuestions', { count: q.questionCount }),
+              }))}
+            />
+          </div>
         )}
         {fromPodium ? (
           <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
