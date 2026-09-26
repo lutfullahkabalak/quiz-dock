@@ -15,6 +15,15 @@ class FakeParam {
   setTargetAtTime(v: number) {
     this.targets.push(v);
   }
+  /** The fades: where each ramp goes, and from what. */
+  ramps: number[] = [];
+  setValueAtTime(v: number) {
+    this.value = v;
+  }
+  linearRampToValueAtTime(v: number) {
+    this.ramps.push(v);
+  }
+  cancelScheduledValues() {}
 }
 class FakeGain extends FakeNode {
   gain = new FakeParam();
@@ -131,6 +140,23 @@ describe('audio mixer (SPECIFICATIONS-MEDIA §9)', () => {
     // A source with its own gain, into the SFX bus.
     expect(typeof stop).toBe('function');
     expect(sfxIn.out[0]).toBe(mixer.strips.sfx.duck);
+  });
+
+  it('fades a media in to its own level and out to silence, so nothing clicks', async () => {
+    const mixer = mod.getMixer()!;
+    const source = new FakeNode('element');
+    vi.spyOn(mixer.ctx as unknown as FakeContext, 'createMediaElementSource').mockReturnValue(
+      source,
+    );
+    const el = {} as HTMLMediaElement;
+    await mod.routeElement(el, -6);
+    const own = source.out[0] as FakeGain;
+    mod.muteElementForFade(el);
+    expect(own.gain.value).toBe(0);
+    await mod.fadeElement(el, 'in');
+    expect(own.gain.ramps.at(-1)).toBeCloseTo(0.501, 2); // back to its loudness level, not 1
+    await mod.fadeElement(el, 'out');
+    expect(own.gain.ramps.at(-1)).toBe(0);
   });
 
   it('leaves a media alone while the context is suspended (it would be silenced)', async () => {

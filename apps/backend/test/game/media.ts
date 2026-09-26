@@ -42,22 +42,100 @@ export function mediaTests(ctx: GameContext): void {
     host.emit('host:end', { pin });
   }, 15_000);
 
-  it('relays the host’s media restart to the projection while a question is live', async () => {
-    const host = connect({ localUser: 'Animateur' });
-    const { pin } = await host.emitWithAck('host:create', { quizId });
-    const screen = connect();
-    await screen.emitWithAck('spectator:join', { pin });
-    const controls: unknown[] = [];
-    screen.on('media:control', (c) => controls.push(c));
-    host.emit('host:media', { pin, action: 'restart' }); // lobby: nothing to restart
-    const started = new Promise<void>((resolve) => screen.once('question:start', () => resolve()));
-    host.emit('host:start', { pin });
-    await started;
-    const control = new Promise((resolve) => screen.once('media:control', resolve));
-    host.emit('host:media', { pin, action: 'restart' });
-    expect(await control).toEqual({ questionIndex: 0, action: 'restart' });
-    expect(controls).toHaveLength(1);
-    host.emit('host:end', { pin });
+  it('the host steers the sound on every device: an anchor, checked, kept for late screens', async () => {
+    const asset = await prisma.mediaAsset.create({
+      data: {
+        ownerId: hostUserId,
+        url: '/api/v1/media/transport-test',
+        mime: 'audio/mpeg',
+        sizeBytes: 1n,
+        kind: 'audio',
+        durationMs: 4000,
+        peaks: new Array(200).fill(0.5),
+      },
+    });
+    const quiz = await h.seedQuiz({
+      title: 'Transport test',
+      status: 'ready',
+      questionCount: 1,
+      questions: {
+        create: {
+          orderIndex: 0,
+          type: 'single_choice',
+          prompt: 'Which tune?',
+          timeLimitS: 30,
+          audioMediaId: asset.id,
+          options: {
+            create: [
+              { orderIndex: 0, text: 'A', color: 'red', shape: 'triangle', isCorrect: true },
+              { orderIndex: 1, text: 'B', color: 'blue', shape: 'diamond' },
+            ],
+          },
+        },
+      },
+    });
+    try {
+      const host = connect({ localUser: 'Animateur' });
+      const { pin } = await host.emitWithAck('host:create', { quizId: quiz.id });
+      const screen = connect();
+      await screen.emitWithAck('spectator:join', { pin });
+      const player = connect();
+      await player.emitWithAck('player:join', { pin, nickname: 'Ada' });
+      const controls: { t: number; at: number; playing: boolean }[] = [];
+      screen.on('media:control', (c) => controls.push(c));
+      host.emit('host:media', { pin, action: 'restart' }); // lobby: nothing to steer
+      const started = new Promise<void>((resolve) =>
+        screen.once('question:start', () => resolve()),
+      );
+      host.emit('host:start', { pin });
+      await started;
+
+      // Not a host, or a point outside the sound: nothing moves.
+      player.emit('host:media', { pin, action: 'seek', t: 1 });
+      host.emit('host:media', { pin, action: 'seek', t: -1 });
+      host.emit('host:media', { pin, action: 'seek', t: 99 });
+      host.emit('host:media', { pin, action: 'seek', t: 'x' });
+      host.emit('host:media', { pin, action: 'jump', t: 1 });
+      await settle(200);
+      expect(controls).toHaveLength(0);
+
+      const held = nextEvent<{ questionIndex: number; t: number; at: number; playing: boolean }>(
+        screen,
+        'media:control',
+      );
+      host.emit('host:media', { pin, action: 'pause', t: 1.5 });
+      expect(await held).toMatchObject({ questionIndex: 0, t: 1.5, playing: false });
+      const seeked = nextEvent(screen, 'media:control');
+      host.emit('host:media', { pin, action: 'seek', t: 3, playing: true });
+      expect(await seeked).toMatchObject({ t: 3, playing: true });
+      const top = nextEvent(screen, 'media:control');
+      host.emit('host:media', { pin, action: 'restart' });
+      const restarted = (await top) as { t: number; at: number; playing: boolean };
+      expect(restarted).toMatchObject({ t: 0, playing: true });
+      expect(Math.abs(restarted.at - Date.now())).toBeLessThan(2000);
+
+      // The game's pause does not count as played: at the resume, the sound is re-anchored
+      // where it stood when the clock froze.
+      await settle(300);
+      host.emit('host:pause', { pin, paused: true });
+      await settle(600);
+      const resumed = nextEvent<{ t: number; playing: boolean }>(screen, 'media:control');
+      host.emit('host:pause', { pin, paused: false });
+      const again = await resumed;
+      expect(again.playing).toBe(true);
+      expect(again.t).toBeGreaterThan(0.2);
+      expect(again.t).toBeLessThan(0.8);
+
+      // A screen that opens now lands where the host put the sound, not on the common start.
+      const late = connect();
+      const replayed = nextEvent<{ t: number; playing: boolean }>(late, 'media:control');
+      await late.emitWithAck('spectator:join', { pin });
+      expect(await replayed).toMatchObject({ questionIndex: 0, playing: true });
+      host.emit('host:end', { pin });
+    } finally {
+      await prisma.quiz.delete({ where: { id: quiz.id } });
+      await prisma.mediaAsset.delete({ where: { id: asset.id } });
+    }
   }, 15_000);
 
   it('a waveform hidden from the screens is stored and sent as such (manifest v4)', async () => {
@@ -786,6 +864,19 @@ export function mediaTests(ctx: GameContext): void {
       player.emit('player:submit', { pin, questionIndex: 0, answer: start.options[0].id });
       // Refused with its reason, so the phone asks again instead of showing it saved.
       expect(await early).toMatchObject({ accepted: false, reason: 'early' });
+      // While it is listened to, the point cannot move: the answers open on a time fixed from it.
+      const moved: unknown[] = [];
+      player.on('media:control', (c) => moved.push(c));
+      host.emit('host:media', { pin, action: 'seek', t: 1 });
+      host.emit('host:media', { pin, action: 'pause', t: 1 });
+      await settle(200);
+      expect(moved).toHaveLength(0);
+      // Paused while listened to, past the time the answers would have opened: still listening.
+      host.emit('host:pause', { pin, paused: true });
+      await settle(Math.max(0, start.startedAt - Date.now()) + 300);
+      host.emit('host:media', { pin, action: 'seek', t: 1 });
+      await settle(200);
+      expect(moved).toHaveLength(0);
       host.emit('host:end', { pin });
     } finally {
       await prisma.quiz.delete({ where: { id: quiz.id } });

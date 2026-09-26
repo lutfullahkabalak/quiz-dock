@@ -134,6 +134,8 @@
     },
     "backToLive": "Volver al directo",
     "restartMedia": "Reiniciar el medio desde el principio",
+    "seekListening": "Las respuestas se abren al terminar el sonido: no se puede mover antes.",
+    "pauseListening": "Pausa el juego mientras se escucha el sonido.",
     "mediaLoadingTitle": "Cargando los medios de la pregunta",
     "mediaLate": "Aún cargando: {{names}}",
     "startAnyway": "Empezar de todos modos",

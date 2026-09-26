@@ -134,6 +134,8 @@
     },
     "backToLive": "回到当前",
     "restartMedia": "从头重新播放媒体",
+    "seekListening": "声音结束后才开放作答：在此之前无法拖动。",
+    "pauseListening": "在聆听声音期间暂停游戏。",
     "mediaLoadingTitle": "正在加载本题的媒体",
     "mediaLate": "仍在加载：{{names}}",
     "startAnyway": "仍然开始",

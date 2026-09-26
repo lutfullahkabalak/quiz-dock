@@ -27,7 +27,6 @@ import {
   Pencil,
   Play,
   Radio,
-  RotateCcw,
   Share2,
   SkipForward,
   Smartphone,
@@ -44,6 +43,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
+import { ConsoleTransport } from '../game/media/console-transport';
 import { followed } from '../game/media/followed';
 import { serverNow } from '../game/clock';
 import { Switch } from '@/components/ui/switch';
@@ -61,7 +61,7 @@ import {
   RevealAnswer,
   SlideView,
 } from '../game/live-components';
-import { useGameRemaining } from '../game/use-countdown';
+import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { ChromiumNotice } from '@/components/chromium-notice';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { ParticipantPreview } from '../game/participant-preview';
@@ -139,6 +139,22 @@ export function ControlPage() {
   const banPlayer = (playerId: string, minutes: number) =>
     socket?.emit('host:ban', { pin, playerId, minutes });
   const setPaused = (paused: boolean) => socket?.emit('host:pause', { pin, paused });
+  // The question's sound or video, steered from here while it runs.
+  const steerable =
+    view.state === 'ANSWERING' &&
+    !!(
+      view.question?.media?.audio ||
+      (view.question?.media?.visual?.kind === 'video' &&
+        view.question.media.visual.source === 'upload')
+    );
+  // A listen-first question before its answers open: the point cannot move. Paused,
+  // the countdown stands still on the server: what is left of the clock says it.
+  const listenLeft = useCountdown(view.question?.listenFirst ? view.question.startedAt : null);
+  const listening =
+    !!view.question?.listenFirst &&
+    (view.paused && view.pausedRemainingMs !== null
+      ? view.pausedRemainingMs > view.question.endsAt - view.question.startedAt
+      : (listenLeft ?? 0) > 0);
   const adjustTime = (deltaS: number) => socket?.emit('host:adjust-time', { pin, deltaS });
 
   const remaining = useGameRemaining(view);
@@ -634,27 +650,35 @@ export function ControlPage() {
         <ProgressBar pct={timePct} barClassName={timeTone} />
 
         {/* Shown still: the projection is the one place that plays the sound; its
-            waveform follows where the projection is in it. */}
+            waveform follows where the projection is in it. While the question runs,
+            the sound is the transport's to draw, with the host's hand on it. */}
         <QuestionMediaStage
           key={view.question?.questionIndex}
-          media={view.question?.media}
+          media={
+            steerable && view.question?.media
+              ? { ...view.question.media, audio: null }
+              : view.question?.media
+          }
           mode="still"
           follow={view.question ? followed(view, view.question.questionIndex) : null}
           showHiddenWaveform
           boxClassName="h-56"
         />
-        {view.state === 'ANSWERING' &&
-        (view.question?.media?.audio || view.question?.media?.visual?.kind === 'video') ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="self-center"
-            onClick={() => socket?.emit('host:media', { pin, action: 'restart' })}
-          >
-            <RotateCcw className="size-4" />
-            {t('control.restartMedia')}
-          </Button>
+        {steerable && view.question?.media ? (
+          <ConsoleTransport
+            key={view.question.questionIndex}
+            media={view.question.media}
+            follow={followed(view, view.question.questionIndex)}
+            anchor={
+              view.mediaControl?.questionIndex === view.question.questionIndex
+                ? view.mediaControl
+                : null
+            }
+            listening={listening}
+            gamePaused={view.paused}
+            onCommand={(command) => socket?.emit('host:media', { pin, ...command })}
+            onGamePause={setPaused}
+          />
         ) : null}
 
         <Markdown

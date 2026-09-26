@@ -16,6 +16,7 @@ import type {
   RoomSoundsSettings,
   GameMode,
   GameStep,
+  HostMediaCommand,
   ParticipantAccess,
   PlayerPresence,
   ServerToClientEvents,
@@ -494,14 +495,14 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   /** `host:pause` : suspend/reprend l'auto-progression (gèle le chrono en ANSWERING). */
-  /** `host:media` : restart the current question's media on the screens. */
+  /** `host:media` : the host steers the current question's media on every device that plays it. */
   @SubscribeMessage('host:media')
   async hostMedia(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string; action: 'restart' },
+    @MessageBody() payload: HostMediaCommand,
   ): Promise<void> {
-    if (payload?.action !== 'restart') return;
-    await this.engine.mediaControl(payload.pin, this.requireHostId(socket), payload.action);
+    if (!payload || !MEDIA_ACTIONS.includes(payload.action)) return;
+    await this.engine.mediaControl(payload.pin, this.requireHostId(socket), payload);
   }
 
   @SubscribeMessage('host:pause')
@@ -607,6 +608,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.requireHost(socket).id;
   }
 }
+
+/** What the console may do to the question's media. */
+const MEDIA_ACTIONS: readonly HostMediaCommand['action'][] = ['restart', 'play', 'pause', 'seek'];
 
 /** Adapte le handshake Socket.IO en pseudo-`Request` pour `AuthProvider`. */
 function handshakeAsRequest(socket: GameSocket): Request {

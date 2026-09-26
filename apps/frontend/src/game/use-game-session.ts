@@ -9,6 +9,7 @@ import type {
   GameStatePayload,
   GameStep,
   LeaderboardPayload,
+  MediaControlPayload,
   MediaPositionPayload,
   MediaPreloadPayload,
   MediaReadinessPayload,
@@ -109,7 +110,8 @@ export interface GameView {
   /** Media of the next question, to fetch ahead (projection and console only). */
   preload: MediaPreloadPayload | null;
   /** Last host command on the current media; `seq` changes with each one. */
-  mediaControl: { questionIndex: number; action: 'restart'; seq: number } | null;
+  /** Where the host put the current question's media (numbered: a new anchor each time). */
+  mediaControl: (MediaControlPayload & { seq: number; receivedAt: number }) | null;
   /** Whether the quiz plays any sound (projection and console only; null until told). */
   quizHasSound: boolean | null;
   /** The room waits for media before `questionIndex`, until `until` (state `MEDIA_LOADING`). */
@@ -353,10 +355,14 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
     const onSounds = (p: RoomSoundsPayload) => patch({ sounds: p });
     const onRoomInfo = (p: { name: string | null; hostName: string }) =>
       patch({ roomName: p.name, hostName: p.hostName });
-    const onMediaControl = (p: { questionIndex: number; action: 'restart' }) =>
+    const onMediaControl = (p: MediaControlPayload) =>
       setView((prev) => ({
         ...prev,
-        mediaControl: { ...p, seq: (prev.mediaControl?.seq ?? 0) + 1 },
+        mediaControl: {
+          ...p,
+          seq: (prev.mediaControl?.seq ?? 0) + 1,
+          receivedAt: performance.now(),
+        },
       }));
     const onPodium = (p: PodiumPayload) =>
       patch({

@@ -34,6 +34,7 @@ const { mixer, oscillators, played, ducked, levels } = vi.hoisted(() => {
 });
 
 vi.mock('./audio-mixer', () => ({
+  TRACK_FADE_S: 0.8,
   getMixer: () => mixer,
   busInput: () => ({}),
   playBuffer: (_b: unknown, bus: string, opts: { loop?: boolean } = {}) => {

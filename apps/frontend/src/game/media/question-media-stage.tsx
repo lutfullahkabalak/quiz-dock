@@ -1,10 +1,10 @@
-import type { LiveAudio, LiveQuestionMedia } from '@quiz-dock/contracts';
+import type { LiveAudio, LiveQuestionMedia, MediaAnchor } from '@quiz-dock/contracts';
 import { Volume2, VolumeX } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { routeElement } from './audio-mixer';
+import { fadeElement, muteElementForFade, routeElement } from './audio-mixer';
 import { unlockAudio, useAudioUnlocked } from './audio-unlock';
 import { releaseMedia, takeMedia } from './media-pool';
 import { clearPosition, readPosition, resumeAt, writePosition } from './media-position';
@@ -20,6 +20,9 @@ import { ZoomableImage } from '../live-components';
 export type StageMode = 'play' | 'pause' | 'still';
 
 /** Where the projection was in a sound when it last said so, on this screen's clock. */
+/** The host's anchor on this question's media, numbered as it arrived (the same anchor twice is one). */
+export type StageAnchor = MediaAnchor & { seq: number };
+
 export interface FollowedPosition {
   questionIndex: number;
   t: number;
@@ -107,7 +110,8 @@ function usePlayback(
   el: HTMLMediaElement | null,
   mode: StageMode,
   gainDb: number,
-  restartSignal: number,
+  /** Where the host put the media from the console (null: nothing yet, the common start holds). */
+  anchor: StageAnchor | null,
   positionKey: string | null,
   /** Plays without sound: the device is not targeted, or its owner muted it. */
   silent = false,
@@ -119,32 +123,63 @@ function usePlayback(
   // Sound unlocked meanwhile (the projection's overlay): what was refused plays now.
   const unlocked = useAudioUnlocked();
 
-  // The host takes the media back to the top (the element keeps playing or paused as it was).
-  const firstSignal = useRef(restartSignal);
+  // Every pause fades out first; a play (or a newer pause) cancels one still fading.
+  const fading = useRef(0);
+
+  // The host's anchor wins over everything else: where it is now on the server's clock.
+  // Moved while it plays, the media fades out, jumps, and fades back in.
+  const anchored = useRef<number | null>(null);
   useEffect(() => {
-    if (!el || restartSignal === firstSignal.current) return;
-    firstSignal.current = restartSignal;
+    if (!el || !anchor || anchored.current === anchor.seq) return;
+    anchored.current = anchor.seq;
     if (positionKey) clearPosition(positionKey);
-    el.currentTime = 0;
-    if (mode === 'play') void el.play().catch(() => undefined);
-  }, [el, restartSignal, mode, positionKey]);
+    const jump = () => {
+      const moved = anchor.playing ? Math.max(0, serverNow() - anchor.at) / 1000 : 0;
+      seekTo(el, anchor.t + moved);
+    };
+    if (el.paused || !anchor.playing) {
+      jump();
+      return;
+    }
+    const token = ++fading.current;
+    void fadeElement(el, 'out').then(() => {
+      if (fading.current !== token) return;
+      jump();
+      void fadeElement(el, 'in');
+    });
+  }, [el, anchor, positionKey]);
 
   useEffect(() => {
     if (!el) return;
-    if (mode !== 'play') {
-      el.pause();
+    // Held by the host, or the game paused: nothing plays.
+    if (mode !== 'play' || anchor?.playing === false) {
+      const token = ++fading.current;
+      if (el.paused) {
+        el.pause();
+        return;
+      }
+      void fadeElement(el, 'out').then(() => {
+        if (fading.current === token) el.pause();
+      });
       return;
     }
-    // Played to its end before an interruption: it does not start again on its own.
-    if (positionKey && readPosition(positionKey)?.ended) return;
+    fading.current++; // a pause still fading out: it does not stop what plays now
+    // Played to its end before an interruption (or anchored past it): it does not
+    // start again on its own.
+    if (!anchor && positionKey && readPosition(positionKey)?.ended) return;
+    if (anchor && Number.isFinite(el.duration)) {
+      const moved = anchor.playing ? Math.max(0, serverNow() - anchor.at) / 1000 : 0;
+      if (anchor.t + moved >= el.duration) return;
+    }
     let cancelled = false;
     // The common start: every device plays from the same instant of the server's
     // clock. Early, wait for it; late (still loading, joined mid-question), start
-    // where the media is. Only a first start: a resumed media keeps its own place.
+    // where the media is. Only a first start: a resumed media keeps its own place,
+    // and an anchored one is where the host put it.
     let wait = 0;
     // (A position of a few tenths — written as the element loads — is not a resume.)
     const resumed = positionKey !== null && resumeAt(readPosition(positionKey)) !== null;
-    if (startAt !== null && !resumed) {
+    if (startAt !== null && !resumed && !anchor) {
       const ahead = startAt - serverNow();
       if (ahead > 0) wait = ahead;
       else seekTo(el, -ahead / 1000);
@@ -153,11 +188,17 @@ function usePlayback(
       if (silent) el.muted = true;
       else if (unlocked && el.muted) el.muted = false; // the video that went on muted gets its sound
       await routeElement(el, gainDb);
+      // From silence, a short fade in: a start (or a resume) never clicks.
+      const fromSilence = el.paused;
+      if (fromSilence) muteElementForFade(el);
       if (!cancelled) await el.play();
       if (!cancelled) setBlocked(null);
+      void fadeElement(el, 'in');
     };
     const go = () =>
       start().catch((err: DOMException) => {
+        // Refused after the silence a fade starts from: back to its level.
+        void fadeElement(el, 'in');
         if (cancelled || err.name !== 'NotAllowedError') return;
         if (el instanceof HTMLVideoElement) {
           // Picture without sound beats nothing: the room still sees the question.
@@ -182,7 +223,7 @@ function usePlayback(
       window.clearTimeout(startTimer);
       el.removeEventListener('playing', onPlaying);
     };
-  }, [el, mode, gainDb, positionKey, unlocked, silent, startAt]);
+  }, [el, mode, gainDb, positionKey, unlocked, silent, startAt, anchor]);
 
   const enableSound = async () => {
     if (!el) return;
@@ -192,6 +233,7 @@ function usePlayback(
     try {
       await el.play();
       setBlocked(null);
+      void fadeElement(el, 'in');
     } catch {
       // Still refused: the indicator stays, the host can try again.
     }
@@ -266,7 +308,7 @@ function VideoBox({
   gainDb,
   boxClassName,
   resumeKey,
-  restartSignal,
+  anchor,
   silent,
   catchUp,
   onPosition,
@@ -277,7 +319,7 @@ function VideoBox({
   gainDb: number;
   boxClassName?: string;
   resumeKey: string | null;
-  restartSignal: number;
+  anchor: StageAnchor | null;
   silent: boolean;
   catchUp?: FollowedPosition | null;
   onPosition?: (t: number, playing: boolean) => void;
@@ -290,13 +332,14 @@ function VideoBox({
     el,
     mode,
     gainDb,
-    restartSignal,
+    anchor,
     key,
     silent,
     startAt,
   );
-  // Without a common start (an older server), a late device follows the projection instead.
-  useCatchUp(el, startAt === null ? catchUp : null);
+  // Without a common start (an older server), a late device follows the projection instead;
+  // never over the host's anchor.
+  useCatchUp(el, startAt === null && !anchor ? catchUp : null);
   usePositionReport(el, onPosition);
 
   useEffect(() => {
@@ -318,7 +361,7 @@ function AudioTrack({
   audio,
   mode,
   resumeKey,
-  restartSignal,
+  anchor,
   silent,
   onPosition,
   catchUp,
@@ -328,7 +371,7 @@ function AudioTrack({
   audio: LiveAudio;
   mode: StageMode;
   resumeKey: string | null;
-  restartSignal: number;
+  anchor: StageAnchor | null;
   silent: boolean;
   onPosition?: (t: number, playing: boolean) => void;
   catchUp?: FollowedPosition | null;
@@ -342,12 +385,12 @@ function AudioTrack({
     el,
     mode,
     audio.gainDb,
-    restartSignal,
+    anchor,
     key,
     silent,
     startAt,
   );
-  useCatchUp(el, startAt === null ? catchUp : null);
+  useCatchUp(el, startAt === null && !anchor ? catchUp : null);
   const [progress, setProgress] = useState(0);
 
   // The filled part follows the sound, frame by frame, only while it plays.
@@ -453,7 +496,7 @@ export function QuestionMediaStage({
   boxClassName,
   className,
   resumeKey = null,
-  restartSignal = 0,
+  anchor = null,
   audible = true,
   muted = false,
   follow,
@@ -486,8 +529,8 @@ export function QuestionMediaStage({
   startAt?: number | null;
   /** Session + question: where the position is kept across an interruption (projection only). */
   resumeKey?: string | null;
-  /** Changes when the host restarts the media from the top. */
-  restartSignal?: number;
+  /** Where the host put the media from the console: restart, play, pause, seek. */
+  anchor?: StageAnchor | null;
   /** Size of the visual box (its height, mostly). */
   boxClassName?: string;
   className?: string;
@@ -524,7 +567,7 @@ export function QuestionMediaStage({
           gainDb={visual.gainDb}
           boxClassName={boxClassName}
           resumeKey={resumeKey}
-          restartSignal={restartSignal}
+          anchor={anchor}
           silent={muted || !audible}
           catchUp={catchUp}
           onPosition={onPosition}
@@ -539,7 +582,7 @@ export function QuestionMediaStage({
             audio={audio}
             mode={mode}
             resumeKey={resumeKey}
-            restartSignal={restartSignal}
+            anchor={anchor}
             silent={muted}
             onPosition={onPosition}
             catchUp={catchUp}

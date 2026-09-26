@@ -152,8 +152,10 @@ is cut mid-play. The editor shows the resulting time under the question's own.
 **Start the timer when the media ends** in the editor: the answers open only once
 the sound or video has played, nobody can answer during it, and everyone then gets
 the question's full time (no stretch). The projection and the phones count the
-listening down (🎧) before the usual timer. The console's **Restart the media**
-still replays it, answers stay open meanwhile.
+listening down (🎧) before the usual timer. While it is listened to, the point
+in the sound cannot be moved from the console and its play / pause is the game's
+pause (the answers open on a time fixed from the sound); **Restart the media**
+still replays it.
 
 **Starting together.** The server sets a common start a fraction of a second
 ahead, and every device — the projection, the remote phones — starts the media on
@@ -169,6 +171,22 @@ and resumes it where it was; if the projection loses a media without the
 question being over (the host dropping out, the window reloaded), it resumes a
 second before the point it had reached, and the console's **Restart the media**
 takes it back to the top.
+
+**The host's hand on it.** While a question runs, the console draws its sound's
+waveform where the projection is (even one hidden from the screens), with
+**Play / Pause**, a click or a drag on the waveform to go to a point (one command
+at the release), and **Restart the media**. A video gets play / pause and restart.
+Every device that plays the media — the projection, the remote phones, a copy
+with sound — lands on the same point of the server's clock, and a screen that
+opens later lands there too. This moves the media only: the question's timer runs
+on (use the timer's +/− or the game's pause for that), so a sound taken back may
+be cut at the reveal.
+
+**Fades.** Nothing starts or stops with a click: every start — a question's media,
+its resume, a sample, the background track — comes in over a few milliseconds,
+just enough to take the click off the attack; a pause or a stop fades out over a
+tenth of a second (the background track slower, as a bed), and a move of the host
+fades out, jumps and comes back in.
 
 ## Remote participants
 

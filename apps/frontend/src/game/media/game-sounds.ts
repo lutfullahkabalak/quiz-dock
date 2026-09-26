@@ -1,6 +1,13 @@
 import type { LiveQuestionMedia, RoomSoundsPayload } from '@quiz-dock/contracts';
 import { useEffect, useRef } from 'react';
-import { busInput, getMixer, playBuffer, setBusDucked, setRoomLevel } from './audio-mixer';
+import {
+  TRACK_FADE_S,
+  busInput,
+  getMixer,
+  playBuffer,
+  setBusDucked,
+  setRoomLevel,
+} from './audio-mixer';
 
 /**
  * The game's sounds (#93, SPECIFICATIONS-MEDIA §9): a tick at each answer, a
@@ -160,7 +167,12 @@ export function useGameSounds(
     let stop: (() => void) | null = null;
     let cancelled = false;
     void loadSound(trackUrl).then((buffer) => {
-      if (!cancelled && buffer) stop = playBuffer(buffer, 'music', { loop: true });
+      if (!cancelled && buffer) {
+        stop = playBuffer(buffer, 'music', {
+          loop: true,
+          fadeOutS: TRACK_FADE_S,
+        });
+      }
     });
     return () => {
       cancelled = true;

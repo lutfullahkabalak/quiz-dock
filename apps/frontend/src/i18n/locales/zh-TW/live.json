@@ -134,6 +134,8 @@
     },
     "backToLive": "回到目前",
     "restartMedia": "從頭重新播放媒體",
+    "seekListening": "聲音結束後才開放作答：在此之前無法拖曳。",
+    "pauseListening": "在聆聽聲音期間暫停遊戲。",
     "mediaLoadingTitle": "正在載入本題的媒體",
     "mediaLate": "仍在載入：{{names}}",
     "startAnyway": "仍然開始",

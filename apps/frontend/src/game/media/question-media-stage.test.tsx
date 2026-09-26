@@ -97,16 +97,78 @@ describe('QuestionMediaStage', () => {
 
   it('the host takes it back to the top', async () => {
     const { rerender } = render(
-      <QuestionMediaStage media={sound} mode="play" resumeKey="123456:0" restartSignal={0} />,
+      <QuestionMediaStage media={sound} mode="play" resumeKey="123456:0" anchor={null} />,
     );
     await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
     const el = play.mock.calls[0][0] as HTMLMediaElement;
     el.currentTime = 5;
     rerender(
-      <QuestionMediaStage media={sound} mode="play" resumeKey="123456:0" restartSignal={1} />,
+      <QuestionMediaStage
+        media={sound}
+        mode="play"
+        resumeKey="123456:0"
+        anchor={{ seq: 1, t: 0, at: Date.now(), playing: true }}
+      />,
     );
+    el.dispatchEvent(new Event('loadedmetadata'));
     await waitFor(() => expect(play).toHaveBeenCalledTimes(2));
-    expect(el.currentTime).toBe(0);
+    expect(el.currentTime).toBeLessThan(0.5);
+  });
+  it('the host holds it, then sends it to a point where it plays on', async () => {
+    const { rerender } = render(<QuestionMediaStage media={sound} mode="play" />);
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    const el = play.mock.calls[0][0] as HTMLMediaElement;
+    rerender(
+      <QuestionMediaStage
+        media={sound}
+        mode="play"
+        anchor={{ seq: 1, t: 1, at: Date.now(), playing: false }}
+      />,
+    );
+    await waitFor(() => expect(pause).toHaveBeenCalled());
+    const plays = play.mock.calls.length;
+    // A seek two seconds ago, playing: every device lands two seconds further on.
+    rerender(
+      <QuestionMediaStage
+        media={sound}
+        mode="play"
+        anchor={{ seq: 2, t: 1, at: Date.now() - 2000, playing: true }}
+      />,
+    );
+    el.dispatchEvent(new Event('loadedmetadata'));
+    await waitFor(() => expect(play.mock.calls.length).toBeGreaterThan(plays));
+    expect(el.currentTime).toBeGreaterThanOrEqual(3);
+    expect(el.currentTime).toBeLessThan(3.5);
+  });
+  it('the projection’s older position never undoes the host’s anchor', async () => {
+    render(
+      <QuestionMediaStage
+        media={sound}
+        mode="play"
+        catchUp={{ questionIndex: 0, t: 1, playing: true, receivedAt: performance.now() }}
+        anchor={{ seq: 1, t: 3, at: Date.now(), playing: true }}
+      />,
+    );
+    await waitFor(() => expect(play).toHaveBeenCalled());
+    const el = play.mock.calls[0][0] as HTMLMediaElement;
+    el.dispatchEvent(new Event('loadedmetadata'));
+    el.dispatchEvent(new Event('playing'));
+    expect(el.currentTime).toBeGreaterThanOrEqual(3);
+  });
+  it('a device that loads after the host moved the media lands where the host put it', async () => {
+    render(
+      <QuestionMediaStage
+        media={sound}
+        mode="play"
+        startAt={Date.now() + 5000}
+        anchor={{ seq: 1, t: 2, at: Date.now(), playing: true }}
+      />,
+    );
+    // Not the common start (5 s away): the anchor, at once.
+    await waitFor(() => expect(play).toHaveBeenCalledTimes(1));
+    const el = play.mock.calls[0][0] as HTMLMediaElement;
+    el.dispatchEvent(new Event('loadedmetadata'));
+    expect(el.currentTime).toBeGreaterThanOrEqual(2);
   });
   it('on a device the sound is not meant for: the video plays muted, a sound is left out', async () => {
     render(<QuestionMediaStage media={video} mode="play" audible={false} />);

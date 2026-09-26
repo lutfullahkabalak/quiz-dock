@@ -184,9 +184,48 @@ export function setMasterMuted(muted: boolean): void {
  * reuse theirs); later calls only set its gain.
  */
 const routed = new WeakMap<HTMLMediaElement, GainNode>();
+/** Each routed element's level (its loudness correction): what a fade-in goes back to. */
+const levels = new WeakMap<HTMLMediaElement, number>();
+
+/**
+ * The fades every start and stop gets: a media the host plays, pauses or moves,
+ * a sample, the background track. In, just enough to take the click off the
+ * attack (the sound keeps its punch); out, long enough not to hear a cut.
+ */
+export const FADE_IN_S = 0.005;
+export const FADE_OUT_S = 0.12;
+/** A background track goes out slower: it is a bed, not an event. */
+export const TRACK_FADE_S = 0.8;
+
+/**
+ * Fades a routed element in (to its level) or out (to silence); resolves when
+ * done. An element the mixer does not hold (no Web Audio, a context not running)
+ * cannot fade: it resolves at once and plays or stops as it is.
+ */
+export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<void> {
+  const gain = routed.get(el);
+  const m = mixer;
+  if (!gain || !m || m.ctx.state !== 'running') return Promise.resolve();
+  const target = to === 'in' ? (levels.get(el) ?? 1) : 0;
+  const span = to === 'in' ? FADE_IN_S : FADE_OUT_S;
+  const t = m.ctx.currentTime;
+  gain.gain.cancelScheduledValues(t);
+  gain.gain.setValueAtTime(gain.gain.value, t);
+  gain.gain.linearRampToValueAtTime(target, t + span);
+  return new Promise((resolve) => setTimeout(resolve, span * 1000));
+}
+
+/** Silences a routed element at once, before a play that fades it in. */
+export function muteElementForFade(el: HTMLMediaElement): void {
+  const gain = routed.get(el);
+  if (!gain || !mixer) return;
+  gain.gain.cancelScheduledValues(mixer.ctx.currentTime);
+  gain.gain.setValueAtTime(0, mixer.ctx.currentTime);
+}
 
 export async function routeElement(el: HTMLMediaElement, gainDb: number): Promise<void> {
   const linear = 10 ** (gainDb / 20);
+  levels.set(el, linear);
   const existing = routed.get(el);
   if (existing) {
     existing.gain.value = linear;
@@ -216,7 +255,12 @@ export async function routeElement(el: HTMLMediaElement, gainDb: number): Promis
 export function playBuffer(
   buffer: AudioBuffer,
   bus: Bus,
-  { loop = false, gain = 1 }: { loop?: boolean; gain?: number } = {},
+  {
+    loop = false,
+    gain = 1,
+    fadeInS = FADE_IN_S,
+    fadeOutS = FADE_OUT_S,
+  }: { loop?: boolean; gain?: number; fadeInS?: number; fadeOutS?: number } = {},
 ): () => void {
   const m = getMixer();
   if (!m) return () => undefined;
@@ -224,12 +268,18 @@ export function playBuffer(
   source.buffer = buffer;
   source.loop = loop;
   const own = m.ctx.createGain();
-  own.gain.value = gain;
+  // In from silence: a sample that starts mid-wave does not click.
+  const t = m.ctx.currentTime;
+  own.gain.setValueAtTime(0, t);
+  own.gain.linearRampToValueAtTime(gain, t + fadeInS);
   source.connect(own).connect(m.strips[bus].level);
   source.start();
   return () => {
-    ramp(own.gain, m.ctx, 0);
-    source.stop(m.ctx.currentTime + RAMP_S * 4);
+    const now = m.ctx.currentTime;
+    own.gain.cancelScheduledValues(now);
+    own.gain.setValueAtTime(own.gain.value, now);
+    own.gain.linearRampToValueAtTime(0, now + fadeOutS);
+    source.stop(now + fadeOutS + 0.02);
   };
 }
 

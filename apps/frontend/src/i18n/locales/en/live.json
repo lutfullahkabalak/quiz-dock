@@ -134,6 +134,8 @@
     },
     "backToLive": "Back to live",
     "restartMedia": "Restart the media from the top",
+    "seekListening": "The answers open when the sound ends: it cannot be moved until then.",
+    "pauseListening": "Pauses the game while the sound is being listened to.",
     "mediaLoadingTitle": "Loading the question’s media",
     "mediaLate": "Still loading: {{names}}",
     "startAnyway": "Start anyway",
