@@ -1,6 +1,7 @@
 import { Volume2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { ChromiumNotice } from '@/components/chromium-notice';
+import { setDeviceMuted } from './audio-mixer';
 import { unlockAudio } from './audio-unlock';
 
 /**
@@ -24,6 +25,19 @@ export function SoundUnlockOverlay() {
         <span className="text-[1.75em] font-semibold">{t('media.enableSound')}</span>
       </button>
       <p className="text-muted-foreground max-w-[32em] text-[1em]">{t('media.unlockHint')}</p>
+      {/* Declining is a click too: it unlocks the browser, and keeps this screen muted —
+          the sound button turns it on later without asking again. */}
+      <button
+        type="button"
+        className="text-muted-foreground rounded-md px-[0.75em] py-[0.25em] text-[1em] underline underline-offset-4 focus-visible:outline-2"
+        onClick={(e) => {
+          e.stopPropagation();
+          void unlockAudio();
+          setDeviceMuted(true);
+        }}
+      >
+        {t('media.withoutSound')}
+      </button>
       <div className="max-w-[40em] text-left text-[0.6em]">
         <ChromiumNotice />
       </div>

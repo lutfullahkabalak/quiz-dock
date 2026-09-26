@@ -256,8 +256,6 @@
     "moveDown": "下移",
     "unsupportedType": "不支持的题目类型。",
     "leave": "退出",
-    "mute": "关闭声音",
-    "unmute": "打开声音",
     "leaveConfirmTitle": "退出房间？",
     "leaveConfirmDescription": "你将失去席位和分数。要回来需要再次用 PIN 加入。",
     "joinAnother": "加入另一个房间",
@@ -337,7 +335,8 @@
     "soundBlocked": "声音被浏览器阻止",
     "videoMuted": "视频已静音播放（声音被浏览器阻止）",
     "slow": "媒体尚未加载完成…",
-    "waveform": "题目声音的波形"
+    "waveform": "题目声音的波形",
+    "withoutSound": "不开声音"
   },
   "launchAccess": {
     "title": "参与者访问方式",
@@ -360,5 +359,19 @@
     "afterQuizzes_other": "共 {{count}} 个测验后",
     "defaultName": "{{host}} 的房间",
     "fallbackName": "房间"
+  },
+  "sound": {
+    "mute": "静音",
+    "unmute": "开启声音",
+    "volume": "音量",
+    "mixer": "混音器",
+    "mixerTitle": "本设备的混音",
+    "mixerHint": "仅影响本设备播放的内容。房间的音乐和音效由主持人设置。",
+    "bus": {
+      "quiz": "题目",
+      "music": "音乐",
+      "sfx": "音效",
+      "ui": "界面"
+    }
   }
 }

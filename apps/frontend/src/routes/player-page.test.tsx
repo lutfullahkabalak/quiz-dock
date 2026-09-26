@@ -4,6 +4,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameView } from '../game/use-game-session';
 import { configureAnonymousParticipants } from '../config';
 import { renderApp } from '../test/harness';
+import { resetMixerForTests } from '../game/media/audio-mixer';
 
 const { fakeSocket, hookState, audio } = vi.hoisted(() => ({
   fakeSocket: { emit: vi.fn(), emitWithAck: vi.fn(() => Promise.resolve({ ok: true })) },
@@ -108,6 +109,8 @@ const PARIS = { id: 'opt-paris', text: 'Paris', color: 'red', shape: 'triangle' 
 
 describe('PlayerPage (client participant)', () => {
   afterEach(() => {
+    // This device's sound choices live in the mixer's module: back to the defaults.
+    resetMixerForTests();
     vi.clearAllMocks();
     loadPlayerSession.mockReturnValue(null);
   });
@@ -452,7 +455,9 @@ describe('PlayerPage (client participant)', () => {
     const heard = renderApp('/join/771122');
     const stage = await screen.findByTestId('stage');
     expect(stage).toHaveAttribute('data-audible', 'true');
+    // On a phone the sound button opens its panel (one tap more); the mute is in it.
     fireEvent.click(await screen.findByRole('button', { name: 'Couper le son' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Couper le son' })[1]);
     expect(screen.getByTestId('stage')).toHaveAttribute('data-muted', 'true');
     heard.unmount();
     sessionStorage.clear();

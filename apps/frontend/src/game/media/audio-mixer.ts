@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react';
 import { audioContext, isAudioUnlocked } from './audio-unlock';
 
 /**
@@ -56,6 +57,9 @@ export function getMixer(): Mixer | null {
     strips[bus] = { level, duck };
   }
   mixer = { ctx, strips, master };
+  // What this device chose before (its volume, mute and trims) holds from the start.
+  master.gain.value = masterValue();
+  for (const bus of BUSES) strips[bus].level.gain.value = busValue(bus);
   return mixer;
 }
 
@@ -67,10 +71,12 @@ export function busInput(bus: Bus): AudioNode | null {
 const ramp = (param: AudioParam, ctx: AudioContext, value: number) =>
   param.setTargetAtTime(value, ctx.currentTime, RAMP_S);
 
-/** A bus's level (0..1): a host's volume for the music or the effects. */
-export function setBusLevel(bus: Bus, level: number): void {
+const clamp = (v: number) => (Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : 1);
+
+/** A bus's level (0..1), as it is applied: see `setRoomLevel` and `setLocalTrim`. */
+export function setBusLevel(bus: Bus, value: number): void {
   const m = getMixer();
-  if (m) ramp(m.strips[bus].level.gain, m.ctx, Math.min(1, Math.max(0, level)));
+  if (m) ramp(m.strips[bus].level.gain, m.ctx, clamp(value));
 }
 
 /** Steps a bus aside (`true`) or back (`false`): the music while a question plays its own sound. */
@@ -79,10 +85,96 @@ export function setBusDucked(bus: Bus, ducked: boolean): void {
   if (m) ramp(m.strips[bus].duck.gain, m.ctx, ducked ? 0 : 1);
 }
 
-/** The whole page silent or not: a participant's own mute. */
-export function setMasterMuted(muted: boolean): void {
+/**
+ * What this device hears — its own choice, kept on it (SPECIFICATIONS-MEDIA §9.2):
+ * a volume and a mute on MASTER, and a trim per bus. A bus plays at the room's
+ * level (the host's, for MUSIC and SFX) times this device's trim.
+ */
+export interface DeviceSound {
+  volume: number;
+  muted: boolean;
+  trims: Record<Bus, number>;
+}
+
+const DEVICE_KEY = 'live.sound';
+const FULL: Record<Bus, number> = { quiz: 1, music: 1, sfx: 1, ui: 1 };
+
+function loadDevice(): DeviceSound {
+  try {
+    const raw = JSON.parse(
+      localStorage.getItem(DEVICE_KEY) ?? 'null',
+    ) as Partial<DeviceSound> | null;
+    if (raw && typeof raw === 'object') {
+      return {
+        volume: clamp(raw.volume ?? 1),
+        muted: raw.muted === true,
+        trims: { ...FULL, ...(raw.trims ?? {}) },
+      };
+    }
+  } catch {
+    /* storage unavailable or garbled: the defaults */
+  }
+  return { volume: 1, muted: false, trims: { ...FULL } };
+}
+
+let device: DeviceSound = loadDevice();
+const roomLevels: Record<Bus, number> = { ...FULL };
+const deviceListeners = new Set<() => void>();
+
+const masterValue = () => (device.muted ? 0 : device.volume);
+const busValue = (bus: Bus) => clamp(roomLevels[bus] * device.trims[bus]);
+
+function saveDevice(next: DeviceSound): void {
+  device = next;
+  try {
+    localStorage.setItem(DEVICE_KEY, JSON.stringify(next));
+  } catch {
+    /* storage unavailable: the choice lasts until the page closes */
+  }
+  deviceListeners.forEach((l) => l());
+}
+
+/** The host's level for a bus (MUSIC, SFX), times this device's trim. */
+export function setRoomLevel(bus: Bus, value: number): void {
+  roomLevels[bus] = clamp(value);
+  setBusLevel(bus, busValue(bus));
+}
+
+/** This device's volume (MASTER). */
+export function setDeviceVolume(volume: number): void {
+  saveDevice({ ...device, volume: clamp(volume) });
   const m = getMixer();
-  if (m) ramp(m.master.gain, m.ctx, muted ? 0 : 1);
+  if (m) ramp(m.master.gain, m.ctx, masterValue());
+}
+
+/** This device muted or not (MASTER): a participant's own mute, or "Without sound". */
+export function setDeviceMuted(muted: boolean): void {
+  saveDevice({ ...device, muted });
+  const m = getMixer();
+  if (m) ramp(m.master.gain, m.ctx, masterValue());
+}
+
+/** This device's trim of one bus (its local mixer). */
+export function setLocalTrim(bus: Bus, trim: number): void {
+  saveDevice({ ...device, trims: { ...device.trims, [bus]: clamp(trim) } });
+  setBusLevel(bus, busValue(bus));
+}
+
+/** React view of this device's sound choices. */
+export function useDeviceSound(): DeviceSound {
+  return useSyncExternalStore(
+    (l) => {
+      deviceListeners.add(l);
+      return () => deviceListeners.delete(l);
+    },
+    () => device,
+    () => device,
+  );
+}
+
+/** The whole page silent or not (this device's mute). */
+export function setMasterMuted(muted: boolean): void {
+  setDeviceMuted(muted);
 }
 
 /**
@@ -141,7 +233,14 @@ export function playBuffer(
   };
 }
 
-/** For the tests: forget the mixer (a new fake context builds a new one). */
+/** For the tests: forget the mixer and this device's choices. */
 export function resetMixerForTests(): void {
   mixer = null;
+  try {
+    localStorage.removeItem(DEVICE_KEY);
+  } catch {
+    /* no storage */
+  }
+  device = loadDevice();
+  Object.assign(roomLevels, FULL);
 }

@@ -20,7 +20,9 @@ import {
   SlideView,
   TYPE_BASE,
 } from '../game/live-components';
-import { useAudioUnlocked } from '../game/media/audio-unlock';
+import { unlockAudio, useAudioUnlocked } from '../game/media/audio-unlock';
+import { useDeviceSound } from '../game/media/audio-mixer';
+import { SoundButton } from '../game/media/sound-button';
 import { useGameSounds } from '../game/media/game-sounds';
 import { preloadMedia, waitedFor } from '../game/media/media-pool';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
@@ -121,6 +123,7 @@ export function ScreenSurface({
     [socket, pin, questionIndex],
   );
   const soundUnlocked = useAudioUnlocked();
+  const deviceSound = useDeviceSound();
   // The game's sounds (#93): the projection, and a copy that plays the sound for a
   // remote participant when the room's sound reaches remote devices.
   const soundsOn =
@@ -433,10 +436,19 @@ export function ScreenSurface({
       )}
     >
       {fullscreenBtn}
+      {/* This screen's own sound (#93): the projection, or a copy that plays it. */}
+      {role === 'lead' || (role === 'follow' && sound) ? (
+        <SoundButton
+          size="lg"
+          className="absolute top-4 right-16 z-40"
+          onUnmute={() => void unlockAudio()}
+        />
+      ) : null}
       {/* A quiz with sound asks for the unlocking click as soon as this window opens,
           whatever the moment of the session; a silent quiz never asks. */}
       {(playMedia || (role === 'follow' && sound)) &&
       !soundUnlocked &&
+      !deviceSound.muted &&
       (view.quizHasSound || soundsOn) &&
       view.state !== 'ENDED' ? (
         <SoundUnlockOverlay />

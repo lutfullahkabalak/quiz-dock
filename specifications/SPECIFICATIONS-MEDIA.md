@@ -230,3 +230,18 @@ interface sounds (to come) ───────────────► UI  
 - **Played** by the projection, and by a remote participant's phone or copy when the room's audio target reaches
   remote devices; the participant's mute is the MASTER. Nothing plays before the device's unlocking click: the
   projection and a remote phone ask for it when the room has game sounds, even for a silent quiz.
+
+### 9.2 Each device's sound
+
+- **A sound button** on every screen that plays something — the projection, a copy that plays the sound, a remote
+  participant's phone (it replaces the phone's old mute): the device's **volume** and **mute**, on MASTER. With a
+  mouse, a click mutes or unmutes and hovering shows the volume and *Mixer*; on a phone, a tap opens them (one tap more).
+- **Mixer**: this device's own **trim** per bus (questions, music, effects, interface). A bus plays at the room's
+  level (the host's, for MUSIC and SFX) times the device's trim. Kept on the device (`localStorage`), from one visit to
+  the next.
+- **The room's mixer** is the host's: *Game sounds* in the console's control bar, at any moment of a quiz, besides the
+  folded panel of the lobby (§9.1).
+- **Declining the sound**: the *Turn sound on* overlay (and the phone's prompt) also offers *Without sound*. That click
+  still unlocks the browser's audio — and readies a phone's media elements — but mutes the device; the sound button turns
+  it on at once, without asking again. A device kept muted is not asked again.
+

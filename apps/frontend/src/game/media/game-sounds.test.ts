@@ -41,7 +41,7 @@ vi.mock('./audio-mixer', () => ({
     return () => undefined;
   },
   setBusDucked: (_bus: string, d: boolean) => ducked.push(d),
-  setBusLevel: (bus: string, v: number) => levels.push([bus, v]),
+  setRoomLevel: (bus: string, v: number) => levels.push([bus, v]),
 }));
 
 import { useGameSounds } from './game-sounds';
