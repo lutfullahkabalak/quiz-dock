@@ -363,6 +363,29 @@ describe('ControlPage (console hôte)', () => {
     expect(Number(bar.getAttribute('aria-valuenow'))).toBe(50);
   });
 
+  it('paused, the chrono stands still with the same sign as the screens (audit F5)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      paused: true,
+      pausedRemainingMs: 7_000,
+      question: {
+        questionIndex: 0,
+        prompt: 'Capitale ?',
+        timeLimitS: 20,
+        startedAt: now - 13_000,
+        endsAt: now + 7_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    const { container } = renderApp('/session/482913/console');
+    await screen.findByText('Capitale ?');
+    expect(container.querySelector('span[aria-label="Temps restant"]')).toHaveTextContent('⏸ 7');
+  });
+
   it('ANSWERING : compteur + « Révéler » émet host:reveal', async () => {
     localStorage.setItem('live.localUser', 'Animateur');
     hookState.value = view({

@@ -1372,7 +1372,7 @@ function ChronoControls({
         )}
         aria-label={clock?.listening ? t('screen.listening') : t('control.timeRemaining')}
       >
-        {clock?.listening ? '🎧' : '⏱'} {clock?.remaining ?? '—'}
+        {clock?.listening ? '🎧' : clock?.paused ? '⏸' : '⏱'} {clock?.remaining ?? '—'}
       </span>
       {CHRONO_STEPS.filter((s) => s > 0).map((s) => (
         <Button key={s} type="button" variant="outline" size="sm" onClick={() => onAdjust(s)}>
