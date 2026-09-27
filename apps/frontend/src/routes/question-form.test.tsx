@@ -241,9 +241,9 @@ describe('QuestionForm — media timing', () => {
     );
     mockApi([]);
     renderForm();
-    // 42 s of sound starting 3 s before the answers, + the default 3 s pause → 42 s.
+    // 42 s of sound starting 3 s before the answers, + the default 1 s pause → 40 s.
     expect(await screen.findByRole('note', { name: '' })).toHaveTextContent(
-      'Le média dure 42 s : la question durera 42 s',
+      'Le média dure 42 s : la question durera 40 s',
     );
   });
 
