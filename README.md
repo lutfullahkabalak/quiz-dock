@@ -184,7 +184,7 @@ hosted elsewhere).
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/editor.png" alt="Quiz builder" /><br /><sub><b>Quiz builder</b> — 8 question types, video &amp; sound, slides, backgrounds, scoring rules</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — lobby: PIN, QR code, players in the room or remote, who hears the sound</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — the room's lobby: PIN, QR code, players in the room or remote and who is ready, the game's sounds</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/media-library.png" alt="My media" /><br /><sub><b>My media</b> — reuse what you uploaded, sizes and usages; global media one tab away</sub></td>
@@ -192,7 +192,7 @@ hosted elsewhere).
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/participant-access.png" alt="Participant access at launch" /><br /><sub><b>Who can join</b> — with an account, or with the PIN and a nickname alone</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — open access and lock" /><br /><sub><b>Close the game</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — closed room" /><br /><sub><b>Close the room</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/join.png" alt="Join by PIN, nickname and avatar" /><br /><sub><b>Join</b> — PIN or QR code, nickname &amp; avatar, in the room or remote, no account</sub></td>
@@ -202,11 +202,19 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-play.png" alt="Player — question and reveal" /><br /><sub><b>Player</b> — colour tiles to tap, then own result</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-reveal.png" alt="Projection — reveal" /><br /><sub><b>Reveal</b> — distribution, explanation, live leaderboard</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/image-choice.png" alt="Projection — image choice" /><br /><sub><b>Image choice</b> — pictures as the answers, each with its colour and shape</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-big-screen.png" alt="Remote player — the question, or the big screen" /><br /><sub><b>Remote player</b> — the whole question on their phone, or the big screen itself</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-room-next.png" alt="Host console — the next quiz in the room" /><br /><sub><b>The next quiz</b> — same room, same players, the standings carried over</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-background-sound.png" alt="Slide with a background and a sound" /><br /><sub><b>Slides</b> — pictures, columns, backgrounds, a video or a sound</sub></td>
+  </tr>
 </table>
 
-More — content slides, the console during a question and at the reveal,
-the podium, the player's ordering and feedback screens, the global media, the preview
-of a sound on its waveform, the account preferences:
+More — every question type and slide on the big screen, the builder of an image choice and
+of a slide, the console during a question, a slide and the reveal, the podium, the player's
+ordering and feedback screens, the global media, the account preferences:
 [full gallery](https://github.com/quizdock/quiz-dock/blob/main/docs/screenshots/README.md).
 
 ## 📋 More features
