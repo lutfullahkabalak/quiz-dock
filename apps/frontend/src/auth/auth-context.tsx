@@ -1,3 +1,4 @@
+import { useQueryClient } from '@tanstack/react-query';
 import { createContext, type ReactNode, useCallback, useContext, useMemo, useState } from 'react';
 import {
   hostSeatControllerClaim,
@@ -89,7 +90,12 @@ export function forgetStoredTokens(): void {
 
 /** Identité locale (mode none) — utilisée aussi par la garde. */
 export function getLocalUser(): string | null {
-  const stored = localStorage.getItem(STORAGE_KEY);
+  let stored: string | null;
+  try {
+    stored = localStorage.getItem(STORAGE_KEY);
+  } catch {
+    return null; // storage disabled: no local identity kept
+  }
   // A demo serves one shared account whatever the name: a name kept from before
   // would only show the wrong one in the menu.
   const demo = getDemo();
@@ -195,6 +201,10 @@ export function AuthProvider({
   mode?: AuthMode;
   initialUser?: string | null;
 }) {
+  // Another identity, or other rights (the host seat): nothing read for the one before
+  // is kept, and what is on screen is read again at once.
+  const queryClient = useQueryClient();
+  const forgetReads = useCallback(() => void queryClient.resetQueries(), [queryClient]);
   const [user, setUser] = useState<string | null>(() => {
     if (mode === 'oidc') return initialUser;
     const stored = getLocalUser();
@@ -202,17 +212,25 @@ export function AuthProvider({
     return stored;
   });
 
-  const loginLocal = useCallback(async (name: string) => {
-    const trimmed = name.trim();
-    localStorage.setItem(STORAGE_KEY, trimmed);
-    applyLocalUser(trimmed);
-    setUser(trimmed);
-    return fetchRole();
-  }, []);
+  const loginLocal = useCallback(
+    async (name: string) => {
+      const trimmed = name.trim();
+      localStorage.setItem(STORAGE_KEY, trimmed);
+      applyLocalUser(trimmed);
+      setUser(trimmed);
+      forgetReads();
+      return fetchRole();
+    },
+    [forgetReads],
+  );
 
-  const claimHostSeat = useCallback(async (expiresInMinutes: number | null) => {
-    await hostSeatControllerClaim({ expiresInMinutes });
-  }, []);
+  const claimHostSeat = useCallback(
+    async (expiresInMinutes: number | null) => {
+      await hostSeatControllerClaim({ expiresInMinutes });
+      forgetReads();
+    },
+    [forgetReads],
+  );
 
   const dropLocal = useCallback(() => {
     // Pas d'identité conservée : sinon la garde de route et la nav la
@@ -220,24 +238,29 @@ export function AuthProvider({
     localStorage.removeItem(STORAGE_KEY);
     applyLocalUser(null);
     setUser(null);
-  }, []);
+    forgetReads();
+  }, [forgetReads]);
 
   const loginOidc = useCallback(async () => {
     const { data } = await oidcSessionControllerLogin();
     if (data.url) window.location.assign(data.url);
   }, []);
 
-  const completeOidcLogin = useCallback(async (params: URLSearchParams) => {
-    const code = params.get('code');
-    const state = params.get('state');
-    if (!code || !state)
-      throw new Error(params.get('error_description') ?? params.get('error') ?? 'OIDC');
-    const iss = params.get('iss') ?? undefined;
-    const { data } = await oidcSessionControllerCallback({ code, state, iss });
-    oidcAuthed = true;
-    setSessionAuthed(true);
-    setUser(data && 'name' in data ? data.name : null);
-  }, []);
+  const completeOidcLogin = useCallback(
+    async (params: URLSearchParams) => {
+      const code = params.get('code');
+      const state = params.get('state');
+      if (!code || !state)
+        throw new Error(params.get('error_description') ?? params.get('error') ?? 'OIDC');
+      const iss = params.get('iss') ?? undefined;
+      const { data } = await oidcSessionControllerCallback({ code, state, iss });
+      oidcAuthed = true;
+      setSessionAuthed(true);
+      setUser(data && 'name' in data ? data.name : null);
+      forgetReads();
+    },
+    [forgetReads],
+  );
 
   const logout = useCallback(async () => {
     if (mode === 'oidc') {
@@ -259,7 +282,8 @@ export function AuthProvider({
     }
     applyLocalUser(null);
     setUser(null);
-  }, [mode]);
+    forgetReads();
+  }, [mode, forgetReads]);
 
   const value = useMemo(
     () => ({
