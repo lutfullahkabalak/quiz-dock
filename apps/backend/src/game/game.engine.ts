@@ -49,6 +49,7 @@ import {
   gameKeys,
   gameSetting,
 } from './game.keys';
+import { gameHash, roomHash } from './game-hash';
 import type {
   AnswerRecord,
   GameMeta,
@@ -247,7 +248,7 @@ export class GameEngine {
     if (meta.state !== GameState.Lobby) {
       throw new BadRequestException('session.capture_locked');
     }
-    await this.redis.hset(gameKeys.room(pin), { fullCapture: fullCapture ? '1' : '0' });
+    await this.redis.hset(gameKeys.room(pin), roomHash({ fullCapture }));
     this.server.to(pin).emit('notice', noticeOf({ ...meta, fullCapture }));
   }
 
@@ -282,10 +283,10 @@ export class GameEngine {
       personalTracking: opts.personalTracking ?? meta.personalTracking,
       pickOwnName: opts.pickOwnName ?? meta.pickOwnName,
     };
-    await this.redis.hset(gameKeys.room(pin), {
-      personalTracking: next.personalTracking ? '1' : '0',
-      pickOwnName: next.pickOwnName ? '1' : '0',
-    });
+    await this.redis.hset(
+      gameKeys.room(pin),
+      roomHash({ personalTracking: next.personalTracking, pickOwnName: next.pickOwnName }),
+    );
     this.server.to(pin).emit('notice', noticeOf(next));
   }
 
@@ -299,7 +300,7 @@ export class GameEngine {
     if (meta.state === GameState.Ended) {
       throw new BadRequestException('session.ended');
     }
-    await this.redis.hset(gameKeys.room(pin), { joinLocked: locked ? '1' : '0' });
+    await this.redis.hset(gameKeys.room(pin), roomHash({ joinLocked: locked }));
     this.server.to(pin).emit('notice', noticeOf({ ...meta, joinLocked: locked }));
   }
 
@@ -310,7 +311,7 @@ export class GameEngine {
   private async setAudioTarget(ref: GameRef, target: AudioTarget): Promise<void> {
     if (!AUDIO_TARGETS.includes(target)) return; // not one of ours: nothing to change
     const { pin } = ref;
-    await this.redis.hset(gameKeys.game(ref.id), { audioTarget: target });
+    await this.redis.hset(gameKeys.game(ref.id), gameHash({ audioTarget: target }));
     const snapshot = await this.game.getSnapshot(ref.id);
     if (!snapshot) return;
     const payload = {
@@ -536,18 +537,21 @@ export class GameEngine {
     const now = Date.now();
     const plays = slideHasPlayback(slide);
     const before = await this.currentMeta(ref);
-    await this.redis.hset(gameKeys.game(ref.id), {
-      state: GameState.SlideShow,
-      slideIndex: String(slideIndex),
-      currentIndex: String(slide.beforeQuestionIndex),
-      clockFrozen: '0',
-      pausedRemainingMs: '',
-      autoNextAt: '0',
-      mediaWaitUntil: '0',
-      slideMediaStartAt: plays ? String(now + MEDIA_LEAD_MS) : '0',
-      // Shown while the game is paused: its media hold until the game resumes.
-      slidePausedAt: plays && before?.paused ? String(now) : '0',
-    });
+    await this.redis.hset(
+      gameKeys.game(ref.id),
+      gameHash({
+        state: GameState.SlideShow,
+        slideIndex,
+        currentIndex: slide.beforeQuestionIndex,
+        clockFrozen: false,
+        pausedRemainingMs: null,
+        autoNextAt: 0,
+        mediaWaitUntil: 0,
+        slideMediaStartAt: plays ? now + MEDIA_LEAD_MS : 0,
+        // Shown while the game is paused: its media hold until the game resumes.
+        slidePausedAt: plays && before?.paused ? now : 0,
+      }),
+    );
     const meta = await this.currentMeta(ref);
     this.server.to(pin).emit('game:state', {
       state: GameState.SlideShow,
@@ -623,13 +627,16 @@ export class GameEngine {
     if (!readiness || readiness.ready >= readiness.total) return false;
     const until = Date.now() + waitS * 1000;
     this.timers.cancel('autoNext', pin);
-    await this.redis.hset(gameKeys.game(ref.id), {
-      state: GameState.MediaLoading,
-      currentIndex: String(step.questionIndex),
-      slideIndex: String(step.slideIndex ?? -1),
-      mediaWaitUntil: String(until),
-      autoNextAt: '0',
-    });
+    await this.redis.hset(
+      gameKeys.game(ref.id),
+      gameHash({
+        state: GameState.MediaLoading,
+        currentIndex: step.questionIndex,
+        slideIndex: step.slideIndex ?? -1,
+        mediaWaitUntil: until,
+        autoNextAt: 0,
+      }),
+    );
     this.server.to(pin).emit('game:state', {
       state: GameState.MediaLoading,
       questionIndex: step.questionIndex,
@@ -684,18 +691,21 @@ export class GameEngine {
     // Nouvelle question : chrono qui tourne, ni gelé ni en pause (un enchaînement
     // manuel pendant une pause reprend implicitement la main).
     this.timers.cancel('autoNext', pin);
-    await this.redis.hset(gameKeys.game(ref.id), {
-      state: GameState.Answering,
-      mediaWaitUntil: '0',
-      currentIndex: String(index),
-      slideIndex: '-1',
-      questionStartedAt: String(startedAt),
-      questionEndsAt: String(endsAt),
-      mediaLeadMs: mediaLeadMs === null ? '' : String(mediaLeadMs),
-      clockFrozen: '0',
-      paused: '0',
-      pausedRemainingMs: '',
-    });
+    await this.redis.hset(
+      gameKeys.game(ref.id),
+      gameHash({
+        state: GameState.Answering,
+        mediaWaitUntil: 0,
+        currentIndex: index,
+        slideIndex: -1,
+        questionStartedAt: startedAt,
+        questionEndsAt: endsAt,
+        mediaLeadMs,
+        clockFrozen: false,
+        paused: false,
+        pausedRemainingMs: null,
+      }),
+    );
 
     this.server.to(pin).emit('game:state', {
       state: GameState.Answering,
@@ -761,7 +771,7 @@ export class GameEngine {
     if (snapshot && isDeferred(snapshot.questions[index])) {
       await this.settleClosest(ref, snapshot.questions[index], index);
     }
-    await this.redis.hset(gameKeys.game(gameId), { state: GameState.Reveal });
+    await this.redis.hset(gameKeys.game(gameId), gameHash({ state: GameState.Reveal }));
     this.log.debug(`REVEAL ${pin} q${index} (${trigger})`);
     this.server.to(pin).emit('game:state', {
       state: GameState.Reveal,
@@ -938,7 +948,7 @@ export class GameEngine {
       return;
     }
     this.timers.cancel('autoNext', pin);
-    await this.redis.hset(gameKeys.game(meta.id), { reviewStep: key, autoNextAt: '0' });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ reviewStep: key, autoNextAt: 0 }));
     const fresh = { ...meta, reviewStep: key, autoNextAt: 0 };
     const sockets = await this.server.in(pin).fetchSockets();
     for (const socket of sockets) await this.emitReviewTo(socket, ref, fresh, snapshot);
@@ -948,7 +958,7 @@ export class GameEngine {
   /** Back to the live position on every screen; re-arms the auto pace if it applies. */
   private async resume(ref: GameRef): Promise<void> {
     const { pin } = ref;
-    await this.redis.hset(gameKeys.game(ref.id), { reviewStep: '' });
+    await this.redis.hset(gameKeys.game(ref.id), gameHash({ reviewStep: '' }));
     const sockets = await this.server.in(pin).fetchSockets();
     for (const socket of sockets) await this.sendStateTo(socket, pin);
     await this.scheduleAutoNextIfNeeded(ref);
@@ -1015,7 +1025,7 @@ export class GameEngine {
   /** Dernière question révélée → PODIUM (top 3 + rang perso). */
   private async toPodium(ref: GameRef, meta: GameMeta): Promise<void> {
     const { pin } = ref;
-    await this.redis.hset(gameKeys.game(ref.id), { state: GameState.Podium });
+    await this.redis.hset(gameKeys.game(ref.id), gameHash({ state: GameState.Podium }));
     await this.foldGame(ref, meta);
     const ranking = await this.ranking(ref);
 
@@ -1346,10 +1356,10 @@ export class GameEngine {
     this.timers.cancel('autoNext', pin);
     this.timers.cancel('mediaWait', pin);
     await this.freezeClock(pin, meta);
-    await this.redis.hset(gameKeys.game(ref.id), {
-      state: GameState.HostDisconnected,
-      prevState: meta.state,
-    });
+    await this.redis.hset(
+      gameKeys.game(ref.id),
+      gameHash({ state: GameState.HostDisconnected, prevState: meta.state }),
+    );
     this.log.debug(`HOST_DISCONNECTED ${pin} (depuis ${meta.state})`);
 
     this.server.to(pin).emit('game:state', {
@@ -1370,7 +1380,7 @@ export class GameEngine {
     // Fin subie : on archive ce qui a été joué, marqué « interrompu » (§7.3). Best-effort —
     // l'hôte est absent, un échec ne doit pas bloquer la fin (journalisé, avalé).
     await this.archive.archive(pin, meta, { interrupted: true, bestEffort: true });
-    await this.redis.hset(gameKeys.game(ref.id), { state: GameState.Ended });
+    await this.redis.hset(gameKeys.game(ref.id), gameHash({ state: GameState.Ended }));
     await this.foldGame(ref, meta);
     await this.emitStandings(pin);
     await this.redis.del(gameKeys.pin(pin));
@@ -1395,7 +1405,7 @@ export class GameEngine {
     const ref = refOf(pin, meta);
     const prev = (meta.prevState as GameState) ?? GameState.Lobby;
 
-    await this.redis.hset(gameKeys.game(meta.id), { state: prev, prevState: '' });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ state: prev, prevState: '' }));
     meta.state = prev;
     this.server.to(pin).emit('game:state', {
       state: prev,
@@ -1451,7 +1461,7 @@ export class GameEngine {
     if (meta.state === GameState.Ended) return; // déjà terminée (ré-entrée / double-clic) → pas de double archive
     if (archive) await this.archiveAsked(pin, meta);
     this.timers.cancelAll(pin);
-    await this.redis.hset(gameKeys.game(meta.id), { state: GameState.Ended });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ state: GameState.Ended }));
     // After the state: an answer arriving meanwhile can no longer be scored and missed.
     await this.foldGame(refOf(pin, meta), meta);
     await this.emitStandings(pin);
@@ -1488,7 +1498,7 @@ export class GameEngine {
         // (the quiz goes on, the host can retry); then no answer is scored any more.
         if (archive) await this.archiveAsked(pin, meta, true);
         this.timers.cancelAll(pin);
-        await this.redis.hset(gameKeys.game(meta.id), { state: GameState.Ended });
+        await this.redis.hset(gameKeys.game(meta.id), gameHash({ state: GameState.Ended }));
         if (archive) await this.foldGame(refOf(pin, meta), meta);
       }
       this.timers.cancelAll(pin);
@@ -1530,7 +1540,7 @@ export class GameEngine {
       .trim()
       .replace(/\s+/g, ' ')
       .slice(0, ROOM_NAME_MAX);
-    await this.redis.hset(gameKeys.room(pin), { name });
+    await this.redis.hset(gameKeys.room(pin), roomHash({ name }));
     this.server.to(pin).emit('room:info', { name: name || null, hostName: meta.hostName });
   }
 
@@ -1571,7 +1581,7 @@ export class GameEngine {
     }
     const clean = normalizeBaseUrl(baseUrl);
     if (baseUrl && !clean) throw new BadRequestException('session.join_url_invalid');
-    await this.redis.hset(gameKeys.room(pin), { joinBaseUrl: clean });
+    await this.redis.hset(gameKeys.room(pin), roomHash({ joinBaseUrl: clean }));
     this.server.to(pin).emit('game:join-url', { baseUrl: clean || null });
   }
 
@@ -1582,7 +1592,7 @@ export class GameEngine {
    */
   async setMode(pin: string, hostUserId: string, mode: GameMode): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
-    await this.redis.hset(gameKeys.game(meta.id), { mode });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ mode }));
     meta.mode = mode;
     if (mode === 'manual') {
       this.timers.cancel('autoNext', pin);
@@ -1721,7 +1731,7 @@ export class GameEngine {
   private async freezeSlide(pin: string, meta: GameMeta): Promise<void> {
     if (meta.state !== GameState.SlideShow || !meta.slideMediaStartAt || meta.slidePausedAt) return;
     const now = Date.now();
-    await this.redis.hset(gameKeys.game(meta.id), { slidePausedAt: String(now) });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ slidePausedAt: now }));
     meta.slidePausedAt = now;
     const step = slideStep(meta);
     await this.reanchor(pin, meta, 'freeze', step);
@@ -1732,10 +1742,10 @@ export class GameEngine {
     if (!meta.slidePausedAt || !meta.slideMediaStartAt) return;
     const now = Date.now();
     const start = meta.slideMediaStartAt + Math.max(0, now - meta.slidePausedAt);
-    await this.redis.hset(gameKeys.game(meta.id), {
-      slideMediaStartAt: String(start),
-      slidePausedAt: '0',
-    });
+    await this.redis.hset(
+      gameKeys.game(meta.id),
+      gameHash({ slideMediaStartAt: start, slidePausedAt: 0 }),
+    );
     meta.slideMediaStartAt = start;
     meta.slidePausedAt = 0;
     const step = slideStep(meta);
@@ -1751,7 +1761,7 @@ export class GameEngine {
    */
   async setPaused(pin: string, hostUserId: string, paused: boolean): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
-    await this.redis.hset(gameKeys.game(meta.id), { paused: paused ? '1' : '0' });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ paused }));
     meta.paused = paused;
     if (paused) {
       this.timers.cancel('autoNext', pin);
@@ -1799,7 +1809,7 @@ export class GameEngine {
 
     if (meta.clockFrozen) {
       const remaining = Math.max(CHRONO_FLOOR_MS, (meta.pausedRemainingMs ?? 0) + deltaMs);
-      await this.redis.hset(gameKeys.game(meta.id), { pausedRemainingMs: String(remaining) });
+      await this.redis.hset(gameKeys.game(meta.id), gameHash({ pausedRemainingMs: remaining }));
       meta.pausedRemainingMs = remaining;
       this.server.to(pin).emit('game:mode', this.buildModePayload(meta));
       return;
@@ -1811,7 +1821,7 @@ export class GameEngine {
       await this.advanceToReveal(pin, meta.currentIndex, 'host', meta.id); // restant épuisé → reveal
       return;
     }
-    await this.redis.hset(gameKeys.game(meta.id), { questionEndsAt: String(newEndsAt) });
+    await this.redis.hset(gameKeys.game(meta.id), gameHash({ questionEndsAt: newEndsAt }));
     meta.questionEndsAt = newEndsAt;
     this.scheduleReveal(refOf(pin, meta), meta.currentIndex, newEndsAt + GRACE_MS - now);
     this.server.to(pin).emit('question:time', {
@@ -1858,10 +1868,10 @@ export class GameEngine {
     if (meta.clockFrozen || meta.state !== GameState.Answering) return;
     const remaining = Math.max(0, meta.questionEndsAt - Date.now());
     this.timers.cancel('reveal', pin);
-    await this.redis.hset(gameKeys.game(meta.id), {
-      clockFrozen: '1',
-      pausedRemainingMs: String(remaining),
-    });
+    await this.redis.hset(
+      gameKeys.game(meta.id),
+      gameHash({ clockFrozen: true, pausedRemainingMs: remaining }),
+    );
     meta.clockFrozen = true;
     meta.pausedRemainingMs = remaining;
     await this.reanchor(pin, meta, 'freeze');
@@ -1878,12 +1888,15 @@ export class GameEngine {
     if (!meta.clockFrozen) return null;
     const now = Date.now();
     const { startedAt, endsAt } = resumeQuestionWindow(meta, now);
-    await this.redis.hset(gameKeys.game(meta.id), {
-      clockFrozen: '0',
-      pausedRemainingMs: '',
-      questionStartedAt: String(startedAt),
-      questionEndsAt: String(endsAt),
-    });
+    await this.redis.hset(
+      gameKeys.game(meta.id),
+      gameHash({
+        clockFrozen: false,
+        pausedRemainingMs: null,
+        questionStartedAt: startedAt,
+        questionEndsAt: endsAt,
+      }),
+    );
     meta.clockFrozen = false;
     meta.pausedRemainingMs = undefined;
     meta.questionStartedAt = startedAt;
@@ -1927,10 +1940,7 @@ export class GameEngine {
     const autoNextAt = Date.now() + delay;
     m.autoNextAt = autoNextAt;
     m.autoNextMs = delay;
-    await this.redis.hset(gameKeys.game(ref.id), {
-      autoNextAt: String(autoNextAt),
-      autoNextMs: String(delay),
-    });
+    await this.redis.hset(gameKeys.game(ref.id), gameHash({ autoNextAt, autoNextMs: delay }));
     const hostUserId = m.hostUserId;
     // The timer only fires for the exact step it was armed on (question or slide).
     const step = m.state === GameState.SlideShow ? `s${m.slideIndex ?? 0}` : m.currentIndex;

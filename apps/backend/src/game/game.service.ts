@@ -9,8 +9,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
-  AUDIO_TARGETS,
-  type AudioTarget,
   GameState,
   type ParticipantAccess,
   type PlayerPresence,
@@ -22,6 +20,7 @@ import { MediaLibraryService } from '../media/media-library.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeAnswer } from '../questions/dto/question-content.schema';
 import { RedisService } from '../redis/redis.service';
+import { deserializeGame, deserializeRoom, gameHash, roomHash } from './game-hash';
 import { GAME_TTL_S, type GameId, gameKeys } from './game.keys';
 import { type PlayerStats, type SeriesStats, answerStats, sumGames } from './player-stats';
 import { type RankedPlayer, rankPlayers } from './results';
@@ -205,7 +204,7 @@ export class GameService {
     };
 
     const pipe = this.redis.multi();
-    pipe.hset(gameKeys.room(pin), serializeRoom(room));
+    pipe.hset(gameKeys.room(pin), roomHash(room));
     pipe.expire(gameKeys.room(pin), GAME_TTL_S);
     this.writeGame(pipe, gameId, snapshot);
     // Index des parties en cours de l'hôte (reprise depuis le dashboard §6.2).
@@ -335,8 +334,15 @@ export class GameService {
       audioTarget: carried.audioTarget,
       paused: false,
       clockFrozen: false,
+      mediaWaitUntil: 0,
+      mediaLeadMs: null,
+      autoNextAt: 0,
+      autoNextMs: 0,
+      slideIndex: -1,
+      slideMediaStartAt: 0,
+      slidePausedAt: 0,
     };
-    pipe.hset(gameKeys.game(gameId), serializeGame(game));
+    pipe.hset(gameKeys.game(gameId), gameHash(game));
     pipe.set(gameKeys.snapshot(gameId), JSON.stringify(snapshot));
     pipe.expire(gameKeys.game(gameId), GAME_TTL_S);
     pipe.expire(gameKeys.snapshot(gameId), GAME_TTL_S);
@@ -625,7 +631,7 @@ export class GameService {
       next[idKey] = id;
       next[urlKey] = asset.url;
     }
-    await this.redis.hset(gameKeys.room(pin), { sounds: JSON.stringify(next) });
+    await this.redis.hset(gameKeys.room(pin), roomHash({ sounds: next }));
     return next;
   }
 
@@ -923,103 +929,4 @@ function suffixNickname(base: string, n: number): string {
 /** A new game's id: 32 hex characters (see `GAME_HASH_KEY`). */
 function newGameId(): GameId {
   return randomBytes(16).toString('hex') as GameId;
-}
-
-/** The room hash (every field a string). */
-function serializeRoom(room: RoomMeta): Record<string, string> {
-  return {
-    roomId: room.roomId,
-    hostUserId: room.hostUserId,
-    gameId: room.gameId,
-    fullCapture: room.fullCapture ? '1' : '0',
-    personalTracking: room.personalTracking ? '1' : '0',
-    pickOwnName: room.pickOwnName ? '1' : '0',
-    participantAccess: room.participantAccess,
-    joinLocked: room.joinLocked ? '1' : '0',
-    joinBaseUrl: room.joinBaseUrl,
-    openedAt: String(room.openedAt),
-    name: room.name,
-    hostName: room.hostName,
-    sounds: JSON.stringify(room.sounds),
-  };
-}
-
-function deserializeRoom(raw: Record<string, string>): RoomMeta {
-  return {
-    roomId: raw.roomId,
-    hostUserId: raw.hostUserId,
-    gameId: raw.gameId as GameId,
-    ...(raw.previousGameId ? { previousGameId: raw.previousGameId as GameId } : {}),
-    fullCapture: raw.fullCapture === '1',
-    personalTracking: raw.personalTracking !== '0',
-    pickOwnName: raw.pickOwnName === '1',
-    participantAccess: raw.participantAccess === 'open' ? 'open' : 'account',
-    joinLocked: raw.joinLocked === '1',
-    joinBaseUrl: raw.joinBaseUrl ?? '',
-    openedAt: Number(raw.openedAt),
-    name: raw.name ?? '',
-    hostName: raw.hostName ?? '',
-    sounds: raw.sounds
-      ? { ...DEFAULT_ROOM_SOUNDS, ...(JSON.parse(raw.sounds) as Partial<RoomSounds>) }
-      : DEFAULT_ROOM_SOUNDS,
-  };
-}
-
-/** The game hash (every field a string). */
-function serializeGame(game: GameFields): Record<string, string> {
-  const raw: Record<string, string> = {
-    quizId: game.quizId,
-    state: game.state,
-    currentIndex: String(game.currentIndex),
-    totalQuestions: String(game.totalQuestions),
-    audioTarget: game.audioTarget ?? '',
-    mediaWaitUntil: String(game.mediaWaitUntil ?? 0),
-    mediaLeadMs: game.mediaLeadMs == null ? '' : String(game.mediaLeadMs),
-    title: game.title,
-    language: game.language,
-    createdAt: String(game.createdAt),
-    questionStartedAt: String(game.questionStartedAt),
-    questionEndsAt: String(game.questionEndsAt),
-    mode: game.mode,
-    paused: game.paused ? '1' : '0',
-    clockFrozen: game.clockFrozen ? '1' : '0',
-    autoNextAt: String(game.autoNextAt ?? 0),
-    autoNextMs: String(game.autoNextMs ?? 0),
-    slideIndex: String(game.slideIndex ?? -1),
-    slideMediaStartAt: String(game.slideMediaStartAt ?? 0),
-    slidePausedAt: String(game.slidePausedAt ?? 0),
-  };
-  if (game.prevState !== undefined) raw.prevState = game.prevState;
-  if (game.pausedRemainingMs !== undefined) raw.pausedRemainingMs = String(game.pausedRemainingMs);
-  return raw;
-}
-
-function deserializeGame(raw: Record<string, string>): GameFields {
-  return {
-    quizId: raw.quizId,
-    state: raw.state,
-    currentIndex: Number(raw.currentIndex),
-    totalQuestions: Number(raw.totalQuestions),
-    audioTarget: (AUDIO_TARGETS as readonly string[]).includes(raw.audioTarget ?? '')
-      ? (raw.audioTarget as AudioTarget)
-      : '',
-    mediaWaitUntil: raw.mediaWaitUntil ? Number(raw.mediaWaitUntil) : 0,
-    mediaLeadMs: raw.mediaLeadMs ? Number(raw.mediaLeadMs) : null,
-    title: raw.title,
-    language: raw.language,
-    createdAt: Number(raw.createdAt),
-    questionStartedAt: Number(raw.questionStartedAt ?? 0),
-    questionEndsAt: Number(raw.questionEndsAt ?? 0),
-    mode: raw.mode === 'auto' ? 'auto' : 'manual',
-    paused: raw.paused === '1',
-    clockFrozen: raw.clockFrozen === '1',
-    autoNextAt: raw.autoNextAt ? Number(raw.autoNextAt) : 0,
-    autoNextMs: raw.autoNextMs ? Number(raw.autoNextMs) : 0,
-    slideIndex: raw.slideIndex ? Number(raw.slideIndex) : -1,
-    slideMediaStartAt: raw.slideMediaStartAt ? Number(raw.slideMediaStartAt) : 0,
-    slidePausedAt: raw.slidePausedAt ? Number(raw.slidePausedAt) : 0,
-    prevState: raw.prevState,
-    pausedRemainingMs: raw.pausedRemainingMs ? Number(raw.pausedRemainingMs) : undefined,
-    reviewStep: raw.reviewStep ?? '',
-  };
 }
