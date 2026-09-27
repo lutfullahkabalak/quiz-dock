@@ -100,7 +100,8 @@
       "text_input": "文本",
       "numeric": "数字",
       "ordering": "排序",
-      "poll": "投票"
+      "poll": "投票",
+      "image_choice": "图片题"
     },
     "previousStep": "上一步",
     "nextStep": "下一步",
@@ -355,7 +356,10 @@
     "multiple_choice_partial": "有多个正确答案——每个正确勾选计分，每个错误勾选抵消一个。",
     "ordering_partial": "把选项按正确顺序排列——每个正确位置都计分。",
     "text_input_lenient": "输入你的答案——小的拼写错误可以原谅。",
-    "fixed": "固定积分"
+    "fixed": "固定积分",
+    "image_choice": "只有一张正确图片——选出它。",
+    "image_choice_multi": "多张正确图片——全部勾选后提交。全对才得分。",
+    "image_choice_multi_partial": "多张正确图片——每勾对一项得分，每勾错一项抵消一项。"
   },
   "preview": {
     "note": "参与者此刻所见的只读预览。",

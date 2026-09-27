@@ -208,3 +208,87 @@ describe('questionContentSchema — media slots', () => {
     expect(res.error?.issues.map((i) => i.message)).toContain('media.video_with_audio');
   });
 });
+
+describe('questionContentSchema — image choice', () => {
+  const id = (c: string) => c.repeat(26);
+  const pic = (i: number, o: Record<string, unknown> = {}) => ({
+    color: ['red', 'blue', 'yellow', 'green'][i],
+    shape: ['triangle', 'diamond', 'circle', 'square'][i],
+    mediaId: id(String.fromCharCode(65 + i)),
+    alt: `Picture ${i + 1}`,
+    ...o,
+  });
+  const q = (options: unknown[], extra: Record<string, unknown> = {}) => ({
+    ...base,
+    type: 'image_choice',
+    options,
+    ...extra,
+  });
+  const two = [pic(0, { isCorrect: true }), pic(1)];
+  const four = [pic(0), pic(1, { isCorrect: true }), pic(2), pic(3)];
+  const messages = (input: unknown) =>
+    questionContentSchema.safeParse(input).error?.issues.map((i) => i.message) ?? [];
+
+  it('takes 2 or 4 pictures, never 3', () => {
+    expect(ok(q(two))).toBe(true);
+    expect(ok(q(four))).toBe(true);
+    expect(messages(q([...two, pic(2)]))).toContain('An image choice takes 2 or 4 pictures.');
+    expect(ok(q([pic(0, { isCorrect: true })]))).toBe(false);
+  });
+
+  it('one right picture, or several when multiSelect', () => {
+    expect(ok(q([pic(0, { isCorrect: true }), pic(1, { isCorrect: true })]))).toBe(false);
+    expect(ok(q([pic(0), pic(1)]))).toBe(false);
+    const both = [pic(0, { isCorrect: true }), pic(1, { isCorrect: true })];
+    expect(ok(q(both, { multiSelect: true }))).toBe(true);
+    expect(ok(q([pic(0), pic(1)], { multiSelect: true }))).toBe(false);
+  });
+
+  it('partial credit only with several right pictures', () => {
+    expect(ok(q(two, { scoring: 'partial' }))).toBe(false);
+    expect(ok(q(two, { scoring: 'partial', multiSelect: true }))).toBe(true);
+    expect(ok(q(two, { scoring: 'closest' }))).toBe(false);
+  });
+
+  it('every answer has a picture and its alt, and no text', () => {
+    expect(messages(q([pic(0, { isCorrect: true }), pic(1, { alt: undefined })]))).toContain(
+      'Each picture needs its alternative text.',
+    );
+    expect(messages(q([pic(0, { isCorrect: true }), pic(1, { alt: '   ' })]))).toContain(
+      'Each picture needs its alternative text.',
+    );
+    expect(messages(q([pic(0, { isCorrect: true }), pic(1, { mediaId: undefined })]))).toContain(
+      'Each answer needs a picture.',
+    );
+    expect(messages(q([pic(0, { isCorrect: true }), pic(1, { text: 'Dog' })]))).toContain(
+      'An image choice answer has no text.',
+    );
+  });
+
+  it('no picture or video of its own, a sound is fine', () => {
+    const audio = {
+      assetId: id('S'),
+      origin: 'upload',
+      durationMs: 5000,
+      peaks: new Array(200).fill(0.3),
+    };
+    const image = { kind: 'image', assetId: id('I') };
+    const video = { kind: 'video', source: 'upload', assetId: id('V') };
+    expect(messages(q(two, { media: { visual: image, audio: null } }))).toContain(
+      'An image choice has no visual of its own.',
+    );
+    expect(ok(q(two, { media: { visual: video, audio: null } }))).toBe(false);
+    expect(ok(q(two, { media: { visual: null, audio } }))).toBe(true);
+  });
+
+  it('multiSelect belongs to the image choice alone', () => {
+    expect(
+      ok({
+        ...base,
+        type: 'multiple_choice',
+        multiSelect: true,
+        options: [opt({ isCorrect: true }), opt()],
+      }),
+    ).toBe(false);
+  });
+});

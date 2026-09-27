@@ -14,6 +14,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- No image added from the Markdown editor *(editor)*
+- No image to upload in an answer's explanation *(editor)*
+- A new quiz's intro slide comes first, before its question *(quiz)*
 - The ding back at 880 Hz, its low-pass down to 300 Hz *(sounds)*
 - The ding down to 300 Hz, as chosen by ear *(sounds)*
 - The ding down to A5 (880 Hz) *(sounds)*
@@ -49,6 +52,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The 2026-09-27 batch listed, video and sound no longer experimental
 - Media on slides, as arbitrated — blocks, a video background, one sound at a time *(spec)*
 - The game's sounds in the feature list and unreleased
 - Closing a quiz mid-way in unreleased *(changelog)*
@@ -97,6 +101,13 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- Name a picture answer by its alt, in the history, the CSV and the templates *(history)*
+- Answer an image choice — the pictures at a distance, the shapes in the room *(player)*
+- Project an image choice — the pictures fill the screen, the reveal keeps them *(live)*
+- Write an image choice — pictures, their alt, 2 or 4, one or several right *(editor)*
+- Play the image choice as the choice it is scored as *(game)*
+- Image choice type, its rules and bundle version 6 *(questions)*
+- Offer to move an image of the prompt to the question's media *(editor)*
 - Answer shapes drawn in SVG, a softer ding, a wider label column *(ui)*
 - The grid shows each quiz's first slide, fetched once in view *(quizzes)*
 - Archived quizzes out of the list by default *(quizzes)*

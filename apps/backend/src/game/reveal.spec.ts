@@ -102,3 +102,26 @@ describe('buildRevealCommon', () => {
     expect(r.answerExplanation).toBe('Because **Paris**.');
   });
 });
+
+describe('buildRevealCommon — image choice', () => {
+  it('single: the right picture, answers counted per picture', () => {
+    const good = opt({ isCorrect: true });
+    const bad = opt();
+    const q = question({ type: QuestionType.ImageChoice, options: [good, bad] });
+    const r = buildRevealCommon(q, [rec(good.id, true), rec(bad.id), rec(bad.id)]);
+    expect(r.correctOptionIds).toEqual([good.id]);
+    expect(r.distribution).toEqual({ [good.id]: 1, [bad.id]: 2 });
+  });
+
+  it('multiple: every right picture, each tick counted', () => {
+    const [a, b, c, d] = [opt({ isCorrect: true }), opt({ isCorrect: true }), opt(), opt()];
+    const q = question({
+      type: QuestionType.ImageChoice,
+      multiSelect: true,
+      options: [a, b, c, d],
+    });
+    const r = buildRevealCommon(q, [rec([a.id, b.id], true), rec([a.id, c.id])]);
+    expect(r.correctOptionIds).toEqual([a.id, b.id]);
+    expect(r.distribution).toEqual({ [a.id]: 2, [b.id]: 1, [c.id]: 1, [d.id]: 0 });
+  });
+});

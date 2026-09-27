@@ -8,7 +8,8 @@
     "text_input": "文本输入",
     "numeric": "数字",
     "ordering": "排序",
-    "poll": "投票"
+    "poll": "投票",
+    "image_choice": "图片选择"
   },
   "header": {
     "title": "测验编辑器",
@@ -292,13 +293,18 @@
       "numeric": {
         "standard": "在误差范围内",
         "closest": "最接近者胜"
+      },
+      "image_choice": {
+        "standard": "全对才得分",
+        "partial": "部分得分"
       }
     },
     "scoringHelp": {
       "multiple_choice": "部分得分：每个正确勾选得其份额，每个错误勾选抵消一个。",
       "ordering": "部分得分：位置正确的元素所占比例。",
       "text_input": "容忍拼写错误：5 个字母内允许 1 处，之外允许 2 处（大小写/重音归一后）。",
-      "numeric": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。"
+      "numeric": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。",
+      "image_choice": "部分得分（多张正确图片）：每勾对一项得相应分数，每勾错一项抵消一项。"
     },
     "removeOptionConfirm": {
       "title": "删除此选项？",
@@ -312,7 +318,26 @@
     "listenFirstHint": "先听后答：播放声音或视频期间无法作答，之后每个人都有相同的思考时间。",
     "listenFirstTime": "媒体播放 {{media}} 秒，然后开始 {{time}} 秒的作答时间。",
     "promptImageNotice": "题干中的这张图片放在题目媒体中会更好：在所有屏幕上都有合适的框，可在手机上放大，并会提前加载。",
-    "promptImageMove": "移到媒体"
+    "promptImageMove": "移到媒体",
+    "imagesLegend": "图片",
+    "imageCountLabel": "数量",
+    "multiSelectLabel": "多个正确答案",
+    "multiSelectHint": "参与者勾选所有正确图片后提交——按多选题计分。",
+    "imageCropNote": "每张图片会被裁剪以填满其方块，与投影显示一致。",
+    "imageAdd": "添加图片",
+    "imageRequired": "请为此答案选择一张图片。",
+    "imageAltLabel": "替代文字",
+    "imageAltAria": "图片 {{index}} 的替代文字",
+    "imageAltPlaceholder": "图片内容，供看不到图片的人使用",
+    "imageAltRequired": "请描述图片：对看不到它的人来说，这就是答案。",
+    "imagesIncomplete": "每个答案都需要一张图片及其替代文字。",
+    "imageCountConfirm": {
+      "title": "只保留 2 张图片？",
+      "description": "最后两个答案及其图片将被移除。",
+      "confirmLabel": "移除"
+    },
+    "trueOption": "正确",
+    "falseOption": "错误"
   },
   "preview": {
     "view": "预览（玩家视图）",
@@ -426,7 +451,8 @@
     "text_input": "参与者输入答案。与可接受答案比较，忽略大小写、重音和多余空格。",
     "numeric": "参与者输入数字；在目标值 ± 容差范围内即正确。",
     "ordering": "参与者按位置 (#) 定义的顺序排列选项。全对才得分。",
-    "poll": "仅收集意见：没有正确答案，不计分；揭晓时显示分布。"
+    "poll": "仅收集意见：没有正确答案，不计分；揭晓时显示分布。",
+    "image_choice": "答案是图片，2 张或 4 张，每张有自己的颜色和形状。一张正确图片，或设置后多张；按单选或多选计分。"
   },
   "sessions": {
     "running_one": "{{count}} 个房间正在进行",

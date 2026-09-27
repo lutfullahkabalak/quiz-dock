@@ -307,6 +307,16 @@ describe('QuizzesService', () => {
                 { id: 'o2', text: 'Deux' },
               ],
             },
+            {
+              orderIndex: 4,
+              prompt: 'Lesquels sont des chats ?',
+              type: 'image_choice',
+              options: [
+                { id: 'p1', text: null, media: { url: '/api/v1/media/A', alt: 'Un chat roux' } },
+                { id: 'p2', text: null, media: { url: '/api/v1/media/B', alt: 'Un chat noir' } },
+                { id: 'p3', text: null, media: null },
+              ],
+            },
           ],
         },
         playerResults: [
@@ -344,12 +354,24 @@ describe('QuizzesService', () => {
             pointsAwarded: 0,
             responseMs: 2500,
           },
+          {
+            orderIndex: 4,
+            answerValue: ['p1', 'p2', 'p3'],
+            isCorrect: false,
+            pointsAwarded: 0,
+            responseMs: 2500,
+          },
         ],
       });
       const res = await service.sessionPlayerDetail(HOST, 'q1', 's1', 'pr1');
       expect(res.fullCapture).toBe(true);
       expect(res.answers[2].answer).toBe('Bleu, Vert'); // multi-choix : jointure « , »
       expect(res.answers[3].answer).toBe('Deux → Un'); // ordre : jointure « → »
+      // Pictures: named by their alt, never by an id (the CSV takes this label).
+      expect(res.answers[4]).toMatchObject({
+        prompt: 'Lesquels sont des chats ?',
+        answer: 'Un chat roux, Un chat noir, #3',
+      });
       expect(res.answers[0]).toMatchObject({
         prompt: 'Capitale ?',
         answer: 'Paris',

@@ -1,3 +1,4 @@
+import { TILE_RATIO } from '@quiz-dock/contracts';
 import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +61,14 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
                   >
                     <ShapeIcon shape={o.shape} />
                   </span>
+                  {o.mediaId ? (
+                    <img
+                      src={`/api/v1/media/${o.mediaId}`}
+                      alt=""
+                      className="h-8 shrink-0 rounded object-cover"
+                      style={{ aspectRatio: TILE_RATIO }}
+                    />
+                  ) : null}
                   {q.type === 'ordering' && o.correctOrderIndex != null ? (
                     <span className="text-muted-foreground tabular-nums">
                       {o.correctOrderIndex + 1}.
@@ -72,7 +81,7 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
                       markWrong && !o.isCorrect && 'text-muted-foreground',
                     )}
                   >
-                    {o.text || t('preview.optionFallback', { index: o.orderIndex + 1 })}
+                    {o.text || o.alt || t('preview.optionFallback', { index: o.orderIndex + 1 })}
                   </span>
                   {o.isCorrect ? (
                     <span className="text-success flex items-center gap-1 text-xs">

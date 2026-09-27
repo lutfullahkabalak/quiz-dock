@@ -49,6 +49,7 @@ import {
   SlideView,
   TYPE_BASE,
 } from '../game/live-components';
+import { ImageChoiceGrid } from '../game/image-choice';
 import { cn } from '@/lib/utils';
 import { Surface } from '../game/surface';
 import { unlockAudio } from '../game/media/audio-unlock';
@@ -130,7 +131,9 @@ export function PlayerPage() {
   };
 
   const question = view.question;
-  const isMulti = question?.type === 'multiple_choice';
+  const isMulti =
+    question?.type === 'multiple_choice' ||
+    (question?.type === 'image_choice' && !!question.multiSelect);
   const remaining = useGameRemaining(view);
   // Délai de lecture (§6/§8) : la fenêtre de réponse n'ouvre qu'à `startedAt`. Avant,
   // une réponse serait rejetée par le serveur (« trop tôt ») sans être comptée — on
@@ -395,7 +398,11 @@ export function PlayerPage() {
         <>
           {/* In the room the text is read on the projection, at the same place in the
               same grid; a remote participant has no projection, so it is in the tiles. */}
-          {remote ? (
+          {question.type === 'image_choice' ? (
+            // The pictures themselves, in the projection's order, in the room as at a
+            // distance: a phone has the room for them, and they are the answers.
+            <ImageChoiceGrid options={opts} onPick={onPick} selectedIds={selected} />
+          ) : remote ? (
             <OptionGrid options={opts} onPick={onPick} selectedIds={selected} />
           ) : (
             <OptionTiles options={opts} onPick={onPick} selectedIds={selected} />

@@ -33,6 +33,7 @@ import { ReadinessMeter } from '../game/media/readiness-meter';
 import { anchorOf, followed } from '../game/media/followed';
 import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
 import { Surface } from '../game/surface';
+import { ImageChoiceGrid } from '../game/image-choice';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { joinHostLabel, joinUrlFor } from '../game/join-url';
 import { type GameView, useGameSession } from '../game/use-game-session';
@@ -328,6 +329,28 @@ export function ScreenSurface({
         ) : null}
       </div>
     );
+  } else if (view.state === 'REVEAL' && view.question?.type === 'image_choice' && view.reveal) {
+    // The pictures stay where they were: the wrong ones dimmed, the right one(s)
+    // forward, each with its count — the grid fills the screen as during the question.
+    body = (
+      <div className="flex min-h-0 w-full max-w-[80em] flex-1 flex-col items-center gap-[1em]">
+        <Markdown
+          role="heading"
+          aria-level={1}
+          className="shrink-0 text-center text-[2em] font-semibold"
+        >
+          {view.question.prompt}
+        </Markdown>
+        <ImageChoiceGrid
+          fit="screen"
+          className="flex-1"
+          options={view.question.options ?? []}
+          correctIds={view.reveal.correctOptionIds ?? []}
+          counts={view.reveal.distribution}
+        />
+        <AnswerExplanation reveal={view.reveal} />
+      </div>
+    );
   } else if ((view.state === 'REVEAL' || view.state === 'LEADERBOARD') && view.question) {
     body = (
       <div className="flex w-full max-w-[40em] flex-col items-center gap-[1.5em]">
@@ -353,6 +376,7 @@ export function ScreenSurface({
       sound &&
       !!view.question.audioTarget &&
       playsSound(view.question.audioTarget, 'remote');
+    const images = view.question.type === 'image_choice';
     // Nobody scrolls a projector: the page is the screen's height, the answers keep
     // their room and the picture takes what is left (#92).
     body = (
@@ -412,7 +436,14 @@ export function ScreenSurface({
             anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
           />
           <AnswerRules question={view.question} className="shrink-0" />
-          {view.question.options?.length ? (
+          {images ? (
+            // No picture of its own: the pictures are the answers, and take what is left.
+            <ImageChoiceGrid
+              fit="screen"
+              className="min-h-[8em] flex-1"
+              options={view.question.options ?? []}
+            />
+          ) : view.question.options?.length ? (
             <div className="w-full shrink-0">
               <OptionGrid options={view.question.options} />
             </div>
@@ -486,7 +517,11 @@ export function ScreenSurface({
       className={cn(
         'bg-background relative flex min-h-dvh flex-col',
         // A question fits the screen exactly (see its body); the rest may grow.
-        (view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && 'h-dvh',
+        (view.state === 'ANSWERING' ||
+          view.state === 'QUESTION_SHOW' ||
+          // An image choice's reveal keeps its grid on the screen, as the question did.
+          (view.state === 'REVEAL' && view.question?.type === 'image_choice')) &&
+          'h-dvh',
         // One typographic base for the whole projected page; everything inside is in em.
         TYPE_BASE.screen,
         // A slide owns the whole surface; everything else is centred with breathing room.

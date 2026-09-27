@@ -11,7 +11,7 @@ import type {
   SlideTextAlign,
   SlideTextSize,
 } from '@quiz-dock/contracts';
-import { fillSlideBlocks } from '@quiz-dock/contracts';
+import { TILE_RATIO, fillSlideBlocks } from '@quiz-dock/contracts';
 import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -23,6 +23,7 @@ import { Surface } from './surface';
 import { SlideVariablesContext } from './slide-variables';
 import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
 import { ShapeIcon } from '@/components/shape-icon';
+import { optionLabel } from './image-choice';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -116,7 +117,7 @@ export function OptionGrid({
               isPicked && 'ring-4 ring-black/60',
               isHinted && 'outline-success outline outline-2 outline-offset-2',
             )}
-            aria-label={o.text ?? o.color}
+            aria-label={optionLabel(o)}
           >
             <span aria-hidden className="shrink-0 text-[1.35em] leading-none">
               <ShapeIcon shape={o.shape} />
@@ -169,6 +170,7 @@ export function OptionKey({
           >
             <ShapeIcon shape={o.shape} />
           </span>
+          {o.media ? <OptionThumb media={o.media} /> : null}
           {o.text ? (
             <Markdown
               profile="inline"
@@ -176,6 +178,8 @@ export function OptionKey({
             >
               {o.text}
             </Markdown>
+          ) : o.media?.alt ? (
+            <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{o.media.alt}</span>
           ) : null}
           {/* At the reveal: the right answer(s) and what this participant picked. */}
           {correctIds?.includes(o.id) ? (
@@ -224,7 +228,7 @@ export function OptionTiles({
             type={onPick ? 'button' : undefined}
             disabled={onPick ? disabled : undefined}
             onClick={onPick ? () => onPick(o.id) : undefined}
-            aria-label={o.text ?? o.color}
+            aria-label={optionLabel(o)}
             aria-pressed={onPick ? isPicked : undefined}
             className={cn(
               'flex items-center justify-center rounded-[0.75em] text-[1.6em] leading-none text-white shadow transition',
@@ -245,6 +249,18 @@ export function OptionTiles({
         );
       })}
     </div>
+  );
+}
+
+/** An answer's picture, small, cropped as its tile (a list row, a distribution bar). */
+function OptionThumb({ media }: { media: NonNullable<PublicOption['media']> }) {
+  return (
+    <img
+      src={media.url}
+      alt=""
+      className="h-[1.9em] shrink-0 rounded-[0.3em] object-cover"
+      style={{ aspectRatio: TILE_RATIO }}
+    />
   );
 }
 
@@ -282,6 +298,8 @@ export function Distribution({
             >
               <ShapeIcon shape={o.shape} />
             </span>
+            {/* A picture answer shows its picture: the bar alone would say only its colour. */}
+            {o.media ? <OptionThumb media={o.media} /> : null}
             <div
               className={cn(
                 'relative h-[1.9em] flex-1 overflow-hidden rounded-[0.35em]',
@@ -301,7 +319,7 @@ export function Distribution({
                   isCorrect && 'font-bold',
                 )}
               >
-                {o.text ?? o.color}
+                {optionLabel(o)}
               </span>
             </div>
             {/* Fixed slots (count, then the ✓ badge) so the column stays aligned across rows. */}
@@ -569,8 +587,10 @@ export function AnswerRules({
     question.type === 'poll' ? null : question.basePoints >= 2000 ? t('rules.double') : null;
   // A scoring variant has its own wording (closest wins, partial credit, typos forgiven).
   const scoring = question.scoring ?? 'standard';
-  const ruleKey =
-    scoring !== 'standard' ? `rules.${question.type}_${scoring}` : `rules.${question.type}`;
+  // An image choice reads as one or several pictures to pick.
+  const kind =
+    question.type === 'image_choice' && question.multiSelect ? 'image_choice_multi' : question.type;
+  const ruleKey = scoring !== 'standard' ? `rules.${kind}_${scoring}` : `rules.${kind}`;
   return (
     <p
       className={cn(
@@ -578,7 +598,7 @@ export function AnswerRules({
         className,
       )}
     >
-      <span>{t(ruleKey, { defaultValue: t(`rules.${question.type}`) })}</span>
+      <span>{t(ruleKey, { defaultValue: t(`rules.${kind}`) })}</span>
       {badge ? (
         <span className="rounded-full bg-amber-500/20 px-[0.6em] py-[0.1em] text-[0.85em] font-semibold text-amber-700">
           {badge}

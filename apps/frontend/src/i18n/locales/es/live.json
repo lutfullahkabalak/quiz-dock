@@ -100,7 +100,8 @@
       "text_input": "Texto",
       "numeric": "Numérica",
       "ordering": "Orden",
-      "poll": "Encuesta"
+      "poll": "Encuesta",
+      "image_choice": "Imágenes"
     },
     "previousStep": "Anterior",
     "nextStep": "Siguiente",
@@ -355,7 +356,10 @@
     "multiple_choice_partial": "Varias respuestas correctas — cada acierto cuenta, cada fallo resta uno.",
     "ordering_partial": "Pon las opciones en orden — cada posición correcta cuenta.",
     "text_input_lenient": "Escribe tu respuesta — las pequeñas erratas se perdonan.",
-    "fixed": "Puntos fijos"
+    "fixed": "Puntos fijos",
+    "image_choice": "Una imagen correcta — elígela.",
+    "image_choice_multi": "Varias imágenes correctas — márcalas todas y envía. Todo o nada.",
+    "image_choice_multi_partial": "Varias imágenes correctas — cada marca correcta cuenta, cada errónea anula una."
   },
   "preview": {
     "note": "Vista de solo lectura de lo que ve un participante ahora mismo.",

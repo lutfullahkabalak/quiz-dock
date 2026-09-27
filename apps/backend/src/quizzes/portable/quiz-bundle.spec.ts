@@ -268,6 +268,64 @@ describe('quiz bundle', () => {
     ).toThrow(BundleContentError);
   });
 
+  it('stamps version 6 for an image choice, pictures and their alt coming back', () => {
+    const CAT = '01ARZ3NDEKTSV4RRFFQ69G5FB2';
+    const DOG = '01ARZ3NDEKTSV4RRFFQ69G5FB3';
+    const src = makeQuiz();
+    Object.assign(src.questions[0], {
+      type: 'image_choice',
+      visualMediaId: null,
+      multiSelect: true,
+      scoring: 'partial',
+    });
+    src.questions[0].options = src.questions[0].options.map((o, i) => ({
+      ...o,
+      text: null,
+      mediaId: [CAT, DOG][i],
+      alt: ['A cat', 'Un chien'][i],
+      isCorrect: true,
+    }));
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(6);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    const item = bundle.items.find((it) => it.kind === 'question');
+    expect(item).toMatchObject({
+      type: 'image_choice',
+      multiSelect: true,
+      options: [
+        { media: pathFor(CAT), alt: 'A cat' },
+        { media: pathFor(DOG), alt: 'Un chien' },
+      ],
+    });
+
+    const back = fromBundle(bundle, idFor).questions[0];
+    expect(back).toMatchObject({
+      type: 'image_choice',
+      multiSelect: true,
+      scoring: 'partial',
+      options: [
+        { mediaId: CAT, alt: 'A cat', isCorrect: true },
+        { mediaId: DOG, alt: 'Un chien', isCorrect: true },
+      ],
+    });
+    // An answer's media is a picture: a sound in its place is refused.
+    expect(() => fromBundle(bundle, idFor, (p) => (idFor(p) === DOG ? 'audio' : 'image'))).toThrow(
+      BundleContentError,
+    );
+    // A bundle from a newer schema is refused, as an older importer refuses this one.
+    expect(quizBundleSchema.safeParse({ ...bundle, version: 7 }).success).toBe(false);
+    // What makes it true: the published v5 schema, the one a 0.8 / 0.9 importer matches, refuses it.
+    const v5 = JSON.parse(
+      readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'schema', 'quiz-bundle.v5.json'),
+        'utf8',
+      ),
+    ) as object;
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    expect(ajv.compile(v5)(JSON.parse(JSON.stringify(bundle)))).toBe(false);
+  });
+
   it('round-trips through import with the API content rules applied', () => {
     const src = makeQuiz();
     const imported = fromBundle(toBundle(src, pathFor), idFor);

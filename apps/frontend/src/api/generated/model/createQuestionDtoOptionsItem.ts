@@ -16,6 +16,8 @@ export type CreateQuestionDtoOptionsItem = {
      * @maxLength 26
      */
   mediaId?: string;
+  /** @maxLength 300 */
+  alt?: string;
   color: CreateQuestionDtoOptionsItemColor;
   shape: CreateQuestionDtoOptionsItemShape;
   isCorrect?: boolean;

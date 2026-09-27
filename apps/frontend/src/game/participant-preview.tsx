@@ -13,6 +13,7 @@ import {
 } from './live-components';
 import { RoomVariables } from './slide-variables';
 import { Surface } from './surface';
+import { ImageChoiceGrid } from './image-choice';
 import { useGameRemaining } from './use-countdown';
 import type { GameView } from './use-game-session';
 
@@ -48,7 +49,9 @@ export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string
           <Markdown className="text-[1.5em] font-semibold text-balance">{q.prompt}</Markdown>
         </div>
         <AnswerRules question={q} />
-        {q.options?.length ? (
+        {q.type === 'image_choice' ? (
+          <ImageChoiceGrid options={q.options ?? []} disabled />
+        ) : q.options?.length ? (
           <OptionTiles options={q.options} disabled />
         ) : (
           <Input disabled placeholder={t('player.answerPlaceholder')} className="text-center" />

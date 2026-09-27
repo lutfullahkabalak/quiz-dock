@@ -163,6 +163,7 @@ function questionOut(q: ExportableQuiz['questions'][number], pathFor: PathFor): 
   if (q.timerAfterMedia) item.timerAfterMedia = true;
   if (q.numericValue !== null) item.numericValue = Number(q.numericValue);
   if (q.numericTolerance !== null) item.numericTolerance = Number(q.numericTolerance);
+  if (q.multiSelect) item.multiSelect = true;
   if (q.options.length > 0) {
     item.options = q.options.map((o) => {
       const out: NonNullable<QuestionBundleItem['options']>[number] = {
@@ -172,6 +173,7 @@ function questionOut(q: ExportableQuiz['questions'][number], pathFor: PathFor): 
       };
       if (o.text) out.text = mdOut(o.text, pathFor);
       if (o.mediaId) out.media = pathFor(o.mediaId);
+      if (o.alt) out.alt = o.alt;
       if (o.correctOrderIndex !== null) out.correctOrderIndex = o.correctOrderIndex;
       return out;
     });
@@ -429,6 +431,10 @@ export function fromBundle(
       pending.push(content);
       return;
     }
+    // An answer's media is a picture.
+    if ((it.options ?? []).some((o) => o.media && kindFor(o.media) !== 'image')) {
+      throw new BundleContentError(index, [{ field: 'options', code: 'media.wrong_kind' }]);
+    }
     const q = parseOrThrow(
       () =>
         questionContentSchema.parse({
@@ -449,9 +455,11 @@ export function fromBundle(
           scoring: it.scoring,
           numericValue: it.numericValue,
           numericTolerance: it.numericTolerance,
+          multiSelect: it.multiSelect,
           options: (it.options ?? []).map((o) => ({
             text: o.text ? mdIn(o.text, idFor) : undefined,
             mediaId: o.media ? idFor(o.media) : undefined,
+            alt: o.alt,
             color: o.color,
             shape: o.shape,
             isCorrect: o.isCorrect,

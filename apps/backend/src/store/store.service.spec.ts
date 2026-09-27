@@ -204,6 +204,29 @@ describe('StoreService', () => {
     expect(preview.items[0].slide).toEqual(listed.first?.slide);
   });
 
+  it('an image choice previews with its pictures, named by their alt', async () => {
+    const { service } = makeService(quiz, 1, {
+      items: [
+        {
+          kind: 'question',
+          type: 'image_choice',
+          prompt: 'Which one is a cat?',
+          options: [
+            { media: 'media/cat.webp', alt: 'A cat', color: 'red', shape: 'triangle' },
+            { media: 'media/dog.webp', alt: 'A dog', color: 'blue', shape: 'diamond' },
+          ],
+        },
+      ],
+    });
+    const entry = await service.share(alice, 'q1');
+    const base = `/api/v1/store/${entry.id}/media`;
+    const preview = await service.preview(entry.id);
+    expect(preview.items[0].options).toEqual([
+      { text: 'A cat', color: 'red', shape: 'triangle', mediaUrl: `${base}/cat.webp` },
+      { text: 'A dog', color: 'blue', shape: 'diamond', mediaUrl: `${base}/dog.webp` },
+    ]);
+  });
+
   it('un média du catalogue ne se lit que par un nom sans traversée', async () => {
     const { service } = makeService();
     const entry = await service.share(alice, 'q1');

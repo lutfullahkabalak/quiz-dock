@@ -8,7 +8,8 @@
     "text_input": "Text input",
     "numeric": "Numeric",
     "ordering": "Reorder",
-    "poll": "Poll"
+    "poll": "Poll",
+    "image_choice": "Image choice"
   },
   "header": {
     "title": "Quiz editor",
@@ -292,13 +293,18 @@
       "numeric": {
         "standard": "Within tolerance",
         "closest": "Closest answer wins"
+      },
+      "image_choice": {
+        "standard": "All or nothing",
+        "partial": "Partial credit"
       }
     },
     "scoringHelp": {
       "multiple_choice": "Partial credit: each right tick earns its share, each wrong tick cancels one.",
       "ordering": "Partial credit: share of the elements at the right position.",
       "text_input": "Tolerate typos: one edit up to 5 letters, two beyond (after case/accent normalisation).",
-      "numeric": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus."
+      "numeric": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus.",
+      "image_choice": "Partial credit (several right pictures): each right tick earns its share, each wrong tick cancels one."
     },
     "removeOptionConfirm": {
       "title": "Remove this option?",
@@ -312,7 +318,26 @@
     "listenFirstHint": "Listen first, then answer: nobody can answer while the sound or video plays, and everyone gets the full time to think afterwards.",
     "listenFirstTime": "The media plays {{media}} s, then the {{time}} s of answering start.",
     "promptImageNotice": "This image in the prompt would be better in the question’s media: framed on every screen, zoomable on phones, loaded ahead.",
-    "promptImageMove": "Move to the media"
+    "promptImageMove": "Move to the media",
+    "imagesLegend": "Pictures",
+    "imageCountLabel": "How many",
+    "multiSelectLabel": "Several right answers",
+    "multiSelectHint": "Participants tick every right picture, then submit — scored like a multiple choice.",
+    "imageCropNote": "Each picture is cropped to fill its tile, as the projection shows it.",
+    "imageAdd": "Add a picture",
+    "imageRequired": "Choose a picture for this answer.",
+    "imageAltLabel": "Alternative text",
+    "imageAltAria": "Alternative text of picture {{index}}",
+    "imageAltPlaceholder": "What the picture shows, for whoever cannot see it",
+    "imageAltRequired": "Describe the picture: it is the answer for whoever cannot see it.",
+    "imagesIncomplete": "Every answer needs a picture and its alternative text.",
+    "imageCountConfirm": {
+      "title": "Keep only 2 pictures?",
+      "description": "The last two answers and their pictures will be removed.",
+      "confirmLabel": "Remove"
+    },
+    "trueOption": "True",
+    "falseOption": "False"
   },
   "preview": {
     "view": "Preview (player view)",
@@ -426,7 +451,8 @@
     "text_input": "The participant types the answer. Matched against the accepted answers ignoring case, accents and extra spaces.",
     "numeric": "The participant enters a number; correct when within ± tolerance of the target.",
     "ordering": "The participant sorts the options into the order set by the positions (#). All or nothing.",
-    "poll": "Opinion only: no correct answer, no points; the distribution is shown at the reveal."
+    "poll": "Opinion only: no correct answer, no points; the distribution is shown at the reveal.",
+    "image_choice": "The answers are pictures, 2 or 4, each with its colour and shape. One right picture, or several when set; scored like a single or multiple choice."
   },
   "sessions": {
     "running_one": "{{count}} room is playing it",

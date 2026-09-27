@@ -1,4 +1,5 @@
 import { GameSoundsPanel, RoomSoundsButton } from '../game/game-sounds-panel';
+import { ImageChoiceGrid } from '../game/image-choice';
 import { NextQuizButton, RoomStandingsPanel, roomLabel } from '../game/room-components';
 import {
   AUDIO_TARGETS,
@@ -760,7 +761,13 @@ export function ControlPage() {
           {view.question?.prompt}
         </Markdown>
 
-        {view.question?.options?.length ? (
+        {view.question?.type === 'image_choice' ? (
+          <ImageChoiceGrid
+            options={view.question.options ?? []}
+            highlightIds={correctIds}
+            className="max-w-xl"
+          />
+        ) : view.question?.options?.length ? (
           <OptionGrid options={view.question.options} highlightIds={correctIds} />
         ) : (
           <p className="text-muted-foreground text-sm">{t('control.freeAnswer')}</p>

@@ -2,6 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, setMarkdownField } from '../test/harness';
+import type { QuizDetailDtoQuestionsItem } from '../api/generated/model';
 import { QuestionForm } from './question-form';
 
 function renderForm(onClose = vi.fn()) {
@@ -324,5 +325,173 @@ describe('QuestionForm — media timing', () => {
     expect(screen.getByRole('note', { name: '' })).toHaveTextContent(
       'Le média joue 42 s, puis les 20 s de réponse commencent.',
     );
+  });
+});
+
+describe('QuestionForm — image choice', () => {
+  const CAT = '01M3GM8JMFRA3DJ04SWWDWPPC1';
+  const DOG = '01M3GM8JMFRA3DJ04SWWDWPPC2';
+  afterEach(() => {
+    vi.unstubAllGlobals();
+    localStorage.clear();
+  });
+
+  const pictureQuestion = (over: Partial<QuizDetailDtoQuestionsItem> = {}) =>
+    ({
+      id: 'qi',
+      quizId: 'q1',
+      orderIndex: 0,
+      type: 'image_choice',
+      prompt: 'Which one is a cat?',
+      media: { visual: null, audio: null },
+      answerExplanation: null,
+      backgroundMediaId: null,
+      backgroundGradient: null,
+      textTone: 'light',
+      textOutline: true,
+      timeLimitS: 20,
+      revealDelayS: null,
+      audioTarget: null,
+      waveformSize: 'M',
+      timerAfterMedia: false,
+      pointsMode: 'standard',
+      scoring: 'standard',
+      numericValue: null,
+      numericTolerance: null,
+      multiSelect: false,
+      options: [
+        {
+          id: 'o1',
+          orderIndex: 0,
+          text: null,
+          mediaId: CAT,
+          alt: 'A cat',
+          color: 'red',
+          shape: 'triangle',
+          isCorrect: true,
+          correctOrderIndex: null,
+        },
+        {
+          id: 'o2',
+          orderIndex: 1,
+          text: null,
+          mediaId: DOG,
+          alt: '',
+          color: 'blue',
+          shape: 'diamond',
+          isCorrect: false,
+          correctOrderIndex: null,
+        },
+      ],
+      acceptedAnswers: [],
+      ...over,
+    }) as unknown as QuizDetailDtoQuestionsItem;
+
+  function renderEdit(question: QuizDetailDtoQuestionsItem, onClose = vi.fn()) {
+    const queryClient = new QueryClient({
+      defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
+    });
+    render(
+      <QueryClientProvider client={queryClient}>
+        <QuestionForm quizId="q1" question={question} onClose={onClose} />
+      </QueryClientProvider>,
+    );
+    return onClose;
+  }
+  const lastPut = (fetchMock: ReturnType<typeof mockApi>) => {
+    const call = fetchMock.mock.calls.find(
+      ([url, opts]) => String(url).includes('/questions/qi') && opts?.method === 'PUT',
+    );
+    return call ? JSON.parse(String((call[1] as RequestInit).body)) : null;
+  };
+
+  it('switching to it gives 2 empty pictures, no visual slot, and 4 on request', () => {
+    mockApi([]);
+    renderForm();
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'image_choice' } });
+    expect(screen.getAllByLabelText(/Texte alternatif de l’image/)).toHaveLength(2);
+    expect(screen.queryByLabelText('option 1')).toBeNull();
+    // The media section keeps the sound only.
+    expect(screen.queryByText('Ajouter une vidéo')).toBeNull();
+    fireEvent.click(screen.getByRole('radio', { name: '4' }));
+    expect(screen.getAllByLabelText(/Texte alternatif de l’image/)).toHaveLength(4);
+    expect(screen.queryByRole('radio', { name: '3' })).toBeNull();
+  });
+
+  it('refuses to save an answer without its alternative text, and says which', async () => {
+    const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
+    const onClose = renderEdit(pictureQuestion());
+    fireEvent.click(screen.getByLabelText('Texte alternatif de l’image 1'));
+    fireEvent.change(screen.getByLabelText('Texte alternatif de l’image 1'), {
+      target: { value: 'A cat ' },
+    });
+    fireEvent.click(screen.getByText('Enregistrer'));
+    expect(
+      await screen.findByText('Chaque réponse demande une image et son texte alternatif.'),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Texte alternatif de l’image 2')).toHaveAttribute(
+      'aria-invalid',
+      'true',
+    );
+    expect(lastPut(fetchMock)).toBeNull();
+    expect(onClose).not.toHaveBeenCalled();
+  });
+
+  it('saves the pictures with their alt, several right answers and partial credit', async () => {
+    const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
+    const onClose = renderEdit(pictureQuestion());
+    fireEvent.change(screen.getByLabelText('Texte alternatif de l’image 2'), {
+      target: { value: ' A dog ' },
+    });
+    fireEvent.click(screen.getByLabelText('Plusieurs bonnes réponses'));
+    // Now checkboxes: tick the second picture too.
+    fireEvent.click(screen.getAllByRole('checkbox', { name: 'correcte' })[1]);
+    fireEvent.change(screen.getByLabelText('Barème'), { target: { value: 'partial' } });
+    fireEvent.click(screen.getByText('Enregistrer'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const payload = lastPut(fetchMock);
+    expect(payload).toMatchObject({
+      type: 'image_choice',
+      multiSelect: true,
+      scoring: 'partial',
+      media: { visual: null, audio: null },
+      options: [
+        { mediaId: CAT, alt: 'A cat', isCorrect: true, color: 'red', shape: 'triangle' },
+        { mediaId: DOG, alt: 'A dog', isCorrect: true, color: 'blue', shape: 'diamond' },
+      ],
+    });
+    expect(payload.options[0].text).toBeUndefined();
+  });
+
+  it('back to one right picture keeps the first one ticked', async () => {
+    const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
+    const q = pictureQuestion({ multiSelect: true, scoring: 'partial' } as never);
+    (q.options as unknown as { isCorrect: boolean; alt: string }[]).forEach((o) => {
+      o.isCorrect = true;
+      o.alt = o.alt || 'A dog';
+    });
+    const onClose = renderEdit(q);
+    fireEvent.click(screen.getByLabelText('Plusieurs bonnes réponses'));
+    fireEvent.click(screen.getByText('Enregistrer'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const payload = lastPut(fetchMock);
+    expect(payload.options.map((o: { isCorrect: boolean }) => o.isCorrect)).toEqual([true, false]);
+    expect(payload.multiSelect).toBe(false);
+    // Partial credit needs several right pictures: back to the standard rule.
+    expect(payload.scoring).toBe('standard');
+  });
+
+  it('keeps the picture an imported text answer holds when saving another type', async () => {
+    const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
+    const q = pictureQuestion({ type: 'single_choice' } as never);
+    (q.options as unknown as { text: string | null }[]).forEach((o, i) => (o.text = `T${i}`));
+    const onClose = renderEdit(q);
+    fireEvent.change(screen.getByLabelText('Temps (s)'), { target: { value: '30' } });
+    fireEvent.click(screen.getByText('Enregistrer'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(lastPut(fetchMock).options.map((o: { mediaId?: string }) => o.mediaId)).toEqual([
+      CAT,
+      DOG,
+    ]);
   });
 });

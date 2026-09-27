@@ -3063,7 +3063,8 @@
                     "text_input",
                     "numeric",
                     "ordering",
-                    "poll"
+                    "poll",
+                    "image_choice"
                   ]
                 },
                 "prompt": {
@@ -3315,6 +3316,9 @@
                   "type": "string",
                   "nullable": true
                 },
+                "multiSelect": {
+                  "type": "boolean"
+                },
                 "options": {
                   "type": "array",
                   "items": {
@@ -3333,6 +3337,10 @@
                         "nullable": true
                       },
                       "mediaId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "alt": {
                         "type": "string",
                         "nullable": true
                       },
@@ -3377,6 +3385,7 @@
                       "orderIndex",
                       "text",
                       "mediaId",
+                      "alt",
                       "color",
                       "shape",
                       "isCorrect",
@@ -3428,6 +3437,7 @@
                 "scoring",
                 "numericValue",
                 "numericTolerance",
+                "multiSelect",
                 "options",
                 "acceptedAnswers"
               ]
@@ -5530,12 +5540,17 @@
                       },
                       "shape": {
                         "type": "string"
+                      },
+                      "mediaUrl": {
+                        "type": "string",
+                        "nullable": true
                       }
                     },
                     "required": [
                       "text",
                       "color",
-                      "shape"
+                      "shape",
+                      "mediaUrl"
                     ]
                   }
                 },
@@ -5650,7 +5665,8 @@
               "text_input",
               "numeric",
               "ordering",
-              "poll"
+              "poll",
+              "image_choice"
             ]
           },
           "prompt": {
@@ -5913,6 +5929,10 @@
             "type": "number",
             "minimum": 0
           },
+          "multiSelect": {
+            "default": false,
+            "type": "boolean"
+          },
           "options": {
             "default": [],
             "maxItems": 8,
@@ -5928,6 +5948,10 @@
                   "type": "string",
                   "minLength": 26,
                   "maxLength": 26
+                },
+                "alt": {
+                  "type": "string",
+                  "maxLength": 300
                 },
                 "color": {
                   "type": "string",
@@ -6018,7 +6042,8 @@
               "text_input",
               "numeric",
               "ordering",
-              "poll"
+              "poll",
+              "image_choice"
             ]
           },
           "prompt": {
@@ -6270,6 +6295,9 @@
             "type": "string",
             "nullable": true
           },
+          "multiSelect": {
+            "type": "boolean"
+          },
           "options": {
             "type": "array",
             "items": {
@@ -6288,6 +6316,10 @@
                   "nullable": true
                 },
                 "mediaId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "alt": {
                   "type": "string",
                   "nullable": true
                 },
@@ -6332,6 +6364,7 @@
                 "orderIndex",
                 "text",
                 "mediaId",
+                "alt",
                 "color",
                 "shape",
                 "isCorrect",
@@ -6383,6 +6416,7 @@
           "scoring",
           "numericValue",
           "numericTolerance",
+          "multiSelect",
           "options",
           "acceptedAnswers"
         ]
@@ -6430,7 +6464,8 @@
               "text_input",
               "numeric",
               "ordering",
-              "poll"
+              "poll",
+              "image_choice"
             ]
           },
           "prompt": {
@@ -6693,6 +6728,10 @@
             "type": "number",
             "minimum": 0
           },
+          "multiSelect": {
+            "default": false,
+            "type": "boolean"
+          },
           "options": {
             "default": [],
             "maxItems": 8,
@@ -6708,6 +6747,10 @@
                   "type": "string",
                   "minLength": 26,
                   "maxLength": 26
+                },
+                "alt": {
+                  "type": "string",
+                  "maxLength": 300
                 },
                 "color": {
                   "type": "string",

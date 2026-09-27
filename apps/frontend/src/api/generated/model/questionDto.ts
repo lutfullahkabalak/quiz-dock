@@ -56,6 +56,7 @@ export interface QuestionDto {
   numericValue: string | null;
   /** @nullable */
   numericTolerance: string | null;
+  multiSelect: boolean;
   options: QuestionDtoOptionsItem[];
   acceptedAnswers: QuestionDtoAcceptedAnswersItem[];
 }

@@ -97,9 +97,17 @@ function listensFirst(q: QuizWithContent['questions'][number]): boolean {
 export type QuizWithContent = Prisma.QuizGetPayload<typeof quizWithContent>;
 export const QUIZ_SNAPSHOT_INCLUDE = quizWithContent.include;
 
-/** An option's picture. `alt` travels with it (#43): the screens have no other description. */
-const optionImageOf = (m: { url: string; kind: string; alt?: string | null } | null) =>
-  m?.kind === 'image' ? { url: m.url, kind: 'image' as const, alt: m.alt ?? null } : null;
+/**
+ * An option's picture. `alt` travels with it (#43): the screens have no other
+ * description. The option's own, in the quiz's language, before the asset's.
+ */
+const optionImageOf = (
+  m: { url: string; kind: string; alt?: string | null } | null,
+  optionAlt: string | null = null,
+) =>
+  m?.kind === 'image'
+    ? { url: m.url, kind: 'image' as const, alt: optionAlt || m.alt || null }
+    : null;
 
 /** Reading window before the answers open (configurable, like the engine reads it). */
 const readDelayMs = () => Number(process.env.GAME_READ_DELAY_MS ?? READ_DELAY_MS);
@@ -155,12 +163,13 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
         numericValue: q.numericValue === null ? null : Number(q.numericValue),
         numericTolerance: q.numericTolerance === null ? null : Number(q.numericTolerance),
         acceptedAnswersNormalized: q.acceptedAnswers.map((a) => a.normalized),
+        ...(q.multiSelect ? { multiSelect: true } : {}),
         options: q.options.map((o) => ({
           id: o.id,
           text: o.text,
           color: o.color as OptionColor,
           shape: o.shape as OptionShape,
-          media: optionImageOf(o.media),
+          media: optionImageOf(o.media, o.alt),
           isCorrect: o.isCorrect,
           correctOrderIndex: o.correctOrderIndex,
         })),
@@ -339,6 +348,7 @@ export function buildQuestionStart(
       ? { audioTarget: questionAudioTarget(question, gameTarget) }
       : {}),
     options,
+    ...(question.multiSelect ? { multiSelect: true } : {}),
     timeLimitS: question.timeLimitS,
     basePoints: question.basePoints,
     scoring: question.scoring ?? 'standard',

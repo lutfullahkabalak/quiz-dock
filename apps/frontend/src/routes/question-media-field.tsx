@@ -15,10 +15,13 @@ import { MediaUpload, type UploadedMedia } from './media-upload';
 export function QuestionMediaField({
   value,
   onChange,
+  withVisual = true,
   children,
 }: {
   value: QuestionMedia;
   onChange: (media: QuestionMedia) => void;
+  /** The visual slot; off for a type whose answers are the pictures (image choice). */
+  withVisual?: boolean;
   /** The sound's own settings (listen first, playback), closing the sound group. */
   children?: ReactNode;
 }) {
@@ -60,46 +63,48 @@ export function QuestionMediaField({
           .join(' · ') || t('media.none')
       }
     >
-      <div className={GROUP}>
-        <span className="text-sm font-medium">{t('media.visualLabel')}</span>
-        {visual?.kind === 'image' ? (
-          <MediaUpload value={visual.assetId} onChange={setImage} kind="image" />
-        ) : visual?.kind === 'video' && visual.source === 'upload' ? (
-          <MediaUpload value={visual.assetId} onChange={setVideo} kind="video" />
-        ) : visual?.kind === 'video' ? (
-          // An embedded video (YouTube / Vimeo) comes with its own phase; it can only be removed here.
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="w-fit"
-            onClick={() => setVideo(null)}
-          >
-            {t('media.remove')}
-          </Button>
-        ) : (
-          <div className="flex flex-wrap items-start gap-2">
-            <MediaUpload
-              value={null}
-              onChange={setImage}
-              kind="image"
-              label={t('media.addImage')}
-            />
-            {audio ? (
-              <p className="text-muted-foreground max-w-[22rem] text-sm">
-                {t('media.audioExcludesVideo')}
-              </p>
-            ) : (
+      {withVisual ? (
+        <div className={GROUP}>
+          <span className="text-sm font-medium">{t('media.visualLabel')}</span>
+          {visual?.kind === 'image' ? (
+            <MediaUpload value={visual.assetId} onChange={setImage} kind="image" />
+          ) : visual?.kind === 'video' && visual.source === 'upload' ? (
+            <MediaUpload value={visual.assetId} onChange={setVideo} kind="video" />
+          ) : visual?.kind === 'video' ? (
+            // An embedded video (YouTube / Vimeo) comes with its own phase; it can only be removed here.
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="w-fit"
+              onClick={() => setVideo(null)}
+            >
+              {t('media.remove')}
+            </Button>
+          ) : (
+            <div className="flex flex-wrap items-start gap-2">
               <MediaUpload
                 value={null}
-                onChange={setVideo}
-                kind="video"
-                label={t('media.addVideo')}
+                onChange={setImage}
+                kind="image"
+                label={t('media.addImage')}
               />
-            )}
-          </div>
-        )}
-      </div>
+              {audio ? (
+                <p className="text-muted-foreground max-w-[22rem] text-sm">
+                  {t('media.audioExcludesVideo')}
+                </p>
+              ) : (
+                <MediaUpload
+                  value={null}
+                  onChange={setVideo}
+                  kind="video"
+                  label={t('media.addVideo')}
+                />
+              )}
+            </div>
+          )}
+        </div>
+      ) : null}
 
       <div className={GROUP}>
         <span className="text-sm font-medium">{t('media.audioLabel')}</span>

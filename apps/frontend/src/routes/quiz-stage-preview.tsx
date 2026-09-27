@@ -2,6 +2,7 @@ import {
   type SlideBlock,
   type SlideGradient,
   type SlideShowPayload,
+  type PublicOption,
   fillSlideBlocks,
   quizVariables,
 } from '@quiz-dock/contracts';
@@ -18,6 +19,7 @@ import type {
 import type { QuizItem } from '@/lib/quiz-items';
 import { ScaledStage, SlideStage } from '../game/slide-stage';
 import { ShapeIcon } from '@/components/shape-icon';
+import { ImageChoiceGrid } from '../game/image-choice';
 
 /**
  * A quiz's steps as they will show, still: what the preview walks through and
@@ -70,6 +72,7 @@ export function slideShowOf(
 /** A question laid out on the 1280×720 stage: fixed sizes, scaled with the box. */
 export function QuestionPreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
   const { t } = useTranslation('editor');
+  if (question.type === 'image_choice') return <ImageChoicePreview question={question} />;
   const markWrong = question.type !== 'ordering' && question.options.some((o) => o.isCorrect);
   return (
     // Centred, as the projection shows a question.
@@ -150,6 +153,49 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
           })}
         </div>
       )}
+    </article>
+  );
+}
+
+/**
+ * An image choice as the projection lays it out: the prompt on one line, the
+ * pictures filling the rest, the right one(s) forward and the others dimmed.
+ */
+function ImageChoicePreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
+  const { t } = useTranslation('editor');
+  const options = question.options.map((o) => ({
+    id: o.id,
+    text: null,
+    color: o.color as PublicOption['color'],
+    shape: o.shape as PublicOption['shape'],
+    media: o.mediaId
+      ? { url: `/api/v1/media/${o.mediaId}`, kind: 'image' as const, alt: o.alt ?? null }
+      : null,
+  }));
+  return (
+    <article className="flex h-full w-full flex-col gap-4 p-10 text-left">
+      <div className="flex shrink-0 items-center gap-6">
+        <Markdown
+          role="heading"
+          aria-level={2}
+          className="line-clamp-2 flex-1 text-3xl font-semibold"
+        >
+          {question.prompt}
+        </Markdown>
+        <div className="text-muted-foreground shrink-0 text-xl">⏱ {question.timeLimitS} s</div>
+      </div>
+      <div className="text-muted-foreground shrink-0 text-sm tracking-wide uppercase">
+        {t(`questionType.${question.type}`)}
+        {question.media?.audio
+          ? ` · ${t('preview.sound', { seconds: Math.round(question.media.audio.durationMs / 1000) })}`
+          : ''}
+      </div>
+      <ImageChoiceGrid
+        fit="screen"
+        className="flex-1 text-2xl"
+        options={options}
+        correctIds={question.options.filter((o) => o.isCorrect).map((o) => o.id)}
+      />
     </article>
   );
 }

@@ -676,4 +676,80 @@ describe('PlayerPage (client participant)', () => {
       expect(router.state.location.pathname).toBe('/join/771122');
     });
   });
+
+  describe('image choice', () => {
+    const picture = (i: number) => ({
+      id: `pic-${i}`,
+      text: null,
+      color: ['red', 'blue', 'yellow', 'green'][i],
+      shape: ['triangle', 'diamond', 'circle', 'square'][i],
+      media: { url: `/api/v1/media/p${i}`, kind: 'image', alt: `Picture ${i}` },
+    });
+    const answering = (presence: 'room' | 'remote', multiSelect = false) => {
+      loadPlayerSession.mockReturnValue({
+        pin: '771122',
+        nickname: 'Ada',
+        sessionToken: 't',
+        playerId: 'p1',
+      });
+      hookState.value = view({
+        state: GameState.Answering,
+        questionIndex: 0,
+        players: [{ playerId: 'p1', nickname: 'Ada', presence }],
+        question: {
+          questionIndex: 0,
+          type: 'image_choice',
+          prompt: 'Which one is a cat?',
+          options: [0, 1, 2, 3].map(picture),
+          ...(multiSelect ? { multiSelect: true } : {}),
+          timeLimitS: 20,
+          basePoints: 1000,
+          startedAt: Date.now() - 1000,
+          endsAt: Date.now() + 20_000,
+          media: { visual: null, audio: null },
+        } as never,
+      });
+      return renderApp('/join/771122');
+    };
+
+    it('remote: the pictures themselves, a tap answers', async () => {
+      answering('remote');
+      const tile = await screen.findByRole('button', { name: 'Picture 2' });
+      // Each tile shows its picture (named by the tile, the picture is part of it).
+      expect(
+        [...document.querySelectorAll('button img')].map((img) => img.getAttribute('src')),
+      ).toEqual(['/api/v1/media/p0', '/api/v1/media/p1', '/api/v1/media/p2', '/api/v1/media/p3']);
+      fireEvent.click(tile);
+      expect(fakeSocket.emit).toHaveBeenCalledWith('player:submit', {
+        pin: '771122',
+        questionIndex: 0,
+        answer: 'pic-2',
+      });
+    });
+
+    it('in the room too: the pictures, in the projection’s order', async () => {
+      answering('room');
+      const tiles = await screen.findAllByRole('button', { name: /Picture/ });
+      expect(tiles.map((b) => b.getAttribute('aria-label'))).toEqual([
+        'Picture 0',
+        'Picture 1',
+        'Picture 2',
+        'Picture 3',
+      ]);
+      expect(document.querySelectorAll('button img')).toHaveLength(4);
+    });
+
+    it('several right pictures: ticked, then submitted', async () => {
+      answering('remote', true);
+      fireEvent.click(await screen.findByRole('button', { name: 'Picture 0' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Picture 3' }));
+      expect(fakeSocket.emit).not.toHaveBeenCalledWith('player:submit', expect.anything());
+      fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
+      expect(fakeSocket.emit).toHaveBeenCalledWith('player:submit', {
+        pin: '771122',
+        questionIndex: 0,
+        answer: ['pic-0', 'pic-3'],
+      });
+    });
+  });
 });

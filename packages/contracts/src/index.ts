@@ -9,6 +9,7 @@
  * (maps `ClientToServerEvents`/`ServerToClientEvents`) du contrat temps réel.
  */
 
+export * from './image-choice';
 export * from './media-sniff';
 export * from './preferences';
 export * from './question-media';
@@ -48,6 +49,8 @@ export enum QuestionType {
   Numeric = 'numeric',
   Ordering = 'ordering',
   Poll = 'poll',
+  /** Answers that are pictures (see image-choice.ts). */
+  ImageChoice = 'image_choice',
 }
 
 /** Mode de points d'une question (technique §5). */
@@ -208,6 +211,8 @@ export interface QuestionStartPayload {
   /** Which devices play its sound, resolved for this game (present when it has one). */
   audioTarget?: AudioTarget;
   options?: PublicOption[];
+  /** image_choice: several pictures may be picked (absent = one). */
+  multiSelect?: boolean;
   timeLimitS: number;
   basePoints: number;
   /** Scoring rule of the question (so the rules line and the reveal can explain it). */

@@ -162,6 +162,7 @@ game:{id}:answers:{qIdx}    Hash  -> playerId => {answer, receivedAt, tMs, isCor
 | **Slider / numeric** | a value | the target value ± a tolerance | Standard when within the tolerance |
 | **Ordering** | a sequence | the exact sequence | All or nothing in v1 |
 | **Poll** | 1 option | none | **0 points** (an opinion is collected) |
+| **Image choice** | 1 picture, or N when `multi_select` | the right picture(s) | As single choice; with `multi_select`, as multiple choice (partial credit available). See [SPECIFICATIONS-IMAGE-CHOICE.md](./SPECIFICATIONS-IMAGE-CHOICE.md) |
 
 ### Accessible answers
 Every choice option has a **colour AND a shape** (triangle/diamond/circle/square) for colour-blind players.
@@ -315,7 +316,7 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `player:joined` | `{ playerId, nickname, playerCount }` | the host + the players (the lobby list) |
 | `player:left` | `{ playerId, playerCount }` | the room |
 | `game:state` | `{ state, questionIndex, totalQuestions }` | the room |
-| `question:start` | `{ questionIndex, type, prompt, media?, options:[{id,text,color,shape,media?}], timeLimitS, basePoints, startedAt, endsAt }` | the room (**without** a correct flag) |
+| `question:start` | `{ questionIndex, type, prompt, media?, options:[{id,text,color,shape,media?}], multiSelect?, timeLimitS, basePoints, startedAt, endsAt }` | the room (**without** a correct flag) |
 | `answer:ack` | `{ accepted, receivedAt }` | the sending player |
 | `answer:count` | `{ answered, total }` | the host |
 | `question:reveal` | `{ correctOptionIds \| correctValue, distribution, yourResult:{ correct, points, totalScore, rank } }` | the room (the personal result aimed per socket) |

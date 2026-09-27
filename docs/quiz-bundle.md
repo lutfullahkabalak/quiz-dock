@@ -144,6 +144,10 @@ Contributors changing the bundle schema or a content schema run
   omitted), and the slide's own `audioTarget`. A slide plays **one sound at
   most**: a video with its sound and an `audio` together are refused
   (`slide.two_sounds`).
+- Image choice (version 6): a question of type `image_choice` has 2 or 4
+  options, each a picture — `media` with its `alt`, in the quiz's language —
+  and no `text`; `multiSelect: true` lets several be right. It has no `media`
+  of its own (an `audio` is fine).
 - Questions and slides follow the API content rules (question types and their
   fields, block types, colour/shape names, limits). Defaults apply when a
   field is omitted: `timeLimitS` 20, `pointsMode` standard, `textTone` light,
@@ -165,7 +169,7 @@ at `null`. An imported bundle keeps whatever it carried, except its identity
 
 | Field | Type | Meaning |
 |---|---|---|
-| `version` (top level) | integer | Manifest schema version, up to `5`. An export stamps the **lowest version it needs** — `3`, `4` once a waveform is `hidden`, `5` once a slide carries a video or a sound — so an instance whose importer stops at an older version still takes a quiz that uses nothing newer. Absent in the earliest bundles: read as `0`, same layout. A bundle from a newer schema is refused. |
+| `version` (top level) | integer | Manifest schema version, up to `6`. An export stamps the **lowest version it needs** — `3`, `4` once a waveform is `hidden`, `5` once a slide carries a video or a sound, `6` once a question is an image choice — so an instance whose importer stops at an older version still takes a quiz that uses nothing newer. Absent in the earliest bundles: read as `0`, same layout. A bundle from a newer schema is refused. |
 | `media` (top level) | object | What each media file carries beyond its bytes, keyed by the same path the items reference: an `alt`, the description read aloud by screen readers (version 2); for a sound or a video, what the editor measured (version 3) — `durationMs`, `peaks` (200 values in 0–1, the waveform the screens draw), `origin` (`upload` or `recording`), `loudnessLufs` and `peakDbfs` (the playback gain). A sound needs `durationMs` and `peaks`. Absent in a version 1 bundle, and an image with no alternative text simply has no entry. |
 | `slug` | `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 60 | The identity that travels — never an internal id. Fixed by the owner's first export (derived from the title); the zip is named after it. Ignored on import: a copy carries nothing of its origin and gets its own slug at its first export. |
 | `namespace` | string or `null` | Reserved for a Store submission (`<username>/<slug>`); `null` on a local export. Ignored on import. |
