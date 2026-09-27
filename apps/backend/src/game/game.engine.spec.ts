@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto';
+import { NotFoundException } from '@nestjs/common';
 import { OptionColor, OptionShape, QuestionType } from '@quiz-dock/contracts';
 import { GameEngine } from './game.engine';
 import { type GameId, gameKeys } from './game.keys';
@@ -1084,6 +1085,13 @@ describe('GameEngine (characterization)', () => {
       const record = JSON.parse((await redis.hget(gameKeys.players(pin), 'p1'))!) as PlayerRecord;
       expect(record.connected).toBe(true);
       expect(roomOf('player:left')).toHaveLength(0);
+    });
+
+    it('an unknown game is not found (404), not a bad request (audit G7)', async () => {
+      await expect(engine.requireHost(pin, HOST)).rejects.toBeInstanceOf(NotFoundException);
+      await seed(snapshotOf([question()]));
+      await expect(engine.requireHost(pin, 'someone-else')).rejects.toThrow('host.forbidden');
+      await expect(engine.requireHost(pin, HOST)).resolves.toMatchObject({ hostUserId: HOST });
     });
 
     it('refuses a ban or a time adjustment that is not a number, changing nothing', async () => {

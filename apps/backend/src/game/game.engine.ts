@@ -1,4 +1,10 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger } from '@nestjs/common';
+import {
+  BadRequestException,
+  ForbiddenException,
+  Injectable,
+  Logger,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   AUDIO_TARGETS,
   type AnswerAck,
@@ -2087,11 +2093,14 @@ export class GameEngine {
     return meta && meta.id === ref.id ? meta : null;
   }
 
-  /** Charge les méta en exigeant que l'appelant soit l'hôte propriétaire. */
-  private async requireHost(pin: string, hostUserId: string): Promise<GameMeta> {
+  /**
+   * Charge les méta en exigeant que l'appelant soit l'hôte propriétaire : la seule
+   * garde d'hôte, pour le moteur, la gateway (`host:attach`) et l'API REST.
+   */
+  async requireHost(pin: string, hostUserId: string): Promise<GameMeta> {
     const meta = await this.game.getMeta(pin);
     if (!meta) {
-      throw new BadRequestException('session.not_found');
+      throw new NotFoundException('session.not_found');
     }
     if (meta.hostUserId !== hostUserId) {
       throw new ForbiddenException('host.forbidden');

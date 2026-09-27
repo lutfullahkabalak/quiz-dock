@@ -186,14 +186,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     @ConnectedSocket() socket: GameSocket,
     @MessageBody() payload: { pin: string },
   ): Promise<{ ok: boolean }> {
-    const host = this.requireHost(socket);
-    const meta = await this.game.getMeta(payload.pin);
-    if (!meta) {
-      throw new WsException('session.not_found');
-    }
-    if (meta.hostUserId !== host.id) {
-      throw new WsException('host.forbidden');
-    }
+    await this.engine.requireHost(payload.pin, this.requireHostId(socket));
     socket.data.pin = payload.pin;
     socket.data.isHostControl = true;
     await socket.join(payload.pin);
@@ -291,9 +284,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     @ConnectedSocket() socket: GameSocket,
     @MessageBody() payload: { pin: string; avatar: string },
   ): Promise<void> {
-    const playerId = socket.data.playerId;
-    if (!playerId) return;
-    await this.engine.setAvatar(payload.pin, playerId, payload.avatar);
+    const me = playerOf(socket, payload.pin);
+    if (!me) return;
+    await this.engine.setAvatar(me.pin, me.playerId, payload.avatar);
   }
 
   /** `host:start` : l'hôte propriétaire lance la 1re question (LOBBY → ANSWERING). */
@@ -398,9 +391,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     @ConnectedSocket() socket: GameSocket,
     @MessageBody() payload: { pin: string; ready: boolean },
   ): Promise<{ ok: boolean }> {
-    const { pin, playerId } = socket.data;
-    if (!pin || pin !== payload.pin || !playerId) return { ok: false };
-    return { ok: await this.engine.setReady(pin, playerId, payload.ready === true) };
+    const me = playerOf(socket, payload.pin);
+    if (!me) return { ok: false };
+    return { ok: await this.engine.setReady(me.pin, me.playerId, payload.ready === true) };
   }
 
   /** `host:room-name`: the room's own name, from its lobby. */
@@ -531,11 +524,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     @ConnectedSocket() socket: GameSocket,
     @MessageBody() payload: { pin: string; rating: number; comment?: string },
   ): Promise<{ ok: boolean }> {
-    const playerId = socket.data.playerId;
-    if (!playerId) {
-      return { ok: false };
-    }
-    return this.game.recordFeedback(payload.pin, playerId, payload.rating, payload.comment);
+    const me = playerOf(socket, payload.pin);
+    if (!me) return { ok: false };
+    return this.game.recordFeedback(me.pin, me.playerId, payload.rating, payload.comment);
   }
 
   /** A device has loaded what it fetched ahead of a step, a question or a slide (its own room only). */
@@ -623,6 +614,15 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   private requireHostId(socket: GameSocket): string {
     return this.requireHost(socket).id;
   }
+}
+
+/**
+ * The player a socket is, in the room it names — its own room only: a PIN sent
+ * by the client is never trusted over the one the socket joined. Null otherwise.
+ */
+function playerOf(socket: GameSocket, pin: string): { pin: string; playerId: string } | null {
+  const { pin: joined, playerId } = socket.data;
+  return joined && joined === pin && playerId ? { pin: joined, playerId } : null;
 }
 
 /** What the console may do to the question's media. */
