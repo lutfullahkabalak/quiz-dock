@@ -92,6 +92,15 @@ import {
 
 type GameServer = Server<Record<string, never>, ServerToClientEvents>;
 
+/**
+ * Records an answer (HSETNX) unless the question's reveal has taken its lock:
+ * 1 recorded, 0 already answered, -1 too late (the reveal has started).
+ */
+const ANSWER_ONCE_SCRIPT = `
+if redis.call('EXISTS', KEYS[2]) == 1 then return -1 end
+return redis.call('HSETNX', KEYS[1], ARGV[1], ARGV[2])
+`;
+
 /** Auto-mode delay on a REVEAL when the question sets none (#6): env override, else constant. */
 const defaultAutoAdvanceMs = () => Number(process.env.GAME_AUTO_ADVANCE_MS ?? AUTO_ADVANCE_MS);
 
@@ -735,14 +744,15 @@ export class GameEngine {
       return; // un autre chemin a déjà révélé cette question
     }
     this.timers.cancel('reveal', pin);
-    await this.redis.hset(gameKeys.game(gameId), { state: GameState.Reveal });
-    this.log.debug(`REVEAL ${pin} q${index} (${trigger})`);
-
     const snapshot = await this.game.getSnapshot(gameId);
-    // Numeric `closest`: the points wait for every answer — settle them now.
+    // Numeric `closest`: the points wait for every answer — settled before the state
+    // says REVEAL, so a screen (re)attaching meanwhile never reads them unsettled. The
+    // lock taken above already closes the answers (see `submit`).
     if (snapshot && isDeferred(snapshot.questions[index])) {
       await this.settleClosest(ref, snapshot.questions[index], index);
     }
+    await this.redis.hset(gameKeys.game(gameId), { state: GameState.Reveal });
+    this.log.debug(`REVEAL ${pin} q${index} (${trigger})`);
     this.server.to(pin).emit('game:state', {
       state: GameState.Reveal,
       questionIndex: index,
@@ -1245,6 +1255,7 @@ export class GameEngine {
     minutes: number,
   ): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
+    requireNumber(minutes);
     const nickname = await this.game.banPlayer(pin, meta.id, playerId, minutes);
     if (!nickname) return; // déjà parti / inconnu
     const sockets = await this.server.in(pin).fetchSockets();
@@ -1272,6 +1283,10 @@ export class GameEngine {
    * (le départ ne déclenche le REVEAL que si aucun connecté restant n'est en attente).
    */
   async handlePlayerDisconnect(pin: string, playerId: string): Promise<void> {
+    // An old socket timing out after the player came back on a new one (network
+    // switch): the player is still here. A socket that dropped has left the room.
+    const sockets = await this.server.in(pin).fetchSockets();
+    if (sockets.some((s) => (s.data as { playerId?: string }).playerId === playerId)) return;
     const record = await this.game.setConnected(pin, playerId, false);
     if (!record) return;
     const playerCount = await this.game.connectedCount(pin);
@@ -1772,6 +1787,7 @@ export class GameEngine {
     if (meta.state !== GameState.Answering) {
       throw new BadRequestException('session.timer_not_adjustable');
     }
+    requireNumber(deltaS);
     const deltaMs = Math.trunc(deltaS) * 1000;
 
     if (meta.clockFrozen) {
@@ -2010,12 +2026,17 @@ export class GameEngine {
       receivedAt,
     };
 
-    // Unicité : 1re réponse gagne (RG-06). Si déjà répondu, on ne score pas.
-    const won = await this.redis.hsetnx(
+    // Unicité : 1re réponse gagne (RG-06), tant que le reveal n'a pas commencé : il
+    // compte alors exactement les réponses qu'il montre (atomique avec son verrou).
+    const won = await this.redis.eval(
+      ANSWER_ONCE_SCRIPT,
+      2,
       gameKeys.answers(meta.id, questionIndex),
+      gameKeys.revealLock(meta.id, questionIndex),
       playerId,
       JSON.stringify(record),
     );
+    if (won === -1) return reject('closed');
     if (won === 0) {
       return reject('duplicate');
     }
@@ -2119,6 +2140,13 @@ export function normalizeBaseUrl(raw: string): string {
     return `${u.protocol}//${u.host}`;
   } catch {
     return '';
+  }
+}
+
+/** A number sent by a client (a ban's minutes, a time adjustment): anything else is refused. */
+function requireNumber(value: unknown): asserts value is number {
+  if (typeof value !== 'number' || !Number.isFinite(value)) {
+    throw new BadRequestException('validation');
   }
 }
 

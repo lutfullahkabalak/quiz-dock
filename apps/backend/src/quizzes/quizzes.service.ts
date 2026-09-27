@@ -8,6 +8,7 @@ import { Prisma, type Quiz, QuizStatus } from '@prisma/client';
 import { isManager, type RoleSet } from '../auth/roles';
 import { currentGameFields, gameKeys } from '../game/game.keys';
 import { MediaService } from '../media/media.service';
+import { assertAssets, expectImage } from '../media/assert-assets';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUESTION_INCLUDE, toQuestionOutput } from '../questions/questions.service';
 import { RedisService } from '../redis/redis.service';
@@ -75,7 +76,8 @@ export class QuizzesService {
   }
 
   /** Crée un quiz appartenant à `ownerId` (statut `draft` par défaut). */
-  create(ownerId: string, dto: CreateQuizDto): Promise<Quiz> {
+  async create(ownerId: string, dto: CreateQuizDto): Promise<Quiz> {
+    await assertAssets(this.prisma, ownerId, expectImage(dto.coverMediaId));
     return this.prisma.quiz.create({
       data: {
         ownerId,
@@ -472,7 +474,8 @@ export class QuizzesService {
   }
 
   async update(ownerId: string, id: string, dto: UpdateQuizDto): Promise<Quiz> {
-    await this.findOwnedOrThrow(ownerId, id);
+    const current = await this.findOwnedOrThrow(ownerId, id);
+    await assertAssets(this.prisma, ownerId, expectImage(dto.coverMediaId), [current.coverMediaId]);
     return this.prisma.quiz.update({
       where: { id },
       data: {

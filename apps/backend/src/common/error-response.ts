@@ -1,5 +1,6 @@
 import { HttpException, HttpStatus, PayloadTooLargeException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
+import { Prisma } from '@prisma/client';
 import { ZodValidationException } from 'nestjs-zod';
 import { uploadCeiling } from '../media/media.config';
 
@@ -17,6 +18,16 @@ export interface ErrorBody {
   params?: Record<string, string | number>;
   errors?: { field: string; code: string }[];
 }
+
+/**
+ * Database errors a user can cause, with their meaning: the row is gone (deleted
+ * meanwhile), taken (two saves at once), or points at something gone.
+ */
+const PRISMA_ERRORS: Record<string, { status: number; code: string }> = {
+  P2025: { status: HttpStatus.NOT_FOUND, code: 'record.not_found' },
+  P2002: { status: HttpStatus.CONFLICT, code: 'record.conflict' },
+  P2003: { status: HttpStatus.BAD_REQUEST, code: 'record.invalid_reference' },
+};
 
 /** A domain error code: dotted lowercase words (`media.video_with_audio`). */
 const DOMAIN_CODE = /^[a-z][a-z_]*(\.[a-z][a-z_]*)+$/;
@@ -73,6 +84,10 @@ export function toErrorResponse(exception: unknown): { status: number; body: Err
       };
     }
     return { status: exception.getStatus(), body };
+  }
+  if (exception instanceof Prisma.PrismaClientKnownRequestError) {
+    const known = PRISMA_ERRORS[exception.code];
+    if (known) return { status: known.status, body: { code: known.code } };
   }
   if (exception instanceof WsException) {
     return { status: HttpStatus.BAD_REQUEST, body: fromPayload(exception.getError()) };

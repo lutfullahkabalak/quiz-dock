@@ -112,5 +112,10 @@
   },
   "slide": {
     "two_sounds": "Una diapositiva reproduce un solo sonido a la vez: silencia su vídeo o quita su sonido."
+  },
+  "record": {
+    "not_found": "Este elemento ya no existe: se eliminó mientras tanto.",
+    "conflict": "Otra persona guardó al mismo tiempo. Inténtalo de nuevo.",
+    "invalid_reference": "Esto hace referencia a algo que ya no existe."
   }
 }

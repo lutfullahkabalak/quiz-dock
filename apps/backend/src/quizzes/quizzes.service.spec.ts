@@ -47,6 +47,7 @@ function makePrisma() {
       findMany: jest.fn(),
       findFirst: jest.fn(),
     },
+    mediaAsset: { findMany: jest.fn(async (): Promise<{ id: string; kind: string }[]> => []) },
   };
 }
 
@@ -574,6 +575,36 @@ describe('QuizzesService', () => {
       // Who hears the sound travels with the copy.
       expect(data.audioTarget).toBe('projection');
       expect(data.questions.create[0].audioTarget).toBe('everyone');
+    });
+  });
+
+  describe('the cover picture (audit B3)', () => {
+    const COVER = 'c'.repeat(26);
+
+    it("refuses a cover that is not the author's, or not a picture, on create and update", async () => {
+      await expect(service.create(OWNER, { title: 'T', coverMediaId: COVER })).rejects.toThrow(
+        'media.not_found',
+      );
+      prisma.quiz.findFirst.mockResolvedValue({ id: 'quiz-1', ownerId: OWNER, coverMediaId: null });
+      prisma.mediaAsset.findMany.mockResolvedValueOnce([{ id: COVER, kind: 'video' }]);
+      await expect(service.update(OWNER, 'quiz-1', { coverMediaId: COVER })).rejects.toThrow(
+        'media.wrong_kind',
+      );
+      expect(prisma.quiz.create).not.toHaveBeenCalled();
+      expect(prisma.quiz.update).not.toHaveBeenCalled();
+    });
+
+    it('lets a quiz drop its cover, or keep the one it has', async () => {
+      prisma.quiz.findFirst.mockResolvedValue({
+        id: 'quiz-1',
+        ownerId: OWNER,
+        coverMediaId: COVER,
+      });
+      prisma.quiz.update.mockResolvedValue({});
+      prisma.mediaAsset.findMany.mockResolvedValueOnce([{ id: COVER, kind: 'image' }]);
+      await service.update(OWNER, 'quiz-1', { coverMediaId: COVER });
+      await service.update(OWNER, 'quiz-1', { coverMediaId: null });
+      expect(prisma.quiz.update).toHaveBeenCalledTimes(2);
     });
   });
 });

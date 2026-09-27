@@ -1,4 +1,4 @@
-import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs';
+import { mkdtempSync, readFileSync, rmSync, existsSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { BadRequestException, ForbiddenException, NotFoundException } from '@nestjs/common';
@@ -277,5 +277,34 @@ describe('StoreService', () => {
     await expect(
       service.withdraw({ ...alice, roles: [UserRole.admin] }, seeded[0].id),
     ).rejects.toThrow(ForbiddenException);
+  });
+
+  describe('a catalogue that holds up (audit B6)', () => {
+    it('starts with an unreadable index, and leaves it for the operator to repair', async () => {
+      writeFileSync(join(dir, 'index.json'), '{"entries": [{"id": "trunc');
+      const { service } = makeService();
+      await expect(service.onModuleInit()).resolves.toBeUndefined();
+      // Not overwritten by the samples: the entries it held are still in the file.
+      expect(readFileSync(join(dir, 'index.json'), 'utf8')).toBe('{"entries": [{"id": "trunc');
+    });
+
+    it('keeps both of two templates shared at the same time', async () => {
+      const { service, prisma } = makeService();
+      (prisma.quiz.findFirst as jest.Mock).mockImplementation(
+        async ({ where }: { where: { id: string } }) => ({ ...quiz, id: where.id }),
+      );
+      await Promise.all([service.share(alice, 'q1'), service.share(alice, 'q2')]);
+      const index = JSON.parse(readFileSync(join(dir, 'index.json'), 'utf8')) as {
+        entries: unknown[];
+      };
+      expect(index.entries).toHaveLength(2);
+    });
+
+    it('previews a template whose manifest was broken by hand, with what it has', async () => {
+      const { service } = makeService();
+      const entry = await service.share(alice, 'q1');
+      writeFileSync(join(dir, entry.id, 'quiz.json'), '{ not json');
+      await expect(service.preview(entry.id)).resolves.toMatchObject({ items: [] });
+    });
   });
 });

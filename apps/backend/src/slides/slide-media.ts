@@ -1,5 +1,5 @@
-import { BadRequestException } from '@nestjs/common';
 import type { MediaKind } from '@prisma/client';
+import { assertAssets } from '../media/assert-assets';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { SlideContent } from './dto/slide-content.schema';
 
@@ -41,17 +41,6 @@ export async function checkSlideMedia(
   if (dto.videoMediaId) expected.set(dto.videoMediaId, 'video');
   if (dto.audioMediaId) expected.set(dto.audioMediaId, 'audio');
   // Only what changes is checked: an image block the slide already had is not asked again.
-  const fresh = [...expected.keys()].filter(
-    (id) => !attached.includes(id) || expected.get(id) !== 'image',
-  );
-  if (fresh.length === 0) return;
-  const assets = await prisma.mediaAsset.findMany({
-    where: { id: { in: fresh }, OR: [{ ownerId }, { id: { in: attached } }] },
-    select: { id: true, kind: true },
-  });
-  for (const id of fresh) {
-    const asset = assets.find((a) => a.id === id);
-    if (!asset) throw new BadRequestException('media.not_found');
-    if (asset.kind !== expected.get(id)) throw new BadRequestException('media.wrong_kind');
-  }
+  const fresh = [...expected].filter(([id, kind]) => !attached.includes(id) || kind !== 'image');
+  await assertAssets(prisma, ownerId, new Map(fresh), attached);
 }

@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { MediaService } from '../media/media.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { QuestionContent } from './dto/question-content.schema';
@@ -25,11 +26,16 @@ function makePrisma() {
     quiz: { findFirst: jest.fn(), update: jest.fn() },
     question: {
       findFirst: jest.fn(),
+      // The question as read back after its creation.
+      findUniqueOrThrow: jest.fn(async () => ({ options: [], acceptedAnswers: [] })),
       findMany: jest.fn(),
       aggregate: jest.fn(),
       create: jest.fn(),
       update: jest.fn(),
       delete: jest.fn(),
+    },
+    mediaAsset: {
+      findMany: jest.fn<Promise<{ id: string; kind: string }[]>, [unknown?]>(async () => []),
     },
     $transaction: jest.fn((ops: Promise<unknown>[]) => Promise.all(ops)),
   };
@@ -156,6 +162,61 @@ describe('QuestionsService', () => {
         .slice(0, 2)
         .map((c) => c[0].data.orderIndex);
       expect(offsets).toEqual([1001, 1000]);
+    });
+  });
+
+  it('adds a question once more when another one took its place at the same time (audit B5)', async () => {
+    prisma.quiz.findFirst.mockResolvedValue({ id: 'quiz-1' });
+    prisma.question.aggregate
+      .mockResolvedValueOnce({ _max: { orderIndex: 2 } })
+      .mockResolvedValueOnce({ _max: { orderIndex: 3 } });
+    prisma.question.create.mockResolvedValue({});
+    prisma.$transaction
+      .mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('unique', { code: 'P2002', clientVersion: 't' }),
+      )
+      .mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops));
+    await service.add(OWNER, 'quiz-1', content());
+    expect(prisma.question.create.mock.calls.at(-1)[0].data.orderIndex).toBe(4);
+  });
+
+  describe('the background picture (audit B3)', () => {
+    const BG = 'b'.repeat(26);
+    beforeEach(() => {
+      prisma.quiz.findFirst.mockResolvedValue({ id: 'quiz-1' });
+      prisma.question.aggregate.mockResolvedValue({ _max: { orderIndex: null } });
+      prisma.question.create.mockResolvedValue({});
+    });
+
+    it("refuses a picture that is not the author's, or not a picture", async () => {
+      prisma.mediaAsset.findMany.mockResolvedValueOnce([]); // someone else's: not found for this author
+      await expect(
+        service.add(OWNER, 'quiz-1', content({ backgroundMediaId: BG })),
+      ).rejects.toThrow('media.not_found');
+      prisma.mediaAsset.findMany.mockResolvedValueOnce([{ id: BG, kind: 'audio' }]);
+      await expect(
+        service.add(OWNER, 'quiz-1', content({ backgroundMediaId: BG })),
+      ).rejects.toThrow('media.wrong_kind');
+      expect(prisma.question.create).not.toHaveBeenCalled();
+    });
+
+    it("keeps the picture a question already has, whoever's it is", async () => {
+      prisma.question.findFirst.mockResolvedValue({
+        id: 'q1',
+        quizId: 'quiz-1',
+        visualMediaId: null,
+        audioMediaId: null,
+        backgroundMediaId: BG,
+        options: [],
+      });
+      prisma.question.update.mockResolvedValue({});
+      prisma.mediaAsset.findMany.mockImplementation(async (args: unknown) => {
+        const where = (args as { where: { OR: { id?: { in: string[] } }[] } }).where;
+        return where.OR.some((c) => c.id?.in.includes(BG)) ? [{ id: BG, kind: 'image' }] : [];
+      });
+      await expect(
+        service.update(OWNER, 'q1', content({ backgroundMediaId: BG })),
+      ).resolves.toBeDefined();
     });
   });
 });
