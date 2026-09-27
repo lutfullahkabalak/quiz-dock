@@ -167,7 +167,7 @@
     "participantLoading": "Prêt, médias en chargement",
     "sounds": {
       "title": "Sons du jeu",
-      "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique joue pendant les réponses et s’efface quand une question joue son propre son.",
+      "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique joue pendant les réponses et se tait quand une question joue son propre son.",
       "tick": "Tic",
       "gong": "Gong",
       "music": "Musique",
