@@ -111,6 +111,19 @@ A fresh process could also carry less memory from the previous steps. These
 effects are small next to the gap measured (3.4 s against 18 ms at 700 players),
 and the A/B of 3, which starts both codes the same way, confirms the gap.
 
+Resources allocated, in all three (the container had no CPU quota and no memory
+limit):
+
+| Process | vCPU | RAM |
+|---|---|---|
+| Backend | 1 (core 0) in the one-core runs, 2 (cores 0-1) in the two-core runs, `taskset` | no limit (16 GB visible); its peak RSS is measured |
+| Postgres, Redis | not pinned: the 4 vCPU, shared with the others, the backend's core included | no limit; Redis's peak measured, Postgres's not |
+| Simulated players | 3 (cores 1-3) or 2 (cores 2-3), `taskset` | no limit |
+
+So "1 core" means the backend's JavaScript on one core, with Postgres and Redis
+able to run elsewhere: a whole instance on 1 vCPU was never measured, nor a VM
+with a memory limit.
+
 How far to trust them:
 
 - **The before/after comparison rests on the A/B of 3**: both codes alternated on the

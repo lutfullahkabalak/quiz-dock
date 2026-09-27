@@ -42,7 +42,29 @@
       "type": "single choice, 4 options, short texts, no media",
       "perStep": "one game per player count, one room"
     },
-    "howTo": "cd apps/backend && scripts/bench.sh series <out> && scripts/bench.sh ab b6c792e <out>"
+    "howTo": "cd apps/backend && scripts/bench.sh series <out> && scripts/bench.sh ab b6c792e <out>",
+    "allocation": {
+      "note": "what each process could use; the container itself had no CPU quota and no memory limit (cgroup: cfs_quota -1, memory unlimited)",
+      "backend": {
+        "vcpu": "1 (taskset core 0) in the one-core runs, 2 (cores 0-1) in the two-core runs",
+        "ramLimit": "none: the 16 GB of the machine visible; the RAM figures are its measured peak RSS"
+      },
+      "postgres": {
+        "vcpu": "not pinned: the 4 vCPU, shared with everything else (including the backend's core)",
+        "ramLimit": "none",
+        "ramMeasured": "no"
+      },
+      "redis": {
+        "vcpu": "not pinned: the 4 vCPU, shared with everything else (including the backend's core)",
+        "ramLimit": "none",
+        "ramMeasured": "used_memory_peak, cumulative since Redis started"
+      },
+      "players": {
+        "vcpu": "3 (cores 1-3) in the one-core runs, 2 (cores 2-3) in the two-core runs",
+        "ramLimit": "none"
+      },
+      "wholeStackOnOneVcpu": "never measured"
+    }
   },
   "redisPeak": {
     "note": "used_memory_peak since the Redis server started: cumulative over the runs in this order, not per run",
