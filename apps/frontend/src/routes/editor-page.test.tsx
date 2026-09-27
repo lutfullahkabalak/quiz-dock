@@ -4,6 +4,8 @@ import { mockApi, renderApp, setMarkdownField } from '../test/harness';
 
 vi.mock('../game/game-client', () => ({
   createSession: vi.fn().mockResolvedValue({ pin: '482913' }),
+  // No live connection in the editor's tests: a socket that never comes.
+  ensureGameSocket: vi.fn(() => new Promise(() => undefined)),
 }));
 
 const detail = (over: Record<string, unknown> = {}) => ({
