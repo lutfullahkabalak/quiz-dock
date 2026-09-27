@@ -84,10 +84,16 @@ your phone to play.
 
 ## 📈 Performance
 
-Load-tested with simulated players, the engine on one 2.1 GHz core: one room stays fluid
-up to **~1500 players** (answers acknowledged in 41–61 ms, p95; ~400 before 0.9.1), and
-**60 rooms of 30** at once in 25 ms. [Method and limits](https://github.com/quizdock/quiz-dock/blob/main/docs/dev/load-testing.md),
-[VM sizing](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/sizing.md).
+Rooms of 30 players playing at once, the engine on one 2.1 GHz core (answers acknowledged, ms):
+
+| Rooms | Players | p95 | p99 |
+|--:|--:|--:|--:|
+| 10 | 300 | 7 | 11 |
+| 30 | 900 | 7 | 12 |
+| 50 | 1500 | 9 | 14 |
+| 60 | 1800 | 25 | 105 |
+
+All measures, method and limits: [`docs/dev/load-results`](https://github.com/quizdock/quiz-dock/tree/main/docs/dev/load-results).
 
 ## 🔑 Two ways to run it
 
