@@ -3,6 +3,11 @@ export const GAME_TTL_S = 4 * 60 * 60;
 
 /** Délai de lecture de l'énoncé avant ouverture des réponses (§8, défaut 3 s). */
 export const READ_DELAY_MS = 3_000;
+/**
+ * Everyone answered: the reveal waits this long, so the last answer's tick is
+ * heard on its own before the gong (the two would run together otherwise).
+ */
+export const ALL_ANSWERED_DELAY_MS = 1_000;
 
 /**
  * How long the room waits at most for the devices that play a question's sound

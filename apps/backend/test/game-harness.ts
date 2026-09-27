@@ -53,6 +53,7 @@ export interface GameHarness {
 /** The test settings of the engine: short windows so a game runs in milliseconds. */
 const GAME_TEST_ENV: Record<string, string> = {
   GAME_READ_DELAY_MS: '150', // reading window before the timer
+  GAME_ALL_ANSWERED_DELAY_MS: '50', // everyone answered: the reveal a moment later
   GAME_HOST_GRACE_MS: '200', // host grace (§7.1)
   GAME_HOST_WINDOW_MS: '800', // host reconnection window (§7.3)
   GAME_AUTO_ADVANCE_MS: '300', // automatic pacing (§8)
