@@ -26,7 +26,7 @@ comes from the hardware.
 ## 2. Where the time goes
 
 **Measured** with a CPU profile of the backend at 400 players (one core saturated,
-`node --cpu-prof`-style sampling through the inspector), after the lots:
+`node --cpu-prof`-style sampling through the inspector), after the lots and before 3.0:
 
 | Share of the backend's time | What |
 |--:|---|
@@ -47,15 +47,20 @@ Before that measure, the analysis read the code:
 
 ## 3. Options, in order
 
-### 3.0 Coalescing `answer:count`: the strongest lever, to decide
+### 3.0 Coalescing `answer:count`: **done** (lot 5b)
 
-- Send the answer count at most every ~100 ms, the last one always, instead of on
-  every answer. The count is the same on every device, only its steps are coarser:
-  the room's sync is untouched.
+- The answer count goes out at most every 100 ms (`ANSWER_COUNT_EVERY_MS`), the last
+  one always, instead of on every answer: an answer in a quiet moment goes out at once,
+  those within the next 100 ms together at its end. A count still waiting when the
+  question is revealed goes out first, so the screens show every answer the reveal
+  counts. The count is the same on every device, only its steps are coarser: the room's
+  sync is untouched.
 - **Audible**: the screens tick once per answer counted, at most 5 ticks per update.
   In a large room (133 answers a second at 400 players) the clatter thins out; in a
   room of 30, answers rarely come within 100 ms of each other and nothing changes.
-- A product choice: **not done** until decided.
+  The game's sounds are off in a new room anyway: the host turns on the ones they want.
+- Measure: at the next cold-start run of the benchmark (see
+  [load testing](load-testing.md#2-running-it)).
 
 ### 3.1 In-memory indexes and a snapshot cache (low risk): **done**
 
@@ -77,7 +82,8 @@ Before that measure, the analysis read the code:
 ### 3.2 Indexes in Redis (medium risk): **not done**
 
 - The profile gives what they would save, the per-answer parse of every player,
-  about 6 % of the time at 400 players. Not worth the drift risk while 3.0 is open.
+  about 6 % of the time at 400 players (and less since 3.0: the players are counted
+  once per count sent, not once per answer). Not worth the drift risk.
 
 - A set of the game's **connected players** and a set of **who answered** each
   question, kept up to date on join, reconnect, disconnect, ban, answer and
@@ -117,9 +123,9 @@ Before that measure, the analysis read the code:
 
 1. ~~The engine refactoring (lot 2), behaviour unchanged, measured.~~ Done.
 2. ~~3.1, measured.~~ Done. 3.2 set aside (see above).
-3. 3.0 and 3.3 if the product accepts them.
-4. ~~The sizing table measured again and published in the
-   [self-hosting guides](../self-hosting/sizing.md).~~ Done.
+3. ~~3.0.~~ Done (lot 5b). 3.3 if the product accepts it.
+4. The sizing table published in the [self-hosting guides](../self-hosting/sizing.md),
+   from a warm container: to measure again from a cold start, 3.0 included.
 5. 3.4 only on a confirmed need, after a multi-room measure.
 
 ## 5. Also noted

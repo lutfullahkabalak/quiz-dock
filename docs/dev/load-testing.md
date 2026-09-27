@@ -58,9 +58,28 @@ taskset -c 1-3 pnpm load-test --url http://localhost:3100 --players 10,50,100,20
 the quiz's snapshot, which the engine reads on every answer, then weighs what a real
 text-heavy quiz does (about 4 KB a question) instead of a few bytes.
 
-To compare two versions of the engine, build each, then alternate their runs
-(A, B, B, A, A, B) rather than running one after the other: a container's CPU
-varies from one minute to the next, and a single run of each can mislead.
+`scripts/bench.sh` plays the two runs this page reports, a fresh backend and
+Redis database for each, on the database `quizdock_load` and the Redis database 2
+of localhost (`BENCH_DATABASE_URL`, `BENCH_REDIS_URL` to change them):
+
+```sh
+cd apps/backend
+scripts/bench.sh series /tmp/bench/series
+scripts/bench.sh ab b6c792e /tmp/bench/ab
+```
+
+- `series`: the tables of §3, 10 to 700 players on one core, 300 to 700 on two.
+- `ab <ref>`: compares a commit (A) with the checkout (B). Their runs alternate
+  (A B, B A, A B) rather than follow each other: a container's CPU varies from one
+  minute to the next, and a single run of each can mislead. Both share the
+  checkout's `node_modules`: the script refuses a commit whose Prisma schema or
+  contracts differ.
+
+**Measure on a machine that just started.** A container that has been running
+for hours, or other work on the machine, moves the figures more than most code
+changes: the baseline was measured right after the container started, and any
+figure compared with it must be too. The script notes the machine and the commit
+next to the results (`machine.txt`).
 
 **Do not point it at a production instance**: it takes the host seat and plays
 real games there.
@@ -120,6 +139,9 @@ Raw results: [`load-results/2026-09-27-baseline.json`](load-results/2026-09-27-b
 ### After the refactoring lots (2026-09-27, evening)
 
 The same setup and series, on the code after every lot (2, 4a to 4d, perf, 5).
+**Indicative**: measured on a container already warm from a day of runs, unlike the
+baseline, and before the answer count was coalesced (lot 5b). To be measured again
+from a cold start.
 
 **Backend pinned to 1 core**
 
@@ -146,18 +168,9 @@ Redis: 13 commands per answer (17 at 10 players), 90 MB at its peak.
 
 Raw results: [`load-results/2026-09-27-after-lots.json`](load-results/2026-09-27-after-lots.json).
 
-### Sizing (provisional)
+### Sizing
 
-A whole instance (backend, Postgres, Redis, the web server) on one VM, from the
-baseline above. To be measured again after the refactoring and published in the
-self-hosting guides.
-
-| Players at once | vCPU | RAM | Margin |
-|--:|--:|--:|---|
-| up to 100 | 1 | 2 GB | wide: the backend uses under a fifth of a core |
-| up to 300 | 2 | 2 GB | comfortable: three quarters of a core at the peak of a question |
-| up to 400 | 2 | 4 GB | at the limit: one core saturated during the answers, still fluid |
-| over 400 | — | — | not advised on one instance: answers slow down past 400–500 players, whatever the vCPU count |
+For operators, from these figures: [sizing the VM](../self-hosting/sizing.md).
 
 ## 4. Not measured (yet)
 

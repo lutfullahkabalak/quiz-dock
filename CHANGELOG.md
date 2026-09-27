@@ -123,6 +123,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- A new room's game sounds are off, the host turns on the ones they want *(game)*
 - Hooks on the live screens for an instance's override.css *(branding)*
 - Tokens for the answers' colours, warning, podium and typeface *(theme)*
 - The live pages say when their connection is lost *(live)*
@@ -187,6 +188,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Performance
 
+- The room's answer count sent at most every 100 ms, not on every answer *(game)*
 - The instance's language alone downloaded, not all five *(frontend)*
 - A game's snapshot parsed once, not on every answer *(game)*
 - A joining device's preload reads its own record only *(game)*

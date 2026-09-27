@@ -8,6 +8,11 @@ The figures come from the load test: one room, a quiz of single-choice questions
 without media, every player answering within 3 s, the whole stack (backend, Postgres,
 Redis) on the same machine, an Intel Xeon at 2.1 GHz.
 
+> [!NOTE]
+> **Provisional (2026-09-27).** Measured on a machine already busy for hours, before
+> the last performance change (the answer count sent at most every 100 ms). To be
+> measured again on a machine that just started, that change included.
+
 ## The table
 
 | Players at once, in one room | vCPU | RAM | What to expect |
