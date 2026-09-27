@@ -167,7 +167,7 @@
     "participantLoading": "Listo, cargando los medios",
     "sounds": {
       "title": "Sonidos del juego",
-      "hint": "Los reproducen la proyección y los participantes a distancia, nunca los teléfonos de la sala. La música se calla cuando una pregunta tiene su propio sonido.",
+      "hint": "Los reproducen la proyección y los participantes a distancia, nunca los teléfonos de la sala. La música suena mientras se responde y se aparta cuando una pregunta tiene su propio sonido.",
       "tick": "Tic",
       "gong": "Gong",
       "music": "Música",
@@ -176,6 +176,8 @@
       "gongLabel": "Un gong al final de la pregunta",
       "sample": "Sonido",
       "synth": "Integrado (sintetizado)",
+      "fromLibrary": "Un sonido de la mediateca…",
+      "addSound": "Añadir un sonido",
       "musicLabel": "Música de fondo mientras responden",
       "noMusic": "Ninguna",
       "musicLevel": "Música",

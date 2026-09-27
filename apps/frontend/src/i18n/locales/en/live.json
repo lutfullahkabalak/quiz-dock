@@ -167,7 +167,7 @@
     "participantLoading": "Ready, loading the media",
     "sounds": {
       "title": "Game sounds",
-      "hint": "Played by the projection and by participants following from home, never by phones in the room. The track stops while a question plays its own sound.",
+      "hint": "Played by the projection and by participants following from home, never by phones in the room. The track plays while players answer and steps aside while a question plays its own sound.",
       "tick": "Tick",
       "gong": "Gong",
       "music": "Music",
@@ -176,6 +176,8 @@
       "gongLabel": "A gong when the question ends",
       "sample": "Sound",
       "synth": "Built-in (synthesised)",
+      "fromLibrary": "A sound from the library…",
+      "addSound": "Add a sound",
       "musicLabel": "Background track while players answer",
       "noMusic": "None",
       "musicLevel": "Music",

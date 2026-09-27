@@ -7,6 +7,7 @@ import { Disclosure } from '@/components/ui/disclosure';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { useMediaControllerInstance, useMediaControllerList } from '../api/generated/media/media';
+import { MediaUpload } from '../routes/media-upload';
 import { SimpleDialog } from './media/sound-button';
 
 /**
@@ -75,6 +76,59 @@ export function RoomSoundsButton({
 }
 
 /** The controls themselves: the effects, the track, the two levels. */
+type SoundKey = 'tickId' | 'gongId' | 'musicId';
+
+/**
+ * One of the room's sounds: the built-in one (or none, for the track), or a
+ * sound of the library — then the editor's own picker: upload one, take one of
+ * *My sounds*, or of the instance's.
+ */
+function SoundSlot({
+  label,
+  none,
+  mediaId,
+  chosen,
+  onChange,
+}: {
+  label: string;
+  none: string;
+  mediaId: string | null;
+  chosen: boolean;
+  onChange: (mediaId: string | null) => void;
+}) {
+  const { t } = useTranslation('live');
+  const [fromLibrary, setFromLibrary] = useState(chosen);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label className="flex flex-col gap-1">
+        <span className="text-muted-foreground text-xs">{label}</span>
+        <Select
+          className="h-8"
+          aria-label={label}
+          value={fromLibrary ? 'library' : ''}
+          onChange={(e) => {
+            const library = e.target.value === 'library';
+            setFromLibrary(library);
+            if (!library) onChange(null);
+          }}
+        >
+          <option value="">{none}</option>
+          <option value="library">{t('control.sounds.fromLibrary')}</option>
+        </Select>
+      </label>
+      {fromLibrary ? (
+        <MediaUpload
+          kind="audio"
+          value={mediaId}
+          withDetails={false}
+          label={t('control.sounds.addSound')}
+          onChange={(id) => onChange(id)}
+        />
+      ) : null}
+    </div>
+  );
+}
+
 export function GameSoundsControls({
   sounds,
   onChange,
@@ -95,28 +149,15 @@ export function GameSoundsControls({
   ];
   // The choice is kept as a URL on the screens' side: find its media back by it.
   const idOf = (url: string | null) => options.find((o) => o.url === url)?.id ?? '';
-  const picker = (
-    label: string,
-    url: string | null,
-    none: string,
-    key: keyof RoomSoundsSettings,
-  ) => (
-    <label className="flex flex-col gap-1">
-      <span className="text-muted-foreground text-xs">{label}</span>
-      <Select
-        className="h-8"
-        aria-label={label}
-        value={idOf(url)}
-        onChange={(e) => onChange({ [key]: e.target.value })}
-      >
-        <option value="">{none}</option>
-        {options.map((o) => (
-          <option key={o.id} value={o.id}>
-            {o.label}
-          </option>
-        ))}
-      </Select>
-    </label>
+  const picker = (label: string, url: string | null, none: string, key: SoundKey) => (
+    <SoundSlot
+      key={key}
+      label={label}
+      none={none}
+      mediaId={idOf(url) || null}
+      chosen={url !== null}
+      onChange={(id) => onChange({ [key]: id ?? '' })}
+    />
   );
   const level = (label: string, value: number, key: 'musicLevel' | 'sfxLevel') => (
     <label className="flex items-center gap-3">
