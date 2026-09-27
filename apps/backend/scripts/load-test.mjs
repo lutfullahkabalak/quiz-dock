@@ -5,7 +5,10 @@
  * See docs/dev/load-testing.md.
  *
  *   node scripts/load-test.mjs --url http://localhost:3000 --players 10,50,100 \
- *     [--questions 10] [--server-pid <pid>] [--redis redis://localhost:6379] [--out result.json]
+ *     [--questions 10] [--rich] [--server-pid <pid>] [--redis redis://localhost:6379] [--out result.json]
+ *
+ * `--rich`: questions as long as the editor lets them be (prompt, explanation,
+ * answers), for a snapshot the size of a real text-heavy quiz.
  *
  * For each player count it reports, from the players' side: join and answer
  * latencies, answers refused or lost, and how far apart the devices received
@@ -24,6 +27,7 @@ const { values: args } = parseArgs({
     players: { type: 'string', default: '10,50,100,200,300' },
     questions: { type: 'string', default: '10' },
     'answer-window': { type: 'string', default: '3000' }, // players answer within it (ms)
+    rich: { type: 'boolean', default: false },
     'server-pid': { type: 'string' },
     redis: { type: 'string' },
     out: { type: 'string' },
@@ -143,16 +147,22 @@ async function redisCommands(redis) {
 async function seedQuiz() {
   await api('POST', '/auth/host-seat/claim', {});
   const quiz = await api('POST', '/quizzes', { title: `Load test ${Date.now()}` });
+  // Text to fill a field up to `n` characters, when --rich.
+  const text = (label, n) =>
+    args.rich
+      ? `${label} ${'Lorem ipsum dolor sit amet, consectetur. '.repeat(n / 42)}`.slice(0, n)
+      : label;
   for (let i = 0; i < QUESTIONS; i++) {
     await api('POST', `/quizzes/${quiz.id}/questions`, {
       type: 'single_choice',
-      prompt: `Question ${i + 1}`,
+      prompt: text(`Question ${i + 1}`, 1000),
+      ...(args.rich ? { answerExplanation: text('Because', 2000) } : {}),
       timeLimitS: 20,
       options: [
-        { text: 'A', color: 'red', shape: 'triangle', isCorrect: true },
-        { text: 'B', color: 'blue', shape: 'diamond' },
-        { text: 'C', color: 'yellow', shape: 'circle' },
-        { text: 'D', color: 'green', shape: 'square' },
+        { text: text('A', 200), color: 'red', shape: 'triangle', isCorrect: true },
+        { text: text('B', 200), color: 'blue', shape: 'diamond' },
+        { text: text('C', 200), color: 'yellow', shape: 'circle' },
+        { text: text('D', 200), color: 'green', shape: 'square' },
       ],
     });
   }
