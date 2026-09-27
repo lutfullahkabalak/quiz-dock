@@ -44,18 +44,18 @@ import {
   Text,
   X,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useUnsavedGuard } from '@/lib/use-unsaved-guard';
-import { clearDraft, loadDraft, saveDraft } from '@/lib/draft-store';
+import { useFormDraft } from '@/lib/use-form-draft';
+import { clearDraft, loadDraft } from '@/lib/draft-store';
+import { FormActionBar } from '@/components/form-action-bar';
 import { DraftNotice } from '@/components/draft-notice';
 import { apiErrorText } from '../api/http';
 import type { QuizDetailDtoSlidesItem } from '../api/generated/model';
@@ -149,7 +149,6 @@ export function SlideForm({
   const add = useSlidesControllerAdd();
   const update = useSlidesControllerUpdate();
   const [error, setError] = useState<string | null>(null);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showStage, setShowStage] = useState(() => {
     try {
       return localStorage.getItem('slide.preview') !== 'hidden';
@@ -171,12 +170,9 @@ export function SlideForm({
   const draftKey = `quiz:${quizId}:slide:${slide?.id ?? 'new'}`;
   const [restored, setRestored] = useState(() => loadDraft<FormValues>(draftKey));
   const [values, setValues] = useState<FormValues>(restored ?? initial);
-  useEffect(() => {
-    if (JSON.stringify(values) === JSON.stringify(initial)) clearDraft(draftKey);
-    else saveDraft(draftKey, values);
-  }, [values, initial, draftKey]);
+  const dirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  // Back to what was loaded: the draft goes with the changes.
   const discardDraft = () => {
-    clearDraft(draftKey);
     setRestored(null);
     setValues(initial);
   };
@@ -184,10 +180,10 @@ export function SlideForm({
   // The sound's waveform, known once a sound is picked here (the size preview draws it).
   const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
 
-  const dirty = JSON.stringify(values) !== JSON.stringify(initial);
-  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
-  useUnsavedGuard(dirty);
-  const cancel = () => (dirty ? setConfirmDiscard(true) : onClose());
+  const cancel = () => {
+    clearDraft(draftKey);
+    onClose();
+  };
 
   const submit = async () => {
     setError(null);
@@ -258,20 +254,16 @@ export function SlideForm({
       {/* Enregistrer est en haut, collant, comme pour une question : l'aperçu, les
           blocs et le média poussent le bas de la page hors d'atteinte. La barre dit
           aussi ce qu'on édite — hors tiroir, le formulaire n'a pas de titre. */}
-      <div className="bg-background/95 sticky top-0 z-20 -mx-1 flex items-center gap-2 px-1 py-2 backdrop-blur">
-        <span className="min-w-0 truncate text-base font-semibold">
-          {slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
-        </span>
-        {/* Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
-            bas de page où plus personne ne regarde. */}
-        <p className="text-destructive mr-auto min-w-0 flex-1 truncate text-xs">{error}</p>
-        <Button type="button" variant="ghost" size="sm" onClick={cancel}>
-          {t('common:cancel')}
-        </Button>
-        <Button type="submit" size="sm" disabled={!dirty || add.isPending || update.isPending}>
-          {slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
-        </Button>
-      </div>
+      <FormActionBar
+        title={slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
+        // Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
+        // bas de page où plus personne ne regarde.
+        error={error}
+        dirty={dirty}
+        busy={add.isPending || update.isPending}
+        submitLabel={slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
+        onCancel={cancel}
+      />
 
       {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
       {/* What the projected screen will show, at slide proportions — foldable, remembered. */}
@@ -335,20 +327,6 @@ export function SlideForm({
       <DisplayTimeField
         value={values.displayDelayS}
         onChange={(v) => patch({ displayDelayS: v })}
-      />
-
-      <ConfirmDialog
-        open={confirmDiscard}
-        destructive
-        title={t('discardConfirm.title')}
-        description={t('discardConfirm.description')}
-        confirmLabel={t('discardConfirm.confirmLabel')}
-        onCancel={() => setConfirmDiscard(false)}
-        onConfirm={() => {
-          setConfirmDiscard(false);
-          clearDraft(draftKey);
-          onClose();
-        }}
       />
     </form>
   );
