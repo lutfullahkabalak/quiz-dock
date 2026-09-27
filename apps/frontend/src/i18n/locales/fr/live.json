@@ -197,7 +197,7 @@
       "unmuteChannel": "Rétablir {{bus}} pour le salon",
       "preview": "Écouter : {{name}} (ici seulement)",
       "dingWhen": "À l’apparition de chaque question — pas pour une question qui joue son propre son ou sa vidéo.",
-      "tickWhen": "À chaque réponse reçue, y compris la dernière (juste avant le gong).",
+      "tickWhen": "À chaque réponse reçue.",
       "countdownWhen": "Sur les 5 dernières secondes du chrono : tic à la seconde, tac à la demie ; le dernier tac est omis et le gong tombe à zéro. S’arrête si tout le monde a répondu.",
       "gongWhen": "À la fin de la question : à zéro, ou dès que tout le monde a répondu."
     }
