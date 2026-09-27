@@ -117,6 +117,35 @@ Raw results: [`load-results/2026-09-27-baseline.json`](load-results/2026-09-27-b
 - **Memory is not the constraint**: about 265 MB at rest, under 450 MB up to 400
   players.
 
+### After the refactoring lots (2026-09-27, evening)
+
+The same setup and series, on the code after every lot (2, 4a to 4d, perf, 5).
+
+**Backend pinned to 1 core**
+
+| Players | join p95 | ack p50 | ack p95 | ack p99 | lost | start spread p95 | reveal spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 10 | 70 | 6 | 13 | 18 | 0 | 1 | 4 | 8 % | 287 MB |
+| 50 | 608 | 6 | 10 | 14 | 0 | 2 | 4 | 12 % | 293 MB |
+| 100 | 370 | 7 | 13 | 18 | 0 | 8 | 5 | 20 % | 309 MB |
+| 200 | 418 | 7 | 13 | 18 | 0 | 9 | 14 | 40 % | 319 MB |
+| 300 | 602 | 12 | 44 | 189 | 0 | 12 | 15 | 92 % | 387 MB |
+| 400 | 630 | 20 | 51 | 66 | 0 | 17 | 13 | 100 % | 315 MB |
+| 500 | 1233 | 141 | **505** | 566 | 0 | 26 | 25 | 100 % | 434 MB |
+| 700 | 1267 | 1736 | **3299** | 3677 | 0 | 34 | 30 | 100 % | 872 MB |
+
+**Backend on 2 cores**
+
+| Players | ack p95 | ack p99 | lost | start spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|
+| 300 | 22 | 33 | 0 | 15 | 108 % | 297 MB |
+| 500 | 427 | 708 | 0 | 18 | 108 % | 384 MB |
+| 700 | **3165** | 3286 | 0 | 26 | 108 % | 851 MB |
+
+Redis: 13 commands per answer (17 at 10 players), 90 MB at its peak.
+
+Raw results: [`load-results/2026-09-27-after-lots.json`](load-results/2026-09-27-after-lots.json).
+
 ### Sizing (provisional)
 
 A whole instance (backend, Postgres, Redis, the web server) on one VM, from the
