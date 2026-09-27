@@ -22,11 +22,6 @@ let socket: GameSocket | null = null;
 // pour ne jamais créer deux sockets `forceNew` dont le premier fuirait.
 let connecting: Promise<GameSocket> | null = null;
 
-/** Le socket courant (ou `null` si non connecté). */
-export function getGameSocket(): GameSocket | null {
-  return socket;
-}
-
 /** Ferme et oublie le socket courant. */
 export function disconnectGame(): void {
   socket?.disconnect();
@@ -89,6 +84,8 @@ export function clearPlayerSession(): void {
  * joint au handshake) ; en mode none, le nom local.
  */
 export async function connectHost(): Promise<GameSocket> {
+  // A host opening another game from the dashboard: the previous socket goes.
+  disconnectGame();
   socket = io('/game', {
     // Re-read at every (re)connection.
     auth: (cb) =>
@@ -110,6 +107,7 @@ export async function connectHost(): Promise<GameSocket> {
  * siège d'hôte.
  */
 export function connectPlayer(): GameSocket {
+  disconnectGame();
   socket = io('/game', { forceNew: true });
   calibrateClock(socket);
   return socket;

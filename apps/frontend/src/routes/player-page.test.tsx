@@ -1,5 +1,5 @@
 import { GameState } from '@quiz-dock/contracts';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameView } from '../game/use-game-session';
 import { configureAnonymousParticipants } from '../config';
@@ -36,6 +36,7 @@ vi.mock('../game/media/question-media-stage', () => ({
   ),
 }));
 const joinSession = vi.fn();
+const disconnectGame = vi.fn();
 const loadPlayerSession = vi.fn();
 const peekSession = vi.fn(() =>
   Promise.resolve({ hasSound: false, participantAccess: 'account' as 'account' | 'open' }),
@@ -53,6 +54,7 @@ vi.mock('../game/game-client', () => ({
   saveNickname: () => undefined,
   clearPlayerSession: () => undefined,
   saveAvatarSeed: () => undefined,
+  disconnectGame: () => disconnectGame(),
 }));
 
 const view = (partial: Partial<GameView>): GameView => ({
@@ -209,6 +211,23 @@ describe('PlayerPage (client participant)', () => {
 
     expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
     expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
+  });
+
+  it('leaving closes this device’s connection for good, so it can join another game (audit F1)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    hookState.value = view({ state: GameState.Lobby });
+    renderApp('/join/771122');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitter' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Quitter' }));
+    // Forgotten, not just disconnected: the next join opens a new connection.
+    await waitFor(() => expect(disconnectGame).toHaveBeenCalled());
   });
 
   describe('“Ready!” in the lobby (#104)', () => {

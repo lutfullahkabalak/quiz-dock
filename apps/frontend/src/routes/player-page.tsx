@@ -35,6 +35,7 @@ import {
   loadPlayerSession,
   peekSession,
   saveAvatarSeed,
+  disconnectGame,
 } from '../game/game-client';
 import { ResultMark } from '../game/result-mark';
 import { SortableAnswer } from '../game/sortable-answer';
@@ -468,7 +469,7 @@ export function PlayerPage() {
               onConfirm={() => {
                 setConfirmLeave(false);
                 clearPlayerSession();
-                socket?.disconnect();
+                disconnectGame();
                 void navigate({ to: '/join' });
               }}
             />
