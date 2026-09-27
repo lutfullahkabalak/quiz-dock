@@ -32,7 +32,10 @@ describe('format guide', () => {
     const imported = fromBundle(parsed.data, (path) => {
       throw new Error(`no media expected, got ${path}`);
     });
-    expect(imported.questions.map((q) => q.type)).toEqual([...QUESTION_TYPES]);
+    // Every type but the image choice, whose answers are pictures.
+    expect(imported.questions.map((q) => q.type)).toEqual(
+      QUESTION_TYPES.filter((t) => t !== 'image_choice'),
+    );
     expect(imported.slides).toHaveLength(1);
   });
 

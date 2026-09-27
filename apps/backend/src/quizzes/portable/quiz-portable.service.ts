@@ -225,11 +225,13 @@ export class QuizPortableService {
                 scoring: dto.scoring,
                 numericValue: isNumeric ? dto.numericValue : null,
                 numericTolerance: isNumeric ? dto.numericTolerance : null,
+                multiSelect: dto.type === 'image_choice' && dto.multiSelect,
                 options: {
                   create: dto.options.map((o, i) => ({
                     orderIndex: i,
                     text: o.text,
                     mediaId: o.mediaId,
+                    alt: o.alt || null,
                     color: o.color,
                     shape: o.shape,
                     isCorrect: o.isCorrect,

@@ -124,3 +124,30 @@ export async function resolveQuestionMedia(
     audioMediaId: audio?.assetId ?? null,
   };
 }
+
+/**
+ * Checks the pictures of a question's answers, as `resolveQuestionMedia` does
+ * for its slots: each asset exists, belongs to the author (or is already held by
+ * the question, `attached`) and is an image.
+ */
+export async function assertOptionImages(
+  prisma: PrismaService,
+  ownerId: string,
+  mediaIds: (string | null | undefined)[],
+  attached: (string | null)[] = [],
+): Promise<void> {
+  const ids = [...new Set(mediaIds.filter((id): id is string => !!id))];
+  if (ids.length === 0) return;
+  const assets = await prisma.mediaAsset.findMany({
+    where: {
+      id: { in: ids },
+      OR: [{ ownerId }, { id: { in: attached.filter((id): id is string => !!id) } }],
+    },
+    select: { id: true, kind: true },
+  });
+  for (const id of ids) {
+    const asset = assets.find((a) => a.id === id);
+    if (!asset) throw new BadRequestException('media.not_found');
+    if (asset.kind !== 'image') throw new BadRequestException('media.wrong_kind');
+  }
+}

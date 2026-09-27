@@ -175,6 +175,7 @@ describe('QuestionsService — media left behind', () => {
       quizId: 'z',
       visualMediaId: id('I'),
       audioMediaId: id('A'),
+      options: [],
     });
     (prisma as unknown as { mediaAsset: unknown }).mediaAsset = {
       findMany: jest.fn(async () => [{ id: id('I'), kind: 'image' }]),
@@ -190,5 +191,82 @@ describe('QuestionsService — media left behind', () => {
       media: { visual: { kind: 'image', assetId: id('I') }, audio: null },
     } as never);
     expect(media.releaseUnused).toHaveBeenCalledWith([id('A')]);
+  });
+});
+
+describe('QuestionsService — answer pictures', () => {
+  const id = (c: string) => c.repeat(26);
+  const pictures = content({
+    type: 'image_choice',
+    options: [
+      { color: 'red', shape: 'triangle', isCorrect: true, mediaId: id('P'), alt: 'A cat' },
+      { color: 'blue', shape: 'diamond', isCorrect: false, mediaId: id('Q'), alt: 'A dog' },
+    ],
+  } as Partial<QuestionContent>);
+
+  function setup(assets: { id: string; kind: string }[]) {
+    const prisma = makePrisma() as ReturnType<typeof makePrisma> & Record<string, unknown>;
+    const findMany = jest.fn(async () => assets);
+    (prisma as unknown as { mediaAsset: unknown }).mediaAsset = { findMany };
+    prisma.quiz.findFirst.mockResolvedValue({ id: 'z' });
+    prisma.question.aggregate.mockResolvedValue({ _max: { orderIndex: null } });
+    prisma.question.create.mockResolvedValue({ options: [], acceptedAnswers: [] });
+    const service = new QuestionsService(
+      prisma as unknown as PrismaService,
+      {
+        releaseUnused: jest.fn(),
+      } as unknown as MediaService,
+    );
+    return { prisma, service, findMany };
+  }
+
+  it('saves pictures the author owns, with their alt', async () => {
+    const { prisma, service, findMany } = setup([
+      { id: id('P'), kind: 'image' },
+      { id: id('Q'), kind: 'image' },
+    ]);
+    await service.add(OWNER, 'z', pictures);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ OR: [{ ownerId: OWNER }, { id: { in: [] } }] }),
+      }),
+    );
+    const data = prisma.question.create.mock.calls[0][0].data;
+    expect(data.options.create.map((o: { alt: string }) => o.alt)).toEqual(['A cat', 'A dog']);
+  });
+
+  it("refuses a picture that is not the author's", async () => {
+    const { prisma, service } = setup([{ id: id('P'), kind: 'image' }]);
+    await expect(service.add(OWNER, 'z', pictures)).rejects.toThrow('media.not_found');
+    expect(prisma.question.create).not.toHaveBeenCalled();
+  });
+
+  it('refuses a sound or a video as an answer', async () => {
+    const { service } = setup([
+      { id: id('P'), kind: 'image' },
+      { id: id('Q'), kind: 'audio' },
+    ]);
+    await expect(service.add(OWNER, 'z', pictures)).rejects.toThrow('media.wrong_kind');
+  });
+
+  it('keeps the pictures the question already holds on an update', async () => {
+    const { prisma, service, findMany } = setup([
+      { id: id('P'), kind: 'image' },
+      { id: id('Q'), kind: 'image' },
+    ]);
+    prisma.question.findFirst.mockResolvedValue({
+      id: 'q1',
+      quizId: 'z',
+      visualMediaId: null,
+      audioMediaId: null,
+      options: [{ mediaId: id('P') }, { mediaId: null }],
+    });
+    prisma.question.update.mockResolvedValue({ options: [], acceptedAnswers: [] });
+    await service.update(OWNER, 'q1', pictures);
+    expect(findMany).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({ OR: [{ ownerId: OWNER }, { id: { in: [id('P')] } }] }),
+      }),
+    );
   });
 });

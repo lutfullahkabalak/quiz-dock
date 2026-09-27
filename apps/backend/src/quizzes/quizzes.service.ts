@@ -417,11 +417,13 @@ export class QuizzesService {
             timerAfterMedia: q.timerAfterMedia,
             numericValue: q.numericValue,
             numericTolerance: q.numericTolerance,
+            multiSelect: q.multiSelect,
             options: {
               create: q.options.map((o) => ({
                 orderIndex: o.orderIndex,
                 text: o.text,
                 mediaId: o.mediaId,
+                alt: o.alt,
                 color: o.color,
                 shape: o.shape,
                 isCorrect: o.isCorrect,

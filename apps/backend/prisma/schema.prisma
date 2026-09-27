@@ -49,6 +49,8 @@ enum QuestionType {
   numeric
   ordering
   poll
+  /// Answers are pictures (2 or 4), each with its colour and shape; one or several right.
+  image_choice
 
   @@map("question_type")
 }
@@ -274,6 +276,8 @@ model Question {
   scoring            QuestionScoring @default(standard)
   numericValue       Decimal?        @map("numeric_value")
   numericTolerance   Decimal?        @map("numeric_tolerance")
+  /// image_choice: several pictures may be right (scored like a multiple choice).
+  multiSelect        Boolean         @default(false) @map("multi_select")
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -299,6 +303,9 @@ model AnswerOption {
   orderIndex        Int         @map("order_index")
   text              String?
   mediaId           String?     @map("media_id") @db.Char(26)
+  /// Alternative text of the option's picture, in the quiz's language: the same
+  /// image serves quizzes in other languages, so it is not the asset's.
+  alt               String?
   color             OptionColor
   shape             OptionShape
   isCorrect         Boolean     @default(false) @map("is_correct")

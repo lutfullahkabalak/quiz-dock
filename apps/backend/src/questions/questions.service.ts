@@ -5,7 +5,12 @@ import { PrismaService } from '../prisma/prisma.service';
 import type { QuestionContent } from './dto/question-content.schema';
 import { normalizeAnswer } from './dto/question-content.schema';
 import type { ReorderQuestionsDto } from './dto/reorder-questions.dto';
-import { QUESTION_MEDIA_INCLUDE, questionMediaOf, resolveQuestionMedia } from './question-media';
+import {
+  QUESTION_MEDIA_INCLUDE,
+  assertOptionImages,
+  questionMediaOf,
+  resolveQuestionMedia,
+} from './question-media';
 
 export const QUESTION_INCLUDE = {
   options: { orderBy: { orderIndex: 'asc' } },
@@ -39,6 +44,11 @@ export class QuestionsService {
     });
     const orderIndex = (agg._max.orderIndex ?? -1) + 1;
     const media = await resolveQuestionMedia(this.prisma, ownerId, dto.media);
+    await assertOptionImages(
+      this.prisma,
+      ownerId,
+      dto.options.map((o) => o.mediaId),
+    );
     const [question] = await this.prisma.$transaction([
       this.prisma.question.create({
         data: {
@@ -67,6 +77,12 @@ export class QuestionsService {
       current.visualMediaId,
       current.audioMediaId,
     ]);
+    await assertOptionImages(
+      this.prisma,
+      ownerId,
+      dto.options.map((o) => o.mediaId),
+      current.options.map((o) => o.mediaId),
+    );
     const question = await this.prisma.question.update({
       where: { id: questionId },
       data: {
@@ -168,6 +184,7 @@ export class QuestionsService {
       scoring: dto.scoring,
       numericValue: isNumeric ? dto.numericValue : null,
       numericTolerance: isNumeric ? dto.numericTolerance : null,
+      multiSelect: dto.type === 'image_choice' && dto.multiSelect,
     };
   }
 
@@ -176,6 +193,7 @@ export class QuestionsService {
       orderIndex,
       text: o.text,
       mediaId: o.mediaId,
+      alt: o.alt || null,
       color: o.color,
       shape: o.shape,
       isCorrect: o.isCorrect,
@@ -204,7 +222,13 @@ export class QuestionsService {
   private async assertQuestionOwned(ownerId: string, questionId: string) {
     const question = await this.prisma.question.findFirst({
       where: { id: questionId, quiz: { ownerId } },
-      select: { id: true, quizId: true, visualMediaId: true, audioMediaId: true },
+      select: {
+        id: true,
+        quizId: true,
+        visualMediaId: true,
+        audioMediaId: true,
+        options: { select: { mediaId: true } },
+      },
     });
     if (!question) {
       throw new NotFoundException('question.not_found');

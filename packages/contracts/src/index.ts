@@ -9,6 +9,7 @@
  * (maps `ClientToServerEvents`/`ServerToClientEvents`) du contrat temps réel.
  */
 
+export * from './image-choice';
 export * from './media-sniff';
 export * from './preferences';
 export * from './question-media';
@@ -48,6 +49,8 @@ export enum QuestionType {
   Numeric = 'numeric',
   Ordering = 'ordering',
   Poll = 'poll',
+  /** Answers that are pictures (see image-choice.ts). */
+  ImageChoice = 'image_choice',
 }
 
 /** Mode de points d'une question (technique §5). */

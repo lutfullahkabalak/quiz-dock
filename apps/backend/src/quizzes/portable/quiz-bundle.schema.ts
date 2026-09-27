@@ -1,5 +1,6 @@
 import {
   AUDIO_TARGETS,
+  OPTION_ALT_MAX,
   WAVEFORM_SIZES,
   audioPeaksSchema,
   loudnessSchema,
@@ -30,8 +31,9 @@ export const BUNDLE_FORMAT = 'quizdock/quiz';
  * accepts anything up to the current version and fills the defaults.
  * Version 4: a question's waveform may be `hidden`.
  * Version 5: slides carry media (#125) — Video and Sound blocks, a video background.
+ * Version 6: image choice — answers that are pictures, each with its `alt`.
  */
-export const BUNDLE_VERSION = 5;
+export const BUNDLE_VERSION = 6;
 
 /** Whether a slide item uses what version 5 brought: a video, a sound (#125). */
 function slideUsesMedia(it: SlideBundleItem): boolean {
@@ -44,6 +46,7 @@ function slideUsesMedia(it: SlideBundleItem): boolean {
  * that uses nothing newer.
  */
 export function bundleVersionOf(items: QuizBundle['items']): number {
+  if (items.some((it) => it.kind === 'question' && it.type === 'image_choice')) return 6;
   if (items.some((it) => it.kind === 'slide' && slideUsesMedia(it))) return 5;
   const hides = items.some((it) => it.kind === 'question' && it.waveformSize === 'hidden');
   return hides ? 4 : 3;
@@ -108,6 +111,8 @@ const backgroundBundleFields = {
 const optionBundleSchema = z.object({
   text: z.string().optional(),
   media: mediaPathSchema.optional(),
+  /** Alternative text of the option's picture, in the quiz's language (version 6). */
+  alt: z.string().max(OPTION_ALT_MAX).optional(),
   color: z.string(),
   shape: z.string(),
   isCorrect: z.boolean().optional(),
@@ -136,6 +141,8 @@ export const questionBundleSchema = z.object({
   scoring: z.enum(['standard', 'closest', 'partial', 'lenient']).optional(),
   numericValue: z.number().optional(),
   numericTolerance: z.number().optional(),
+  /** image_choice: several pictures may be right (version 6); absent = one. */
+  multiSelect: z.boolean().optional(),
   options: z.array(optionBundleSchema).optional(),
   acceptedAnswers: z.array(z.string()).optional(),
 });

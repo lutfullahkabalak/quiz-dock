@@ -124,6 +124,7 @@ source, never a required one.
 | `points_mode` | enum `points_mode` | NN, DEF `standard` | `standard` \| `double` \| `none` (a poll) |
 | `numeric_value` | numeric | nullable | The target (`numeric` questions) |
 | `numeric_tolerance` | numeric | nullable, CHECK ≥ 0 | The ± tolerance (`numeric` questions) |
+| `multi_select` | boolean | NN, DEF false | Several right pictures (`image_choice` only) |
 | `created_at` | timestamptz | NN, DEF now() | |
 | `updated_at` | timestamptz | NN | |
 
@@ -132,6 +133,7 @@ CHECKs, in SQL or in the application, depending on the type:
 - `text_input` → ≥ 1 `accepted_answer`.
 - `numeric` → `numeric_value` NN + `numeric_tolerance` NN.
 - `poll` → `points_mode=none`, no right answer.
+- `image_choice` → exactly 2 or 4 `answer_option`, each with a `media_id` (an image the author owns) and an `alt`, no `text`; one right answer, or at least one with `multi_select`; no visual of the question's own (a sound is allowed).
 
 ### 2.4 `answer_option` — options (choice, true/false, ordering)
 
@@ -142,6 +144,7 @@ CHECKs, in SQL or in the application, depending on the type:
 | `order_index` | int | NN | Display position; UQ `(question_id, order_index)` |
 | `text` | text | nullable | The label (nullable when the option is media only) |
 | `media_id` | char(26) | FK→`media_asset.id`, nullable | The option's media |
+| `alt` | text | nullable | The picture's alternative text, in the quiz's language (`image_choice`): the asset is shared by quizzes in other languages |
 | `color` | enum `option_color` | NN | `red`\|`blue`\|`yellow`\|`green` (+ more) |
 | `shape` | enum `option_shape` | NN | `triangle`\|`diamond`\|`circle`\|`square` (accessibility) |
 | `is_correct` | boolean | NN, DEF false | A right answer (choice, true/false). **Never exposed before the reveal** (technique §7) |
@@ -271,7 +274,7 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 | `user_role` | `host`, `player`, `admin` | Held as a **set** on the account; `player` is the floor, never stored |
 | `quiz_status` | `draft`, `ready`, `archived` | The quiz lifecycle |
 | `quiz_visibility` | `private`, `unlisted` | Unused: see `quiz.visibility` |
-| `question_type` | `single_choice`, `multiple_choice`, `true_false`, `text_input`, `numeric`, `ordering`, `poll` | see technique §4 |
+| `question_type` | `single_choice`, `multiple_choice`, `true_false`, `text_input`, `numeric`, `ordering`, `poll`, `image_choice` | see technique §4 |
 | `points_mode` | `standard`, `double`, `none` | `none` = a poll (0 points) |
 | `option_color` | `red`, `blue`, `yellow`, `green` | Extensible beyond 4 options |
 | `option_shape` | `triangle`, `diamond`, `circle`, `square` | Accessibility (colour + shape) |
@@ -320,7 +323,7 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 
 ```ts
 type QuestionType = 'single_choice' | 'multiple_choice' | 'true_false'
-  | 'text_input' | 'numeric' | 'ordering' | 'poll';
+  | 'text_input' | 'numeric' | 'ordering' | 'poll' | 'image_choice';
 
 interface QuestionStartPayload {            // server → client (WITHOUT the right answer)
   questionIndex: number;

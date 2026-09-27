@@ -16,6 +16,8 @@ export type UpdateQuestionDtoOptionsItem = {
      * @maxLength 26
      */
   mediaId?: string;
+  /** @maxLength 300 */
+  alt?: string;
   color: UpdateQuestionDtoOptionsItemColor;
   shape: UpdateQuestionDtoOptionsItemShape;
   isCorrect?: boolean;

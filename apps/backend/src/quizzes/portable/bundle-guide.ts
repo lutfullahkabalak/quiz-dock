@@ -29,7 +29,14 @@ import {
  */
 export const BUNDLE_GUIDE_FILE = 'schema/quiz-format-guide.md';
 
-type QuestionType = (typeof QUESTION_TYPES)[number];
+/**
+ * The types a text-only file can hold: an image choice's answers are pictures,
+ * which the guide leaves out (as every media).
+ */
+const GUIDE_TYPES = QUESTION_TYPES.filter(
+  (t): t is Exclude<(typeof QUESTION_TYPES)[number], 'image_choice'> => t !== 'image_choice',
+);
+type QuestionType = (typeof GUIDE_TYPES)[number];
 
 /**
  * Every field of the format is either described by the guide or left out on
@@ -80,11 +87,12 @@ export const GUIDE_FIELDS = {
       'audioTarget',
       'waveformSize',
       'timerAfterMedia',
+      'multiSelect',
     ],
   },
   option: {
     described: ['text', 'color', 'shape', 'isCorrect', 'correctOrderIndex'],
-    left: ['media'],
+    left: ['media', 'alt'],
   },
   slide: {
     described: ['kind', 'blocks'],
@@ -192,7 +200,7 @@ export function guideExample(): z.input<typeof quizBundleSchema> {
         { type: 'text', id: 't1', md: 'Seven questions, **double points** on the galaxy.' },
       ],
     },
-    ...QUESTION_TYPES.map(
+    ...GUIDE_TYPES.map(
       (type) =>
         ({ kind: 'question', type, ...byType[type] }) as z.input<
           typeof quizBundleSchema
@@ -242,7 +250,7 @@ export function bundleGuideText(): string {
   const heading = block('heading');
   const text = block('text');
   const time = q.timeLimitS;
-  const scoring = QUESTION_TYPES.filter((t) => SCORING_BY_TYPE[t].length)
+  const scoring = GUIDE_TYPES.filter((t) => SCORING_BY_TYPE[t].length)
     .map((t) => `\`${SCORING_BY_TYPE[t].join('`, `')}\` for ${t}`)
     .join(', ');
   const palette = OPTION_COLORS.map((c, i) => `${i + 1}. \`${c}\` / \`${OPTION_SHAPES[i]}\``).join(
@@ -283,7 +291,7 @@ Every question:
 
 \`type\`, and what each one asks for:
 
-${QUESTION_TYPES.map((t) => `- \`${t}\` — ${TYPE_RULES[t]}`).join('\n')}
+${GUIDE_TYPES.map((t) => `- \`${t}\` — ${TYPE_RULES[t]}`).join('\n')}
 
 - \`acceptedAnswers\` — ${q.acceptedAnswers.items.properties.text.minLength} to ${q.acceptedAnswers.items.properties.text.maxLength} characters each, at most ${q.acceptedAnswers.maxItems} (plain strings).
 - \`numericTolerance\` — ${q.numericTolerance.minimum} or more.

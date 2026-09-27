@@ -162,6 +162,7 @@ game:{id}:answers:{qIdx}    Hash  -> playerId => {answer, receivedAt, tMs, isCor
 | **Slider / numeric** | a value | the target value ± a tolerance | Standard when within the tolerance |
 | **Ordering** | a sequence | the exact sequence | All or nothing in v1 |
 | **Poll** | 1 option | none | **0 points** (an opinion is collected) |
+| **Image choice** | 1 picture, or N when `multi_select` | the right picture(s) | As single choice; with `multi_select`, as multiple choice (partial credit available). See [SPECIFICATIONS-IMAGE-CHOICE.md](./SPECIFICATIONS-IMAGE-CHOICE.md) |
 
 ### Accessible answers
 Every choice option has a **colour AND a shape** (triangle/diamond/circle/square) for colour-blind players.
