@@ -1,4 +1,5 @@
 import { Prisma } from '@prisma/client';
+import { GameService } from './game.service';
 import { SessionArchiveService } from './session-archive.service';
 import { type GameId, gameKeys } from './game.keys';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -106,6 +107,10 @@ describe('SessionArchiveService', () => {
     } as unknown as RedisService;
   }
 
+  /** The archive reads the live game through GameService, over this Redis. */
+  const archiveWith = (prisma: PrismaService, redis: RedisService) =>
+    new SessionArchiveService(prisma, new GameService(prisma, redis));
+
   function buildPrisma() {
     const sessionCreate = jest.fn(async (args: { data: Record<string, unknown> }) => ({
       id: 'sess1',
@@ -171,7 +176,7 @@ describe('SessionArchiveService', () => {
     };
     const { prisma, sessionCreate, playerCreate, questionCreateMany, answerCreateMany } =
       buildPrisma();
-    const svc = new SessionArchiveService(prisma, buildRedis(players, answers));
+    const svc = archiveWith(prisma, buildRedis(players, answers));
 
     await svc.archive(PIN, meta, { interrupted: false });
 
@@ -241,7 +246,7 @@ describe('SessionArchiveService', () => {
       }),
     };
     const { prisma, sessionCreate, answerCreateMany } = buildPrisma();
-    const svc = new SessionArchiveService(prisma, buildRedis(players, answers));
+    const svc = archiveWith(prisma, buildRedis(players, answers));
 
     await svc.archive(PIN, { ...meta, fullCapture: false }, { interrupted: true });
 
@@ -273,7 +278,7 @@ describe('SessionArchiveService', () => {
     };
     const { prisma, sessionCreate, playerCreate, questionCreateMany, answerCreateMany } =
       buildPrisma();
-    const svc = new SessionArchiveService(prisma, buildRedis(players, answers));
+    const svc = archiveWith(prisma, buildRedis(players, answers));
 
     // Capture intégrale demandée, mais sans suivi individuel il n'y a rien à quoi
     // rattacher une réponse : aucune ligne individuelle n'est écrite.
@@ -289,7 +294,7 @@ describe('SessionArchiveService', () => {
 
   it('no-op si aucune réponse (lobby vide) — aucune écriture', async () => {
     const { prisma, sessionCreate } = buildPrisma();
-    const svc = new SessionArchiveService(prisma, buildRedis({}, {}));
+    const svc = archiveWith(prisma, buildRedis({}, {}));
 
     await svc.archive(PIN, meta, {});
 

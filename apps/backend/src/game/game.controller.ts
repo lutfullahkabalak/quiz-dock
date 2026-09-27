@@ -10,12 +10,13 @@ import { JoinAddressesDto } from './dto/join-addresses.dto';
 import { GameEngine } from './game.engine';
 import { GameService } from './game.service';
 
+/** Addresses Docker gives its bridge networks (172.17–31.x.x): never an invitation address. */
+const DOCKER_BRIDGE = /^172\.(1[7-9]|2\d|3[01])\./;
+
 /**
  * API REST des parties live (complète le gateway WebSocket). Sert au dashboard à
  * retrouver les parties en cours d'un hôte pour les reprendre (§6.2) — ou les arrêter.
  */
-const DOCKER_BRIDGE = /^172\.(1[7-9]|2\d|3[01])\./;
-
 @ApiTags('games')
 @ApiBearerAuth()
 @Controller('games')

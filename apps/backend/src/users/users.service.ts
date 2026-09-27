@@ -4,6 +4,7 @@ import type { AuthPrincipal } from '../auth/auth-provider';
 import { effectiveRoles, parseRoles } from '../auth/roles';
 import { PrismaService } from '../prisma/prisma.service';
 import { HostSeatService } from './host-seat.service';
+import { saveUser } from './save-user';
 
 @Injectable()
 export class UsersService {
@@ -24,24 +25,8 @@ export class UsersService {
     // Les claims sont déjà une liste : on les garde toutes (`host` ET `admin`)
     // au lieu de n'en retenir qu'une. L'octroi d'un opérateur s'y ajoute.
     const claimed = parseRoles(principal.roles);
-    const existing = await this.prisma.user.findUnique({
-      where: { oidcSubject: principal.sub },
-      select: { assignedRoles: true },
-    });
+    const existing = await this.prisma.user.findUnique({ where: { oidcSubject: principal.sub } });
     const roles = effectiveRoles(existing?.assignedRoles ?? [], claimed);
-    return this.prisma.user.upsert({
-      where: { oidcSubject: principal.sub },
-      create: {
-        oidcSubject: principal.sub,
-        displayName: principal.displayName,
-        email: principal.email,
-        roles,
-      },
-      update: {
-        displayName: principal.displayName,
-        email: principal.email,
-        roles,
-      },
-    });
+    return saveUser(this.prisma, principal, roles, existing);
   }
 }

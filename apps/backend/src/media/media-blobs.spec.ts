@@ -19,7 +19,7 @@ describe('MediaService — shared files (integration)', () => {
   let dir: string;
   let ownerId: string;
   const env = process.env;
-  const redis = { keys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
+  const redis = { scanKeys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
 
   /** A PNG signature and a tag: enough for the content check, different bytes per tag. */
   const png = (tag: string) =>

@@ -1,9 +1,11 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
+import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ReorderItemsDto } from './dto/reorder-items.dto';
 import type { SlideContent } from './dto/slide-content.schema';
 import { checkSlideMedia, slideMediaIds } from './slide-media';
+import { slideData } from './slide-data';
+import { requireQuiz } from '../quizzes/quiz-access';
 
 /** Temporary shift so questions can be renumbered without hitting @@unique([quizId, orderIndex]). */
 const REORDER_OFFSET = 1000;
@@ -15,11 +17,14 @@ const REORDER_OFFSET = 1000;
  */
 @Injectable()
 export class SlidesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly media: MediaService,
+  ) {}
 
   /** Appends a slide at the very end of the quiz (after the last question). */
   async add(ownerId: string, quizId: string, dto: SlideContent) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     await checkSlideMedia(this.prisma, ownerId, dto);
     const agg = await this.prisma.slide.aggregate({
       where: { quizId, beforeQuestionId: null },
@@ -30,20 +35,26 @@ export class SlidesService {
         quizId,
         beforeQuestionId: null,
         orderIndex: (agg._max.orderIndex ?? -1) + 1,
-        ...this.contentData(dto),
+        ...slideData(dto),
       },
     });
   }
 
   async update(ownerId: string, slideId: string, dto: SlideContent) {
     const slide = await this.assertSlideOwned(ownerId, slideId);
-    await checkSlideMedia(this.prisma, ownerId, dto, slideMediaIds(slide));
-    return this.prisma.slide.update({ where: { id: slideId }, data: this.contentData(dto) });
+    const held = slideMediaIds(slide);
+    await checkSlideMedia(this.prisma, ownerId, dto, held);
+    const data = slideData(dto);
+    const saved = await this.prisma.slide.update({ where: { id: slideId }, data });
+    // What the slide no longer shows leaves with its file, unless something else holds it.
+    await this.media.releaseUnused(held, slideMediaIds(data));
+    return saved;
   }
 
   async remove(ownerId: string, slideId: string): Promise<void> {
-    await this.assertSlideOwned(ownerId, slideId);
+    const slide = await this.assertSlideOwned(ownerId, slideId);
     await this.prisma.slide.delete({ where: { id: slideId } });
+    await this.media.releaseUnused(slideMediaIds(slide));
   }
 
   /**
@@ -52,7 +63,7 @@ export class SlidesService {
    * the end) with an `orderIndex` among the slides sharing that anchor.
    */
   async reorderItems(ownerId: string, quizId: string, dto: ReorderItemsDto) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     const [questions, slides] = await Promise.all([
       this.prisma.question.findMany({ where: { quizId }, select: { id: true } }),
       this.prisma.slide.findMany({ where: { quizId }, select: { id: true } }),
@@ -109,33 +120,6 @@ export class SlidesService {
       ),
     ]);
     return this.prisma.slide.findMany({ where: { quizId }, orderBy: { orderIndex: 'asc' } });
-  }
-
-  private contentData(dto: SlideContent) {
-    return {
-      blocks: dto.blocks,
-      mediaId: dto.mediaId || null,
-      gradient: dto.gradient ?? Prisma.JsonNull,
-      videoMediaId: dto.videoMediaId || null,
-      videoLoop: dto.videoLoop,
-      videoSound: dto.videoSound,
-      audioMediaId: dto.audioMediaId || null,
-      waveformSize: dto.waveformSize,
-      audioTarget: dto.audioTarget ?? null,
-      textTone: dto.textTone,
-      textOutline: dto.textOutline,
-      displayDelayS: dto.displayDelayS ?? null,
-    };
-  }
-
-  private async assertQuizOwned(ownerId: string, quizId: string): Promise<void> {
-    const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, ownerId },
-      select: { id: true },
-    });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
   }
 
   private async assertSlideOwned(ownerId: string, slideId: string) {

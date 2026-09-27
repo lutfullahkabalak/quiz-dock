@@ -248,6 +248,11 @@ export const getQuizzesControllerCreateSamplesUrl = () => {
   return `/api/v1/quizzes/samples`
 }
 
+/**
+ * Kept for existing integrations. The samples now live in the template catalogue, copied on demand.
+ * @deprecated
+ * @summary Adds the sample quizzes to the caller's bank
+ */
 export const quizzesControllerCreateSamples = async ( options?: RequestInit): Promise<quizzesControllerCreateSamplesResponse> => {
 
   return customFetch<quizzesControllerCreateSamplesResponse>(getQuizzesControllerCreateSamplesUrl(),
@@ -293,7 +298,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
 
     export type QuizzesControllerCreateSamplesMutationError = unknown
 
-    export const useQuizzesControllerCreateSamples = <TError = unknown,
+    /**
+ * @deprecated
+ * @summary Adds the sample quizzes to the caller's bank
+ */
+export const useQuizzesControllerCreateSamples = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quizzesControllerCreateSamples>>, TError,void, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof quizzesControllerCreateSamples>>,

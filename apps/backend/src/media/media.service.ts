@@ -30,8 +30,9 @@ import { type GameId, ROOM_HASH_KEY, gameKeys } from '../game/game.keys';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { parseUploadMeta } from './dto/media-upload-meta';
-import { mediaLimits, uploadCeiling } from './media.config';
+import { mediaLimits, mediaUrl, uploadCeiling } from './media.config';
 import { mediaDimensions } from './media-dimensions';
+import { MEDIA_SLOTS, shownInText } from './media-usage.sql';
 
 interface UploadFile {
   buffer: Buffer;
@@ -202,7 +203,7 @@ export class MediaService implements OnModuleInit {
       });
       return tx.mediaAsset.update({
         where: { id: created.id },
-        data: { url: `/api/v1/media/${created.id}` },
+        data: { url: mediaUrl(created.id) },
       });
     });
     // A clean-up may have let go of that file between the write and the rows.
@@ -406,7 +407,7 @@ export class MediaService implements OnModuleInit {
         sourceSha256: source.sourceSha256,
       },
     });
-    const url = `/api/v1/media/${created.id}`;
+    const url = mediaUrl(created.id);
     await this.prisma.mediaAsset.update({ where: { id: created.id }, data: { url } });
     return { mediaId: created.id, url, kind: created.kind };
   }
@@ -449,10 +450,14 @@ export class MediaService implements OnModuleInit {
    * duplicated quiz shares its media, a transferred one may too, and a session
    * being played runs on a frozen snapshot that must keep its files. What is
    * kept is caught by the scheduled sweep (MediaJanitor) once nothing holds it
-   * any more. Never fails the save that called it.
+   * any more. Never fails the save that called it. `stillHeld`: what the saved
+   * element holds now, left alone without asking the database.
    */
-  async releaseUnused(ids: (string | null | undefined)[]): Promise<void> {
-    const unique = [...new Set(ids.filter((id): id is string => !!id))];
+  async releaseUnused(
+    held: (string | null | undefined)[],
+    stillHeld: (string | null | undefined)[] = [],
+  ): Promise<void> {
+    const unique = [...new Set(held)].filter((id): id is string => !!id && !stillHeld.includes(id));
     try {
       if (unique.length > 0) {
         const live = await this.liveSnapshots();
@@ -478,14 +483,7 @@ export class MediaService implements OnModuleInit {
         createdAt: { lt: new Date(Date.now() - olderThanMs) },
         // The instance's media are kept for the hosts, used or not (#62).
         instance: false,
-        coverForQuizzes: { none: {} },
-        questionVisuals: { none: {} },
-        questionAudios: { none: {} },
-        questionBackgrounds: { none: {} },
-        slides: { none: {} },
-        slideVideos: { none: {} },
-        slideAudios: { none: {} },
-        options: { none: {} },
+        ...Object.fromEntries(MEDIA_SLOTS.map((slot) => [slot, { none: {} }])),
       },
       select: { id: true },
     });
@@ -687,43 +685,23 @@ export class MediaService implements OnModuleInit {
   }
 
   /**
-   * Every place a media id can be used: slots, options, slides, covers, inline
-   * Markdown — and the archived sessions, whose frozen questions the results
-   * still show.
+   * Every place a media id can be used (`media-usage.sql.ts`): the slots first,
+   * then the texts — inline Markdown, slide blocks, and the archived sessions,
+   * whose frozen questions the results still show.
    */
   private async isReferenced(id: string): Promise<boolean> {
     const direct = await this.prisma.mediaAsset.findUnique({
       where: { id },
       select: {
         instance: true,
-        _count: {
-          select: {
-            coverForQuizzes: true,
-            questionVisuals: true,
-            questionAudios: true,
-            questionBackgrounds: true,
-            slides: true,
-            slideVideos: true,
-            slideAudios: true,
-            options: true,
-          },
-        },
+        _count: { select: Object.fromEntries(MEDIA_SLOTS.map((slot) => [slot, true])) },
       },
     });
     if (!direct) return true; // already gone: nothing to delete
     if (direct.instance) return true; // the instance's: only an administrator removes it
     if (Object.values(direct._count).some((n) => n > 0)) return true;
-    // Images typed into Markdown or placed in slide blocks point at the id as text.
-    const pattern = `%${id}%`;
     const [row] = await this.prisma.$queryRaw<{ used: boolean }[]>`
-      SELECT (
-        EXISTS (SELECT 1 FROM "slide" WHERE "blocks"::text LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "quiz" WHERE "description" LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "question"
-                   WHERE "prompt" LIKE ${pattern} OR "answer_explanation" LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "answer_option" WHERE "text" LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "game_session_log" WHERE "quiz_snapshot"::text LIKE ${pattern})
-      ) AS used`;
+      SELECT ${shownInText(id)} AS used`;
     return row?.used ?? true;
   }
 
@@ -732,7 +710,7 @@ export class MediaService implements OnModuleInit {
    * media). An ended session keeps its keys until they expire, but plays nothing.
    */
   private async liveSnapshots(): Promise<string[]> {
-    const keys = await this.redis.keys(gameKeys.snapshot('*' as GameId));
+    const keys = await this.redis.scanKeys(gameKeys.snapshot('*' as GameId));
     if (keys.length === 0) return [];
     const games = keys.map((k) => k.split(':')[1] as GameId);
     const states = await Promise.all(
@@ -743,7 +721,9 @@ export class MediaService implements OnModuleInit {
       ? (await this.redis.mget(...live)).filter((v): v is string => typeof v === 'string')
       : [];
     // An open room's game sounds (#93): its track and samples play there too.
-    const rooms = (await this.redis.keys(gameKeys.room('*'))).filter((k) => ROOM_HASH_KEY.test(k));
+    const rooms = (await this.redis.scanKeys(gameKeys.room('*'))).filter((k) =>
+      ROOM_HASH_KEY.test(k),
+    );
     const sounds = await Promise.all(rooms.map((k) => this.redis.hget(k, 'sounds')));
     return [...snapshots, ...sounds.filter((v): v is string => typeof v === 'string')];
   }
@@ -779,7 +759,6 @@ export class MediaService implements OnModuleInit {
     return true;
   }
 
-  /** Supprime un média possédé (ligne + fichier). */
   /**
    * Removes an entry of the author's library: every media of theirs on the
    * same file (a reused media is one entry). Refused while any of them is

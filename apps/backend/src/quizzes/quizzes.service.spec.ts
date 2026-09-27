@@ -30,7 +30,7 @@ function makeQuiz(over: Partial<Quiz> = {}): Quiz {
 }
 
 function makePrisma() {
-  return {
+  const prisma = {
     quiz: {
       findMany: jest.fn(),
       create: jest.fn(),
@@ -48,20 +48,36 @@ function makePrisma() {
       findFirst: jest.fn(),
     },
     mediaAsset: { findMany: jest.fn(async (): Promise<{ id: string; kind: string }[]> => []) },
+    slide: { createMany: jest.fn() },
+    $transaction: jest.fn(),
   };
+  // A transaction runs its steps on the same client.
+  prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+  return prisma;
 }
 
 describe('QuizzesService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   const redis = { smembers: jest.fn(async () => []), hmget: jest.fn(async () => [null, null]) };
   let service: QuizzesService;
+  const media = { releaseUnused: jest.fn(async () => undefined) };
+
+  /** The media the element held, minus those it still holds. */
+  const released = () => {
+    const [before, kept = []] = media.releaseUnused.mock.calls[0] as unknown as [
+      (string | null)[],
+      (string | null)[]?,
+    ];
+    return [...new Set(before.filter((m) => m && !kept.includes(m)))].sort();
+  };
 
   beforeEach(() => {
     prisma = makePrisma();
+    media.releaseUnused.mockClear();
     service = new QuizzesService(
       prisma as unknown as PrismaService,
       redis as unknown as RedisService,
-      { releaseUnused: jest.fn(async () => undefined) } as unknown as MediaService,
+      media as unknown as MediaService,
     );
   });
 
@@ -578,6 +594,22 @@ describe('QuizzesService', () => {
     });
   });
 
+  it('names a copy in its quiz’s language, and writes it with its slides at once (audit B15)', async () => {
+    prisma.quiz.findFirst.mockResolvedValue(
+      makeQuiz({
+        title: 'Harbours',
+        language: 'en',
+        questions: [],
+        slides: [{ beforeQuestionId: null, orderIndex: 0, blocks: [] }],
+      } as unknown as Quiz),
+    );
+    prisma.quiz.create.mockResolvedValue({ ...makeQuiz(), questions: [] });
+    await service.duplicate(OWNER, 'q1');
+    expect(prisma.quiz.create.mock.calls[0][0].data.title).toBe('Harbours (copy)');
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.slide.createMany).toHaveBeenCalledTimes(1);
+  });
+
   describe('the cover picture (audit B3)', () => {
     const COVER = 'c'.repeat(26);
 
@@ -606,5 +638,50 @@ describe('QuizzesService', () => {
       await service.update(OWNER, 'quiz-1', { coverMediaId: null });
       expect(prisma.quiz.update).toHaveBeenCalledTimes(2);
     });
+
+    it('releases the cover a quiz dropped or replaced, not one it kept (audit B9)', async () => {
+      prisma.quiz.findFirst.mockResolvedValue({
+        id: 'quiz-1',
+        ownerId: OWNER,
+        coverMediaId: COVER,
+      });
+      prisma.quiz.update.mockResolvedValueOnce({ coverMediaId: COVER });
+      await service.update(OWNER, 'quiz-1', { title: 'Renamed' });
+      expect(released()).toEqual([]);
+      media.releaseUnused.mockClear();
+      prisma.quiz.update.mockResolvedValueOnce({ coverMediaId: null });
+      await service.update(OWNER, 'quiz-1', { coverMediaId: null });
+      expect(released()).toEqual([COVER]);
+    });
+  });
+
+  it('releases every media a deleted quiz held: cover, questions, answers, slides (audit B9)', async () => {
+    const m = (c: string) => c.repeat(26);
+    prisma.quiz.findFirst.mockResolvedValue(makeQuiz({ coverMediaId: m('C') }));
+    Object.assign(prisma, {
+      question: {
+        findMany: jest.fn(async () => [
+          {
+            visualMediaId: m('I'),
+            audioMediaId: null,
+            backgroundMediaId: m('B'),
+            options: [{ mediaId: m('P') }, { mediaId: null }],
+          },
+        ]),
+      },
+      slide: {
+        findMany: jest.fn(async () => [
+          {
+            blocks: [{ type: 'image', id: 'i', mediaId: m('S') }],
+            mediaId: null,
+            videoMediaId: m('V'),
+            audioMediaId: null,
+          },
+        ]),
+      },
+    });
+    await service.remove(OWNER, 'q1');
+    expect(prisma.quiz.delete).toHaveBeenCalled();
+    expect(released()).toEqual(['B', 'C', 'I', 'P', 'S', 'V'].map(m));
   });
 });

@@ -9,8 +9,6 @@ import {
   UnauthorizedException,
 } from '@nestjs/common';
 import {
-  AUDIO_TARGETS,
-  type AudioTarget,
   GameState,
   type ParticipantAccess,
   type PlayerPresence,
@@ -22,8 +20,10 @@ import { MediaLibraryService } from '../media/media-library.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeAnswer } from '../questions/dto/question-content.schema';
 import { RedisService } from '../redis/redis.service';
+import { deserializeGame, deserializeRoom, gameHash, roomHash } from './game-hash';
 import { GAME_TTL_S, type GameId, gameKeys } from './game.keys';
 import { type PlayerStats, type SeriesStats, answerStats, sumGames } from './player-stats';
+import { type RankedPlayer, rankPlayers } from './results';
 import { DEFAULT_ROOM_SOUNDS, type RoomSounds } from './game.types';
 import type {
   AnswerRecord,
@@ -128,11 +128,6 @@ export interface JoinSessionResult {
 }
 
 /**
- * Cycle de vie d'une partie sur l'état Redis (SPECIFICATIONS §8). Ce service ne
- * gère pas le transport : il est appelé par le gateway (`host:create`,
- * `player:join`) et renvoie des données ; la diffusion socket reste au gateway.
- */
-/**
  * A running game, as the interface lists it (§6.2). `host` is filled only for the
  * instance-wide view an `admin` gets: a host listing their own needs no name.
  */
@@ -145,6 +140,11 @@ type ActiveGame = {
   host?: string;
 };
 
+/**
+ * Cycle de vie d'une partie sur l'état Redis (SPECIFICATIONS §8). Ce service ne
+ * gère pas le transport : il est appelé par le gateway (`host:create`,
+ * `player:join`) et renvoie des données ; la diffusion socket reste au gateway.
+ */
 @Injectable()
 export class GameService {
   constructor(
@@ -204,7 +204,7 @@ export class GameService {
     };
 
     const pipe = this.redis.multi();
-    pipe.hset(gameKeys.room(pin), serializeRoom(room));
+    pipe.hset(gameKeys.room(pin), roomHash(room));
     pipe.expire(gameKeys.room(pin), GAME_TTL_S);
     this.writeGame(pipe, gameId, snapshot);
     // Index des parties en cours de l'hôte (reprise depuis le dashboard §6.2).
@@ -334,8 +334,15 @@ export class GameService {
       audioTarget: carried.audioTarget,
       paused: false,
       clockFrozen: false,
+      mediaWaitUntil: 0,
+      mediaLeadMs: null,
+      autoNextAt: 0,
+      autoNextMs: 0,
+      slideIndex: -1,
+      slideMediaStartAt: 0,
+      slidePausedAt: 0,
     };
-    pipe.hset(gameKeys.game(gameId), serializeGame(game));
+    pipe.hset(gameKeys.game(gameId), gameHash(game));
     pipe.set(gameKeys.snapshot(gameId), JSON.stringify(snapshot));
     pipe.expire(gameKeys.game(gameId), GAME_TTL_S);
     pipe.expire(gameKeys.snapshot(gameId), GAME_TTL_S);
@@ -434,24 +441,19 @@ export class GameService {
 
   /**
    * What a player is told before joining: whether the quiz plays sound, and
-   * whether an account is needed to get in (#57). Throws like `hasSound`.
+   * whether an account is needed to get in (#57). Throws for a game that does not
+   * exist or is over.
    */
   async peek(pin: string): Promise<{ hasSound: boolean; participantAccess: ParticipantAccess }> {
-    const hasSound = await this.hasSound(pin);
-    const meta = await this.getMeta(pin);
-    return { hasSound, participantAccess: meta?.participantAccess ?? 'account' };
-  }
-
-  /**
-   * Whether the quiz of a live game plays any sound or video — what a player is
-   * told before joining. Throws for a game that does not exist or is over.
-   */
-  async hasSound(pin: string): Promise<boolean> {
     const meta = await this.getMeta(pin);
     if (!meta) throw new NotFoundException('session.not_found');
     if (meta.state === GameState.Ended) throw new BadRequestException('session.ended');
+    // Whether the quiz plays any sound or video: what a player is told before joining.
     const snapshot = await this.getSnapshot(meta.id);
-    return !!snapshot && snapshotHasSound(snapshot);
+    return {
+      hasSound: !!snapshot && snapshotHasSound(snapshot),
+      participantAccess: meta.participantAccess,
+    };
   }
 
   /**
@@ -504,6 +506,33 @@ export class GameService {
     return raw ? (JSON.parse(raw) as QuizSnapshot) : null;
   }
 
+  /** The room's players (playerId → record), whether they play the current game or wait. */
+  async players(pin: string): Promise<Map<string, PlayerRecord>> {
+    const raw = await this.redis.hgetall(gameKeys.players(pin));
+    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as PlayerRecord]));
+  }
+
+  /** One of the room's players (null when not, or no longer, in the room). */
+  async getPlayer(pin: string, playerId: string): Promise<PlayerRecord | null> {
+    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
+    return raw ? (JSON.parse(raw) as PlayerRecord) : null;
+  }
+
+  /** Who plays the game (a score in it), ranked, with who they are in the room. */
+  async rankedPlayers(pin: string, gameId: GameId): Promise<RankedPlayer[]> {
+    const [players, scores] = await Promise.all([
+      this.redis.hgetall(gameKeys.players(pin)),
+      this.redis.hgetall(gameKeys.scores(gameId)),
+    ]);
+    return rankPlayers(players, scores);
+  }
+
+  /** The graded answers to a question of a game (playerId → record). */
+  async answers(gameId: GameId, index: number): Promise<Map<string, AnswerRecord>> {
+    const raw = await this.redis.hgetall(gameKeys.answers(gameId, index));
+    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord]));
+  }
+
   /** The snapshot of the game a room plays. */
   async currentSnapshot(pin: string): Promise<QuizSnapshot | null> {
     const room = await this.getRoom(pin);
@@ -520,11 +549,7 @@ export class GameService {
     const scores = await this.redis.hgetall(gameKeys.scores(gameId));
     const answersByIndex = new Map<number, Map<string, AnswerRecord>>();
     for (const { orderIndex } of snapshot.questions) {
-      const raw = await this.redis.hgetall(gameKeys.answers(gameId, orderIndex));
-      answersByIndex.set(
-        orderIndex,
-        new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord])),
-      );
+      answersByIndex.set(orderIndex, await this.answers(gameId, orderIndex));
     }
     const played: Record<string, PlayerStats> = {};
     for (const [playerId, json] of Object.entries(scores)) {
@@ -546,15 +571,16 @@ export class GameService {
   async standings(pin: string): Promise<{ quizzesPlayed: number; ranked: RoomStanding[] }> {
     const [played, players] = await Promise.all([
       this.redis.hgetall(gameKeys.played(pin)),
-      this.redis.hgetall(gameKeys.players(pin)),
+      this.players(pin),
     ]);
     const games = Object.values(played).map(
       (json) => JSON.parse(json) as Record<string, PlayerStats>,
     );
     const ranked: RoomStanding[] = [];
     for (const [id, stats] of sumGames(games)) {
-      if (!players[id]) continue;
-      ranked.push({ id, ...(JSON.parse(players[id]) as PlayerRecord), ...stats });
+      const player = players.get(id);
+      if (!player) continue;
+      ranked.push({ id, ...player, ...stats });
     }
     ranked.sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
     return { quizzesPlayed: games.length, ranked };
@@ -600,7 +626,7 @@ export class GameService {
       next[idKey] = id;
       next[urlKey] = asset.url;
     }
-    await this.redis.hset(gameKeys.room(pin), { sounds: JSON.stringify(next) });
+    await this.redis.hset(gameKeys.room(pin), roomHash({ sounds: next }));
     return next;
   }
 
@@ -631,11 +657,8 @@ export class GameService {
 
   /** Nombre de joueurs **connectés** (§8 : base de la convergence et des compteurs). */
   async connectedCount(pin: string): Promise<number> {
-    const raw = await this.redis.hgetall(gameKeys.players(pin));
     let n = 0;
-    for (const json of Object.values(raw)) {
-      if ((JSON.parse(json) as PlayerRecord).connected) n++;
-    }
+    for (const player of (await this.players(pin)).values()) if (player.connected) n++;
     return n;
   }
 
@@ -688,9 +711,8 @@ export class GameService {
     playerId: string,
     minutes: number,
   ): Promise<string | null> {
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    if (!raw) return null;
-    const record = JSON.parse(raw) as PlayerRecord;
+    const record = await this.getPlayer(pin, playerId);
+    if (!record) return null;
     const normalized = normalizeAnswer(record.nickname);
     const ttlS = Math.max(1, Math.round(minutes * 60));
     const pipe = this.redis.multi();
@@ -735,11 +757,10 @@ export class GameService {
     if (snapshot && !snapshot.feedbackEnabled) {
       return { ok: false }; // rating switched off on this quiz
     }
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    if (!raw) {
+    const player = await this.getPlayer(pin, playerId);
+    if (!player) {
       return { ok: false };
     }
-    const player = JSON.parse(raw) as PlayerRecord;
     const cleanComment = comment?.trim() ? comment.trim().slice(0, 2000) : null;
     await this.prisma.quizFeedback.upsert({
       where: { pin_playerId_quizId: { pin, playerId, quizId: rated.quizId } },
@@ -813,16 +834,22 @@ export class GameService {
    * (`host:{id}:games`) : un hôte voit les siennes, l'administrateur voit tout.
    */
   async listAllActiveGames(): Promise<ActiveGame[]> {
-    const keys = await this.redis.keys(gameKeys.hostGames('*'));
+    const hostIds = (await this.redis.scanKeys(gameKeys.hostGames('*'))).map(
+      (k) => k.split(':')[1],
+    );
+    // Their names in one query, not one per host.
+    const names = new Map(
+      (
+        await this.prisma.user.findMany({
+          where: { id: { in: hostIds } },
+          select: { id: true, displayName: true },
+        })
+      ).map((u) => [u.id, u.displayName]),
+    );
     const games: ActiveGame[] = [];
-    for (const key of keys) {
-      const hostUserId = key.split(':')[1];
-      const host = await this.prisma.user.findUnique({
-        where: { id: hostUserId },
-        select: { displayName: true },
-      });
+    for (const hostUserId of hostIds) {
       for (const game of await this.listActiveHostGames(hostUserId)) {
-        games.push({ ...game, host: host?.displayName ?? hostUserId });
+        games.push({ ...game, host: names.get(hostUserId) ?? hostUserId });
       }
     }
     return games;
@@ -897,103 +924,4 @@ function suffixNickname(base: string, n: number): string {
 /** A new game's id: 32 hex characters (see `GAME_HASH_KEY`). */
 function newGameId(): GameId {
   return randomBytes(16).toString('hex') as GameId;
-}
-
-/** The room hash (every field a string). */
-function serializeRoom(room: RoomMeta): Record<string, string> {
-  return {
-    roomId: room.roomId,
-    hostUserId: room.hostUserId,
-    gameId: room.gameId,
-    fullCapture: room.fullCapture ? '1' : '0',
-    personalTracking: room.personalTracking ? '1' : '0',
-    pickOwnName: room.pickOwnName ? '1' : '0',
-    participantAccess: room.participantAccess,
-    joinLocked: room.joinLocked ? '1' : '0',
-    joinBaseUrl: room.joinBaseUrl,
-    openedAt: String(room.openedAt),
-    name: room.name,
-    hostName: room.hostName,
-    sounds: JSON.stringify(room.sounds),
-  };
-}
-
-function deserializeRoom(raw: Record<string, string>): RoomMeta {
-  return {
-    roomId: raw.roomId,
-    hostUserId: raw.hostUserId,
-    gameId: raw.gameId as GameId,
-    ...(raw.previousGameId ? { previousGameId: raw.previousGameId as GameId } : {}),
-    fullCapture: raw.fullCapture === '1',
-    personalTracking: raw.personalTracking !== '0',
-    pickOwnName: raw.pickOwnName === '1',
-    participantAccess: raw.participantAccess === 'open' ? 'open' : 'account',
-    joinLocked: raw.joinLocked === '1',
-    joinBaseUrl: raw.joinBaseUrl ?? '',
-    openedAt: Number(raw.openedAt),
-    name: raw.name ?? '',
-    hostName: raw.hostName ?? '',
-    sounds: raw.sounds
-      ? { ...DEFAULT_ROOM_SOUNDS, ...(JSON.parse(raw.sounds) as Partial<RoomSounds>) }
-      : DEFAULT_ROOM_SOUNDS,
-  };
-}
-
-/** The game hash (every field a string). */
-function serializeGame(game: GameFields): Record<string, string> {
-  const raw: Record<string, string> = {
-    quizId: game.quizId,
-    state: game.state,
-    currentIndex: String(game.currentIndex),
-    totalQuestions: String(game.totalQuestions),
-    audioTarget: game.audioTarget ?? '',
-    mediaWaitUntil: String(game.mediaWaitUntil ?? 0),
-    mediaLeadMs: game.mediaLeadMs == null ? '' : String(game.mediaLeadMs),
-    title: game.title,
-    language: game.language,
-    createdAt: String(game.createdAt),
-    questionStartedAt: String(game.questionStartedAt),
-    questionEndsAt: String(game.questionEndsAt),
-    mode: game.mode,
-    paused: game.paused ? '1' : '0',
-    clockFrozen: game.clockFrozen ? '1' : '0',
-    autoNextAt: String(game.autoNextAt ?? 0),
-    autoNextMs: String(game.autoNextMs ?? 0),
-    slideIndex: String(game.slideIndex ?? -1),
-    slideMediaStartAt: String(game.slideMediaStartAt ?? 0),
-    slidePausedAt: String(game.slidePausedAt ?? 0),
-  };
-  if (game.prevState !== undefined) raw.prevState = game.prevState;
-  if (game.pausedRemainingMs !== undefined) raw.pausedRemainingMs = String(game.pausedRemainingMs);
-  return raw;
-}
-
-function deserializeGame(raw: Record<string, string>): GameFields {
-  return {
-    quizId: raw.quizId,
-    state: raw.state,
-    currentIndex: Number(raw.currentIndex),
-    totalQuestions: Number(raw.totalQuestions),
-    audioTarget: (AUDIO_TARGETS as readonly string[]).includes(raw.audioTarget ?? '')
-      ? (raw.audioTarget as AudioTarget)
-      : '',
-    mediaWaitUntil: raw.mediaWaitUntil ? Number(raw.mediaWaitUntil) : 0,
-    mediaLeadMs: raw.mediaLeadMs ? Number(raw.mediaLeadMs) : null,
-    title: raw.title,
-    language: raw.language,
-    createdAt: Number(raw.createdAt),
-    questionStartedAt: Number(raw.questionStartedAt ?? 0),
-    questionEndsAt: Number(raw.questionEndsAt ?? 0),
-    mode: raw.mode === 'auto' ? 'auto' : 'manual',
-    paused: raw.paused === '1',
-    clockFrozen: raw.clockFrozen === '1',
-    autoNextAt: raw.autoNextAt ? Number(raw.autoNextAt) : 0,
-    autoNextMs: raw.autoNextMs ? Number(raw.autoNextMs) : 0,
-    slideIndex: raw.slideIndex ? Number(raw.slideIndex) : -1,
-    slideMediaStartAt: raw.slideMediaStartAt ? Number(raw.slideMediaStartAt) : 0,
-    slidePausedAt: raw.slidePausedAt ? Number(raw.slidePausedAt) : 0,
-    prevState: raw.prevState,
-    pausedRemainingMs: raw.pausedRemainingMs ? Number(raw.pausedRemainingMs) : undefined,
-    reviewStep: raw.reviewStep ?? '',
-  };
 }

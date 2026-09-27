@@ -1,5 +1,6 @@
 import { type MediaAsset, Prisma } from '@prisma/client';
 import type {
+  LiveQuestionMedia,
   OptionColor,
   OptionShape,
   PointsMode,
@@ -22,7 +23,7 @@ import {
   slideTimedMs,
 } from '@quiz-dock/contracts';
 import { QUESTION_MEDIA_INCLUDE, liveMediaOf } from '../questions/question-media';
-import { READ_DELAY_MS, MEDIA_LEAD_MS } from './game.keys';
+import { MEDIA_LEAD_MS, READ_DELAY_MS, gameSetting } from './game.keys';
 import { basePointsFor } from './scoring';
 import type { QuizSnapshot, SnapshotQuestion, SnapshotSlide } from './game.types';
 import type {
@@ -32,6 +33,7 @@ import type {
   SlideShowPayload,
   SlideTextTone,
 } from '@quiz-dock/contracts';
+import { mediaUrl } from '../media/media.config';
 
 /** Forme Prisma attendue par le constructeur de snapshot (relations incluses). */
 const quizWithContent = Prisma.validator<Prisma.QuizDefaultArgs>()({
@@ -53,9 +55,14 @@ const quizWithContent = Prisma.validator<Prisma.QuizDefaultArgs>()({
     owner: { select: { displayName: true } },
   },
 });
+/** Whether media hold a sound or a video — what a device is waited for (an image is not). */
+export function hasSoundOrVideo(media: LiveQuestionMedia | null | undefined): boolean {
+  return !!media?.audio || media?.visual?.kind === 'video';
+}
+
 /** Whether a question plays a sound: an MP3, or a video's own track. */
 export function questionHasSound(q: SnapshotQuestion): boolean {
-  return !!q.media?.audio || q.media?.visual?.kind === 'video';
+  return hasSoundOrVideo(q.media);
 }
 
 /** Whether a slide plays a sound: its own, or its video's (#125). */
@@ -89,11 +96,6 @@ export function questionAudioTarget(q: SnapshotQuestion, gameTarget: AudioTarget
   return resolveAudioTarget(q.audioTarget, gameTarget, null);
 }
 
-/** Listen first applies only when the media's length is known (else: the usual timing). */
-function listensFirst(q: QuizWithContent['questions'][number]): boolean {
-  return q.timerAfterMedia && mediaDurationMs(liveMediaOf(q)) !== null;
-}
-
 export type QuizWithContent = Prisma.QuizGetPayload<typeof quizWithContent>;
 export const QUIZ_SNAPSHOT_INCLUDE = quizWithContent.include;
 
@@ -110,7 +112,7 @@ const optionImageOf = (
     : null;
 
 /** Reading window before the answers open (configurable, like the engine reads it). */
-const readDelayMs = () => Number(process.env.GAME_READ_DELAY_MS ?? READ_DELAY_MS);
+const readDelayMs = () => gameSetting('GAME_READ_DELAY_MS', READ_DELAY_MS);
 
 /**
  * Construit le snapshot serveur figé d'un quiz (SPECIFICATIONS §8). Fonction pure :
@@ -126,13 +128,17 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
     language: quiz.language,
     feedbackEnabled: quiz.feedbackEnabled,
     audioTarget: quiz.audioTarget,
-    questions: quiz.questions.map(
-      (q): SnapshotQuestion => ({
+    questions: quiz.questions.map((q): SnapshotQuestion => {
+      const media = liveMediaOf(q, quiz.loudnessTargetLufs);
+      const durationMs = mediaDurationMs(media);
+      // Listen first applies only when the media's length is known (else: the usual timing).
+      const listensFirst = q.timerAfterMedia && durationMs !== null;
+      return {
         id: q.id,
         orderIndex: q.orderIndex,
         type: q.type as QuestionType,
         prompt: q.prompt,
-        media: liveMediaOf(q, quiz.loudnessTargetLufs),
+        media,
         answerExplanation: q.answerExplanation ?? null,
         background: q.backgroundMedia
           ? { url: q.backgroundMedia.url }
@@ -144,17 +150,17 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
         // Stretched when the media would still be playing (quiz-wide pause after it):
         // the timer, the display and the speed weighting all read this one value.
         // Listen first: the timer only starts once the media has played, nothing to stretch.
-        timeLimitS: listensFirst(q)
+        timeLimitS: listensFirst
           ? q.timeLimitS
           : effectiveTimeLimitS(
               q.timeLimitS,
-              mediaDurationMs(liveMediaOf(q)),
+              durationMs,
               quiz.mediaTailS,
               // The media starts MEDIA_LEAD_MS after the question: that much less of it
               // plays during the reading.
               readDelayMs() - MEDIA_LEAD_MS,
             ),
-        timerAfterMedia: listensFirst(q),
+        timerAfterMedia: listensFirst,
         revealDelayS: q.revealDelayS ?? null,
         audioTarget: q.audioTarget ?? null,
         basePoints: basePointsFor(q.pointsMode as PointsMode),
@@ -173,8 +179,8 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
           isCorrect: o.isCorrect,
           correctOrderIndex: o.correctOrderIndex,
         })),
-      }),
-    ),
+      };
+    }),
     slides: buildSnapshotSlides(quiz),
   };
 }
@@ -277,7 +283,7 @@ function slideQuizFields(quiz: QuizWithContent): SlideQuizFields {
  */
 function resolveBlocks(blocks: SlideBlock[], quiz: SlideQuizFields): SlideBlock[] {
   const leaf = (b: SlideLeafBlock): SlideLeafBlock =>
-    b.type === 'image' ? { ...b, url: `/api/v1/media/${b.mediaId}` } : b;
+    b.type === 'image' ? { ...b, url: mediaUrl(b.mediaId) } : b;
   const resolved = blocks.map((b) =>
     b.type === 'columns' ? { ...b, columns: b.columns.map((c) => c.map(leaf)) } : leaf(b),
   );

@@ -6,18 +6,21 @@ import {
 } from '@nestjs/common';
 import { Prisma, type Quiz, QuizStatus } from '@prisma/client';
 import { isManager, type RoleSet } from '../auth/roles';
-import { currentGameFields, gameKeys } from '../game/game.keys';
+import { livePinOf } from '../game/game.keys';
 import { MediaService } from '../media/media.service';
 import { assertAssets, expectImage } from '../media/assert-assets';
 import { PrismaService } from '../prisma/prisma.service';
+import { questionMediaHeld } from '../questions/question-data';
 import { QUESTION_INCLUDE, toQuestionOutput } from '../questions/questions.service';
 import { RedisService } from '../redis/redis.service';
+import { slideMediaIds } from '../slides/slide-media';
 import type { CreateQuizDto } from './dto/create-quiz.dto';
 import type { QuizFeedbackQueryDto } from './dto/quiz-feedback.dto';
 import type { TransitionQuizDto } from './dto/transition-quiz.dto';
 import type { UpdateQuizDto } from './dto/update-quiz.dto';
 import { roomStandings } from './room-standings';
 import { instanceLanguage } from '../common/instance-language';
+import { readableBy, requireQuiz } from './quiz-access';
 
 type QuizFeedbackQuery = Pick<QuizFeedbackQueryDto, 'page' | 'pageSize' | 'rating'>;
 
@@ -48,7 +51,7 @@ export class QuizzesService {
   }): Promise<(Quiz & { ownerName?: string; editable: boolean })[]> {
     const manager = isManager(user.roles);
     const rows = await this.prisma.quiz.findMany({
-      where: manager ? {} : this.readableBy(user.id),
+      where: manager ? {} : readableBy(user.id),
       orderBy: { createdAt: 'desc' },
       include: { owner: { select: { displayName: true } } },
     });
@@ -60,11 +63,6 @@ export class QuizzesService {
         ? { ...quiz, editable, ownerName: owner.displayName }
         : { ...quiz, editable };
     });
-  }
-
-  /** What a host reads: their quizzes, and those shared with the instance (not archived). */
-  private readableBy(userId: string): Prisma.QuizWhereInput {
-    return { OR: [{ ownerId: userId }, { shared: true, status: { not: QuizStatus.archived } }] };
   }
 
   /**
@@ -102,7 +100,7 @@ export class QuizzesService {
   async get(user: { id: string; roles: RoleSet }, id: string) {
     const quiz = await this.prisma.quiz.findFirst({
       // A quiz another host shares is read too, never edited.
-      where: isManager(user.roles) ? { id } : { id, ...this.readableBy(user.id) },
+      where: isManager(user.roles) ? { id } : { id, ...readableBy(user.id) },
       include: {
         questions: { orderBy: { orderIndex: 'asc' }, include: QUESTION_INCLUDE },
         slides: { orderBy: { orderIndex: 'asc' } },
@@ -123,19 +121,12 @@ export class QuizzesService {
   }
 
   /**
-   * Avis des joueurs sur un quiz (§2.11) — réservé au **propriétaire** (la garde
-   * `findFirst({ where:{ id, ownerId } })` renvoie 404 pour un non-owner). Renvoie
-   * la moyenne, le nombre et la liste (récente d'abord).
+   * Avis des joueurs sur un quiz (§2.11) — son propriétaire, ou un gestionnaire
+   * (`scopeOf`) ; 404 pour tout autre. Renvoie la moyenne, le nombre et la liste
+   * (récente d'abord).
    */
   async feedback(user: { id: string; roles: RoleSet }, id: string, query: QuizFeedbackQuery) {
-    const ownerId = this.scopeOf(user);
-    const quiz = await this.prisma.quiz.findFirst({
-      where: { id, ownerId },
-      select: { id: true },
-    });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
+    await requireQuiz(this.prisma, id, this.scopeOf(user));
     // Summary over every review (not just the page), so the header never changes with the filter.
     const groups = await this.prisma.quizFeedback.groupBy({
       by: ['rating'],
@@ -170,15 +161,12 @@ export class QuizzesService {
   }
 
   /**
-   * Historique des parties archivées d'un quiz possédé (§2.7), récentes d'abord.
-   * Réservé au propriétaire (la garde `findFirst({ id, ownerId })` → 404 sinon).
+   * Historique des parties archivées d'un quiz (§2.7), récentes d'abord : son
+   * propriétaire, ou un gestionnaire (`scopeOf`) ; 404 pour tout autre.
    */
   async sessions(user: { id: string; roles: RoleSet }, id: string) {
     const ownerId = this.scopeOf(user);
-    const quiz = await this.prisma.quiz.findFirst({ where: { id, ownerId }, select: { id: true } });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
+    await requireQuiz(this.prisma, id, ownerId);
     const rows = await this.prisma.gameSessionLog.findMany({
       where: { quizId: id },
       orderBy: { startedAt: 'desc' },
@@ -372,7 +360,7 @@ export class QuizzesService {
    */
   async duplicate(ownerId: string, id: string): Promise<Quiz> {
     const src = await this.prisma.quiz.findFirst({
-      where: { id, ...this.readableBy(ownerId) },
+      where: { id, ...readableBy(ownerId) },
       include: {
         questions: {
           orderBy: { orderIndex: 'asc' },
@@ -387,96 +375,99 @@ export class QuizzesService {
     if (!src) {
       throw new NotFoundException('quiz.not_found');
     }
-    const copy = await this.prisma.quiz.create({
-      data: {
-        ownerId,
-        title: `${src.title} (copie)`,
-        description: src.description,
-        coverMediaId: src.coverMediaId,
-        language: src.language,
-        mediaTailS: src.mediaTailS,
-        loudnessTargetLufs: src.loudnessTargetLufs,
-        audioTarget: src.audioTarget,
-        questionCount: src.questions.length,
-        questions: {
-          create: src.questions.map((q) => ({
-            orderIndex: q.orderIndex,
-            type: q.type,
-            prompt: q.prompt,
-            visualMediaId: q.visualMediaId,
-            audioMediaId: q.audioMediaId,
-            answerExplanation: q.answerExplanation,
-            backgroundMediaId: q.backgroundMediaId,
-            backgroundGradient: q.backgroundGradient ?? Prisma.JsonNull,
-            textTone: q.textTone,
-            textOutline: q.textOutline,
-            timeLimitS: q.timeLimitS,
-            pointsMode: q.pointsMode,
-            scoring: q.scoring,
-            revealDelayS: q.revealDelayS,
-            audioTarget: q.audioTarget,
-            waveformSize: q.waveformSize,
-            timerAfterMedia: q.timerAfterMedia,
-            numericValue: q.numericValue,
-            numericTolerance: q.numericTolerance,
-            multiSelect: q.multiSelect,
-            options: {
-              create: q.options.map((o) => ({
-                orderIndex: o.orderIndex,
-                text: o.text,
-                mediaId: o.mediaId,
-                alt: o.alt,
-                color: o.color,
-                shape: o.shape,
-                isCorrect: o.isCorrect,
-                correctOrderIndex: o.correctOrderIndex,
-              })),
-            },
-            acceptedAnswers: {
-              create: q.acceptedAnswers.map((a) => ({
-                text: a.text,
-                normalized: a.normalized,
-              })),
-            },
-          })),
+    // The quiz and its slides in one step: a copy is whole, or not made.
+    return this.prisma.$transaction(async (tx) => {
+      const copy = await tx.quiz.create({
+        data: {
+          ownerId,
+          title: `${src.title} ${copySuffix(src.language)}`,
+          description: src.description,
+          coverMediaId: src.coverMediaId,
+          language: src.language,
+          mediaTailS: src.mediaTailS,
+          loudnessTargetLufs: src.loudnessTargetLufs,
+          audioTarget: src.audioTarget,
+          questionCount: src.questions.length,
+          questions: {
+            create: src.questions.map((q) => ({
+              orderIndex: q.orderIndex,
+              type: q.type,
+              prompt: q.prompt,
+              visualMediaId: q.visualMediaId,
+              audioMediaId: q.audioMediaId,
+              answerExplanation: q.answerExplanation,
+              backgroundMediaId: q.backgroundMediaId,
+              backgroundGradient: q.backgroundGradient ?? Prisma.JsonNull,
+              textTone: q.textTone,
+              textOutline: q.textOutline,
+              timeLimitS: q.timeLimitS,
+              pointsMode: q.pointsMode,
+              scoring: q.scoring,
+              revealDelayS: q.revealDelayS,
+              audioTarget: q.audioTarget,
+              waveformSize: q.waveformSize,
+              timerAfterMedia: q.timerAfterMedia,
+              numericValue: q.numericValue,
+              numericTolerance: q.numericTolerance,
+              multiSelect: q.multiSelect,
+              options: {
+                create: q.options.map((o) => ({
+                  orderIndex: o.orderIndex,
+                  text: o.text,
+                  mediaId: o.mediaId,
+                  alt: o.alt,
+                  color: o.color,
+                  shape: o.shape,
+                  isCorrect: o.isCorrect,
+                  correctOrderIndex: o.correctOrderIndex,
+                })),
+              },
+              acceptedAnswers: {
+                create: q.acceptedAnswers.map((a) => ({
+                  text: a.text,
+                  normalized: a.normalized,
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: { questions: { select: { id: true, orderIndex: true } } },
-    });
-    // Slides (#7) anchor on question ids: re-map them onto the copied questions.
-    if (src.slides.length > 0) {
-      const srcIndexById = new Map(src.questions.map((q) => [q.id, q.orderIndex]));
-      const newIdByIndex = new Map(copy.questions.map((q) => [q.orderIndex, q.id]));
-      await this.prisma.slide.createMany({
-        data: src.slides.map((s) => ({
-          quizId: copy.id,
-          beforeQuestionId:
-            s.beforeQuestionId === null
-              ? null
-              : (newIdByIndex.get(srcIndexById.get(s.beforeQuestionId) ?? -1) ?? null),
-          orderIndex: s.orderIndex,
-          blocks: s.blocks as Prisma.InputJsonValue,
-          mediaId: s.mediaId,
-          gradient: s.gradient ?? Prisma.JsonNull,
-          videoMediaId: s.videoMediaId,
-          videoLoop: s.videoLoop,
-          videoSound: s.videoSound,
-          audioMediaId: s.audioMediaId,
-          waveformSize: s.waveformSize,
-          audioTarget: s.audioTarget,
-          displayDelayS: s.displayDelayS,
-          textTone: s.textTone,
-          textOutline: s.textOutline,
-        })),
+        include: { questions: { select: { id: true, orderIndex: true } } },
       });
-    }
-    return copy;
+      // Slides (#7) anchor on question ids: re-map them onto the copied questions.
+      if (src.slides.length > 0) {
+        const srcIndexById = new Map(src.questions.map((q) => [q.id, q.orderIndex]));
+        const newIdByIndex = new Map(copy.questions.map((q) => [q.orderIndex, q.id]));
+        await tx.slide.createMany({
+          data: src.slides.map((s) => ({
+            quizId: copy.id,
+            beforeQuestionId:
+              s.beforeQuestionId === null
+                ? null
+                : (newIdByIndex.get(srcIndexById.get(s.beforeQuestionId) ?? -1) ?? null),
+            orderIndex: s.orderIndex,
+            blocks: s.blocks as Prisma.InputJsonValue,
+            mediaId: s.mediaId,
+            gradient: s.gradient ?? Prisma.JsonNull,
+            videoMediaId: s.videoMediaId,
+            videoLoop: s.videoLoop,
+            videoSound: s.videoSound,
+            audioMediaId: s.audioMediaId,
+            waveformSize: s.waveformSize,
+            audioTarget: s.audioTarget,
+            displayDelayS: s.displayDelayS,
+            textTone: s.textTone,
+            textOutline: s.textOutline,
+          })),
+        });
+      }
+      return copy;
+    });
   }
 
   async update(ownerId: string, id: string, dto: UpdateQuizDto): Promise<Quiz> {
     const current = await this.findOwnedOrThrow(ownerId, id);
     await assertAssets(this.prisma, ownerId, expectImage(dto.coverMediaId), [current.coverMediaId]);
-    return this.prisma.quiz.update({
+    const quiz = await this.prisma.quiz.update({
       where: { id },
       data: {
         title: dto.title,
@@ -492,31 +483,44 @@ export class QuizzesService {
         shared: dto.shared,
       },
     });
+    // A replaced or dropped cover leaves with its file, unless something else holds it.
+    await this.media.releaseUnused([current.coverMediaId], [quiz.coverMediaId]);
+    return quiz;
   }
 
   async remove(ownerId: string, id: string): Promise<void> {
-    await this.findOwnedOrThrow(ownerId, id);
+    const quiz = await this.findOwnedOrThrow(ownerId, id);
     // A quiz being played cannot go: its session would have nothing to archive.
     if (await this.hasLiveSession(ownerId, id)) {
       throw new ConflictException('quiz.in_use');
     }
-    const slots = await this.prisma.question.findMany({
-      where: { quizId: id },
-      select: { visualMediaId: true, audioMediaId: true },
-    });
+    const [questions, slides] = await Promise.all([
+      this.prisma.question.findMany({
+        where: { quizId: id },
+        select: {
+          visualMediaId: true,
+          audioMediaId: true,
+          backgroundMediaId: true,
+          options: { select: { mediaId: true } },
+        },
+      }),
+      this.prisma.slide.findMany({
+        where: { quizId: id },
+        select: { blocks: true, mediaId: true, videoMediaId: true, audioMediaId: true },
+      }),
+    ]);
     await this.prisma.quiz.delete({ where: { id } });
-    // Its videos and sounds go with it, unless another quiz (a copy) still plays them.
-    await this.media.releaseUnused(slots.flatMap((q) => [q.visualMediaId, q.audioMediaId]));
+    // Its media go with it, unless another quiz (a copy) still uses them.
+    await this.media.releaseUnused([
+      quiz.coverMediaId,
+      ...questions.flatMap(questionMediaHeld),
+      ...slides.flatMap(slideMediaIds),
+    ]);
   }
 
   /** Whether one of the owner's live sessions (Redis index) plays this quiz. */
   private async hasLiveSession(ownerId: string, quizId: string): Promise<boolean> {
-    const pins = await this.redis.smembers(gameKeys.hostGames(ownerId));
-    for (const pin of pins) {
-      const [state, gameQuiz] = await currentGameFields(this.redis, pin, 'state', 'quizId');
-      if (gameQuiz === quizId && state && state !== 'ENDED') return true;
-    }
-    return false;
+    return (await livePinOf(this.redis, ownerId, quizId)) !== null;
   }
 
   /** Applique une transition d'état validée (RG-02). */
@@ -639,4 +643,11 @@ function toSessionSummary(
     endedAt: row.endedAt.toISOString(),
     roomSize,
   };
+}
+
+/** A copy's title mark, in the quiz's language (the interface's five; English otherwise). */
+function copySuffix(language: string): string {
+  const base = language.split('-')[0];
+  if (language === 'zh-TW' || base === 'zh') return '（副本）';
+  return { fr: '(copie)', es: '(copia)' }[base] ?? '(copy)';
 }

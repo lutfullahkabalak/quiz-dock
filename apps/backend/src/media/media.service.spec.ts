@@ -7,6 +7,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { RedisService } from '../redis/redis.service';
 import { MediaService, uploadName } from './media.service';
@@ -80,14 +81,14 @@ describe('MediaService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   let service: MediaService;
   const redis = {
-    keys: jest.fn(async () => [] as string[]),
+    scanKeys: jest.fn(async () => [] as string[]),
     mget: jest.fn(async () => []),
     hget: jest.fn(async () => 'ANSWERING' as string | null),
   };
 
   beforeEach(() => {
     prisma = makePrisma();
-    redis.keys.mockResolvedValue([]);
+    redis.scanKeys.mockResolvedValue([]);
     service = new MediaService(
       prisma as unknown as PrismaService,
       redis as unknown as RedisService,
@@ -234,6 +235,16 @@ describe('MediaService', () => {
       );
     });
 
+    it('leaves what the saved element still holds, without asking the database', async () => {
+      prisma.mediaAsset.findUnique.mockResolvedValue(unused);
+      await service.releaseUnused(['m1', 'm2', null], ['m2', null]);
+      expect(prisma.mediaAsset.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.mediaAsset.delete).toHaveBeenCalledTimes(1);
+      expect(prisma.mediaAsset.delete).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'm1' } }),
+      );
+    });
+
     it('keeps a shared file while another media still holds it', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
       prisma.mediaAsset.delete.mockResolvedValue({ id: 'm1', blobSha256: 'a'.repeat(64) });
@@ -263,7 +274,7 @@ describe('MediaService', () => {
 
     it('keeps a media a session is playing, from its frozen snapshot', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
-      redis.keys.mockResolvedValue([`game:${GAME}:snapshot`]);
+      redis.scanKeys.mockResolvedValue([`game:${GAME}:snapshot`]);
       redis.hget.mockResolvedValueOnce('ANSWERING');
       redis.mget.mockResolvedValue(['{"media":{"url":"/api/v1/media/m1"}}'] as never);
       await service.releaseUnused(['m1']);
@@ -274,7 +285,7 @@ describe('MediaService', () => {
 
     it('lets go of a media once its session has ended, keys or not', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
-      redis.keys.mockResolvedValue([`game:${GAME}:snapshot`]);
+      redis.scanKeys.mockResolvedValue([`game:${GAME}:snapshot`]);
       redis.hget.mockResolvedValueOnce('ENDED');
       redis.mget.mockResolvedValue(['{"media":{"url":"/api/v1/media/m1"}}'] as never);
       await service.releaseUnused(['m1']);
@@ -293,8 +304,11 @@ describe('MediaService', () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
       prisma.$queryRaw.mockResolvedValue([{ used: true }]);
       await service.releaseUnused(['m1']);
-      const [sql] = prisma.$queryRaw.mock.calls[0] as unknown as [TemplateStringsArray];
-      expect(sql.join('?')).toContain('"game_session_log"');
+      const [strings, ...values] = prisma.$queryRaw.mock.calls[0] as unknown as [
+        TemplateStringsArray,
+        ...Prisma.Sql[],
+      ];
+      expect(Prisma.sql(strings, ...values).sql).toContain('game_session_log');
       expect(prisma.mediaAsset.delete).not.toHaveBeenCalled();
     });
 

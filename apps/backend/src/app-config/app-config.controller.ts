@@ -26,12 +26,14 @@ export class AppConfigController {
   configJs(): string {
     const appName = process.env.APP_NAME ?? 'QuizDock';
     const lang = instanceLanguage();
-    const esc = (s: string): string => s.replace(/[\\"]/g, '\\$&');
+
     // Vide (le défaut) = le SPA cherche le logo dans `branding/`, tous formats web.
     const logoUrl = process.env.APP_LOGO_URL ?? '';
     // The home page's feedback links: empty = the QuizDock repository, `none` = hidden.
     const feedbackUrl = process.env.APP_FEEDBACK_URL ?? '';
-    return `window.__APP_CONFIG__ = { appName: "${esc(appName)}", lang: "${esc(lang)}", logoUrl: "${esc(logoUrl)}", feedbackUrl: "${esc(feedbackUrl)}" };\n`;
+    // JSON is valid JavaScript, whatever the values hold (quotes, backslashes, line breaks).
+    const config = JSON.stringify({ appName, lang, logoUrl, feedbackUrl });
+    return `window.__APP_CONFIG__ = ${config};\n`;
   }
 
   /**

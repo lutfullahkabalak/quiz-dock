@@ -1,3 +1,8 @@
+import { GameState } from '@quiz-dock/contracts';
+
+/** A game over, as the state reads it in Redis. */
+const ENDED: string = GameState.Ended;
+
 /** Durée de vie de l'état live d'une partie (~4 h — SPECIFICATIONS-DONNEES §4). */
 export const GAME_TTL_S = 4 * 60 * 60;
 
@@ -49,6 +54,17 @@ export const AUTO_ADVANCE_MS = 5_000;
  * la question est révélée immédiatement plutôt que de laisser un timer mort.
  */
 export const CHRONO_FLOOR_MS = 1_000;
+
+/**
+ * A timing of the engine, overridable from the environment (`GAME_*`, the tests
+ * shorten them): the number set there, or `fallback` when it is unset, empty or
+ * not a number. 0 stays 0 (`GAME_MEDIA_WAIT_S=0`: never wait).
+ */
+export function gameSetting(name: string, fallback: number): number {
+  const raw = process.env[name];
+  const value = raw === undefined || raw.trim() === '' ? NaN : Number(raw);
+  return Number.isFinite(value) ? value : fallback;
+}
 
 /**
  * A game's id (`meta.id`): the key of everything one quiz played in a room
@@ -111,8 +127,10 @@ export const gameKeys = {
   revealLock: (id: GameId, questionIndex: number) => `game:${id}:reveal-lock:${questionIndex}`,
   /** Where the host put a step's media (`MediaAnchor` JSON), replayed to late screens. */
   mediaAnchor: (id: GameId, step: number | string) => `game:${id}:media-anchor:${step}`,
-  /** Atomic lock of the move to the next step (no double click). */
-  /** Step = question index, or `s<slideIndex>` for a content slide (#7). */
+  /**
+   * Atomic lock of the move to the next step (no double click). Step = question
+   * index, or `s<slideIndex>` for a content slide (#7).
+   */
   advanceLock: (id: GameId, step: number | string) => `game:${id}:advance-lock:${step}`,
 };
 
@@ -134,4 +152,17 @@ export async function currentGameFields(
   const gameId = await redis.hget(gameKeys.room(pin), 'gameId');
   if (!gameId) return fields.map(() => null);
   return redis.hmget(gameKeys.game(gameId as GameId), ...fields);
+}
+
+/** The PIN of the room where `ownerId` is playing `quizId` right now, or null. */
+export async function livePinOf(
+  redis: LiveReader & { smembers(key: string): Promise<string[]> },
+  ownerId: string,
+  quizId: string,
+): Promise<string | null> {
+  for (const pin of await redis.smembers(gameKeys.hostGames(ownerId))) {
+    const [state, playing] = await currentGameFields(redis, pin, 'state', 'quizId');
+    if (playing === quizId && state && state !== ENDED) return pin;
+  }
+  return null;
 }

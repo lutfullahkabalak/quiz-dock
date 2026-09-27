@@ -26,3 +26,8 @@ export function uploadCeiling(): number {
   const { image, video, audio } = mediaLimits();
   return Math.max(image, video, audio);
 }
+
+/** Where a media is served: the one URL the API, the snapshots and the bundles point at. */
+export function mediaUrl(id: string): string {
+  return `/api/v1/media/${id}`;
+}
