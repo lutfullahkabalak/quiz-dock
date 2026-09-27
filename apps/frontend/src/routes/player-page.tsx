@@ -398,19 +398,14 @@ export function PlayerPage() {
         <>
           {/* In the room the text is read on the projection, at the same place in the
               same grid; a remote participant has no projection, so it is in the tiles. */}
-          {remote && question.type === 'image_choice' ? (
-            // No projection in front of them: the pictures themselves, in the projection's order.
+          {question.type === 'image_choice' ? (
+            // The pictures themselves, in the projection's order, in the room as at a
+            // distance: a phone has the room for them, and they are the answers.
             <ImageChoiceGrid options={opts} onPick={onPick} selectedIds={selected} />
           ) : remote ? (
             <OptionGrid options={opts} onPick={onPick} selectedIds={selected} />
           ) : (
-            <OptionTiles
-              options={opts}
-              onPick={onPick}
-              selectedIds={selected}
-              // Over the pictures of the projection, the shape reads better haloed.
-              halo={question.type === 'image_choice'}
-            />
+            <OptionTiles options={opts} onPick={onPick} selectedIds={selected} />
           )}
           {isMulti ? (
             <Button type="button" disabled={selected.length === 0} onClick={() => submit(selected)}>

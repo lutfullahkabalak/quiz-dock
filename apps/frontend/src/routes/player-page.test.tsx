@@ -727,11 +727,16 @@ describe('PlayerPage (client participant)', () => {
       });
     });
 
-    it('in the room: the shapes only, the pictures are on the projection', async () => {
+    it('in the room too: the pictures, in the projection’s order', async () => {
       answering('room');
       const tiles = await screen.findAllByRole('button', { name: /Picture/ });
-      expect(tiles).toHaveLength(4);
-      expect(document.querySelector('button img')).toBeNull();
+      expect(tiles.map((b) => b.getAttribute('aria-label'))).toEqual([
+        'Picture 0',
+        'Picture 1',
+        'Picture 2',
+        'Picture 3',
+      ]);
+      expect(document.querySelectorAll('button img')).toHaveLength(4);
     });
 
     it('several right pictures: ticked, then submitted', async () => {

@@ -208,15 +208,12 @@ export function OptionTiles({
   selectedIds,
   correctIds,
   disabled,
-  halo = false,
 }: {
   options: PublicOption[];
   onPick?: (optionId: string) => void;
   selectedIds?: string[];
   correctIds?: string[];
   disabled?: boolean;
-  /** A halo around the shape, to strengthen its outline (an image choice's). */
-  halo?: boolean;
 }) {
   const many = options.length > 4;
   return (
@@ -246,10 +243,7 @@ export function OptionTiles({
             )}
           >
             <span aria-hidden>
-              <ShapeIcon
-                shape={o.shape}
-                className={cn(halo && 'drop-shadow-[0_0_0.08em_rgb(0_0_0/0.75)]')}
-              />
+              <ShapeIcon shape={o.shape} />
             </span>
           </Tag>
         );

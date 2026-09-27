@@ -34,8 +34,7 @@ image.
 | Scoring | Reused from single / multiple choice | Speed weighting, streaks, `double` and `fixed` points apply; `closest` and `lenient` are not offered. |
 | Colours and shapes | By position, in the order of the other choice types | Same order on the projection, the players' phones and the editor's preview. |
 | Shape badge | A white shape in a square of the option's colour, with a halo | Readable over any picture. |
-| Player in the room | Shapes only, as for text answers | The pictures are on the projection. |
-| Player at a distance | The whole grid, colours and shapes | No projection in front of them; the big screen view (#104) shows the projection too. |
+| Player's phone | The whole grid of pictures, colours and shapes, in the room as at a distance | A phone has the room for them, and the pictures are the answers; the big screen view (#104) shows the projection too. |
 | Tile | `TILE_RATIO` (4:3, provisional), picture in `object-fit: cover` | To settle on a projector with pictures of various proportions. |
 | Bundle | Version 6, stamped only by a quiz holding an image choice | A quiz without one still imports into an older instance. An older importer refuses a v6 bundle with its generic message. |
 | Text-only format guide | Leaves the type out | Its answers are pictures, which a text-only file cannot hold. |
@@ -57,7 +56,7 @@ One commit per phase on `feat/image-choice`:
    answers, single or multiple.
 4. **Projection and reveal** — the grid fills the screen; wrong tiles dimmed,
    the right one(s) highlighted, counts with a thumbnail.
-5. **Player views** — shapes in the room, the grid at a distance.
+5. **Player views** — the grid of pictures on every phone.
 6. **History and CSV** — the prompt as the question's label, the `alt` as the
    option's; never an asset id.
 7. **i18n** — labels and descriptions in every locale.
