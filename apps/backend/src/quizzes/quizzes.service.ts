@@ -373,90 +373,93 @@ export class QuizzesService {
     if (!src) {
       throw new NotFoundException('quiz.not_found');
     }
-    const copy = await this.prisma.quiz.create({
-      data: {
-        ownerId,
-        title: `${src.title} (copie)`,
-        description: src.description,
-        coverMediaId: src.coverMediaId,
-        language: src.language,
-        mediaTailS: src.mediaTailS,
-        loudnessTargetLufs: src.loudnessTargetLufs,
-        audioTarget: src.audioTarget,
-        questionCount: src.questions.length,
-        questions: {
-          create: src.questions.map((q) => ({
-            orderIndex: q.orderIndex,
-            type: q.type,
-            prompt: q.prompt,
-            visualMediaId: q.visualMediaId,
-            audioMediaId: q.audioMediaId,
-            answerExplanation: q.answerExplanation,
-            backgroundMediaId: q.backgroundMediaId,
-            backgroundGradient: q.backgroundGradient ?? Prisma.JsonNull,
-            textTone: q.textTone,
-            textOutline: q.textOutline,
-            timeLimitS: q.timeLimitS,
-            pointsMode: q.pointsMode,
-            scoring: q.scoring,
-            revealDelayS: q.revealDelayS,
-            audioTarget: q.audioTarget,
-            waveformSize: q.waveformSize,
-            timerAfterMedia: q.timerAfterMedia,
-            numericValue: q.numericValue,
-            numericTolerance: q.numericTolerance,
-            multiSelect: q.multiSelect,
-            options: {
-              create: q.options.map((o) => ({
-                orderIndex: o.orderIndex,
-                text: o.text,
-                mediaId: o.mediaId,
-                alt: o.alt,
-                color: o.color,
-                shape: o.shape,
-                isCorrect: o.isCorrect,
-                correctOrderIndex: o.correctOrderIndex,
-              })),
-            },
-            acceptedAnswers: {
-              create: q.acceptedAnswers.map((a) => ({
-                text: a.text,
-                normalized: a.normalized,
-              })),
-            },
-          })),
+    // The quiz and its slides in one step: a copy is whole, or not made.
+    return this.prisma.$transaction(async (tx) => {
+      const copy = await tx.quiz.create({
+        data: {
+          ownerId,
+          title: `${src.title} ${copySuffix(src.language)}`,
+          description: src.description,
+          coverMediaId: src.coverMediaId,
+          language: src.language,
+          mediaTailS: src.mediaTailS,
+          loudnessTargetLufs: src.loudnessTargetLufs,
+          audioTarget: src.audioTarget,
+          questionCount: src.questions.length,
+          questions: {
+            create: src.questions.map((q) => ({
+              orderIndex: q.orderIndex,
+              type: q.type,
+              prompt: q.prompt,
+              visualMediaId: q.visualMediaId,
+              audioMediaId: q.audioMediaId,
+              answerExplanation: q.answerExplanation,
+              backgroundMediaId: q.backgroundMediaId,
+              backgroundGradient: q.backgroundGradient ?? Prisma.JsonNull,
+              textTone: q.textTone,
+              textOutline: q.textOutline,
+              timeLimitS: q.timeLimitS,
+              pointsMode: q.pointsMode,
+              scoring: q.scoring,
+              revealDelayS: q.revealDelayS,
+              audioTarget: q.audioTarget,
+              waveformSize: q.waveformSize,
+              timerAfterMedia: q.timerAfterMedia,
+              numericValue: q.numericValue,
+              numericTolerance: q.numericTolerance,
+              multiSelect: q.multiSelect,
+              options: {
+                create: q.options.map((o) => ({
+                  orderIndex: o.orderIndex,
+                  text: o.text,
+                  mediaId: o.mediaId,
+                  alt: o.alt,
+                  color: o.color,
+                  shape: o.shape,
+                  isCorrect: o.isCorrect,
+                  correctOrderIndex: o.correctOrderIndex,
+                })),
+              },
+              acceptedAnswers: {
+                create: q.acceptedAnswers.map((a) => ({
+                  text: a.text,
+                  normalized: a.normalized,
+                })),
+              },
+            })),
+          },
         },
-      },
-      include: { questions: { select: { id: true, orderIndex: true } } },
-    });
-    // Slides (#7) anchor on question ids: re-map them onto the copied questions.
-    if (src.slides.length > 0) {
-      const srcIndexById = new Map(src.questions.map((q) => [q.id, q.orderIndex]));
-      const newIdByIndex = new Map(copy.questions.map((q) => [q.orderIndex, q.id]));
-      await this.prisma.slide.createMany({
-        data: src.slides.map((s) => ({
-          quizId: copy.id,
-          beforeQuestionId:
-            s.beforeQuestionId === null
-              ? null
-              : (newIdByIndex.get(srcIndexById.get(s.beforeQuestionId) ?? -1) ?? null),
-          orderIndex: s.orderIndex,
-          blocks: s.blocks as Prisma.InputJsonValue,
-          mediaId: s.mediaId,
-          gradient: s.gradient ?? Prisma.JsonNull,
-          videoMediaId: s.videoMediaId,
-          videoLoop: s.videoLoop,
-          videoSound: s.videoSound,
-          audioMediaId: s.audioMediaId,
-          waveformSize: s.waveformSize,
-          audioTarget: s.audioTarget,
-          displayDelayS: s.displayDelayS,
-          textTone: s.textTone,
-          textOutline: s.textOutline,
-        })),
+        include: { questions: { select: { id: true, orderIndex: true } } },
       });
-    }
-    return copy;
+      // Slides (#7) anchor on question ids: re-map them onto the copied questions.
+      if (src.slides.length > 0) {
+        const srcIndexById = new Map(src.questions.map((q) => [q.id, q.orderIndex]));
+        const newIdByIndex = new Map(copy.questions.map((q) => [q.orderIndex, q.id]));
+        await tx.slide.createMany({
+          data: src.slides.map((s) => ({
+            quizId: copy.id,
+            beforeQuestionId:
+              s.beforeQuestionId === null
+                ? null
+                : (newIdByIndex.get(srcIndexById.get(s.beforeQuestionId) ?? -1) ?? null),
+            orderIndex: s.orderIndex,
+            blocks: s.blocks as Prisma.InputJsonValue,
+            mediaId: s.mediaId,
+            gradient: s.gradient ?? Prisma.JsonNull,
+            videoMediaId: s.videoMediaId,
+            videoLoop: s.videoLoop,
+            videoSound: s.videoSound,
+            audioMediaId: s.audioMediaId,
+            waveformSize: s.waveformSize,
+            audioTarget: s.audioTarget,
+            displayDelayS: s.displayDelayS,
+            textTone: s.textTone,
+            textOutline: s.textOutline,
+          })),
+        });
+      }
+      return copy;
+    });
   }
 
   async update(ownerId: string, id: string, dto: UpdateQuizDto): Promise<Quiz> {
@@ -620,4 +623,11 @@ function toSessionSummary(
     endedAt: row.endedAt.toISOString(),
     roomSize,
   };
+}
+
+/** A copy's title mark, in the quiz's language (the interface's five; English otherwise). */
+function copySuffix(language: string): string {
+  const base = language.split('-')[0];
+  if (language === 'zh-TW' || base === 'zh') return '（副本）';
+  return { fr: '(copie)', es: '(copia)' }[base] ?? '(copy)';
 }

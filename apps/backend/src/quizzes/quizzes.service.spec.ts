@@ -30,7 +30,7 @@ function makeQuiz(over: Partial<Quiz> = {}): Quiz {
 }
 
 function makePrisma() {
-  return {
+  const prisma = {
     quiz: {
       findMany: jest.fn(),
       create: jest.fn(),
@@ -48,7 +48,12 @@ function makePrisma() {
       findFirst: jest.fn(),
     },
     mediaAsset: { findMany: jest.fn(async (): Promise<{ id: string; kind: string }[]> => []) },
+    slide: { createMany: jest.fn() },
+    $transaction: jest.fn(),
   };
+  // A transaction runs its steps on the same client.
+  prisma.$transaction.mockImplementation(async (fn: (tx: unknown) => unknown) => fn(prisma));
+  return prisma;
 }
 
 describe('QuizzesService', () => {
@@ -576,6 +581,22 @@ describe('QuizzesService', () => {
       expect(data.audioTarget).toBe('projection');
       expect(data.questions.create[0].audioTarget).toBe('everyone');
     });
+  });
+
+  it('names a copy in its quiz’s language, and writes it with its slides at once (audit B15)', async () => {
+    prisma.quiz.findFirst.mockResolvedValue(
+      makeQuiz({
+        title: 'Harbours',
+        language: 'en',
+        questions: [],
+        slides: [{ beforeQuestionId: null, orderIndex: 0, blocks: [] }],
+      } as unknown as Quiz),
+    );
+    prisma.quiz.create.mockResolvedValue({ ...makeQuiz(), questions: [] });
+    await service.duplicate(OWNER, 'q1');
+    expect(prisma.quiz.create.mock.calls[0][0].data.title).toBe('Harbours (copy)');
+    expect(prisma.$transaction).toHaveBeenCalledTimes(1);
+    expect(prisma.slide.createMany).toHaveBeenCalledTimes(1);
   });
 
   describe('the cover picture (audit B3)', () => {
