@@ -32,23 +32,30 @@ export function resetClock(): void {
   bestRtt = Number.POSITIVE_INFINITY;
 }
 
-const BURST = 5;
-const BURST_GAP_MS = 150;
-const EVERY_MS = 60_000;
+const BURST = 8;
+const BURST_GAP_MS = 120;
+/** Bursts again once the page has settled: a page still loading answers its pongs late. */
+const SETTLED_BURSTS_MS = [2_000, 8_000];
+const EVERY_MS = 30_000;
 
 /**
- * Keeps the estimate fresh on a game socket: a burst of pings at each
- * connection, then one a minute. The best round trip is forgotten at each
- * connection, so a network change is picked up.
+ * Keeps the estimate fresh on a game socket: bursts of pings at each connection
+ * and again once the page has settled, then one every half-minute. The best
+ * round trip is forgotten at each connection, so a network change is picked
+ * up; within one, the shortest round trip seen so far keeps winning.
  */
 export function calibrateClock(socket: GameSocket): void {
   const ping = () => socket.connected && socket.emit('ping', { t0: Date.now() });
   socket.on('pong', ({ t0, t1 }) => addClockSample(t0, t1, Date.now()));
   const burst = () => {
-    bestRtt = Number.POSITIVE_INFINITY;
     for (let i = 0; i < BURST; i++) window.setTimeout(ping, i * BURST_GAP_MS);
   };
-  socket.on('connect', burst);
-  if (socket.connected) burst();
+  const onConnect = () => {
+    bestRtt = Number.POSITIVE_INFINITY;
+    burst();
+    for (const at of SETTLED_BURSTS_MS) window.setTimeout(burst, at);
+  };
+  socket.on('connect', onConnect);
+  if (socket.connected) onConnect();
   window.setInterval(ping, EVERY_MS);
 }

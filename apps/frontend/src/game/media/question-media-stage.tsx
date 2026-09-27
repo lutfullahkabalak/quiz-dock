@@ -110,6 +110,15 @@ function seekTo(el: HTMLMediaElement, t: number) {
   else el.addEventListener('loadedmetadata', apply, { once: true });
 }
 
+/** How often a playing device checks it is on the room's instant (ms). */
+const DRIFT_EVERY_MS = 500;
+/** Close enough: under this gap (s), nothing is touched. */
+const DRIFT_OK_S = 0.03;
+/** Too far to catch up by speed (s): the device jumps. */
+const DRIFT_JUMP_S = 0.6;
+/** How much faster or slower a device plays while it catches up (5 %: not heard). */
+const DRIFT_NUDGE = 0.05;
+
 /** How long a media may take to start before the screen says it is late. */
 const SLOW_MS = 4000;
 
@@ -248,6 +257,45 @@ function usePlayback(
       el.removeEventListener('playing', onPlaying);
     };
   }, [el, mode, gainDb, positionKey, unlocked, silent, startAt, anchor, fadeS]);
+
+  // Kept on the room's instant while it plays: a start is never instant (a phone's
+  // decoder takes its time), so each device measures where it should be — the common
+  // start, or the host's anchor, ahead by its output latency — and closes the gap:
+  // a nudge of the speed, unheard, for a small one; a jump for a large one.
+  useEffect(() => {
+    if (!el || mode !== 'play' || (startAt === null && !anchor?.playing)) return;
+    const timer = window.setInterval(() => {
+      if (el.paused || el.seeking || el.readyState < HTMLMediaElement.HAVE_FUTURE_DATA) return;
+      const now = serverNow();
+      let target = anchor
+        ? anchor.playing
+          ? anchor.t + (now - anchor.at) / 1000
+          : null
+        : (now - (startAt as number)) / 1000;
+      if (target === null) return;
+      target += silent ? 0 : outputLatencyS();
+      const end = el.duration;
+      if (!Number.isFinite(end) || end <= 0) return;
+      if (el.loop) target %= end;
+      if (target < 0 || target >= end) {
+        el.playbackRate = 1;
+        return;
+      }
+      const drift = el.currentTime - target;
+      if (Math.abs(drift) > DRIFT_JUMP_S) {
+        el.playbackRate = 1;
+        el.currentTime = target;
+      } else if (Math.abs(drift) > DRIFT_OK_S) {
+        el.playbackRate = drift > 0 ? 1 - DRIFT_NUDGE : 1 + DRIFT_NUDGE;
+      } else {
+        el.playbackRate = 1;
+      }
+    }, DRIFT_EVERY_MS);
+    return () => {
+      window.clearInterval(timer);
+      el.playbackRate = 1;
+    };
+  }, [el, mode, startAt, anchor, silent]);
 
   const enableSound = async () => {
     if (!el) return;
