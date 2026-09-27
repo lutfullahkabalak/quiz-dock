@@ -176,8 +176,9 @@ describe('buildSnapshot', () => {
         ],
       } as never),
     );
-    // Starts 3 s before the answers open (read delay), 42 s long, +3 s → 42 s of answering.
-    expect(snap.questions[0].timeLimitS).toBe(42);
+    // The question shows, its sound starts 1.6 s later (MEDIA_LEAD_MS) — 1.4 s before the
+    // answers open (3 s read delay) —, 42 s long, +3 s → 43.6 s of answering, rounded up.
+    expect(snap.questions[0].timeLimitS).toBe(44);
     expect(snap.questions[1].timeLimitS).toBe(20);
   });
 

@@ -25,6 +25,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { clearRoomPositions } from '../game/media/media-position';
 import { Avatar } from '../game/avatar';
 import {
   joinSession,
@@ -146,6 +147,11 @@ export function PlayerPage() {
     view.gameAudioTarget !== 'projection' &&
     !!view.sounds &&
     (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
+  // A new lobby, a new game: the media positions of the room's last one are gone
+  // (its PIN stays; a quiz played again would read "played to the end" and stay silent).
+  useEffect(() => {
+    if (view.state === 'LOBBY') clearRoomPositions(pin);
+  }, [view.state, pin]);
   useGameSounds(
     view.sounds,
     {

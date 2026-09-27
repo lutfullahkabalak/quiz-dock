@@ -28,13 +28,17 @@ export function questionHasOwnSound(media: LiveQuestionMedia | null | undefined)
   return !!media?.audio || media?.visual?.kind === 'video';
 }
 
-/** A short, dry click: a triangle wave with a fast decay. */
-export function synthTick(): void {
+/** Answers counted together: their ticks this far apart, a handful at most. */
+const TICK_SPACING_S = 0.08;
+const MAX_TICKS_AT_ONCE = 5;
+
+/** A short, dry click: a triangle wave with a fast decay; `at` on the context's clock. */
+export function synthTick(at?: number): void {
   const mixer = getMixer();
   const into = busInput('sfx');
   if (!mixer || !into) return;
   const { ctx } = mixer;
-  const t = ctx.currentTime;
+  const t = Math.max(at ?? 0, ctx.currentTime);
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
   osc.type = 'triangle';
@@ -341,7 +345,13 @@ export function useGameSounds(
     const answering =
       game.state === 'ANSWERING' || (game.state === 'REVEAL' && prev.state === 'ANSWERING');
     if (sounds.tick && answering && sameQuestion && game.answered > prev.answered) {
-      playEffect(sounds.tickUrl, synthTick);
+      // One tick per answer counted: answers that come in together arrive in one update
+      // (the count jumps), and each still gets its own tick, a hair apart.
+      const now = getMixer()!.ctx.currentTime;
+      const count = Math.min(game.answered - prev.answered, MAX_TICKS_AT_ONCE);
+      for (let i = 0; i < count; i++) {
+        playEffect(sounds.tickUrl, (at) => synthTick(at), now + i * TICK_SPACING_S);
+      }
     }
     // The ding: a new question starts (not over its own sound or video).
     if (

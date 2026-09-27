@@ -199,7 +199,8 @@
       "dingWhen": "À l’apparition de chaque question — pas pour une question qui joue son propre son ou sa vidéo.",
       "tickWhen": "À chaque réponse reçue.",
       "countdownWhen": "Sur les 5 dernières secondes du chrono : tic à la seconde, tac à la demie ; le dernier tac est omis et le gong tombe à zéro. S’arrête si tout le monde a répondu.",
-      "gongWhen": "À la fin de la question : à zéro, ou dès que tout le monde a répondu."
+      "gongWhen": "À la fin de la question : à zéro, ou dès que tout le monde a répondu.",
+      "musicWhen": "Tourne en boucle pendant les réponses, dès qu’elles s’ouvrent. Elle se retire pendant le son ou la vidéo d’une question, et entre les questions, puis reprend là où elle en était."
     }
   },
   "screen": {

@@ -17,10 +17,11 @@ export const MEDIA_WAIT_S = 10;
 
 /**
  * How far ahead the server sets the common start of a question's media (ms):
- * enough for the question to reach every device, which then starts on the
+ * a second for the room to see the question before its sound or video starts,
+ * and enough for the question to reach every device, which then starts on the
  * same instant of the server's clock.
  */
-export const MEDIA_LEAD_MS = 600;
+export const MEDIA_LEAD_MS = 1_600;
 
 /** Tolérance serveur : réponses reçues après `endsAt + grace` rejetées (§6). */
 export const GRACE_MS = 300;

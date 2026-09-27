@@ -119,6 +119,17 @@ describe('game sounds (#93)', () => {
     expect(oscillators).toHaveLength(9);
   });
 
+  it('a tick for every answer, one after the other', () => {
+    const { rerender } = renderHook(({ g }) => useGameSounds(SOUNDS, g, true), {
+      initialProps: { g: game() },
+    });
+    for (let n = 1; n <= 5; n++) rerender({ g: game({ answered: n }) });
+    expect(oscillators).toHaveLength(5);
+    // Three answers counted in one update: three ticks, not one.
+    rerender({ g: game({ answered: 8 }) });
+    expect(oscillators).toHaveLength(8);
+  });
+
   it('the last answer, which ends the question, still gets its tick before the gong', () => {
     const { rerender } = renderHook(({ g }) => useGameSounds(SOUNDS, g, true), {
       initialProps: { g: game() },

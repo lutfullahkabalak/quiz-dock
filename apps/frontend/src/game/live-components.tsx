@@ -124,7 +124,10 @@ export function OptionGrid({
               {SHAPE_GLYPH[o.shape] ?? '●'}
             </span>
             {o.text ? (
-              <Markdown profile="inline" className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+              <Markdown
+                profile="inline"
+                className="min-w-0 flex-1 leading-[1em] [overflow-wrap:anywhere]"
+              >
                 {o.text}
               </Markdown>
             ) : null}
@@ -169,7 +172,10 @@ export function OptionKey({
             {SHAPE_GLYPH[o.shape] ?? '●'}
           </span>
           {o.text ? (
-            <Markdown profile="inline" className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            <Markdown
+              profile="inline"
+              className="min-w-0 flex-1 leading-[1em] [overflow-wrap:anywhere]"
+            >
               {o.text}
             </Markdown>
           ) : null}

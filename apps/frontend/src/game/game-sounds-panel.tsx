@@ -292,6 +292,7 @@ export function GameSoundsControls({
           {heading('room-music', t('control.sounds.music'))}
           {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel', 'musicMuted')}
         </div>
+        <p className="text-muted-foreground -mt-1 text-xs">{t('control.sounds.musicWhen')}</p>
         {picker(
           t('control.sounds.musicLabel'),
           sounds.musicUrl,

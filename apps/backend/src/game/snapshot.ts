@@ -15,7 +15,7 @@ import {
   resolveAudioTarget,
 } from '@quiz-dock/contracts';
 import { QUESTION_MEDIA_INCLUDE, liveMediaOf } from '../questions/question-media';
-import { READ_DELAY_MS } from './game.keys';
+import { READ_DELAY_MS, MEDIA_LEAD_MS } from './game.keys';
 import { basePointsFor } from './scoring';
 import type { QuizSnapshot, SnapshotQuestion, SnapshotSlide } from './game.types';
 import type {
@@ -117,7 +117,9 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
               q.timeLimitS,
               mediaDurationMs(liveMediaOf(q)),
               quiz.mediaTailS,
-              readDelayMs(),
+              // The media starts MEDIA_LEAD_MS after the question: that much less of it
+              // plays during the reading.
+              readDelayMs() - MEDIA_LEAD_MS,
             ),
         timerAfterMedia: listensFirst(q),
         revealDelayS: q.revealDelayS ?? null,

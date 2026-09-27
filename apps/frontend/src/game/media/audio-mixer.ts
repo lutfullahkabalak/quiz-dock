@@ -226,8 +226,15 @@ export const TRACK_FADE_S = 1.5;
 export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<void> {
   const gain = routed.get(el);
   const m = mixer;
-  if (!gain || !m || m.ctx.state !== 'running') return Promise.resolve();
+  if (!gain || !m) return Promise.resolve();
   const target = to === 'in' ? (levels.get(el) ?? 1) : 0;
+  // A context not running cannot ramp: set the level at once, never left at the silence
+  // a fade in starts from.
+  if (m.ctx.state !== 'running') {
+    gain.gain.cancelScheduledValues(0);
+    gain.gain.value = target;
+    return Promise.resolve();
+  }
   const span = to === 'in' ? FADE_IN_S : FADE_OUT_S;
   const t = m.ctx.currentTime;
   gain.gain.cancelScheduledValues(t);
