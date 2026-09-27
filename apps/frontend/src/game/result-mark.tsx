@@ -11,8 +11,9 @@ export function ResultMark({ correct, className }: { correct: boolean; className
     <svg
       viewBox="0 0 64 64"
       aria-hidden
+      data-correct={correct}
       className={cn(
-        'qd-mark size-[4.5em]',
+        'qd-verdict qd-mark size-[4.5em]',
         correct ? 'text-success' : 'text-destructive',
         className,
       )}

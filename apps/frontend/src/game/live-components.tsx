@@ -92,7 +92,7 @@ export function OptionGrid({
   const many = options.length > 4;
   const long = options.some((o) => (o.text ?? '').length > OPTION_TILE_MAX_CHARS);
   return (
-    <div className={ANSWER_GRID}>
+    <div className={cn('qd-answers', ANSWER_GRID)}>
       {options.map((o, i) => {
         const isCorrect = correctIds?.includes(o.id);
         const isPicked = selectedIds?.includes(o.id) ?? false;
@@ -106,8 +106,11 @@ export function OptionGrid({
             disabled={onPick ? disabled : undefined}
             onClick={onPick ? () => onPick(o.id) : undefined}
             aria-pressed={onPick ? isPicked : undefined}
+            data-color={o.color}
+            data-correct={correctIds ? String(!!isCorrect) : undefined}
+            data-picked={isPicked || undefined}
             className={cn(
-              'flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.45em] text-left leading-[1em] font-semibold text-white shadow transition',
+              'qd-answer flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.45em] text-left leading-[1em] font-semibold text-white shadow transition',
               // Five answers and more: lower tiles, so four rows still leave room above.
               many ? 'min-h-[2.6em]' : 'min-h-[3.25em]',
               long ? 'text-[0.95em]' : many ? 'text-[1em]' : 'text-[1.125em]',
@@ -156,12 +159,15 @@ export function OptionKey({
   const { t } = useTranslation('live');
   const picked = (id: string) => selectedIds?.includes(id) ?? false;
   return (
-    <ol className="flex w-full flex-col gap-[0.4em] text-left">
+    <ol className="qd-answers flex w-full flex-col gap-[0.4em] text-left" data-layout="list">
       {options.map((o) => (
         <li
           key={o.id}
+          data-color={o.color}
+          data-correct={correctIds ? String(correctIds.includes(o.id)) : undefined}
+          data-picked={picked(o.id) || undefined}
           className={cn(
-            'flex items-center gap-[0.6em] rounded-[0.5em] px-[0.6em] py-[0.4em] leading-snug',
+            'qd-answer flex items-center gap-[0.6em] rounded-[0.5em] px-[0.6em] py-[0.4em] leading-snug',
             picked(o.id) && 'bg-foreground/10 font-semibold',
             correctIds && !correctIds.includes(o.id) && 'opacity-50',
           )}
@@ -219,7 +225,7 @@ export function OptionTiles({
 }) {
   const many = options.length > 4;
   return (
-    <div className={ANSWER_GRID}>
+    <div className={cn('qd-answers', ANSWER_GRID)}>
       {options.map((o, i) => {
         const isCorrect = correctIds?.includes(o.id);
         const isPicked = selectedIds?.includes(o.id) ?? false;
@@ -232,8 +238,11 @@ export function OptionTiles({
             onClick={onPick ? () => onPick(o.id) : undefined}
             aria-label={optionLabel(o)}
             aria-pressed={onPick ? isPicked : undefined}
+            data-color={o.color}
+            data-correct={correctIds ? String(!!isCorrect) : undefined}
+            data-picked={isPicked || undefined}
             className={cn(
-              'flex items-center justify-center rounded-[0.75em] text-[1.6em] leading-none text-white shadow transition',
+              'qd-answer flex items-center justify-center rounded-[0.75em] text-[1.6em] leading-none text-white shadow transition',
               // Low enough to leave the prompt its room; five answers and more, lower still.
               many ? 'min-h-[2em]' : 'min-h-[2.75em]',
               lastOdd(i, options.length),
@@ -276,7 +285,7 @@ export function Distribution({
 }) {
   const total = Object.values(reveal.distribution).reduce((a, b) => a + b, 0) || 1;
   return (
-    <ul className="flex w-full flex-col gap-[0.5em]">
+    <ul className="qd-distribution flex w-full flex-col gap-[0.5em]">
       {options.map((o) => {
         const n = reveal.distribution[o.id] ?? 0;
         const pct = Math.round((n / total) * 100);
@@ -376,7 +385,7 @@ export function RevealAnswer({
   const val = reveal.correctValue;
   const text = Array.isArray(val) ? val.join(t('reveal.or')) : (val ?? '');
   return (
-    <div className="flex w-full flex-col items-center gap-[0.75em]">
+    <div className="qd-reveal flex w-full flex-col items-center gap-[0.75em]">
       <p className="text-[1.25em]">
         {t('reveal.goodAnswer')} <strong>{String(text)}</strong>
       </p>
@@ -390,7 +399,7 @@ export function ClosestList({ rows }: { rows: ClosestRow[] }) {
   const { t } = useTranslation('live');
   if (rows.length === 0) return null;
   return (
-    <div className="flex w-full max-w-[28em] flex-col gap-[0.4em]">
+    <div className="qd-closest flex w-full max-w-[28em] flex-col gap-[0.4em]">
       <h3 className="text-muted-foreground text-[0.9em] font-semibold">
         {t('reveal.closestTitle')}
       </h3>
@@ -523,20 +532,31 @@ export function ZoomableImage({
 }
 
 /**
- * The question's clock as a draining bar across the top, the seconds and their
- * icon at its right end (#92): the prompt gets the room a big number took.
- */
-/**
  * The colour of a question's time, the same on every screen (console, projection,
  * phones): green, amber from half the time, red on the last fifth; grey while paused.
  */
 export function timeTone(share: number, paused: boolean): string {
-  if (paused) return 'bg-muted-foreground';
-  if (share <= 0.2) return 'bg-destructive';
-  if (share <= 0.5) return 'bg-amber-500';
-  return 'bg-success';
+  return TONE_BG[toneOf(share, paused)];
 }
 
+type TimeTone = 'ok' | 'warning' | 'critical' | 'paused';
+const TONE_BG: Record<TimeTone, string> = {
+  ok: 'bg-success',
+  warning: 'bg-warning',
+  critical: 'bg-destructive',
+  paused: 'bg-muted-foreground',
+};
+function toneOf(share: number, paused: boolean): TimeTone {
+  if (paused) return 'paused';
+  if (share <= 0.2) return 'critical';
+  if (share <= 0.5) return 'warning';
+  return 'ok';
+}
+
+/**
+ * The question's clock as a draining bar across the top, the seconds and their
+ * icon at its right end (#92): the prompt gets the room a big number took.
+ */
 export function TimerBar({
   remaining,
   totalS,
@@ -559,7 +579,12 @@ export function TimerBar({
     <div
       role="timer"
       aria-label={label}
-      className={cn('flex w-full items-center gap-[0.6em]', paused && 'opacity-60', className)}
+      data-tone={toneOf(share, paused)}
+      className={cn(
+        'qd-timer flex w-full items-center gap-[0.6em]',
+        paused && 'opacity-60',
+        className,
+      )}
     >
       <div className="bg-muted h-[0.5em] flex-1 overflow-hidden rounded-full">
         <div
@@ -617,13 +642,13 @@ export function AnswerRules({
   return (
     <p
       className={cn(
-        'text-muted-foreground flex flex-wrap items-center justify-center gap-[0.5em] text-[0.9em]',
+        'qd-rules text-muted-foreground flex flex-wrap items-center justify-center gap-[0.5em] text-[0.9em]',
         className,
       )}
     >
       <span>{t(ruleKey, { defaultValue: t(`rules.${kind}`) })}</span>
       {badge ? (
-        <span className="rounded-full bg-amber-500/20 px-[0.6em] py-[0.1em] text-[0.85em] font-semibold text-amber-700">
+        <span className="bg-warning/20 text-warning-text rounded-full px-[0.6em] py-[0.1em] text-[0.85em] font-semibold">
           {badge}
         </span>
       ) : null}
@@ -649,7 +674,7 @@ export function AnswerExplanation({
     <section
       aria-label={t('reveal.explanation')}
       className={cn(
-        'w-full rounded-[0.5em] border bg-muted/40 px-[1em] py-[0.75em] text-left',
+        'qd-explanation w-full rounded-[0.5em] border bg-muted/40 px-[1em] py-[0.75em] text-left',
         className,
       )}
     >
@@ -681,7 +706,7 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
       textTone={slide.textTone}
       textOutline={slide.textOutline}
       // No explicit height: a flex parent stretches it (`h-full` would opt out of stretching).
-      className="w-full flex-1"
+      className="qd-slide w-full flex-1"
     >
       <article className="flex h-full min-h-full w-full flex-col justify-center gap-[1.5em] p-[2em]">
         {blocks.map((b) =>
@@ -804,15 +829,17 @@ export function LeaderboardList({
   const shown = rows.slice(0, max);
   const topScore = Math.max(0, ...shown.map((r) => r.score));
   return (
-    <ol className="flex w-full flex-col gap-[0.4em]">
+    <ol className="qd-leaderboard flex w-full flex-col gap-[0.4em]">
       {shown.map((r) => {
         const pct = topScore > 0 ? Math.round((r.score / topScore) * 100) : 0;
         const me = r.rank === highlightRank;
         return (
           <li
             key={`${r.rank}-${r.nickname}`}
+            data-rank={r.rank}
+            data-you={me || undefined}
             className={cn(
-              'relative flex items-center gap-[0.5em] overflow-hidden rounded-[0.3em] px-[0.75em] py-[0.4em]',
+              'qd-leaderboard-row relative flex items-center gap-[0.5em] overflow-hidden rounded-[0.3em] px-[0.75em] py-[0.4em]',
               me ? 'ring-primary font-semibold ring-2' : '',
             )}
           >
@@ -838,10 +865,14 @@ export function Podium({ rows }: { rows: LeaderboardRow[] }) {
   const order = [rows[1], rows[0], rows[2]]; // 2 · 1 · 3
   const heights = ['h-[6em]', 'h-[8em]', 'h-[5em]'];
   return (
-    <div className="flex items-end justify-center gap-[0.75em]">
+    <div className="qd-podium flex items-end justify-center gap-[0.75em]">
       {order.map((r, i) =>
         r ? (
-          <div key={r.rank} className="flex w-[6em] flex-col items-center gap-[0.25em]">
+          <div
+            key={r.rank}
+            data-rank={r.rank}
+            className="qd-podium-step flex w-[6em] flex-col items-center gap-[0.25em]"
+          >
             <Avatar name={r.avatar || r.nickname} size="3em" />
             <span className="max-w-full truncate font-semibold">{r.nickname}</span>
             <span className="text-muted-foreground text-[0.875em] tabular-nums">{r.score}</span>
@@ -849,7 +880,7 @@ export function Podium({ rows }: { rows: LeaderboardRow[] }) {
               className={cn(
                 'flex w-full items-start justify-center rounded-t-[0.5em] pt-[0.5em] text-[1.5em] font-bold text-white',
                 heights[i],
-                r.rank === 1 ? 'bg-amber-500' : r.rank === 2 ? 'bg-slate-400' : 'bg-amber-800',
+                r.rank === 1 ? 'bg-podium-1' : r.rank === 2 ? 'bg-podium-2' : 'bg-podium-3',
               )}
             >
               {r.rank}
@@ -873,7 +904,7 @@ export function ConnectionLost({ lost }: { lost: boolean }) {
   return (
     <p
       role="status"
-      className="bg-destructive text-destructive-foreground fixed inset-x-0 top-2 z-50 mx-auto w-fit rounded-md px-3 py-1.5 text-sm font-medium shadow"
+      className="qd-connection-lost bg-destructive text-destructive-foreground fixed inset-x-0 top-2 z-50 mx-auto w-fit rounded-md px-3 py-1.5 text-sm font-medium shadow"
     >
       {t('errors.connectionLost')}
     </p>

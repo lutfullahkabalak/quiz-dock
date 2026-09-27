@@ -174,15 +174,17 @@ export function ScreenSurface({
   // retardataires de rejoindre en cours de question (notamment quand l'énoncé n'a
   // pas d'options affichées à l'écran, cf. « Réponds sur ton téléphone »).
   const joinBar = (
-    <div className="absolute inset-x-0 bottom-0 flex items-center justify-center gap-[1em] border-t bg-background/80 p-[1em] backdrop-blur">
-      <div className="rounded-md bg-white p-1.5 shadow">
+    <div className="qd-join absolute inset-x-0 bottom-0 flex items-center justify-center gap-[1em] border-t bg-background/80 p-[1em] backdrop-blur">
+      <div className="qd-join-qr rounded-md bg-white p-1.5 shadow">
         <QRCodeSVG value={joinUrl} size={80} aria-label={t('screen.qrLabel')} />
       </div>
       <div className="flex flex-col items-start">
         <span className="text-muted-foreground text-[0.8em] uppercase tracking-widest">
           {joinHost}
         </span>
-        <span className="font-mono text-[2.25em] font-bold tracking-[0.2em]">{pin}</span>
+        <span className="qd-join-pin font-mono text-[2.25em] font-bold tracking-[0.2em]">
+          {pin}
+        </span>
       </div>
     </div>
   );
@@ -306,7 +308,7 @@ export function ScreenSurface({
         <Markdown
           role="heading"
           aria-level={1}
-          className="shrink-0 text-center text-[2em] font-semibold"
+          className="qd-prompt shrink-0 text-center text-[2em] font-semibold"
         >
           {view.question.prompt}
         </Markdown>
@@ -323,7 +325,11 @@ export function ScreenSurface({
   } else if ((view.state === 'REVEAL' || view.state === 'LEADERBOARD') && view.question) {
     body = (
       <div className="flex w-full max-w-[40em] flex-col items-center gap-[1.5em]">
-        <Markdown role="heading" aria-level={1} className="text-center text-[2em] font-semibold">
+        <Markdown
+          role="heading"
+          aria-level={1}
+          className="qd-prompt text-center text-[2em] font-semibold"
+        >
           {view.question.prompt}
         </Markdown>
         {view.reveal ? <RevealAnswer question={view.question} reveal={view.reveal} /> : null}
@@ -362,7 +368,7 @@ export function ScreenSurface({
           <Markdown
             role="heading"
             aria-level={1}
-            className="w-full shrink-0 text-[1.8em] leading-tight font-semibold"
+            className="qd-prompt w-full shrink-0 text-[1.8em] leading-tight font-semibold"
           >
             {view.question.prompt}
           </Markdown>
@@ -421,7 +427,7 @@ export function ScreenSurface({
     // The room's next quiz (#89): what comes, and where the room stands.
     const nextInRoom = view.standings ? view.standings : null;
     body = (
-      <div className="flex flex-col items-center gap-[1.5em]">
+      <div className="qd-lobby flex flex-col items-center gap-[1.5em]">
         {/* The room's name, then the quiz it plays (the next one, from its second). */}
         <h1 className="text-[2.25em] font-bold">{roomLabel(t, view.roomName, view.hostName)}</h1>
         {view.quizTitle ? (
@@ -435,8 +441,8 @@ export function ScreenSurface({
         <p className="text-[1.5em]">
           {t('screen.joinAt')} <span className="font-semibold">{joinHost}</span>
         </p>
-        <p className="font-mono text-[4em] font-bold tracking-[0.3em]">{pin}</p>
-        <div className="rounded-xl bg-white p-4 shadow">
+        <p className="qd-join-pin font-mono text-[4em] font-bold tracking-[0.3em]">{pin}</p>
+        <div className="qd-join-qr rounded-xl bg-white p-4 shadow">
           <QRCodeSVG value={joinUrl} size={200} aria-label={t('screen.qrLabel')} />
         </div>
         <div className="text-muted-foreground flex items-center gap-[0.5em] text-[1.25em]">
@@ -448,7 +454,7 @@ export function ScreenSurface({
         {view.readiness?.questionIndex === 0 ? (
           <ReadinessMeter readiness={view.readiness} className="text-[1em]" />
         ) : null}
-        <ul className="flex max-w-[40em] flex-wrap justify-center gap-[0.5em]">
+        <ul className="qd-roster flex max-w-[40em] flex-wrap justify-center gap-[0.5em]">
           {view.players.map((p) => (
             <li
               key={p.playerId}
@@ -473,8 +479,9 @@ export function ScreenSurface({
   return (
     <div
       ref={ref}
+      data-state={view.state ?? 'none'}
       className={cn(
-        'bg-background relative flex min-h-dvh flex-col',
+        'qd-screen bg-background relative flex min-h-dvh flex-col',
         // A question fits the screen exactly (see its body); the rest may grow.
         (view.state === 'ANSWERING' ||
           view.state === 'QUESTION_SHOW' ||

@@ -126,3 +126,66 @@ describe('ScreenPage (projection)', () => {
     expect(gradientOnScreen()).toBe(false);
   });
 });
+
+/**
+ * The hooks an instance's override.css targets (docs/self-hosting/branding.md):
+ * they must survive changes to the markup. See also branding-hooks.test.ts.
+ */
+describe('ScreenPage: the branding hooks (lot 5)', () => {
+  afterEach(() => vi.clearAllMocks());
+
+  it('a question: the screen, its state, the clock, the prompt, the answers by colour', async () => {
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: {
+        ...(withBackground as object),
+        options: [
+          { id: 'a', text: 'Oui', color: 'red', shape: 'triangle' },
+          { id: 'b', text: 'Non', color: 'blue', shape: 'diamond' },
+        ],
+        startedAt: now - 2_000,
+        endsAt: now + 18_000,
+      } as never,
+    });
+    const { container } = renderApp('/session/482913/projection');
+    await screen.findByText('Sur fond ?');
+    const $ = (sel: string) => container.querySelector(sel);
+    expect($('.qd-screen[data-state="ANSWERING"]')).not.toBeNull();
+    expect($('.qd-timer[data-tone="ok"]')).not.toBeNull();
+    expect($('.qd-prompt')).toHaveTextContent('Sur fond ?');
+    expect($('.qd-answers .qd-answer[data-color="red"]')).toHaveTextContent('Oui');
+  });
+
+  it('the lobby: how to join, and who is in', async () => {
+    hookState.value = view({
+      state: GameState.Lobby,
+      players: [{ playerId: 'p1', nickname: 'Ada' }],
+    });
+    const { container } = renderApp('/session/482913/projection');
+    await screen.findByText('Ada');
+    const $ = (sel: string) => container.querySelector(sel);
+    expect($('.qd-screen[data-state="LOBBY"] .qd-lobby .qd-join-pin')).toHaveTextContent('482913');
+    expect($('.qd-join-qr svg')).not.toBeNull();
+    expect($('.qd-roster')).toHaveTextContent('Ada');
+  });
+
+  it('the podium, step by step', async () => {
+    hookState.value = view({
+      state: GameState.Podium,
+      podium: {
+        podium: [
+          { nickname: 'Ann', score: 900, rank: 1 },
+          { nickname: 'Bob', score: 700, rank: 2 },
+        ],
+        feedbackEnabled: true,
+      } as never,
+    });
+    const { container } = renderApp('/session/482913/projection');
+    await screen.findByText('Ann');
+    expect(container.querySelector('.qd-podium .qd-podium-step[data-rank="1"]')).toHaveTextContent(
+      'Ann',
+    );
+  });
+});

@@ -63,8 +63,10 @@ export function ImageTile({
 }) {
   return (
     <div
+      data-color={color}
+      data-correct={state === 'idle' ? undefined : String(state === 'correct')}
       className={cn(
-        'relative w-full overflow-hidden rounded-[0.5em] p-[0.2em] transition-[opacity,box-shadow]',
+        'qd-answer relative w-full overflow-hidden rounded-[0.5em] p-[0.2em] transition-[opacity,box-shadow]',
         COLOR_BG[color] ?? OPTION_BG_FALLBACK,
         // Put forward whatever the page behind: a ring in the success colour, clear of the frame.
         state === 'correct' &&
@@ -143,7 +145,8 @@ export function ImageChoiceGrid({
   const width = screenFitWidth(options.length);
   const grid = (
     <ul
-      className={cn('grid grid-cols-2', fit === 'width' && 'w-full')}
+      className={cn('qd-answers grid grid-cols-2', fit === 'width' && 'w-full')}
+      data-layout="images"
       style={{ gap: `${GAP_EM}em`, ...(fit === 'screen' ? { width } : {}) }}
     >
       {options.map((o) => {

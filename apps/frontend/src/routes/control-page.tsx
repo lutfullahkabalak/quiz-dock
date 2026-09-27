@@ -101,7 +101,10 @@ export function ControlPage() {
   return (
     <>
       <ConnectionLost lost={session.view.connectionLost} />
-      <HostConsole pin={pin} session={session} />
+      {/* A hook for override.css, with the game's state (no box: the layout is the page's). */}
+      <div className="qd-console contents" data-state={session.view.state ?? 'none'}>
+        <HostConsole pin={pin} session={session} />
+      </div>
     </>
   );
 }
@@ -1142,10 +1145,7 @@ function ParticipantsList({
           <span className="max-w-[8rem] truncate">{p.nickname}</span>
           {readiness?.lobby ? (
             waited.get(p.playerId) ? (
-              <Check
-                className="size-3.5 text-green-600"
-                aria-label={t('control.participantReady')}
-              />
+              <Check className="size-3.5 text-success" aria-label={t('control.participantReady')} />
             ) : said.get(p.playerId) ? (
               <Loader2
                 className="text-muted-foreground size-3.5 animate-spin"
@@ -1154,7 +1154,7 @@ function ParticipantsList({
             ) : null
           ) : waited.has(p.playerId) ? (
             waited.get(p.playerId) ? (
-              <Check className="size-3.5 text-green-600" aria-label={t('control.mediaReady')} />
+              <Check className="size-3.5 text-success" aria-label={t('control.mediaReady')} />
             ) : (
               <Loader2
                 className="text-muted-foreground size-3.5 animate-spin"
@@ -1359,7 +1359,7 @@ function ChronoControls({
 }) {
   const { t } = useTranslation('live');
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="qd-chrono flex items-center gap-1.5">
       {CHRONO_STEPS.filter((s) => s < 0).map((s) => (
         <Button key={s} type="button" variant="outline" size="sm" onClick={() => onAdjust(s)}>
           {s}

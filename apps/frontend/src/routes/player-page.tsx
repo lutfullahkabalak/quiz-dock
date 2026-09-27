@@ -97,7 +97,10 @@ export function PlayerPage() {
   return (
     <>
       <ConnectionLost lost={session.view.connectionLost} />
-      <PlayerView pin={pin} session={session} />
+      {/* A hook for override.css, with the game's state (no box: the layout is the page's). */}
+      <div className="qd-player contents" data-state={session.view.state ?? 'none'}>
+        <PlayerView pin={pin} session={session} />
+      </div>
     </>
   );
 }
@@ -812,7 +815,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
           <Markdown
             role="heading"
             aria-level={1}
-            className="text-[1.5em] font-semibold text-balance"
+            className="qd-prompt text-[1.5em] font-semibold text-balance"
           >
             {question.prompt}
           </Markdown>
@@ -965,7 +968,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             {view.youReady ? (
               // What the wait is about, once ready: the quiz to come and the room filling up.
               <div className="qd-pop bg-muted/40 flex w-full flex-col items-center gap-1.5 rounded-lg border p-3">
-                <p className="flex items-center gap-1.5 font-semibold text-green-700 dark:text-green-400">
+                <p className="text-success flex items-center gap-1.5 font-semibold">
                   <Check className="size-4" />
                   {t('player.readyDone')}
                 </p>
