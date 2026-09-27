@@ -14,6 +14,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- The sounds hint — the track makes way for a question's sound, then comes back *(live)*
+- The sounds hint says the track stops under a question's own sound *(live)*
+- No track under a question with its own sound, and no sidechain *(media)*
 - A fade in of a few milliseconds, just the click off the attack *(media)*
 - The format guide writes the version it needs; a hidden waveform through the database *(bundle)*
 - The transport holds its locks through a pause, and works without a projection *(live)*
@@ -30,6 +33,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The console transport, the hidden waveform and the bank's views listed
 - The fades of the audio routing *(spec)*
 - The format guide and the chatbot prompt in unreleased *(changelog)*
 - The projection on a device, Ready! and the game's sounds in the feature list
@@ -72,6 +76,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- A mute per channel on the room's mixer, for every screen *(live)*
+- The room's sounds — built in, or a sound of the library with the editor's picker *(live)*
+- The track makes way for a question's sound and comes back; a mute per channel *(media)*
+- The track keeps its place, a sidechain makes way for the quiz, tapered faders *(media)*
 - Fades on every start and stop — the host's transport, the samples, the track *(media)*
 - My quizzes and the templates — filters, a list or a grid, richer items *(ui)*
 - A waveform hidden from the screens, still on the console — manifest v4 *(media)*
