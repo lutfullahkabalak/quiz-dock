@@ -349,6 +349,8 @@
     },
     "/api/v1/quizzes/samples": {
       "post": {
+        "deprecated": true,
+        "description": "Kept for existing integrations. The samples now live in the template catalogue, copied on demand.",
         "operationId": "QuizzesController_createSamples",
         "parameters": [],
         "responses": {
@@ -371,6 +373,7 @@
             "bearer": []
           }
         ],
+        "summary": "Adds the sample quizzes to the caller's bank",
         "tags": [
           "quizzes"
         ]
@@ -2037,6 +2040,8 @@
     },
     "/api/v1/quizzes/{id}/questions/reorder": {
       "patch": {
+        "deprecated": true,
+        "description": "Kept for existing integrations. Use PATCH quizzes/{id}/items/reorder, which also places the slides.",
         "operationId": "QuestionsController_reorder",
         "parameters": [
           {
@@ -2078,6 +2083,7 @@
             "bearer": []
           }
         ],
+        "summary": "Reorders the questions alone",
         "tags": [
           "questions"
         ]

@@ -22,6 +22,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiOperation,
   ApiProduces,
   ApiTags,
 } from '@nestjs/swagger';
@@ -70,6 +71,12 @@ export class QuizzesController {
 
   /** Adds the built-in sample quizzes (ready to play) to the caller's bank. */
   @Post('samples')
+  @ApiOperation({
+    summary: "Adds the sample quizzes to the caller's bank",
+    deprecated: true,
+    description:
+      'Kept for existing integrations. The samples now live in the template catalogue, copied on demand.',
+  })
   @ApiCreatedResponse({ type: QuizDto, isArray: true })
   createSamples(@CurrentUser() user: User) {
     return this.samples.createFor(user.id);
