@@ -223,35 +223,86 @@ describe('QuestionsService', () => {
 
 describe('QuestionsService — media left behind', () => {
   const id = (c: string) => c.repeat(26);
+  const media = { releaseUnused: jest.fn(async () => undefined) };
 
-  it('releases the media a save replaced, not the one it kept', async () => {
-    const prisma = makePrisma() as ReturnType<typeof makePrisma> & Record<string, unknown>;
-    const media = { releaseUnused: jest.fn(async () => undefined) };
-    const service = new QuestionsService(
-      prisma as unknown as PrismaService,
-      media as unknown as MediaService,
-    );
-    prisma.question.findFirst.mockResolvedValue({
-      id: 'q1',
-      quizId: 'z',
-      visualMediaId: id('I'),
-      audioMediaId: id('A'),
-      options: [],
+  /** What a call gave back: the media the element held, minus those it still holds. */
+  const released = () => {
+    const [held, kept = []] = media.releaseUnused.mock.calls[0] as unknown as [string[], string[]?];
+    return held.filter((m) => m && !kept.includes(m)).sort();
+  };
+
+  function setup() {
+    media.releaseUnused.mockClear();
+    const prisma = makePrisma();
+    prisma.mediaAsset.findMany.mockImplementation(async (args) => {
+      const ids = (args as { where: { id: { in: string[] } } }).where.id.in;
+      return ids.map((m) => ({ id: m, kind: 'image' }));
     });
-    (prisma as unknown as { mediaAsset: unknown }).mediaAsset = {
-      findMany: jest.fn(async () => [{ id: id('I'), kind: 'image' }]),
-    };
     prisma.question.update.mockResolvedValue({
       options: [],
       acceptedAnswers: [],
       visualMedia: null,
       audioMedia: null,
     });
+    const service = new QuestionsService(
+      prisma as unknown as PrismaService,
+      media as unknown as MediaService,
+    );
+    return { prisma, service };
+  }
+
+  it('releases the media a save replaced, not the one it kept', async () => {
+    const { prisma, service } = setup();
+    prisma.question.findFirst.mockResolvedValue({
+      id: 'q1',
+      quizId: 'z',
+      visualMediaId: id('I'),
+      audioMediaId: id('A'),
+      backgroundMediaId: null,
+      options: [],
+    });
     await service.update('o1', 'q1', {
       ...content(),
       media: { visual: { kind: 'image', assetId: id('I') }, audio: null },
     } as never);
-    expect(media.releaseUnused).toHaveBeenCalledWith([id('A')]);
+    expect(released()).toEqual([id('A')]);
+  });
+
+  it('releases the answer pictures and the background a save took away (audit B9)', async () => {
+    const { prisma, service } = setup();
+    prisma.question.findFirst.mockResolvedValue({
+      id: 'q1',
+      quizId: 'z',
+      visualMediaId: null,
+      audioMediaId: null,
+      backgroundMediaId: id('B'),
+      options: [{ mediaId: id('P') }, { mediaId: id('Q') }],
+    });
+    await service.update('o1', 'q1', {
+      ...content({
+        type: 'image_choice',
+        options: [
+          { color: 'red', shape: 'triangle', isCorrect: true, mediaId: id('P'), alt: 'A cat' },
+          { color: 'blue', shape: 'diamond', isCorrect: false, mediaId: id('R'), alt: 'A dog' },
+        ],
+      } as Partial<QuestionContent>),
+      backgroundMediaId: null,
+    } as never);
+    expect(released()).toEqual([id('B'), id('Q')]);
+  });
+
+  it('releases everything a deleted question held (audit B9)', async () => {
+    const { prisma, service } = setup();
+    prisma.question.findFirst.mockResolvedValue({
+      id: 'q1',
+      quizId: 'z',
+      visualMediaId: id('I'),
+      audioMediaId: id('A'),
+      backgroundMediaId: id('B'),
+      options: [{ mediaId: id('P') }, { mediaId: null }],
+    });
+    await service.remove('o1', 'q1');
+    expect(released()).toEqual([id('A'), id('B'), id('I'), id('P')]);
   });
 });
 

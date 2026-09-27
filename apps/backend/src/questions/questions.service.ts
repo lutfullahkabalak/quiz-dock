@@ -8,6 +8,7 @@ import {
   optionsData,
   questionCreateData,
   questionData,
+  questionMediaHeld,
 } from './question-data';
 import type { QuestionContent } from './dto/question-content.schema';
 import type { ReorderQuestionsDto } from './dto/reorder-questions.dto';
@@ -104,38 +105,36 @@ export class QuestionsService {
     await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId), [
       current.backgroundMediaId,
     ]);
+    const data = questionData(dto);
+    const options = optionsData(dto);
     const question = await this.prisma.question.update({
       where: { id: questionId },
       data: {
-        ...questionData(dto),
+        ...data,
         ...media,
-        options: { deleteMany: {}, create: optionsData(dto) },
+        options: { deleteMany: {}, create: options },
         acceptedAnswers: { deleteMany: {}, create: acceptedAnswersData(dto) },
       },
       include: QUESTION_INCLUDE,
     });
     // A replaced or removed media leaves with its file, unless something else holds it.
     await this.media.releaseUnused(
-      [current.visualMediaId, current.audioMediaId].filter(
-        (id) => id !== media.visualMediaId && id !== media.audioMediaId,
-      ),
+      questionMediaHeld(current),
+      questionMediaHeld({ ...data, ...media, options }),
     );
     return toQuestionOutput(question);
   }
 
   async remove(ownerId: string, questionId: string): Promise<void> {
-    const { quizId, visualMediaId, audioMediaId } = await this.assertQuestionOwned(
-      ownerId,
-      questionId,
-    );
+    const question = await this.assertQuestionOwned(ownerId, questionId);
     await this.prisma.$transaction([
       this.prisma.question.delete({ where: { id: questionId } }),
       this.prisma.quiz.update({
-        where: { id: quizId },
+        where: { id: question.quizId },
         data: { questionCount: { decrement: 1 } },
       }),
     ]);
-    await this.media.releaseUnused([visualMediaId, audioMediaId]);
+    await this.media.releaseUnused(questionMediaHeld(question));
   }
 
   async reorder(ownerId: string, quizId: string, dto: ReorderQuestionsDto) {

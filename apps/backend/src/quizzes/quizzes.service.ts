@@ -10,8 +10,10 @@ import { livePinOf } from '../game/game.keys';
 import { MediaService } from '../media/media.service';
 import { assertAssets, expectImage } from '../media/assert-assets';
 import { PrismaService } from '../prisma/prisma.service';
+import { questionMediaHeld } from '../questions/question-data';
 import { QUESTION_INCLUDE, toQuestionOutput } from '../questions/questions.service';
 import { RedisService } from '../redis/redis.service';
+import { slideMediaIds } from '../slides/slide-media';
 import type { CreateQuizDto } from './dto/create-quiz.dto';
 import type { QuizFeedbackQueryDto } from './dto/quiz-feedback.dto';
 import type { TransitionQuizDto } from './dto/transition-quiz.dto';
@@ -465,7 +467,7 @@ export class QuizzesService {
   async update(ownerId: string, id: string, dto: UpdateQuizDto): Promise<Quiz> {
     const current = await this.findOwnedOrThrow(ownerId, id);
     await assertAssets(this.prisma, ownerId, expectImage(dto.coverMediaId), [current.coverMediaId]);
-    return this.prisma.quiz.update({
+    const quiz = await this.prisma.quiz.update({
       where: { id },
       data: {
         title: dto.title,
@@ -481,21 +483,39 @@ export class QuizzesService {
         shared: dto.shared,
       },
     });
+    // A replaced or dropped cover leaves with its file, unless something else holds it.
+    await this.media.releaseUnused([current.coverMediaId], [quiz.coverMediaId]);
+    return quiz;
   }
 
   async remove(ownerId: string, id: string): Promise<void> {
-    await this.findOwnedOrThrow(ownerId, id);
+    const quiz = await this.findOwnedOrThrow(ownerId, id);
     // A quiz being played cannot go: its session would have nothing to archive.
     if (await this.hasLiveSession(ownerId, id)) {
       throw new ConflictException('quiz.in_use');
     }
-    const slots = await this.prisma.question.findMany({
-      where: { quizId: id },
-      select: { visualMediaId: true, audioMediaId: true },
-    });
+    const [questions, slides] = await Promise.all([
+      this.prisma.question.findMany({
+        where: { quizId: id },
+        select: {
+          visualMediaId: true,
+          audioMediaId: true,
+          backgroundMediaId: true,
+          options: { select: { mediaId: true } },
+        },
+      }),
+      this.prisma.slide.findMany({
+        where: { quizId: id },
+        select: { blocks: true, mediaId: true, videoMediaId: true, audioMediaId: true },
+      }),
+    ]);
     await this.prisma.quiz.delete({ where: { id } });
-    // Its videos and sounds go with it, unless another quiz (a copy) still plays them.
-    await this.media.releaseUnused(slots.flatMap((q) => [q.visualMediaId, q.audioMediaId]));
+    // Its media go with it, unless another quiz (a copy) still uses them.
+    await this.media.releaseUnused([
+      quiz.coverMediaId,
+      ...questions.flatMap(questionMediaHeld),
+      ...slides.flatMap(slideMediaIds),
+    ]);
   }
 
   /** Whether one of the owner's live sessions (Redis index) plays this quiz. */

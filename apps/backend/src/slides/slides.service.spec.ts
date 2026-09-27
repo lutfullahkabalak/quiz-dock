@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import type { MediaService } from '../media/media.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import { SlidesService } from './slides.service';
 
@@ -25,10 +26,15 @@ function makePrisma() {
 describe('SlidesService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   let service: SlidesService;
+  const media = { releaseUnused: jest.fn(async () => undefined) };
 
   beforeEach(() => {
     prisma = makePrisma();
-    service = new SlidesService(prisma as unknown as PrismaService);
+    media.releaseUnused.mockClear();
+    service = new SlidesService(
+      prisma as unknown as PrismaService,
+      media as unknown as MediaService,
+    );
     prisma.quiz.findFirst.mockResolvedValue({ id: 'quiz-1' });
   });
 
@@ -123,6 +129,53 @@ describe('SlidesService', () => {
       await expect(service.add(OWNER, 'quiz-1', content({ audioMediaId: SND }))).rejects.toThrow(
         'media.not_found',
       );
+    });
+  });
+
+  describe('media left behind (audit B9)', () => {
+    const IMG = id('img');
+    const BG = id('bg');
+    const VID = id('vid');
+    const SND = id('snd');
+    const held = {
+      id: 's1',
+      quizId: 'quiz-1',
+      blocks: [
+        { type: 'image', id: 'i', mediaId: IMG },
+        { type: 'columns', id: 'c', columns: [[{ type: 'image', id: 'j', mediaId: BG }]] },
+      ],
+      mediaId: BG,
+      videoMediaId: VID,
+      audioMediaId: SND,
+    };
+
+    /** The media the element held, minus those it still holds. */
+    const released = () => {
+      const [before, kept = []] = media.releaseUnused.mock.calls[0] as unknown as [
+        string[],
+        string[]?,
+      ];
+      return [...new Set(before.filter((m) => !kept.includes(m)))].sort();
+    };
+
+    it('releases what a save took off the slide, not what it kept', async () => {
+      prisma.slide.findFirst.mockResolvedValue(held);
+      prisma.mediaAsset.findMany.mockResolvedValue([]);
+      await service.update(OWNER, 's1', {
+        blocks: [{ type: 'image', id: 'i', mediaId: IMG }],
+        textTone: 'light',
+        textOutline: true,
+        videoLoop: true,
+        videoSound: true,
+        waveformSize: 'hidden',
+      } as Parameters<SlidesService['update']>[2]);
+      expect(released()).toEqual([BG, SND, VID].sort());
+    });
+
+    it('releases everything a deleted slide held', async () => {
+      prisma.slide.findFirst.mockResolvedValue(held);
+      await service.remove(OWNER, 's1');
+      expect(released()).toEqual([BG, IMG, SND, VID].sort());
     });
   });
 

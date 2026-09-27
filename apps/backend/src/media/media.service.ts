@@ -449,10 +449,14 @@ export class MediaService implements OnModuleInit {
    * duplicated quiz shares its media, a transferred one may too, and a session
    * being played runs on a frozen snapshot that must keep its files. What is
    * kept is caught by the scheduled sweep (MediaJanitor) once nothing holds it
-   * any more. Never fails the save that called it.
+   * any more. Never fails the save that called it. `stillHeld`: what the saved
+   * element holds now, left alone without asking the database.
    */
-  async releaseUnused(ids: (string | null | undefined)[]): Promise<void> {
-    const unique = [...new Set(ids.filter((id): id is string => !!id))];
+  async releaseUnused(
+    held: (string | null | undefined)[],
+    stillHeld: (string | null | undefined)[] = [],
+  ): Promise<void> {
+    const unique = [...new Set(held)].filter((id): id is string => !!id && !stillHeld.includes(id));
     try {
       if (unique.length > 0) {
         const live = await this.liveSnapshots();

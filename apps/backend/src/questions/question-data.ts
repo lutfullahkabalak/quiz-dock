@@ -58,6 +58,16 @@ export function questionMediaIds(dto: QuestionContent) {
   };
 }
 
+/** Every media a question holds: its two slots, its background, its answers' pictures. */
+export function questionMediaHeld(q: {
+  visualMediaId: string | null;
+  audioMediaId: string | null;
+  backgroundMediaId: string | null;
+  options: { mediaId?: string | null }[];
+}): (string | null | undefined)[] {
+  return [q.visualMediaId, q.audioMediaId, q.backgroundMediaId, ...q.options.map((o) => o.mediaId)];
+}
+
 /** Everything to create a question at `orderIndex`, with its answers. */
 export function questionCreateData(
   dto: QuestionContent,

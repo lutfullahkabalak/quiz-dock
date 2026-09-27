@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ReorderItemsDto } from './dto/reorder-items.dto';
 import type { SlideContent } from './dto/slide-content.schema';
@@ -16,7 +17,10 @@ const REORDER_OFFSET = 1000;
  */
 @Injectable()
 export class SlidesService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly media: MediaService,
+  ) {}
 
   /** Appends a slide at the very end of the quiz (after the last question). */
   async add(ownerId: string, quizId: string, dto: SlideContent) {
@@ -38,13 +42,19 @@ export class SlidesService {
 
   async update(ownerId: string, slideId: string, dto: SlideContent) {
     const slide = await this.assertSlideOwned(ownerId, slideId);
-    await checkSlideMedia(this.prisma, ownerId, dto, slideMediaIds(slide));
-    return this.prisma.slide.update({ where: { id: slideId }, data: slideData(dto) });
+    const held = slideMediaIds(slide);
+    await checkSlideMedia(this.prisma, ownerId, dto, held);
+    const data = slideData(dto);
+    const saved = await this.prisma.slide.update({ where: { id: slideId }, data });
+    // What the slide no longer shows leaves with its file, unless something else holds it.
+    await this.media.releaseUnused(held, slideMediaIds(data));
+    return saved;
   }
 
   async remove(ownerId: string, slideId: string): Promise<void> {
-    await this.assertSlideOwned(ownerId, slideId);
+    const slide = await this.assertSlideOwned(ownerId, slideId);
     await this.prisma.slide.delete({ where: { id: slideId } });
+    await this.media.releaseUnused(slideMediaIds(slide));
   }
 
   /**

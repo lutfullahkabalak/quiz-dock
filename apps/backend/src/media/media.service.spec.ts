@@ -234,6 +234,16 @@ describe('MediaService', () => {
       );
     });
 
+    it('leaves what the saved element still holds, without asking the database', async () => {
+      prisma.mediaAsset.findUnique.mockResolvedValue(unused);
+      await service.releaseUnused(['m1', 'm2', null], ['m2', null]);
+      expect(prisma.mediaAsset.findUnique).toHaveBeenCalledTimes(1);
+      expect(prisma.mediaAsset.delete).toHaveBeenCalledTimes(1);
+      expect(prisma.mediaAsset.delete).toHaveBeenCalledWith(
+        expect.objectContaining({ where: { id: 'm1' } }),
+      );
+    });
+
     it('keeps a shared file while another media still holds it', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
       prisma.mediaAsset.delete.mockResolvedValue({ id: 'm1', blobSha256: 'a'.repeat(64) });

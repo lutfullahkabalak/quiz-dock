@@ -60,13 +60,24 @@ describe('QuizzesService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   const redis = { smembers: jest.fn(async () => []), hmget: jest.fn(async () => [null, null]) };
   let service: QuizzesService;
+  const media = { releaseUnused: jest.fn(async () => undefined) };
+
+  /** The media the element held, minus those it still holds. */
+  const released = () => {
+    const [before, kept = []] = media.releaseUnused.mock.calls[0] as unknown as [
+      (string | null)[],
+      (string | null)[]?,
+    ];
+    return [...new Set(before.filter((m) => m && !kept.includes(m)))].sort();
+  };
 
   beforeEach(() => {
     prisma = makePrisma();
+    media.releaseUnused.mockClear();
     service = new QuizzesService(
       prisma as unknown as PrismaService,
       redis as unknown as RedisService,
-      { releaseUnused: jest.fn(async () => undefined) } as unknown as MediaService,
+      media as unknown as MediaService,
     );
   });
 
@@ -627,5 +638,50 @@ describe('QuizzesService', () => {
       await service.update(OWNER, 'quiz-1', { coverMediaId: null });
       expect(prisma.quiz.update).toHaveBeenCalledTimes(2);
     });
+
+    it('releases the cover a quiz dropped or replaced, not one it kept (audit B9)', async () => {
+      prisma.quiz.findFirst.mockResolvedValue({
+        id: 'quiz-1',
+        ownerId: OWNER,
+        coverMediaId: COVER,
+      });
+      prisma.quiz.update.mockResolvedValueOnce({ coverMediaId: COVER });
+      await service.update(OWNER, 'quiz-1', { title: 'Renamed' });
+      expect(released()).toEqual([]);
+      media.releaseUnused.mockClear();
+      prisma.quiz.update.mockResolvedValueOnce({ coverMediaId: null });
+      await service.update(OWNER, 'quiz-1', { coverMediaId: null });
+      expect(released()).toEqual([COVER]);
+    });
+  });
+
+  it('releases every media a deleted quiz held: cover, questions, answers, slides (audit B9)', async () => {
+    const m = (c: string) => c.repeat(26);
+    prisma.quiz.findFirst.mockResolvedValue(makeQuiz({ coverMediaId: m('C') }));
+    Object.assign(prisma, {
+      question: {
+        findMany: jest.fn(async () => [
+          {
+            visualMediaId: m('I'),
+            audioMediaId: null,
+            backgroundMediaId: m('B'),
+            options: [{ mediaId: m('P') }, { mediaId: null }],
+          },
+        ]),
+      },
+      slide: {
+        findMany: jest.fn(async () => [
+          {
+            blocks: [{ type: 'image', id: 'i', mediaId: m('S') }],
+            mediaId: null,
+            videoMediaId: m('V'),
+            audioMediaId: null,
+          },
+        ]),
+      },
+    });
+    await service.remove(OWNER, 'q1');
+    expect(prisma.quiz.delete).toHaveBeenCalled();
+    expect(released()).toEqual(['B', 'C', 'I', 'P', 'S', 'V'].map(m));
   });
 });
