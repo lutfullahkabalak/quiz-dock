@@ -337,8 +337,7 @@ export function ScreenSurface({
         <Markdown
           role="heading"
           aria-level={1}
-          // Clear of the sound button, top left, and the fullscreen one, top right.
-          className="line-clamp-2 w-full shrink-0 px-[2.5em] text-[1.6em] leading-tight font-semibold"
+          className="shrink-0 text-center text-[2em] font-semibold"
         >
           {view.question.prompt}
         </Markdown>
@@ -380,66 +379,7 @@ export function ScreenSurface({
     const images = view.question.type === 'image_choice';
     // Nobody scrolls a projector: the page is the screen's height, the answers keep
     // their room and the picture takes what is left (#92).
-    body = images ? (
-      // Image choice: one line for the prompt, the clock and the count; the pictures
-      // take the rest of the screen.
-      <div className="flex min-h-0 w-full max-w-[80em] flex-1 flex-col items-center gap-[0.8em]">
-        {/* One line on a projector; a narrow screen (the big screen view on a phone) wraps it. */}
-        <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-x-[1em] gap-y-[0.4em] pr-[2.5em]">
-          <Markdown
-            role="heading"
-            aria-level={1}
-            className={cn(
-              'line-clamp-2 min-w-[12em] flex-1 basis-[12em] text-left text-[1.6em] leading-tight font-semibold',
-              soundButton && 'pl-[2.5em]',
-            )}
-          >
-            {view.question.prompt}
-          </Markdown>
-          {remaining !== null ? (
-            <TimerBar
-              remaining={listening ? (listenLeft ?? 0) : remaining}
-              totalS={
-                listening
-                  ? (view.question.startedAt -
-                      (view.question.mediaStartAt ?? view.question.startedAt)) /
-                    1000
-                  : (view.question.endsAt - view.question.startedAt) / 1000
-              }
-              icon={listening ? '🎧' : view.paused ? '⏸' : '⏱'}
-              label={listening ? t('screen.listening') : t('screen.timeRemaining')}
-              paused={view.paused}
-              className="w-[10em] shrink-0 text-[1.3em]"
-            />
-          ) : null}
-          <div className="shrink-0">{counter}</div>
-        </div>
-        {/* No picture of its own: the stage carries the sound and its waveform only. */}
-        <QuestionMediaStage
-          key={view.question.questionIndex}
-          media={view.question.media}
-          mode={role === 'preview' || view.nav?.review ? 'still' : view.paused ? 'pause' : 'play'}
-          audible={role !== 'follow' || copyHears}
-          className="shrink-0"
-          resumeKey={playMedia ? `${pin}:${view.question.questionIndex}` : null}
-          follow={
-            playMedia || copyHears
-              ? undefined
-              : followed(view, { questionIndex: view.question.questionIndex })
-          }
-          catchUp={
-            role === 'follow'
-              ? followed(view, { questionIndex: view.question.questionIndex })
-              : undefined
-          }
-          onPosition={playMedia ? sayPosition : undefined}
-          startAt={view.question.mediaStartAt ?? null}
-          anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
-        />
-        <AnswerRules question={view.question} className="shrink-0" />
-        <ImageChoiceGrid fit="screen" className="flex-1" options={view.question.options ?? []} />
-      </div>
-    ) : (
+    body = (
       <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center gap-[1em]">
         {remaining !== null ? (
           <TimerBar
@@ -496,7 +436,14 @@ export function ScreenSurface({
             anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
           />
           <AnswerRules question={view.question} className="shrink-0" />
-          {view.question.options?.length ? (
+          {images ? (
+            // No picture of its own: the pictures are the answers, and take what is left.
+            <ImageChoiceGrid
+              fit="screen"
+              className="min-h-[8em] flex-1"
+              options={view.question.options ?? []}
+            />
+          ) : view.question.options?.length ? (
             <div className="w-full shrink-0">
               <OptionGrid options={view.question.options} />
             </div>
