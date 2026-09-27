@@ -6,7 +6,9 @@
 How many players can play at once on one QuizDock instance, and what the VM needs.
 The figures come from the load test: one room, a quiz of single-choice questions
 without media, every player answering within 3 s, the whole stack (backend, Postgres,
-Redis) on the same machine, an Intel Xeon at 2.1 GHz.
+Redis) on the same machine: a cloud micro-VM, Intel Xeon at 2.1 GHz, 4 vCPU, 16 GB,
+the backend pinned to one or two of its cores, the simulated players on the others
+over the loopback. The full setup is in [load testing](../dev/load-testing.md#3-results).
 
 Measured on 2026-09-27, on a machine that had just started (version after commit
 `41ba1ac`). The load test and its script are in the repository: the figures can be

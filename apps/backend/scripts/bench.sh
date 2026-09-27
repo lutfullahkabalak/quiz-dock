@@ -40,7 +40,15 @@ run() {
 
 # The machine, next to the results: the figures only mean something with it.
 machine() {
-  { date -u +%FT%TZ; git -C "$BACKEND" rev-parse HEAD; nproc; grep -m1 'model name' /proc/cpuinfo; node --version; } >"$1/machine.txt"
+  {
+    echo "date: $(date -u +%FT%TZ), up $(cut -d' ' -f1 /proc/uptime) s"
+    echo "commit: $(git -C "$BACKEND" rev-parse HEAD)"
+    echo "cpu: $(nproc) x $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
+    echo "ram: $(free -m | awk '/Mem:/ {print $2}') MB, kernel $(uname -r)"
+    echo "node: $(node --version), redis: $(redis-cli -u "$REDIS" info server | grep -o 'redis_version:[0-9.]*')"
+    echo "postgres: $(psql "${DATABASE_URL%%\?*}" -Atc 'show server_version' 2>/dev/null)"
+    echo "backend env: NODE_ENV=production AUTH_MODE=none GAME_READ_DELAY_MS=1000 BENCH_ARGS=${BENCH_ARGS:-}"
+  } >"$1/machine.txt"
 }
 
 case ${1:-} in

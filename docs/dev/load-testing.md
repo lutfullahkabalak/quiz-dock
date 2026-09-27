@@ -142,6 +142,18 @@ The code after every lot, the answer count coalesced included (lot 5b, `41ba1ac`
 measured minutes after the container started, on the same kind of machine as the
 baseline (Xeon @ 2.10 GHz, 4 vCPU). `scripts/bench.sh`, then `ab b6c792e`.
 
+**Setup**
+
+| | |
+|---|---|
+| Machine | Claude Code cloud container: a Firecracker micro-VM on a shared host, Intel Xeon @ 2.10 GHz, 4 vCPU, 16 GB RAM, kernel 6.18, no CPU or memory limit set |
+| When | about 5 minutes after the container started: the A/B first, the series right after |
+| Backend | `nest build`, `node dist/main.js`, Node 22.22.2 (default heap), `NODE_ENV=production`, `AUTH_MODE=none`, `GAME_READ_DELAY_MS=1000`; pinned with `taskset` to core 0 (one core) or 0-1 (two cores); restarted for each run, on an emptied Redis database |
+| Postgres | 16.13, Ubuntu defaults (`shared_buffers` 128 MB, 100 connections), on the same machine |
+| Redis | 7.0.15, defaults (no `maxmemory`, no AOF, no I/O threads), on the same machine |
+| Players | `scripts/load-test.mjs` on the same machine, over the loopback (no network latency), pinned to cores 1-3 (one-core runs) or 2-3 (two-core runs); WebSocket; 50 joins at a time; each answers a random option at a random moment within 3 s |
+| Quiz | one room per step; single choice, 4 options, short texts, no media; 10 questions up to 300 players, 5 from 400 up and in the A/B |
+
 **Backend pinned to 1 core**
 
 | Players | join p95 | ack p50 | ack p95 | ack p99 | lost | start spread p95 | reveal spread p95 | cpu p95 | rss max |
