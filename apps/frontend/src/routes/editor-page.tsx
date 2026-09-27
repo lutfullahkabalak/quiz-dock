@@ -213,13 +213,13 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   // Title/description draft kept in localStorage until saved or discarded.
   const quizDraftKey = `quiz:${quiz.id}:settings`;
-  type QuizForm = { title: string; description: string; language: string };
+  // Title and description only: the language is saved on its own (see `setLanguage`).
+  type QuizForm = { title: string; description: string };
   const [quizDraft, setQuizDraft] = useState(() => loadDraft<QuizForm>(quizDraftKey));
   const form = useForm({
     defaultValues: {
       title: quiz.title,
       description: quiz.description ?? '',
-      language: quiz.language,
     },
     onSubmit: async ({ value }) => {
       setSaveError(null);
@@ -229,7 +229,6 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           data: {
             title: value.title,
             description: value.description || null,
-            language: value.language,
           },
         });
       } catch (e) {

@@ -291,6 +291,30 @@ describe('EditorPage', () => {
     });
   });
 
+  it('saving the title never writes back the language chosen before (audit E1)', async () => {
+    const fetchMock = mockApi([
+      { method: 'GET', path: '/quizzes/q1', body: detail({ language: 'fr' }) },
+      { method: 'PUT', path: '/quizzes/q1', body: detail() },
+    ]);
+    renderApp('/quizzes/q1');
+    const puts = () =>
+      fetchMock.mock.calls
+        .filter(([url, opts]) => String(url).endsWith('/quizzes/q1') && opts?.method === 'PUT')
+        .map(([, opts]) => JSON.parse(String(opts?.body)) as Record<string, unknown>);
+    const title = await screen.findByDisplayValue('Mon quiz');
+    fireEvent.change(title, { target: { value: 'Mon quiz révisé' } });
+    // The language is changed on its own, then the title is saved.
+    fireEvent.change(screen.getByLabelText('Langue', { selector: 'select' }), {
+      target: { value: 'de' },
+    });
+    await waitFor(() => expect(puts()).toContainEqual({ language: 'de' }));
+    const header = within(title.closest('form') as HTMLElement);
+    fireEvent.click(await header.findByRole('button', { name: /Enregistrer/ }));
+    await waitFor(() => expect(puts().some((b) => b.title === 'Mon quiz révisé')).toBe(true));
+    const titleSave = puts().find((b) => b.title === 'Mon quiz révisé');
+    expect(titleSave).not.toHaveProperty('language');
+  });
+
   describe("another host's quiz, opened by a manager (#82)", () => {
     const foreign = () => detail({ editable: false, ownerName: 'Alice', title: 'Quiz d’Alice' });
 
