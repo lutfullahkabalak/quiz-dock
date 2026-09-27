@@ -335,7 +335,9 @@
       "title": "Garder seulement 2 images ?",
       "description": "Les deux dernières réponses et leurs images seront retirées.",
       "confirmLabel": "Retirer"
-    }
+    },
+    "trueOption": "Vrai",
+    "falseOption": "Faux"
   },
   "preview": {
     "view": "Aperçu (vue participant)",

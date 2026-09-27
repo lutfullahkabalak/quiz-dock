@@ -335,7 +335,9 @@
       "title": "¿Conservar solo 2 imágenes?",
       "description": "Se quitarán las dos últimas respuestas y sus imágenes.",
       "confirmLabel": "Quitar"
-    }
+    },
+    "trueOption": "Verdadero",
+    "falseOption": "Falso"
   },
   "preview": {
     "view": "Vista previa (vista del jugador)",

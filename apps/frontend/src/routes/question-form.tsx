@@ -358,24 +358,30 @@ export function QuestionForm({
     if (from >= 0 && to >= 0) setOptions(arrayMove(options, from, to));
   };
 
-  const onTypeChange = (t: QType) => {
+  const onTypeChange = (next: QType) => {
     const wasImages = type === 'image_choice';
-    form.setFieldValue('type', t);
-    if (t === 'image_choice' || wasImages) {
+    form.setFieldValue('type', next);
+    if (next === 'image_choice' || wasImages) {
       // Text answers make no pictures, and pictures no text: both start afresh.
-      if (t !== 'image_choice') form.setFieldValue('multiSelect', false);
+      if (next !== 'image_choice') form.setFieldValue('multiSelect', false);
       else form.setFieldValue('media', { visual: null, audio: media.audio } as QuestionMedia);
       setShowImageErrors(false);
       setOptions(
-        t === 'true_false'
-          ? [newOption(0, 'Vrai'), newOption(1, 'Faux')]
-          : OPTION_TYPES.includes(t)
+        next === 'true_false'
+          ? [
+              newOption(0, t('questionForm.trueOption')),
+              newOption(1, t('questionForm.falseOption')),
+            ]
+          : OPTION_TYPES.includes(next)
             ? [newOption(0), newOption(1)]
             : options,
       );
-    } else if (t === 'true_false') {
-      setOptions([newOption(0, 'Vrai'), newOption(1, 'Faux')]);
-    } else if (OPTION_TYPES.includes(t) && options.length < 2) {
+    } else if (next === 'true_false') {
+      setOptions([
+        newOption(0, t('questionForm.trueOption')),
+        newOption(1, t('questionForm.falseOption')),
+      ]);
+    } else if (OPTION_TYPES.includes(next) && options.length < 2) {
       setOptions([newOption(0), newOption(1)]);
     }
   };
@@ -623,6 +629,7 @@ export function QuestionForm({
           <legend className={LEGEND}>{t('questionForm.imagesLegend')}</legend>
           <ImageChoiceOptions
             options={options}
+            currentOptions={() => form.getFieldValue('options')}
             multiSelect={multiSelect}
             showErrors={showImageErrors}
             sensors={sensors}

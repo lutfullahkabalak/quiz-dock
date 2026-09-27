@@ -335,7 +335,9 @@
       "title": "Keep only 2 pictures?",
       "description": "The last two answers and their pictures will be removed.",
       "confirmLabel": "Remove"
-    }
+    },
+    "trueOption": "True",
+    "falseOption": "False"
   },
   "preview": {
     "view": "Preview (player view)",

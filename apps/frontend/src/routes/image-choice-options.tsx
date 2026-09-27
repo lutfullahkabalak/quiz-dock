@@ -36,6 +36,7 @@ export const imageOptionComplete = (o: Pick<ImageOptionValue, 'mediaId' | 'alt'>
  */
 export function ImageChoiceOptions<T extends ImageOptionValue>({
   options,
+  currentOptions,
   multiSelect,
   showErrors,
   sensors,
@@ -45,6 +46,8 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
   onMultiSelect,
 }: {
   options: T[];
+  /** The answers as they are now (read when a request comes back, not when it left). */
+  currentOptions: () => T[];
   multiSelect: boolean;
   /** After a refused save: the missing pictures and texts are pointed out. */
   showErrors: boolean;
@@ -72,8 +75,9 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
       setOptions(options.slice(0, count));
     }
   };
-  const update = (index: number, patch: Partial<ImageOptionValue>) =>
-    setOptions(options.map((o, i) => (i === index ? { ...o, ...patch } : o)));
+  /** One answer changed, on the answers as they are now (an upload comes back later). */
+  const update = (key: string, patch: Partial<ImageOptionValue>) =>
+    setOptions(currentOptions().map((o) => (o.key === key ? { ...o, ...patch } : o)));
   const onDragEnd = ({ active, over }: DragEndEvent) => {
     if (!over || active.id === over.id) return;
     const from = options.findIndex((o) => o.key === active.id);
@@ -81,12 +85,24 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
     if (from >= 0 && to >= 0) setOptions(arrayMove(options, from, to));
   };
   /** A picture chosen with no text yet: the media's own description, when it has one, to start from. */
-  const onPicture = (index: number, mediaId: string | null) => {
-    update(index, { mediaId });
-    if (!mediaId || options[index].alt.trim()) return;
+  const onPicture = (key: string, mediaId: string | null) => {
+    update(key, { mediaId });
+    if (
+      !mediaId ||
+      currentOptions()
+        .find((o) => o.key === key)
+        ?.alt.trim()
+    )
+      return;
     void mediaControllerDescribe(mediaId)
       .then(({ data }) => {
-        if (data.alt) update(index, { mediaId, alt: data.alt.slice(0, OPTION_ALT_MAX) });
+        if (!data.alt) return;
+        // Whatever changed meanwhile stays: only this answer, still on this picture
+        // and still without a text, takes the description.
+        const now = currentOptions();
+        const at = now.findIndex((o) => o.key === key);
+        if (at < 0 || now[at].mediaId !== mediaId || now[at].alt.trim()) return;
+        update(key, { alt: data.alt.slice(0, OPTION_ALT_MAX) });
       })
       .catch(() => undefined); // an empty field, to be written
   };
@@ -151,7 +167,7 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
                   </div>
                   <MediaUpload
                     value={opt.mediaId}
-                    onChange={(id) => onPicture(i, id)}
+                    onChange={(id) => onPicture(opt.key, id)}
                     kind="image"
                     preview={false}
                     assetAlt={false}
@@ -170,7 +186,7 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
                       maxLength={OPTION_ALT_MAX}
                       value={opt.alt}
                       placeholder={t('questionForm.imageAltPlaceholder')}
-                      onChange={(e) => update(i, { alt: e.target.value })}
+                      onChange={(e) => update(opt.key, { alt: e.target.value })}
                     />
                     {altMissing ? (
                       <span role="alert" className="text-destructive text-xs">

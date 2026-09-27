@@ -335,7 +335,9 @@
       "title": "只保留 2 张图片？",
       "description": "最后两个答案及其图片将被移除。",
       "confirmLabel": "移除"
-    }
+    },
+    "trueOption": "正确",
+    "falseOption": "错误"
   },
   "preview": {
     "view": "预览（玩家视图）",
