@@ -68,6 +68,7 @@ import { MediaUpload } from './media-upload';
 import { SlideMediaField, type SlideMediaValue } from './slide-media-field';
 import { mediaUrl } from '@/lib/media-url';
 import { slideShowOf } from './quiz-stage-preview';
+import { Segmented } from '@/components/ui/segmented';
 
 interface FormValues extends SlideMediaValue {
   blocks: SlideBlock[];
@@ -522,26 +523,17 @@ function BlockEditor({
   return (
     <div className="flex flex-col gap-2">
       {block.columns.length === 2 ? (
-        <div
-          className="flex items-center gap-1"
-          role="radiogroup"
-          aria-label={t('slideForm.ratio')}
-        >
-          {(['1-1', '1-2', '2-1'] as SlideColumnsRatio[]).map((r) => (
-            <Button
-              key={r}
-              type="button"
-              size="sm"
-              variant={(block.ratio ?? '1-1') === r ? 'default' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              role="radio"
-              aria-checked={(block.ratio ?? '1-1') === r}
-              onClick={() => onChange({ ...block, ratio: r })}
-            >
-              {r.replace('-', ' : ')}
-            </Button>
-          ))}
-        </div>
+        <Segmented
+          size="sm"
+          className="w-fit"
+          label={t('slideForm.ratio')}
+          value={block.ratio ?? '1-1'}
+          onChange={(ratio) => onChange({ ...block, ratio })}
+          options={(['1-1', '1-2', '2-1'] as SlideColumnsRatio[]).map((r) => ({
+            value: r,
+            label: r.replace('-', ' : '),
+          }))}
+        />
       ) : null}
       <div
         className="grid gap-3"
@@ -703,29 +695,24 @@ function AlignPicker({
 }) {
   const { t } = useTranslation('editor');
   const current = value ?? 'center';
-  const items: { align: SlideTextAlign; Icon: typeof AlignLeft }[] = [
-    { align: 'left', Icon: AlignLeft },
-    { align: 'center', Icon: AlignCenter },
-    { align: 'right', Icon: AlignRight },
+  const items: { align: SlideTextAlign; icon: typeof AlignLeft }[] = [
+    { align: 'left', icon: AlignLeft },
+    { align: 'center', icon: AlignCenter },
+    { align: 'right', icon: AlignRight },
   ];
   return (
-    <div className="flex shrink-0 gap-0.5" role="radiogroup" aria-label={t('slideForm.textAlign')}>
-      {items.map(({ align, Icon }) => (
-        <Button
-          key={align}
-          type="button"
-          variant={current === align ? 'default' : 'ghost'}
-          size="icon"
-          className="size-7"
-          role="radio"
-          aria-checked={current === align}
-          aria-label={t(`slideForm.align.${align}`)}
-          onClick={() => onChange(align)}
-        >
-          <Icon className="size-3.5" />
-        </Button>
-      ))}
-    </div>
+    <Segmented
+      size="sm"
+      className="shrink-0"
+      label={t('slideForm.textAlign')}
+      value={current}
+      onChange={onChange}
+      options={items.map(({ align, icon }) => ({
+        value: align,
+        label: t(`slideForm.align.${align}`),
+        icon,
+      }))}
+    />
   );
 }
 
@@ -740,22 +727,17 @@ function SizePicker({
   const { t } = useTranslation('editor');
   const current = value ?? 'medium';
   return (
-    <div className="flex shrink-0 gap-0.5" role="radiogroup" aria-label={t('slideForm.textSize')}>
-      {(['small', 'medium', 'large'] as SlideTextSize[]).map((size) => (
-        <Button
-          key={size}
-          type="button"
-          variant={current === size ? 'default' : 'ghost'}
-          size="sm"
-          className="h-7 px-2 text-xs"
-          role="radio"
-          aria-checked={current === size}
-          title={t(`slideForm.size.${size}`)}
-          onClick={() => onChange(size)}
-        >
-          {t(`slideForm.sizeShort.${size}`)}
-        </Button>
-      ))}
-    </div>
+    <Segmented
+      size="sm"
+      className="shrink-0"
+      label={t('slideForm.textSize')}
+      value={current}
+      onChange={onChange}
+      options={(['small', 'medium', 'large'] as SlideTextSize[]).map((size) => ({
+        value: size,
+        label: t(`slideForm.size.${size}`),
+        short: t(`slideForm.sizeShort.${size}`),
+      }))}
+    />
   );
 }

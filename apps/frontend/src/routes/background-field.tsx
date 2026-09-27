@@ -8,6 +8,7 @@ import { Switch } from '@/components/ui/switch';
 import { Select } from '@/components/ui/select';
 import { gradientCss } from '../game/surface';
 import { MediaUpload } from './media-upload';
+import { Segmented } from '@/components/ui/segmented';
 
 /** What a slide or a question stores about its background. */
 export interface BackgroundValue {
@@ -77,20 +78,16 @@ export function BackgroundField({
         </>
       }
     >
-      <div className="flex flex-wrap gap-2">
-        {(['none', 'image', 'gradient'] as const).map((k) => (
-          <Button
-            key={k}
-            type="button"
-            size="sm"
-            variant={kind === k ? 'default' : 'outline'}
-            aria-pressed={kind === k}
-            onClick={() => setKind(k)}
-          >
-            {t(`background.kind.${k}`)}
-          </Button>
-        ))}
-      </div>
+      <Segmented
+        className="w-fit"
+        label={t('background.legend')}
+        value={kind}
+        onChange={setKind}
+        options={(['none', 'image', 'gradient'] as const).map((k) => ({
+          value: k,
+          label: t(`background.kind.${k}`),
+        }))}
+      />
 
       {kind === 'image' ? (
         <MediaUpload

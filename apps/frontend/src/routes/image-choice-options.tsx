@@ -13,6 +13,7 @@ import { ImageTile } from '../game/image-choice';
 import { MediaUpload } from './media-upload';
 import { mediaUrl } from '@/lib/media-url';
 import { CheckboxField } from '@/components/ui/checkbox-field';
+import { Segmented } from '@/components/ui/segmented';
 
 /** What the editor keeps of an image choice answer. */
 export interface ImageOptionValue {
@@ -112,31 +113,18 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <div
-          role="radiogroup"
-          aria-label={t('questionForm.imageCountLabel')}
-          className="flex gap-1"
-        >
-          <span className="text-muted-foreground mr-2 self-center text-sm">
-            {t('questionForm.imageCountLabel')}
-          </span>
-          {IMAGE_CHOICE_OPTION_COUNTS.map((count) => (
-            <button
-              key={count}
-              type="button"
-              role="radio"
-              aria-checked={options.length === count}
-              onClick={() => setCount(count)}
-              className={cn(
-                'rounded-md border px-3 py-1 text-sm',
-                options.length === count
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'hover:bg-accent',
-              )}
-            >
-              {count}
-            </button>
-          ))}
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-sm">{t('questionForm.imageCountLabel')}</span>
+          <Segmented
+            size="sm"
+            label={t('questionForm.imageCountLabel')}
+            value={String(options.length)}
+            onChange={(count) => setCount(Number(count))}
+            options={IMAGE_CHOICE_OPTION_COUNTS.map((count) => ({
+              value: String(count),
+              label: String(count),
+            }))}
+          />
         </div>
         <CheckboxField
           title={t('questionForm.multiSelectHint')}

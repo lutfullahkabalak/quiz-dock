@@ -413,9 +413,9 @@ describe('QuestionForm — image choice', () => {
     expect(screen.queryByLabelText('option 1')).toBeNull();
     // The media section keeps the sound only.
     expect(screen.queryByText('Ajouter une vidéo')).toBeNull();
-    fireEvent.click(screen.getByRole('radio', { name: '4' }));
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
     expect(screen.getAllByLabelText(/Texte alternatif de l’image/)).toHaveLength(4);
-    expect(screen.queryByRole('radio', { name: '3' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '3' })).toBeNull();
   });
 
   it('refuses to save an answer without its alternative text, and says which', async () => {
