@@ -46,7 +46,7 @@ import {
   QuestionMedia,
   OptionGrid,
   OptionTiles,
-  TimerBar,
+  QuestionClockBar,
   RevealAnswer,
   SlideView,
   TYPE_BASE,
@@ -70,7 +70,7 @@ import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
 import { SoundButton } from '../game/media/sound-button';
 import { useGameSounds } from '../game/media/game-sounds';
 import { roomLabel } from '../game/room-components';
-import { useCountdown, useGameRemaining } from '../game/use-countdown';
+import { useCountdown, useQuestionClock } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from '../auth/auth-context';
 import { Spinner } from '@/components/ui/loading';
@@ -147,7 +147,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   const isMulti =
     question?.type === 'multiple_choice' ||
     (question?.type === 'image_choice' && !!question.multiSelect);
-  const remaining = useGameRemaining(view);
+  const clock = useQuestionClock(view);
   // Délai de lecture (§6/§8) : la fenêtre de réponse n'ouvre qu'à `startedAt`. Avant,
   // une réponse serait rejetée par le serveur (« trop tôt ») sans être comptée — on
   // bloque donc la saisie pendant la lecture pour ne jamais perdre de réponse.
@@ -846,20 +846,10 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
         )}
       >
         {participantBar}
-        {remaining !== null ? (
+        {clock ? (
           // Pinned on top while the rest scrolls; above an opened picture too.
-          <TimerBar
-            remaining={reading && question.listenFirst ? (readingLeft ?? 0) : remaining}
-            totalS={
-              reading && question.listenFirst
-                ? (question.startedAt - (question.mediaStartAt ?? question.startedAt)) / 1000
-                : (question.endsAt - question.startedAt) / 1000
-            }
-            icon={reading && question.listenFirst ? '🎧' : view.paused ? '⏸' : '⏱'}
-            label={
-              reading && question.listenFirst ? t('player.listening') : t('player.timeRemaining')
-            }
-            paused={view.paused}
+          <QuestionClockBar
+            clock={clock}
             className="bg-background sticky top-0 z-50 shrink-0 py-[0.5em] text-[1.25em]"
           />
         ) : null}

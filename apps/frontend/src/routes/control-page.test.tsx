@@ -341,6 +341,28 @@ describe('ControlPage (console hôte)', () => {
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:next', { pin: '482913' });
   });
 
+  it('the time bar measures the answers’ window, lengthened by the host too (audit F5)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      // A 20 s question the host gave 10 s more: 15 s left of 30.
+      question: {
+        questionIndex: 0,
+        prompt: 'Capitale ?',
+        timeLimitS: 20,
+        startedAt: now - 15_000,
+        endsAt: now + 15_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    renderApp('/session/482913/console');
+    const bar = await screen.findByRole('progressbar', { name: 'Temps restant' });
+    expect(Number(bar.getAttribute('aria-valuenow'))).toBe(50);
+  });
+
   it('ANSWERING : compteur + « Révéler » émet host:reveal', async () => {
     localStorage.setItem('live.localUser', 'Animateur');
     hookState.value = view({

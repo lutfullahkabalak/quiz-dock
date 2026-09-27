@@ -25,6 +25,7 @@ import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from '.
 import { ShapeIcon } from '@/components/shape-icon';
 import { optionLabel } from './image-choice';
 import { mediaUrl } from '@/lib/media-url';
+import type { QuestionClock } from './use-countdown';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -573,6 +574,27 @@ export function TimerBar({
         <span aria-hidden>{icon}</span> {remaining}
       </span>
     </div>
+  );
+}
+
+/** The question's clock as a bar, the same on every surface (see `useQuestionClock`). */
+export function QuestionClockBar({
+  clock,
+  className,
+}: {
+  clock: QuestionClock;
+  className?: string;
+}) {
+  const { t } = useTranslation('live');
+  return (
+    <TimerBar
+      remaining={clock.remaining}
+      totalS={clock.totalS}
+      icon={clock.listening ? '🎧' : clock.paused ? '⏸' : '⏱'}
+      label={clock.listening ? t('screen.listening') : t('screen.timeRemaining')}
+      paused={clock.paused}
+      className={className}
+    />
   );
 }
 

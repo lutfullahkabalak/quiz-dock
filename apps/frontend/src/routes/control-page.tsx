@@ -68,7 +68,7 @@ import {
   SlideView,
   timeTone,
 } from '../game/live-components';
-import { useCountdown, useGameRemaining } from '../game/use-countdown';
+import { type QuestionClock, useQuestionClock } from '../game/use-countdown';
 import { ChromiumNotice } from '@/components/chromium-notice';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { ParticipantPreview } from '../game/participant-preview';
@@ -188,17 +188,11 @@ function HostConsole({
       (view.question?.media?.visual?.kind === 'video' &&
         view.question.media.visual.source === 'upload')
     );
-  // A listen-first question before its answers open: the point cannot move. Paused,
-  // the countdown stands still on the server: what is left of the clock says it.
-  const listenLeft = useCountdown(view.question?.listenFirst ? view.question.startedAt : null);
-  const listening =
-    !!view.question?.listenFirst &&
-    (view.paused && view.pausedRemainingMs !== null
-      ? view.pausedRemainingMs > view.question.endsAt - view.question.startedAt
-      : (listenLeft ?? 0) > 0);
+  // The screens' clock: a listen-first question before its answers open (the point
+  // cannot move), or the answers' time, stood still when paused.
+  const clock = useQuestionClock(view);
+  const listening = clock?.listening ?? false;
   const adjustTime = (deltaS: number) => socket?.emit('host:adjust-time', { pin, deltaS });
-
-  const remaining = useGameRemaining(view);
 
   const openScreen = () => window.open(screenUrl, '_blank', 'noopener,noreferrer');
   const screenButton = (
@@ -706,10 +700,11 @@ function HostConsole({
   }
 
   // ── ANSWERING / QUESTION_SHOW ──────────────────────────────────────────────
-  const timeLimit = view.question?.timeLimitS ?? 0;
   const answered = view.answerCount?.answered ?? 0;
   const totalPlayers = view.answerCount?.total ?? view.players.length;
-  const timePct = remaining != null && timeLimit > 0 ? (remaining / timeLimit) * 100 : 0;
+  // Out of what is being counted, as on the screens: the listening, or the answers'
+  // window as it is now (the host may have lengthened it).
+  const timePct = clock && clock.totalS > 0 ? Math.min(1, clock.remaining / clock.totalS) * 100 : 0;
   const tone = timeTone(timePct / 100, view.paused);
   const answeredPct = totalPlayers > 0 ? (answered / totalPlayers) * 100 : 0;
   // Bonne réponse mise en avant pour l'animateur (clé de correction du sommaire hôte).
@@ -728,10 +723,10 @@ function HostConsole({
               total: view.totalQuestions,
             })}
           </span>
-          <ChronoControls remaining={remaining} paused={view.paused} onAdjust={adjustTime} />
+          <ChronoControls clock={clock} onAdjust={adjustTime} />
         </div>
 
-        <ProgressBar pct={timePct} barClassName={tone} />
+        <ProgressBar pct={timePct} barClassName={tone} label={t('control.timeRemaining')} />
 
         {/* Shown still: the projection is the one place that plays the sound; its
             waveform follows where the projection is in it. While the question runs,
@@ -870,11 +865,20 @@ function AutoAdvanceCountdown({ deadline, totalMs }: { deadline: number; totalMs
 }
 
 /** Barre de progression générique (piste neutre + remplissage coloré animé). */
-function ProgressBar({ pct, barClassName }: { pct: number; barClassName?: string }) {
+function ProgressBar({
+  pct,
+  barClassName,
+  label,
+}: {
+  pct: number;
+  barClassName?: string;
+  label?: string;
+}) {
   return (
     <div
       className="bg-muted h-2.5 w-full overflow-hidden rounded-full"
       role="progressbar"
+      aria-label={label}
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
@@ -1360,12 +1364,10 @@ function LockButton({
 
 /** Ajustement du chrono en direct : [-5 -1 ⏱ +1 +5] (§8). */
 function ChronoControls({
-  remaining,
-  paused,
+  clock,
   onAdjust,
 }: {
-  remaining: number | null;
-  paused: boolean;
+  clock: QuestionClock | null;
   onAdjust: (deltaS: number) => void;
 }) {
   const { t } = useTranslation('live');
@@ -1379,11 +1381,11 @@ function ChronoControls({
       <span
         className={cn(
           'min-w-14 text-center text-2xl font-bold tabular-nums',
-          paused && 'opacity-60',
+          clock?.paused && 'opacity-60',
         )}
-        aria-label={t('control.timeRemaining')}
+        aria-label={clock?.listening ? t('screen.listening') : t('control.timeRemaining')}
       >
-        ⏱ {remaining ?? '—'}
+        {clock?.listening ? '🎧' : '⏱'} {clock?.remaining ?? '—'}
       </span>
       {CHRONO_STEPS.filter((s) => s > 0).map((s) => (
         <Button key={s} type="button" variant="outline" size="sm" onClick={() => onAdjust(s)}>

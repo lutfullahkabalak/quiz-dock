@@ -16,7 +16,7 @@ import {
   AnswerRules,
   LeaderboardList,
   OptionGrid,
-  TimerBar,
+  QuestionClockBar,
   Podium,
   RevealAnswer,
   SlideView,
@@ -35,7 +35,7 @@ import { anchorOf, followed } from '../game/media/followed';
 import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
 import { Surface } from '../game/surface';
 import { ImageChoiceGrid } from '../game/image-choice';
-import { useCountdown, useGameRemaining } from '../game/use-countdown';
+import { useQuestionClock } from '../game/use-countdown';
 import { joinHostLabel, joinUrlFor } from '../game/join-url';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import type { GameSocket } from '../game/game-client';
@@ -202,12 +202,7 @@ export function ScreenSurface({
     };
   }, [role, playMedia, view.preload, socket, pin]);
   const { ref, isFullscreen, toggle, supported } = useFullscreen<HTMLDivElement>();
-  const remaining = useGameRemaining(view);
-  // Listen first: until the media has played, the count is to the answers' opening.
-  const listenLeft = useCountdown(
-    view.question?.listenFirst && !view.paused ? view.question.startedAt : null,
-  );
-  const listening = listenLeft !== null && listenLeft > 0;
+  const clock = useQuestionClock(view);
 
   const joinUrl = joinUrlFor(view, pin);
   const joinHost = joinHostLabel(view);
@@ -392,19 +387,9 @@ export function ScreenSurface({
     // their room and the picture takes what is left (#92).
     body = (
       <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center gap-[1em]">
-        {remaining !== null ? (
-          <TimerBar
-            remaining={listening ? (listenLeft ?? 0) : remaining}
-            totalS={
-              listening
-                ? (view.question.startedAt -
-                    (view.question.mediaStartAt ?? view.question.startedAt)) /
-                  1000
-                : (view.question.endsAt - view.question.startedAt) / 1000
-            }
-            icon={listening ? '🎧' : view.paused ? '⏸' : '⏱'}
-            label={listening ? t('screen.listening') : t('screen.timeRemaining')}
-            paused={view.paused}
+        {clock ? (
+          <QuestionClockBar
+            clock={clock}
             // Clear of the fullscreen button, top right, and of the sound button, top left.
             className={cn('shrink-0 pr-[2.5em] text-[1.6em]', soundButton && 'pl-[2.5em]')}
           />
