@@ -86,6 +86,43 @@ real games there.
 
 ## 3. Results
 
+### The three measures of 2026-09-27
+
+The work of that day (lots 2 to 6, see the [audit](audit-2026-09.md#8-état-après-les-lots-2026-09-27))
+was measured three times, all on the same kind of machine: a Claude Code cloud
+container (Firecracker micro-VM on a shared host), Intel Xeon @ 2.10 GHz, 4 vCPU,
+16 GB. Each raw file records its full setup, its code and its caveats.
+
+| # | Measure | Code | Container up for | Status | Raw file |
+|--:|---|---|---|---|---|
+| 1 | Baseline, before the lots | `b6c792e` (backend code) | 3 to 14 min | reference for "before" | [`baseline`](load-results/2026-09-27-baseline.json) |
+| 2 | After the lots up to 5 | `cf3bf96` | about 4 h 50, after a day of work | **indicative only**, superseded by 3 | [`after-lots`](load-results/2026-09-27-after-lots.json) |
+| 3 | After every lot, 5b included, and the A/B against 1 | `41ba1ac` | 4 to 28 min | **reference for "after"** | [`cold`](load-results/2026-09-27-cold.json) |
+
+Differences of method between 1 and 3:
+
+- In 1, the one-core series (10 to 700 players) ran on a single backend process,
+  after a 10-player smoke run; in 3, `scripts/bench.sh` starts a new process for
+  each part of the series (10–300, 400–700, 1000–1500). A new process starts with
+  a cold JIT.
+- 3 adds the 1000 and 1500 steps, which 1 did not measure.
+
+A fresh process could also carry less memory from the previous steps. These
+effects are small next to the gap measured (3.4 s against 18 ms at 700 players),
+and the A/B of 3, which starts both codes the same way, confirms the gap.
+
+How far to trust them:
+
+- **The before/after comparison rests on the A/B of 3**: both codes alternated on the
+  same machine within 8 minutes, three rounds each. Its ranges show the noise of a
+  cloud container: the same code (before) gave 120 to 623 ms at 500 players across
+  rounds; after, 11 to 12 ms every round.
+- **The series are one run per step**: their variance is not measured. Read a step
+  as an order of magnitude, a difference of a few milliseconds as noise.
+- **What is not simulated**: a network (the players are on the same machine, over the
+  loopback), phones, media, several rooms at once. The CPU the simulated players use
+  is kept apart (other cores), not their share of memory bandwidth.
+
 ### Baseline — before the engine refactoring (2026-09-27)
 
 Setup: backend, Postgres 16 and Redis 7 in one container, Intel Xeon @ 2.10 GHz,
@@ -147,7 +184,7 @@ baseline (Xeon @ 2.10 GHz, 4 vCPU). `scripts/bench.sh`, then `ab b6c792e`.
 | | |
 |---|---|
 | Machine | Claude Code cloud container: a Firecracker micro-VM on a shared host, Intel Xeon @ 2.10 GHz, 4 vCPU, 16 GB RAM, kernel 6.18, no CPU or memory limit set |
-| When | about 5 minutes after the container started: the A/B first, the series right after |
+| When | the container restarted at 22:16 UTC; the A/B from 22:20 to 22:29, the series from 22:29 to 22:38, the 1000/1500 step until 22:44 (run by hand, now part of `bench.sh`; two earlier attempts discarded, one sampling the wrong process, one unable to start its backend) |
 | Backend | `nest build`, `node dist/main.js`, Node 22.22.2 (default heap), `NODE_ENV=production`, `AUTH_MODE=none`, `GAME_READ_DELAY_MS=1000`; pinned with `taskset` to core 0 (one core) or 0-1 (two cores); restarted for each run, on an emptied Redis database |
 | Postgres | 16.13, Ubuntu defaults (`shared_buffers` 128 MB, 100 connections), on the same machine |
 | Redis | 7.0.15, defaults (no `maxmemory`, no AOF, no I/O threads), on the same machine |

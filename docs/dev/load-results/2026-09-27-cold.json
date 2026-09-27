@@ -8,7 +8,8 @@
       "kind": "Claude Code cloud container (Firecracker micro-VM, kernel 6.18.44), shared host, no cgroup CPU or memory limit",
       "cpu": "Intel Xeon @ 2.10GHz, 4 vCPU",
       "ramMb": 16095,
-      "startedMinutesBefore": "about 5 (the A/B), then the series right after"
+      "started": "2026-09-27 22:16 UTC (plus or minus 1 min; the container restarted for this measure)",
+      "measured": "A/B 22:20 to 22:28:45 (4 to 13 min after start), series 22:28:47 to 22:37:39 (13 to 22 min), the 1000/1500 step ending 22:44:15 (about 28 min)"
     },
     "software": {
       "node": "22.22.2 (default heap limit, 8240 MB)",
@@ -25,7 +26,8 @@
       },
       "cores": "taskset: core 0 (one core), cores 0-1 (two cores)",
       "restartedEachRun": true,
-      "redisDbFlushedEachRun": true
+      "redisDbFlushedEachRun": true,
+      "series": "one-small (core 0: 10-300, 10 questions), one-large (core 0: 400-700, 5), two (cores 0-1: 300-700, 5), one-xl (core 0: 1000-1500, 5), each on a new process"
     },
     "players": {
       "client": "scripts/load-test.mjs on the same machine, over the loopback (no network latency)",
@@ -1296,5 +1298,17 @@
         ]
       }
     }
-  }
+  },
+  "campaign": "3/3, THE REFERENCE AFTER THE LOTS: a container restarted minutes before",
+  "code": {
+    "commit": "41ba1ac (lots 2, 3, 4a-4d, perf, 5, 5b; lot 6 is documentation only)",
+    "abReference": "b6c792e (the code of the baseline)"
+  },
+  "caveats": [
+    "the series: one run per step, its variance is not measured; the A/B: three rounds per side",
+    "the 1000/1500 step ran by hand after the series (bench.sh now includes it); two earlier attempts were discarded: one sampled the CPU of the wrong process, one could not start its backend (port taken by the previous one)",
+    "Redis peak memory is cumulative since Redis started (it cannot be reset)",
+    "the players share the machine with the backend, over the loopback: no network, no phones",
+    "cpu p95 is the busiest 5 % of a run; which moment it is (the joins, most likely) is not measured"
+  ]
 }

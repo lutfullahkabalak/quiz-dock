@@ -8,7 +8,44 @@
     "postgres": "16",
     "questionsWithoutMedia": true,
     "answerWindowMs": 3000,
-    "readDelayMs": 1000
+    "readDelayMs": 1000,
+    "machine": {
+      "kind": "Claude Code cloud container (Firecracker micro-VM), shared host, no cgroup CPU or memory limit",
+      "cpu": "Intel Xeon @ 2.10GHz, 4 vCPU",
+      "ramMb": 16095,
+      "kernel": "not recorded",
+      "started": "2026-09-27 about 16:12 UTC (container restarted during the session)",
+      "measured": "16:15 to 16:26 UTC, 3 to 14 minutes after the container started"
+    },
+    "software": {
+      "node": "22.22.2 (default heap)",
+      "redis": "7.0.15, defaults (no maxmemory, no AOF, no I/O threads)",
+      "postgres": "16, Ubuntu package defaults (minor version not recorded for this container)"
+    },
+    "backend": {
+      "build": "nest build, node dist/main.js",
+      "env": {
+        "NODE_ENV": "production",
+        "AUTH_MODE": "none",
+        "GAME_READ_DELAY_MS": 1000,
+        "PORT": 3100
+      },
+      "oneCore": "taskset core 0; ONE process for the whole one-core series (10-300 then 400-700, after a 10-player smoke run), not restarted between steps",
+      "twoCores": "taskset cores 0-1; a new process for the two-core series"
+    },
+    "players": {
+      "client": "scripts/load-test.mjs on the same machine, over the loopback (no network latency)",
+      "joinConcurrency": 50,
+      "answerWindowMs": 3000,
+      "answer": "a random option, at a random moment in the window",
+      "transport": "websocket",
+      "cores": "taskset 1-3 (one core), 2-3 (two cores)"
+    },
+    "quiz": {
+      "type": "single choice, 4 options, short texts, no media",
+      "perStep": "one game, one room, per player count",
+      "questions": "10 per game up to 300 players, 5 from 400 up"
+    }
   },
   "runs": {
     "oneCore": [
@@ -554,5 +591,14 @@
         }
       }
     ]
-  }
+  },
+  "campaign": "1/3, the reference: the code before the lots",
+  "code": {
+    "commit": "77ba605 (the load test added); the backend code is that of b6c792e, the A/B reference (only game.engine.spec.ts differs)"
+  },
+  "caveats": [
+    "one run per step: its variance is not measured",
+    "Redis peak memory is cumulative since Redis started (it cannot be reset)",
+    "the players share the machine with the backend, over the loopback"
+  ]
 }
