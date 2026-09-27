@@ -92,9 +92,11 @@ not drop.
 2. **The next quiz in the room.** `host:next-quiz { pin, quizId, archive? }` opens the next quiz in its lobby; the
    players stay in, at 0, and every screen is sent the new lobby (the consoles its outline). `host:end` closes the
    room. Settled:
-   - **When**: from the lobby (the quiz picked is replaced, nothing was played) or from the podium (`archive` keeps
-     the results of the quiz just played, as `host:end` does). Mid-quiz it is refused
-     (`session.next_quiz_unavailable`): the host plays it to the end first. A double click opens one quiz.
+   - **When**: from the lobby (the quiz picked is replaced, nothing was played), from the podium (`archive` keeps
+     the results of the quiz just played, as `host:end` does), or **mid-quiz to close it** (2026-09-27): `archive`
+     keeps what was played so far — archived as *interrupted*, counted in the room's standings — otherwise nothing of
+     it stays. The archive is written first: if it fails, the quiz goes on. Refused only once the room is closed
+     (`session.next_quiz_unavailable`). A double click opens one quiz.
    - **Late joiners**: a player joining while a quiz is played enters it, as a late join does today (LIVE §5). One
      joining at the podium is in the room, not in the quiz that is over, and plays from the next one. Joining and a
      quiz opening are each one atomic step, so nobody lands in neither.
@@ -121,7 +123,8 @@ not drop.
 5. **Screens.** Delivered:
    - **Console**: at the podium, **Next quiz** (a picker of the host's own playable quizzes, `ready` with a question;
      *keep the results* checked, as when ending) next to *End the session*; in the lobby, **Change quiz** (the quiz
-     picked is replaced). The room's standings under the podium from the second quiz, and in the next lobby.
+     picked is replaced); during a quiz, **Close the quiz** (the same picker, *keep what was played so far* checked)
+     next to *Close the room*. The room's standings under the podium from the second quiz, and in the next lobby.
    - **Projection**: in the next lobby, the quiz coming and the room's standings; at the podium, the quiz's podium
      then the room's standings; when a room of several quizzes closes, its own podium.
    - **Phone**: in the next lobby, their rank in the room and *Waiting for the next quiz*; at the podium, their rank
