@@ -237,6 +237,7 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   const setCredit = useMediaControllerSetCredit();
   const [alt, setAltValue] = useState('');
   const [credit, setCreditValue] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const saved = useRef({ alt: '', credit: '' });
 
   useEffect(() => {
@@ -257,15 +258,19 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   const saveAlt = () => {
     if (alt === saved.current.alt) return;
     saved.current.alt = alt;
-    void setAlt.mutateAsync({ id: mediaId, data: { alt } }).catch(() => {
-      saved.current.alt = '';
+    setSaveError(null);
+    void setAlt.mutateAsync({ id: mediaId, data: { alt } }).catch((e: unknown) => {
+      saved.current.alt = ''; // tried again at the next blur
+      setSaveError(apiErrorText(e));
     });
   };
   const saveCredit = () => {
     if (credit === saved.current.credit) return;
     saved.current.credit = credit;
-    void setCredit.mutateAsync({ id: mediaId, data: { credit } }).catch(() => {
+    setSaveError(null);
+    void setCredit.mutateAsync({ id: mediaId, data: { credit } }).catch((e: unknown) => {
       saved.current.credit = '';
+      setSaveError(apiErrorText(e));
     });
   };
 
@@ -295,6 +300,11 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
         />
         <span className="text-xs">{t('media.creditHelp')}</span>
       </Label>
+      {saveError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {saveError}
+        </p>
+      ) : null}
     </div>
   );
 }
