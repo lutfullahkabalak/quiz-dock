@@ -14,6 +14,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- An image choice keeps the projection's usual layout *(live)*
+- A picture's description arriving late overwrites nothing *(editor)*
 - No image added from the Markdown editor *(editor)*
 - No image to upload in an answer's explanation *(editor)*
 - A new quiz's intro slide comes first, before its question *(quiz)*
@@ -52,6 +54,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- Every screen shot again, the new ones and each question type *(screenshots)*
+- The 0.7 and 0.8 notes out of the top *(readme)*
+- Image choice in the feature list and unreleased
 - The 2026-09-27 batch listed, video and sound no longer experimental
 - Media on slides, as arbitrated — blocks, a video background, one sound at a time *(spec)*
 - The game's sounds in the feature list and unreleased
@@ -101,6 +106,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- The pictures on the phone in the room too *(player)*
 - Name a picture answer by its alt, in the history, the CSV and the templates *(history)*
 - Answer an image choice — the pictures at a distance, the shapes in the room *(player)*
 - Project an image choice — the pictures fill the screen, the reveal keeps them *(live)*
