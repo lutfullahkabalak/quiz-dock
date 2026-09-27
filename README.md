@@ -36,19 +36,6 @@ the results never leave your servers.
   <img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/demo.gif" width="800" alt="A session on the big screen: players join with the PIN, a question with its timer, the reveal with the leaderboard, the podium" />
 </p>
 
-> [!NOTE]
-> **New in 0.8 — 🗂️ a media library, for hosts and for the instance.** Whatever your
-> browser reads is converted there (WebP, MP4, M4A), stored once and reused from *My media*
-> or from the instance's **global media**, credited, and managed on an administration page:
-> disk by kind and owner, clean-up, every file with its usages.
->
-> **New in 0.7 — 🎧 video & sound in questions**. Videos and sounds,
-> loudness-matched, with a waveform; played on the projection **and** on the devices of
-> remote participants, started on the same instant everywhere; *listen first* questions
-> open the answers once the media has played. Tested in Chromium browsers, not yet on
-> iPhone — see the
-> [audio & video guide](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/audio-video.md).
-
 ## 🎮 Try it online
 
 **https://quizdock-standalone.onrender.com** — a public instance in demo mode: enter the
@@ -149,7 +136,7 @@ docker compose -f docker-compose.prod.yml up -d
 # open http://localhost:18080
 ```
 
-Pin a version with `QUIZDOCK_TAG=0.8.0 docker compose -f docker-compose.prod.yml up -d`.
+Pin a version with `QUIZDOCK_TAG=0.9.0 docker compose -f docker-compose.prod.yml up -d`.
 From source: `git clone https://github.com/quizdock/quiz-dock.git`, then the same command
 with `--build`.
 
@@ -157,7 +144,7 @@ with `--build`.
 
 Migrations run **automatically** on every start: pull the new tag and `up` again.
 **Back up PostgreSQL first**, and **don't roll back** an image once its migrations ran —
-restore the backup instead. With the script: `./quizdock upgrade 0.8.0` (backup → pull →
+restore the backup instead. With the script: `./quizdock upgrade 0.9.0` (backup → pull →
 restart → doctor). Full procedure:
 [self-hosting → Upgrading](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/upgrading.md).
 
@@ -197,7 +184,7 @@ hosted elsewhere).
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/editor.png" alt="Quiz builder" /><br /><sub><b>Quiz builder</b> — 8 question types, video &amp; sound, slides, backgrounds, scoring rules</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — lobby: PIN, QR code, players in the room or remote, who hears the sound</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — the room's lobby: PIN, QR code, players in the room or remote and who is ready, the game's sounds</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/media-library.png" alt="My media" /><br /><sub><b>My media</b> — reuse what you uploaded, sizes and usages; global media one tab away</sub></td>
@@ -205,7 +192,7 @@ hosted elsewhere).
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/participant-access.png" alt="Participant access at launch" /><br /><sub><b>Who can join</b> — with an account, or with the PIN and a nickname alone</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — open access and lock" /><br /><sub><b>Close the game</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — closed room" /><br /><sub><b>Close the room</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/join.png" alt="Join by PIN, nickname and avatar" /><br /><sub><b>Join</b> — PIN or QR code, nickname &amp; avatar, in the room or remote, no account</sub></td>
@@ -215,11 +202,19 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-play.png" alt="Player — question and reveal" /><br /><sub><b>Player</b> — colour tiles to tap, then own result</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-reveal.png" alt="Projection — reveal" /><br /><sub><b>Reveal</b> — distribution, explanation, live leaderboard</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/image-choice.png" alt="Projection — image choice" /><br /><sub><b>Image choice</b> — pictures as the answers, each with its colour and shape</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-big-screen.png" alt="Remote player — the question, or the big screen" /><br /><sub><b>Remote player</b> — the whole question on their phone, or the big screen itself</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-room-next.png" alt="Host console — the next quiz in the room" /><br /><sub><b>The next quiz</b> — same room, same players, the standings carried over</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-background-sound.png" alt="Slide with a background and a sound" /><br /><sub><b>Slides</b> — pictures, columns, backgrounds, a video or a sound</sub></td>
+  </tr>
 </table>
 
-More — content slides, the console during a question and at the reveal,
-the podium, the player's ordering and feedback screens, the global media, the preview
-of a sound on its waveform, the account preferences:
+More — every question type and slide on the big screen, the builder of an image choice and
+of a slide, the console during a question, a slide and the reveal, the podium, the player's
+ordering and feedback screens, the global media, the account preferences:
 [full gallery](https://github.com/quizdock/quiz-dock/blob/main/docs/screenshots/README.md).
 
 ## 📋 More features
