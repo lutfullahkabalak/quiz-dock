@@ -1,0 +1,558 @@
+{
+  "date": "2026-09-27",
+  "label": "baseline before the engine refactoring",
+  "setup": {
+    "cpu": "Intel Xeon @ 2.10GHz",
+    "node": "22.22.2",
+    "redis": "7.0.15",
+    "postgres": "16",
+    "questionsWithoutMedia": true,
+    "answerWindowMs": 3000,
+    "readDelayMs": 1000
+  },
+  "runs": {
+    "oneCore": [
+      {
+        "players": 10,
+        "gameS": 54,
+        "joinMs": {
+          "n": 10,
+          "p50": 153,
+          "p95": 154,
+          "p99": 154,
+          "max": 154
+        },
+        "answerAckMs": {
+          "n": 100,
+          "p50": 6,
+          "p95": 9,
+          "p99": 17,
+          "max": 30
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 10,
+          "p50": 1,
+          "p95": 2,
+          "p99": 2,
+          "max": 2
+        },
+        "revealSpreadMs": {
+          "n": 10,
+          "p50": 0,
+          "p95": 1,
+          "p99": 1,
+          "max": 1
+        },
+        "redisCommandsPerAnswer": 17,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 218,
+            "p50": 0,
+            "p95": 8,
+            "p99": 12,
+            "max": 80
+          },
+          "rssMb": {
+            "start": 262,
+            "max": 265
+          }
+        }
+      },
+      {
+        "players": 50,
+        "gameS": 56,
+        "joinMs": {
+          "n": 50,
+          "p50": 338,
+          "p95": 372,
+          "p99": 379,
+          "max": 379
+        },
+        "answerAckMs": {
+          "n": 500,
+          "p50": 4,
+          "p95": 8,
+          "p99": 9,
+          "max": 13
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 10,
+          "p50": 1,
+          "p95": 2,
+          "p99": 2,
+          "max": 2
+        },
+        "revealSpreadMs": {
+          "n": 10,
+          "p50": 2,
+          "p95": 3,
+          "p99": 3,
+          "max": 3
+        },
+        "redisCommandsPerAnswer": 13,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 225,
+            "p50": 0,
+            "p95": 8,
+            "p99": 16,
+            "max": 80
+          },
+          "rssMb": {
+            "start": 272,
+            "max": 294
+          }
+        }
+      },
+      {
+        "players": 100,
+        "gameS": 56,
+        "joinMs": {
+          "n": 100,
+          "p50": 367,
+          "p95": 464,
+          "p99": 467,
+          "max": 470
+        },
+        "answerAckMs": {
+          "n": 1000,
+          "p50": 5,
+          "p95": 8,
+          "p99": 12,
+          "max": 33
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 10,
+          "p50": 3,
+          "p95": 5,
+          "p99": 5,
+          "max": 5
+        },
+        "revealSpreadMs": {
+          "n": 10,
+          "p50": 2,
+          "p95": 6,
+          "p99": 6,
+          "max": 6
+        },
+        "redisCommandsPerAnswer": 13,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 228,
+            "p50": 8,
+            "p95": 16,
+            "p99": 84,
+            "max": 100
+          },
+          "rssMb": {
+            "start": 300,
+            "max": 303
+          }
+        }
+      },
+      {
+        "players": 200,
+        "gameS": 56,
+        "joinMs": {
+          "n": 200,
+          "p50": 241,
+          "p95": 403,
+          "p99": 426,
+          "max": 428
+        },
+        "answerAckMs": {
+          "n": 2000,
+          "p50": 7,
+          "p95": 15,
+          "p99": 37,
+          "max": 89
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 10,
+          "p50": 4,
+          "p95": 7,
+          "p99": 7,
+          "max": 7
+        },
+        "revealSpreadMs": {
+          "n": 10,
+          "p50": 6,
+          "p95": 14,
+          "p99": 14,
+          "max": 14
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 231,
+            "p50": 20,
+            "p95": 40,
+            "p99": 100,
+            "max": 100
+          },
+          "rssMb": {
+            "start": 310,
+            "max": 340
+          }
+        }
+      },
+      {
+        "players": 300,
+        "gameS": 57,
+        "joinMs": {
+          "n": 300,
+          "p50": 351,
+          "p95": 723,
+          "p99": 742,
+          "max": 753
+        },
+        "answerAckMs": {
+          "n": 3000,
+          "p50": 9,
+          "p95": 20,
+          "p99": 37,
+          "max": 82
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 10,
+          "p50": 8,
+          "p95": 12,
+          "p99": 12,
+          "max": 12
+        },
+        "revealSpreadMs": {
+          "n": 10,
+          "p50": 7,
+          "p95": 20,
+          "p99": 20,
+          "max": 20
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 237,
+            "p50": 36,
+            "p95": 75,
+            "p99": 100,
+            "max": 100
+          },
+          "rssMb": {
+            "start": 326,
+            "max": 359
+          }
+        }
+      },
+      {
+        "players": 400,
+        "gameS": 28,
+        "joinMs": {
+          "n": 400,
+          "p50": 409,
+          "p95": 743,
+          "p99": 765,
+          "max": 779
+        },
+        "answerAckMs": {
+          "n": 2000,
+          "p50": 12,
+          "p95": 31,
+          "p99": 57,
+          "max": 88
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 5,
+          "p50": 10,
+          "p95": 15,
+          "p99": 15,
+          "max": 15
+        },
+        "revealSpreadMs": {
+          "n": 5,
+          "p50": 11,
+          "p95": 19,
+          "p99": 19,
+          "max": 19
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 129,
+            "p50": 56,
+            "p95": 100,
+            "p99": 104,
+            "max": 104
+          },
+          "rssMb": {
+            "start": 363,
+            "max": 419
+          }
+        }
+      },
+      {
+        "players": 500,
+        "gameS": 29,
+        "joinMs": {
+          "n": 500,
+          "p50": 507,
+          "p95": 857,
+          "p99": 895,
+          "max": 913
+        },
+        "answerAckMs": {
+          "n": 2500,
+          "p50": 79,
+          "p95": 600,
+          "p99": 664,
+          "max": 730
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 5,
+          "p50": 14,
+          "p95": 19,
+          "p99": 19,
+          "max": 19
+        },
+        "revealSpreadMs": {
+          "n": 5,
+          "p50": 21,
+          "p95": 36,
+          "p99": 36,
+          "max": 36
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 139,
+            "p50": 92,
+            "p95": 100,
+            "p99": 104,
+            "max": 104
+          },
+          "rssMb": {
+            "start": 453,
+            "max": 520
+          }
+        }
+      },
+      {
+        "players": 700,
+        "gameS": 46,
+        "joinMs": {
+          "n": 700,
+          "p50": 649,
+          "p95": 1172,
+          "p99": 1237,
+          "max": 1281
+        },
+        "answerAckMs": {
+          "n": 3500,
+          "p50": 1506,
+          "p95": 3399,
+          "p99": 3843,
+          "max": 4009
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 5,
+          "p50": 18,
+          "p95": 35,
+          "p99": 35,
+          "max": 35
+        },
+        "revealSpreadMs": {
+          "n": 5,
+          "p50": 24,
+          "p95": 42,
+          "p99": 42,
+          "max": 42
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 220,
+            "p50": 97,
+            "p95": 103,
+            "p99": 104,
+            "max": 104
+          },
+          "rssMb": {
+            "start": 396,
+            "max": 858
+          }
+        }
+      }
+    ],
+    "twoCores": [
+      {
+        "players": 300,
+        "gameS": 28,
+        "joinMs": {
+          "n": 300,
+          "p50": 303,
+          "p95": 538,
+          "p99": 571,
+          "max": 578
+        },
+        "answerAckMs": {
+          "n": 1500,
+          "p50": 7,
+          "p95": 14,
+          "p99": 32,
+          "max": 59
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 5,
+          "p50": 7,
+          "p95": 13,
+          "p99": 13,
+          "max": 13
+        },
+        "revealSpreadMs": {
+          "n": 5,
+          "p50": 8,
+          "p95": 9,
+          "p99": 9,
+          "max": 9
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 123,
+            "p50": 32,
+            "p95": 100,
+            "p99": 140,
+            "max": 141
+          },
+          "rssMb": {
+            "start": 272,
+            "max": 331
+          }
+        }
+      },
+      {
+        "players": 500,
+        "gameS": 28,
+        "joinMs": {
+          "n": 500,
+          "p50": 425,
+          "p95": 753,
+          "p99": 817,
+          "max": 828
+        },
+        "answerAckMs": {
+          "n": 2500,
+          "p50": 37,
+          "p95": 102,
+          "p99": 123,
+          "max": 150
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 5,
+          "p50": 15,
+          "p95": 19,
+          "p99": 19,
+          "max": 19
+        },
+        "revealSpreadMs": {
+          "n": 5,
+          "p50": 11,
+          "p95": 16,
+          "p99": 16,
+          "max": 16
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 132,
+            "p50": 84,
+            "p95": 108,
+            "p99": 140,
+            "max": 164
+          },
+          "rssMb": {
+            "start": 353,
+            "max": 415
+          }
+        }
+      },
+      {
+        "players": 700,
+        "gameS": 42,
+        "joinMs": {
+          "n": 700,
+          "p50": 538,
+          "p95": 1043,
+          "p99": 1131,
+          "max": 1149
+        },
+        "answerAckMs": {
+          "n": 3500,
+          "p50": 1291,
+          "p95": 2849,
+          "p99": 3125,
+          "max": 3206
+        },
+        "answersRefused": {},
+        "answersLost": 0,
+        "questionStartSpreadMs": {
+          "n": 5,
+          "p50": 19,
+          "p95": 22,
+          "p99": 22,
+          "max": 22
+        },
+        "revealSpreadMs": {
+          "n": 5,
+          "p50": 20,
+          "p95": 21,
+          "p99": 21,
+          "max": 21
+        },
+        "redisCommandsPerAnswer": 12,
+        "errors": [],
+        "server": {
+          "cpuPct": {
+            "n": 201,
+            "p50": 100,
+            "p95": 108,
+            "p99": 128,
+            "max": 152
+          },
+          "rssMb": {
+            "start": 439,
+            "max": 889
+          }
+        }
+      }
+    ]
+  }
+}
