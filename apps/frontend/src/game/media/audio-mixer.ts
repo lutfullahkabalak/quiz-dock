@@ -248,6 +248,20 @@ export function fadeElement(
   return new Promise((resolve) => setTimeout(resolve, span * 1000));
 }
 
+/**
+ * Where a playing element is **heard**, in seconds: its position less the time
+ * the sound takes to leave the speakers once through the mixer — the context's
+ * own buffer and the device's output (a Bluetooth headset adds a few hundred ms).
+ * What a waveform draws and a projection reports, so the playhead passes a beat
+ * when the room hears it, not when the decoder reads it.
+ */
+export function heardTime(el: HTMLMediaElement): number {
+  const m = mixer;
+  if (!m || !routed.has(el) || m.ctx.state !== 'running' || el.paused) return el.currentTime;
+  const latency = (m.ctx.outputLatency || 0) + (m.ctx.baseLatency || 0);
+  return Math.max(0, el.currentTime - latency);
+}
+
 /** Silences a routed element at once, before a play that fades it in. */
 export function muteElementForFade(el: HTMLMediaElement): void {
   const gain = routed.get(el);

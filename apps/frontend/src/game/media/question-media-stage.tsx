@@ -4,7 +4,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { TRACK_FADE_S, fadeElement, muteElementForFade, routeElement } from './audio-mixer';
+import {
+  TRACK_FADE_S,
+  fadeElement,
+  heardTime,
+  muteElementForFade,
+  routeElement,
+} from './audio-mixer';
 import { unlockAudio, useAudioUnlocked } from './audio-unlock';
 import { releaseMedia, takeMedia } from './media-pool';
 import { clearPosition, readPosition, resumeAt, writePosition } from './media-position';
@@ -72,7 +78,8 @@ function usePositionReport(
 ) {
   useEffect(() => {
     if (!el || !onPosition) return;
-    const say = () => onPosition(el.currentTime, !el.paused && !el.ended);
+    // What the room hears, not what the decoder has read (see `heardTime`).
+    const say = () => onPosition(heardTime(el), !el.paused && !el.ended);
     const events = ['play', 'pause', 'seeked', 'ended'] as const;
     events.forEach((e) => el.addEventListener(e, say));
     const timer = window.setInterval(() => {
@@ -429,7 +436,7 @@ export function AudioTrack({
     let frame = 0;
     const tick = () => {
       const duration = el.duration || audio.durationMs / 1000;
-      setProgress(duration > 0 ? Math.min(1, el.currentTime / duration) : 0);
+      setProgress(duration > 0 ? Math.min(1, heardTime(el) / duration) : 0);
       if (!el.paused && !el.ended) frame = requestAnimationFrame(tick);
     };
     const start = () => {
