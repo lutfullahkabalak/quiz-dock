@@ -1,6 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { type MediaAsset, type MediaKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { readableBy } from '../quizzes/quiz-access';
 
 /** One entry of an author's library: a file, whatever number of their media use it. */
 export interface MediaLibraryItem {
@@ -200,7 +201,7 @@ export class MediaLibraryService {
    */
   async creditsOfOwned(ownerId: string, quizId: string): Promise<string[]> {
     const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, OR: [{ ownerId }, { shared: true, status: { not: 'archived' } }] },
+      where: { id: quizId, ...readableBy(ownerId) },
       select: { id: true },
     });
     if (!quiz) throw new NotFoundException('quiz.not_found');

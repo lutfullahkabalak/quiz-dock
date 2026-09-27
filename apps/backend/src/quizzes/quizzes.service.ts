@@ -18,6 +18,7 @@ import type { TransitionQuizDto } from './dto/transition-quiz.dto';
 import type { UpdateQuizDto } from './dto/update-quiz.dto';
 import { roomStandings } from './room-standings';
 import { instanceLanguage } from '../common/instance-language';
+import { readableBy, requireQuiz } from './quiz-access';
 
 type QuizFeedbackQuery = Pick<QuizFeedbackQueryDto, 'page' | 'pageSize' | 'rating'>;
 
@@ -48,7 +49,7 @@ export class QuizzesService {
   }): Promise<(Quiz & { ownerName?: string; editable: boolean })[]> {
     const manager = isManager(user.roles);
     const rows = await this.prisma.quiz.findMany({
-      where: manager ? {} : this.readableBy(user.id),
+      where: manager ? {} : readableBy(user.id),
       orderBy: { createdAt: 'desc' },
       include: { owner: { select: { displayName: true } } },
     });
@@ -60,11 +61,6 @@ export class QuizzesService {
         ? { ...quiz, editable, ownerName: owner.displayName }
         : { ...quiz, editable };
     });
-  }
-
-  /** What a host reads: their quizzes, and those shared with the instance (not archived). */
-  private readableBy(userId: string): Prisma.QuizWhereInput {
-    return { OR: [{ ownerId: userId }, { shared: true, status: { not: QuizStatus.archived } }] };
   }
 
   /**
@@ -102,7 +98,7 @@ export class QuizzesService {
   async get(user: { id: string; roles: RoleSet }, id: string) {
     const quiz = await this.prisma.quiz.findFirst({
       // A quiz another host shares is read too, never edited.
-      where: isManager(user.roles) ? { id } : { id, ...this.readableBy(user.id) },
+      where: isManager(user.roles) ? { id } : { id, ...readableBy(user.id) },
       include: {
         questions: { orderBy: { orderIndex: 'asc' }, include: QUESTION_INCLUDE },
         slides: { orderBy: { orderIndex: 'asc' } },
@@ -123,19 +119,12 @@ export class QuizzesService {
   }
 
   /**
-   * Avis des joueurs sur un quiz (§2.11) — réservé au **propriétaire** (la garde
-   * `findFirst({ where:{ id, ownerId } })` renvoie 404 pour un non-owner). Renvoie
-   * la moyenne, le nombre et la liste (récente d'abord).
+   * Avis des joueurs sur un quiz (§2.11) — son propriétaire, ou un gestionnaire
+   * (`scopeOf`) ; 404 pour tout autre. Renvoie la moyenne, le nombre et la liste
+   * (récente d'abord).
    */
   async feedback(user: { id: string; roles: RoleSet }, id: string, query: QuizFeedbackQuery) {
-    const ownerId = this.scopeOf(user);
-    const quiz = await this.prisma.quiz.findFirst({
-      where: { id, ownerId },
-      select: { id: true },
-    });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
+    await requireQuiz(this.prisma, id, this.scopeOf(user));
     // Summary over every review (not just the page), so the header never changes with the filter.
     const groups = await this.prisma.quizFeedback.groupBy({
       by: ['rating'],
@@ -170,15 +159,12 @@ export class QuizzesService {
   }
 
   /**
-   * Historique des parties archivées d'un quiz possédé (§2.7), récentes d'abord.
-   * Réservé au propriétaire (la garde `findFirst({ id, ownerId })` → 404 sinon).
+   * Historique des parties archivées d'un quiz (§2.7), récentes d'abord : son
+   * propriétaire, ou un gestionnaire (`scopeOf`) ; 404 pour tout autre.
    */
   async sessions(user: { id: string; roles: RoleSet }, id: string) {
     const ownerId = this.scopeOf(user);
-    const quiz = await this.prisma.quiz.findFirst({ where: { id, ownerId }, select: { id: true } });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
+    await requireQuiz(this.prisma, id, ownerId);
     const rows = await this.prisma.gameSessionLog.findMany({
       where: { quizId: id },
       orderBy: { startedAt: 'desc' },
@@ -372,7 +358,7 @@ export class QuizzesService {
    */
   async duplicate(ownerId: string, id: string): Promise<Quiz> {
     const src = await this.prisma.quiz.findFirst({
-      where: { id, ...this.readableBy(ownerId) },
+      where: { id, ...readableBy(ownerId) },
       include: {
         questions: {
           orderBy: { orderIndex: 'asc' },

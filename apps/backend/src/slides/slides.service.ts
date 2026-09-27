@@ -4,6 +4,7 @@ import type { ReorderItemsDto } from './dto/reorder-items.dto';
 import type { SlideContent } from './dto/slide-content.schema';
 import { checkSlideMedia, slideMediaIds } from './slide-media';
 import { slideData } from './slide-data';
+import { requireQuiz } from '../quizzes/quiz-access';
 
 /** Temporary shift so questions can be renumbered without hitting @@unique([quizId, orderIndex]). */
 const REORDER_OFFSET = 1000;
@@ -19,7 +20,7 @@ export class SlidesService {
 
   /** Appends a slide at the very end of the quiz (after the last question). */
   async add(ownerId: string, quizId: string, dto: SlideContent) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     await checkSlideMedia(this.prisma, ownerId, dto);
     const agg = await this.prisma.slide.aggregate({
       where: { quizId, beforeQuestionId: null },
@@ -52,7 +53,7 @@ export class SlidesService {
    * the end) with an `orderIndex` among the slides sharing that anchor.
    */
   async reorderItems(ownerId: string, quizId: string, dto: ReorderItemsDto) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     const [questions, slides] = await Promise.all([
       this.prisma.question.findMany({ where: { quizId }, select: { id: true } }),
       this.prisma.slide.findMany({ where: { quizId }, select: { id: true } }),
@@ -109,16 +110,6 @@ export class SlidesService {
       ),
     ]);
     return this.prisma.slide.findMany({ where: { quizId }, orderBy: { orderIndex: 'asc' } });
-  }
-
-  private async assertQuizOwned(ownerId: string, quizId: string): Promise<void> {
-    const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, ownerId },
-      select: { id: true },
-    });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
   }
 
   private async assertSlideOwned(ownerId: string, slideId: string) {

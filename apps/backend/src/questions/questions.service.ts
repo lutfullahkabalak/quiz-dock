@@ -17,6 +17,7 @@ import {
   questionMediaOf,
   resolveQuestionMedia,
 } from './question-media';
+import { requireQuiz } from '../quizzes/quiz-access';
 
 export const QUESTION_INCLUDE = {
   options: { orderBy: { orderIndex: 'asc' } },
@@ -54,7 +55,7 @@ export class QuestionsService {
   }
 
   private async addOnce(ownerId: string, quizId: string, dto: QuestionContent) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     const agg = await this.prisma.question.aggregate({
       where: { quizId },
       _max: { orderIndex: true },
@@ -138,7 +139,7 @@ export class QuestionsService {
   }
 
   async reorder(ownerId: string, quizId: string, dto: ReorderQuestionsDto) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     const owned = await this.prisma.question.findMany({
       where: { quizId },
       select: { id: true },
@@ -182,16 +183,6 @@ export class QuestionsService {
       include: QUESTION_INCLUDE,
     });
     return questions.map(toQuestionOutput);
-  }
-
-  private async assertQuizOwned(ownerId: string, quizId: string): Promise<void> {
-    const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, ownerId },
-      select: { id: true },
-    });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
   }
 
   /** Isolation des routes /questions/:qid : on remonte au propriétaire via le quiz. */
