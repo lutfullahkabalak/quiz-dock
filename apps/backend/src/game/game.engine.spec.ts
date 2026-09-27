@@ -1032,4 +1032,69 @@ describe('GameEngine (characterization)', () => {
       });
     });
   });
+
+  /** Bugs found by the audit (docs/dev/audit-2026-09.md), each reproduced before its fix. */
+  describe('audit fixes', () => {
+    it('a screen reattaching while closest points are settled never sees them unsettled', async () => {
+      const q = question({
+        type: QuestionType.Numeric,
+        scoring: 'closest',
+        numericValue: 10,
+        numericTolerance: 0,
+        options: [],
+      });
+      const t0 = await startedAt(snapshotOf([q, question()]), { p1: player('Ann') });
+      await engine.submit(pin, 'p1', 0, 10, t0 + 1);
+      // Hold the settlement on its first score read, and reattach a screen meanwhile.
+      let release!: () => void;
+      const gate = new Promise<void>((r) => (release = r));
+      const getScore = game.getScore.bind(game);
+      jest.spyOn(game, 'getScore').mockImplementationOnce(async (...args) => {
+        await gate;
+        return getScore(...args);
+      });
+      const revealing = engine.reveal(pin, HOST);
+      await new Promise((r) => setTimeout(r, 30));
+      const back = new FakeSocket({ playerId: 'p1' });
+      await engine.sendStateTo(back, pin);
+      release();
+      await revealing;
+
+      const seen = back.of<{ yourResult?: { points: number } }>('question:reveal');
+      // Either still answering (the reveal reaches it with the room), or settled.
+      for (const reveal of seen) expect(reveal.yourResult?.points).toBe(1000);
+    });
+
+    it('refuses an answer once the reveal has started, so the reveal counts every answer it shows', async () => {
+      const t0 = await startedAt(snapshotOf([question()]), {
+        p1: player('Ann'),
+        p2: player('Bob'),
+      });
+      // The reveal took its lock and has not written its state yet.
+      await redis.set(gameKeys.revealLock(gameId, 0), '1');
+      const ack = await engine.submit(pin, 'p1', 0, await rightOption(), t0 + 1);
+      expect(ack).toMatchObject({ accepted: false, reason: 'closed' });
+      expect(await redis.hlen(gameKeys.answers(gameId, 0))).toBe(0);
+    });
+
+    it('a player still connected on another socket is not marked gone when an old one drops', async () => {
+      await startedAt(snapshotOf([question()]), { p1: player('Ann'), p2: player('Bob') });
+      join('p1'); // the player's new socket, after a network switch
+      await engine.handlePlayerDisconnect(pin, 'p1'); // the old one times out
+      const record = JSON.parse((await redis.hget(gameKeys.players(pin), 'p1'))!) as PlayerRecord;
+      expect(record.connected).toBe(true);
+      expect(roomOf('player:left')).toHaveLength(0);
+    });
+
+    it('refuses a ban or a time adjustment that is not a number, changing nothing', async () => {
+      await startedAt(snapshotOf([question()]), { p1: player('Ann') });
+      const before = await meta();
+      await expect(engine.banPlayer(pin, HOST, 'p1', 'ten' as unknown as number)).rejects.toThrow(
+        'validation',
+      );
+      expect(await redis.hexists(gameKeys.players(pin), 'p1')).toBe(1);
+      await expect(engine.adjustTime(pin, HOST, Number.NaN)).rejects.toThrow('validation');
+      expect((await meta()).questionEndsAt).toBe(before.questionEndsAt);
+    });
+  });
 });

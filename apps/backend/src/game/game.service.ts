@@ -83,6 +83,24 @@ return 1
  * previous game ends there: nothing reads it as being played any more.
  * Returns the number of players carried over.
  */
+/**
+ * Sets one field of a player's record in one step (ARGV[1] the player, ARGV[2]
+ * the field, ARGV[3] its JSON value; ARGV[4], when given, the field whose value
+ * stands in for an empty string). A record that is gone (the player was banned)
+ * stays gone. Returns the record written, or false.
+ */
+const PATCH_PLAYER_SCRIPT = `
+local raw = redis.call('HGET', KEYS[1], ARGV[1])
+if not raw then return false end
+local rec = cjson.decode(raw)
+local value = cjson.decode(ARGV[3])
+if value == '' and ARGV[4] then value = rec[ARGV[4]] end
+rec[ARGV[2]] = value
+local out = cjson.encode(rec)
+redis.call('HSET', KEYS[1], ARGV[1], out)
+return out
+`;
+
 const SWITCH_GAME_SCRIPT = `
 local ids = redis.call('HKEYS', KEYS[1])
 for _, id in ipairs(ids) do redis.call('HSET', KEYS[3], id, ARGV[2]) end
@@ -444,12 +462,9 @@ export class GameService {
   async setAvatar(pin: string, playerId: string, rawAvatar: string): Promise<PlayerRecord | null> {
     const meta = await this.getMeta(pin);
     if (!meta || meta.state !== GameState.Lobby) return null;
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    if (!raw) return null;
-    const record = JSON.parse(raw) as PlayerRecord;
-    record.avatar = (rawAvatar ?? '').trim().slice(0, AVATAR_SEED_MAX) || record.nickname;
-    await this.redis.hset(gameKeys.players(pin), playerId, JSON.stringify(record));
-    return record;
+    const seed = (rawAvatar ?? '').trim().slice(0, AVATAR_SEED_MAX);
+    // No seed: the nickname, as at the join.
+    return this.patchPlayer(pin, playerId, 'avatar', seed, 'nickname');
   }
 
   /** The room behind a PIN (null when gone or expired). */
@@ -633,12 +648,31 @@ export class GameService {
     playerId: string,
     connected: boolean,
   ): Promise<PlayerRecord | null> {
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    if (!raw) return null;
-    const record = JSON.parse(raw) as PlayerRecord;
-    record.connected = connected;
-    await this.redis.hset(gameKeys.players(pin), playerId, JSON.stringify(record));
-    return record;
+    return this.patchPlayer(pin, playerId, 'connected', connected);
+  }
+
+  /**
+   * One field of a player's record, set atomically: a disconnect and an avatar
+   * change at the same time both stick, and a banned player is never written
+   * back. Null when the player is gone.
+   */
+  private async patchPlayer<K extends keyof PlayerRecord>(
+    pin: string,
+    playerId: string,
+    field: K,
+    value: PlayerRecord[K],
+    emptyFallback?: keyof PlayerRecord,
+  ): Promise<PlayerRecord | null> {
+    const written = (await this.redis.eval(
+      PATCH_PLAYER_SCRIPT,
+      1,
+      gameKeys.players(pin),
+      playerId,
+      field,
+      JSON.stringify(value),
+      ...(emptyFallback ? [emptyFallback] : []),
+    )) as string | null;
+    return written ? (JSON.parse(written) as PlayerRecord) : null;
   }
 
   /**
