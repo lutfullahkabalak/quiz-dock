@@ -238,8 +238,10 @@ interface sounds (to come) ───────────────► UI  
   half), the last tac left out so a second of silence leads to **the gong, struck on zero itself** (the reveal comes a
   moment later and does not strike it again). Everyone answered before zero, or a pause: what has not sounded yet is
   called off, and the reveal strikes the gong. On in a new room (`countdown`), synthesised only.
-- **The ding** (2026-09-27): a question starts — one bright tone (1550 Hz) with two discreet harmonics (2300, 3150 Hz), softened by a low-pass well under its tone (1 kHz, 12 dB per octave, Q −3 dB: flat, no bump) with the tone's level given back after it (+8.3 dB) — its harmonics come out 6 to 12 dB tamer, the strike (2.4 kHz) 7 dB
-  and a 15 ms struck transient; not over a question with its own sound or video. On in a new room (`ding`).
+- **The ding** (2026-09-27): a question starts — one clear tone, C6 (1047 Hz; the first 1550 Hz pierced), with two
+  discreet overtones (1554, 2126 Hz), an 8 ms attack and a faint strike (a noise burst around 1.8 kHz), all through a
+  gentle low-pass (1.1 kHz, 12 dB per octave, Q −3 dB: flat) with the tone's level given back after it; not over a
+  question with its own sound or video. On in a new room (`ding`).
 - **The synthesised gong**: eight inharmonic sine partials (105–890 Hz, slightly detuned), the low ones louder, under a
   low-pass darkening from 7 kHz to 500 Hz over 2.5 s; no mallet noise — after a countdown it reads as one click
   too many.
