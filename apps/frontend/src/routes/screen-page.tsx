@@ -41,6 +41,12 @@ import type { GameSocket } from '../game/game-client';
 import { playsSound } from '@quiz-dock/contracts';
 
 /**
+ * The states where the question is on screen, drawn on its background. Not the
+ * wait for the next one, the podium or the end: those keep the page's colours.
+ */
+const QUESTION_STATES = new Set<string>(['QUESTION_SHOW', 'ANSWERING', 'REVEAL', 'LEADERBOARD']);
+
+/**
  * Écran de jeu projeté (grand écran, §4). Socket **spectateur** en lecture seule :
  * aucune auth, le PIN suffit, jamais de bonne réponse avant le reveal (anti-triche §7).
  * Se reconnecte seul au rechargement (le PIN est dans l'URL). Plein écran pour la
@@ -549,11 +555,12 @@ export function ScreenSurface({
         <SoundUnlockOverlay />
       ) : null}
       {view.nav?.review ? (
-        <span className="bg-muted text-muted-foreground absolute left-[1em] top-[1em] z-20 rounded-full px-[0.8em] py-[0.3em] text-[0.8em] font-medium">
+        // Top centre: the sound button holds the top left corner.
+        <span className="bg-muted text-muted-foreground absolute left-1/2 top-[1em] z-20 -translate-x-1/2 rounded-full px-[0.8em] py-[0.3em] text-[0.8em] font-medium">
           {t('screen.review')}
         </span>
       ) : null}
-      {view.question?.background && view.state !== 'SLIDE_SHOW' ? (
+      {view.question?.background && view.state && QUESTION_STATES.has(view.state) ? (
         // A question with a background owns the surface like a slide does.
         <Surface
           background={view.question.background}
