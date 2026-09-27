@@ -13,7 +13,13 @@ export function useCountdown(endsAt: number | null): number | null {
   useEffect(() => {
     if (endsAt === null) return;
     setNow(serverNow());
-    const id = setInterval(() => setNow(serverNow()), 250);
+    // Once the deadline is past the display stays at 0: stop, or the page would
+    // re-render four times a second until the end of the game (reveal, podium…).
+    const id = setInterval(() => {
+      const t = serverNow();
+      setNow(t);
+      if (t >= endsAt) clearInterval(id);
+    }, 250);
     return () => clearInterval(id);
   }, [endsAt]);
 
