@@ -5,6 +5,10 @@
 #   scripts/bench.sh ab <ref> <out> [n]  <ref> (A) against this checkout (B), n rounds
 #                                        alternated (A B, B A, …), 300 players on
 #                                        1 core then 500 on 2 cores
+#   scripts/bench.sh rooms <out>         1 to 60 rooms of 30 players at once, on 1 core
+#
+# Each writes <out>/results.json: the machine, the commit and every run, ready to
+# be kept in docs/dev/load-results/.
 #
 # Run it on an idle machine, first thing after it starts: a warm or busy container
 # measures itself, not the code. The backend runs on core 0 (0-1 for two cores),
@@ -19,9 +23,10 @@ export DATABASE_URL=${BENCH_DATABASE_URL:-postgresql://live:live@localhost:5432/
 REDIS=${BENCH_REDIS_URL:-redis://localhost:6379/2}
 PORT=3100
 
-# One run: a fresh backend from <dir>, then the players. run <dir> <out> <name> <cores> <player cores> <players> <questions>
+# One run: a fresh backend from <dir>, then the players.
+# run <dir> <out> <name> <cores> <player cores> <players> <questions> [more load-test options]
 run() {
-  local dir=$1 out=$2 name=$3 cores=$4 pcores=$5 players=$6 questions=$7
+  local dir=$1 out=$2 name=$3 cores=$4 pcores=$5 players=$6 questions=$7 more=${8:-}
   redis-cli -u "$REDIS" flushdb >/dev/null
   (cd "$dir" && REDIS_URL=$REDIS AUTH_MODE=none PORT=$PORT NODE_ENV=production GAME_READ_DELAY_MS=1000 \
     exec taskset -c "$cores" node dist/main.js >"$out/server-$name.log" 2>&1) &
@@ -30,7 +35,7 @@ run() {
   # shellcheck disable=SC2086 # BENCH_ARGS holds several options
   (cd "$BACKEND" && taskset -c "$pcores" node scripts/load-test.mjs --url "http://localhost:$PORT" \
     --players "$players" --questions "$questions" --server-pid "$pid" --redis "$REDIS" \
-    --out "$out/$name.json" ${BENCH_ARGS:-} >"$out/client-$name.log" 2>&1) || echo "run $name failed, see $out/client-$name.log"
+    --out "$out/$name.json" $more ${BENCH_ARGS:-} >"$out/client-$name.log" 2>&1) || echo "run $name failed, see $out/client-$name.log"
   # Redis's peak since it started: it cannot be reset, so it only grows from one run to the next.
   redis-cli -u "$REDIS" info memory | grep used_memory_peak_human >"$out/redis-$name.txt"
   kill "$pid" 2>/dev/null || true
@@ -51,6 +56,25 @@ machine() {
   } >"$1/machine.txt"
 }
 
+# Every run of <out> in one file, with the machine and the cores each run had.
+collect() {
+  node -e '
+    const fs = require("node:fs"), path = require("node:path");
+    const out = process.argv[1];
+    const runs = {};
+    for (const f of fs.readdirSync(out).filter((f) => /^[^.]+\.json$/.test(f) && f !== "results.json").sort())
+      runs[f.slice(0, -5)] = JSON.parse(fs.readFileSync(path.join(out, f), "utf8"));
+    const machine = fs.readFileSync(path.join(out, "machine.txt"), "utf8").trim().split("\n");
+    const allocation = {
+      backend: "taskset: core 0 (one-core runs: one-*, *-one300-*, rooms), cores 0-1 (two, *-two500-*); no memory limit",
+      players: "taskset: cores 1-3 (one-core runs), 2-3 (two-core runs)",
+      postgresRedis: "not pinned: every core, the backend one included; no memory limit",
+      redisPeak: "redis-*.txt: used_memory_peak since Redis started, cumulative over the runs",
+    };
+    fs.writeFileSync(path.join(out, "results.json"), JSON.stringify({ mode: process.argv[2], machine, allocation, runs }, null, 2));
+  ' "$1" "$2"
+}
+
 case ${1:-} in
   series)
     out=$(realpath -m "${2:?out dir}"); mkdir -p "$out"; machine "$out"
@@ -59,6 +83,13 @@ case ${1:-} in
     run "$BACKEND" "$out" one-large 0 1-3 400,500,700 5
     run "$BACKEND" "$out" two 0,1 2-3 300,500,700 5
     run "$BACKEND" "$out" one-xl 0 1-3 1000,1500 5
+    collect "$out" series
+    ;;
+  rooms)
+    out=$(realpath -m "${2:?out dir}"); mkdir -p "$out"; machine "$out"
+    (cd "$BACKEND" && npx nest build >/dev/null)
+    run "$BACKEND" "$out" rooms 0 1-3 30 5 "--rooms 1,10,20,30,40,50,60"
+    collect "$out" rooms
     ;;
   ab)
     ref=${2:?ref}; out=$(realpath -m "${3:?out dir}"); rounds=${4:-3}; mkdir -p "$out"; machine "$out"
@@ -83,6 +114,7 @@ case ${1:-} in
       else both B "$BACKEND" "$r"; both A "$A/apps/backend" "$r"; fi
     done
     git -C "$BACKEND" worktree remove --force "$A"
+    collect "$out" "ab $ref"
     ;;
   *)
     awk 'NR == 1 { next } /^#/ { sub(/^# ?/, ""); print; next } { exit }' "$0"
