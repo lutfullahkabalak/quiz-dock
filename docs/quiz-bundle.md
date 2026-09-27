@@ -122,7 +122,7 @@ Contributors changing the bundle schema or a content schema run
   quizzes carrying videos). Nothing the archive declares is trusted: sizes are
   counted on the bytes actually unpacked, which may not exceed twice
   `IMPORT_MAX_BYTES` in total, over at most 2,000 entries.
-- `quiz.mediaTailS` (version 3, 0–30, default 3): the pause kept after a
+- `quiz.mediaTailS` (version 3, 0–30, default 1): the pause kept after a
   question's sound or video. A media longer than its question stretches the
   question to the end of the media plus this pause — nothing is cut mid-play.
 - `quiz.loudnessTargetLufs` (version 3): the level sounds and videos are

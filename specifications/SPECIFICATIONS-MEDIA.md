@@ -33,7 +33,7 @@ A video brings its own sound, so it excludes the sound slot.
   job does it since #50.
 - **Playback**: the media starts with `question:start` and follows the host's pause. Autoplay happens in the
   **projection window only**; phones show the image alone. Peer-to-peer delivery is ruled out (same Wi-Fi access point).
-- **Length**: a question lasts at least as long as its media plus a tail (`media_tail_s`, 3 s by default).
+- **Length**: a question lasts at least as long as its media plus a tail (`media_tail_s`, 1 s by default; 3 s before 2026-09-27).
 - **Loudness**: measured (ITU-R BS.1770) in the browser at upload, corrected by a Web Audio gain at playback, capped by
   the peak — never re-encoded. Each quiz picks a level: loud −14 / balanced −16 (default) / quiet −23 LUFS.
 - **Interruption**: playback resumes one second before the point reached; the console can restart the media.

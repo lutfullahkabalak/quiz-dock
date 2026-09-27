@@ -145,7 +145,7 @@ keeps the questions consistent with each other.
 
 Media start with the question, during the three-second reading window. A media
 longer than its question stretches the question to the end of the media plus a
-pause set once per quiz (**Pause after a media**, 3 s by default, 0–30): nothing
+pause set once per quiz (**Pause after a media**, 1 s by default, 0–30): nothing
 is cut mid-play. The editor shows the resulting time under the question's own.
 
 **Listen first, then answer.** A question whose media length is known can tick
