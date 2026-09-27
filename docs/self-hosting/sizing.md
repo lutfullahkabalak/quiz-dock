@@ -19,11 +19,22 @@ measured again on your own hardware.
 | Players at once, in one room | vCPU | RAM | What to expect |
 |--:|--:|--:|---|
 | up to 700 | 2 | 2 GB | fluid: answers acknowledged within ~20 ms, the backend under 550 MB, Redis under 100 MB |
-| up to 1500 | 2 | 4 GB | the edge: answers within ~60 ms for most, up to 0.4 s for the slowest 1 %, the backend near 1 GB, Redis near 400 MB |
+| up to 1500 | 2 | 4 GB | the edge: answers within 40 to 60 ms for most, the slowest 1 % from 50 ms to 0.4 s depending on the run, the backend near 1 GB, Redis near 400 MB |
 | over 1500 | | | not measured |
 
 In every case no answer was lost, and the devices of the room received each question
 within 40 ms of each other up to 700 players, 80 ms at 1000 to 1500.
+
+**Several rooms at once** (rooms of 30, all started together, the worst case):
+
+| Rooms of 30 at once | Players | vCPU | RAM | What to expect |
+|--:|--:|--:|--:|---|
+| up to 20 | 600 | 2 | 2 GB | fluid: answers within ~10 ms, the backend under 450 MB |
+| up to 60 | 1800 | 2 | 4 GB | fluid: answers within 25 ms for 95 %, 0.1 s for the slowest 1 %, the backend near 1 GB |
+| over 60 | | | | not measured |
+
+Several small rooms cost the server less than one room of the same total: an event
+of a room goes to its own devices only.
 
 ### How the vCPU and RAM columns were obtained
 
@@ -44,8 +55,8 @@ core**. A second vCPU takes Postgres, Redis, the garbage collector and the netwo
 which is why 2 vCPU are advised, but a third or a fourth changes
 nothing for one room. A **faster core** does raise it.
 
-Several rooms at the same time share that same core. Until a measure with several
-rooms says otherwise, add their players up.
+Several rooms at the same time share that same core: a room of 30 costs little,
+60 of them stay fluid on one core (above).
 
 ## What the table does not cover
 

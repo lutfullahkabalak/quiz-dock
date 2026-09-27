@@ -18,7 +18,8 @@ had just started (one room, questions without media, Xeon @ 2.10 GHz):
   up to 700 players.
 - **A second core barely changes it** for one room: the engine runs on Node's single
   JavaScript thread.
-- **Not measured yet: several rooms at once**, the other shape of a large instance.
+- **Several rooms at once**: 60 rooms of 30 (1800 players), all started together,
+  answered within 25 ms (p95) on one core; the limit is beyond.
 
 ## 2. Where the time goes
 
@@ -138,6 +139,9 @@ Before that measure, the analysis read the code:
 - **Candidate, not measured**: the archive of a finished game writes one row per
   player, in a transaction (`createManyAndReturn` would take one query). A game's
   end, not its play: to measure before changing.
-- Not measured yet: several rooms at once (a mode of the load test to add), media
-  (bandwidth, the reverse proxy), a real Wi-Fi network, Postgres archiving a large
-  session.
+- **Found while measuring several rooms**: Redis's peak memory stayed near 19 MB over
+  60 rooms of 30 and a room of 300, but reached 71 MB from 400 to 700 players in one room
+  and 271 MB after 1000 and 1500: a large room seems to hold more in Redis than its
+  players alone. Not explained, to look into.
+- Not measured yet: media (bandwidth, the reverse proxy), a real Wi-Fi network,
+  Postgres archiving a large session, rooms starting at their own moments.

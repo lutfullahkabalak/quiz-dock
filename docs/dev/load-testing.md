@@ -69,6 +69,9 @@ scripts/bench.sh ab b6c792e /tmp/bench/ab
 ```
 
 - `series`: the tables of §3, 10 to 1500 players on one core, 300 to 700 on two.
+- `rooms`: 1 to 60 rooms of 30 players at once on one core (`load-test.mjs --rooms`):
+  every room starts together, the worst case, and the largest step whose answer
+  ack p95 stays within 100 ms is reported.
 - `ab <ref>`: compares a commit (A) with the checkout (B). Their runs alternate
   (A B, B A, A B) rather than follow each other: a container's CPU varies from one
   minute to the next, and a single run of each can mislead. Both share the
@@ -79,17 +82,18 @@ scripts/bench.sh ab b6c792e /tmp/bench/ab
 for hours, or other work on the machine, moves the figures more than most code
 changes: the baseline was measured right after the container started, and any
 figure compared with it must be too. The script notes the machine and the commit
-next to the results (`machine.txt`).
+next to the results (`machine.txt`), and gathers every run with the machine and
+the resources allocated in `results.json`, to keep in `load-results/`.
 
 **Do not point it at a production instance**: it takes the host seat and plays
 real games there.
 
 ## 3. Results
 
-### The three measures of 2026-09-27
+### The four measures of 2026-09-27
 
 The work of that day (lots 2 to 6, see the [audit](audit-2026-09.md#8-état-après-les-lots-2026-09-27))
-was measured three times, all on the same kind of machine: a Claude Code cloud
+was measured four times, all on the same kind of machine: a Claude Code cloud
 container (Firecracker micro-VM on a shared host), Intel Xeon @ 2.10 GHz, 4 vCPU,
 16 GB. Each raw file records its full setup, its code and its caveats.
 
@@ -98,6 +102,7 @@ container (Firecracker micro-VM on a shared host), Intel Xeon @ 2.10 GHz, 4 vCPU
 | 1 | Baseline, before the lots | `b6c792e` (backend code) | 3 to 14 min | reference for "before" | [`baseline`](load-results/2026-09-27-baseline.json) |
 | 2 | After the lots up to 5 | `cf3bf96` | about 4 h 50, after a day of work | **indicative only**, superseded by 3 | [`after-lots`](load-results/2026-09-27-after-lots.json) |
 | 3 | After every lot, 5b included, and the A/B against 1 | `41ba1ac` | 4 to 28 min | **reference for "after"** | [`cold`](load-results/2026-09-27-cold.json) |
+| 4 | Several rooms of 30 at once, then the series again | `b8659ec` (same backend code as 3) | 5 to 20 min | reference for several rooms; a second sample of 3 | [`rooms`](load-results/2026-09-27-rooms.json) |
 
 Differences of method between 1 and 3:
 
@@ -111,7 +116,7 @@ A fresh process could also carry less memory from the previous steps. These
 effects are small next to the gap measured (3.4 s against 18 ms at 700 players),
 and the A/B of 3, which starts both codes the same way, confirms the gap.
 
-Resources allocated, in all three (the container had no CPU quota and no memory
+Resources allocated, in all four (the container had no CPU quota and no memory
 limit):
 
 | Process | vCPU | RAM |
@@ -132,8 +137,11 @@ How far to trust them:
   rounds; after, 11 to 12 ms every round.
 - **The series are one run per step**: their variance is not measured. Read a step
   as an order of magnitude, a difference of a few milliseconds as noise.
+- **The series measured twice** (3 and 4, two containers) agree within a few
+  milliseconds up to 1000 players. At 1500 the p99 differs (431 ms, then 52 ms): the
+  edge is where the noise shows.
 - **What is not simulated**: a network (the players are on the same machine, over the
-  loopback), phones, media, several rooms at once. The CPU the simulated players use
+  loopback), phones, media. The CPU the simulated players use
   is kept apart (other cores), not their share of memory bandwidth.
 
 ### Baseline — before the engine refactoring (2026-09-27)
@@ -258,6 +266,47 @@ Raw results: [`load-results/2026-09-27-cold.json`](load-results/2026-09-27-cold.
 - The spread at 500 players looked wider after the change in the warm A/B; cold, it
   is not (17–21 ms against 17–34).
 
+### Several rooms at once (2026-09-27, night)
+
+Measure 4: rooms of 30 players, all started together, on one core (`scripts/bench.sh
+rooms`, same setup as measure 3; one backend process for every step).
+
+| Rooms of 30 | Players | join p95 | ack p50 | ack p95 | ack p99 | lost | start spread p95 | reveal spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 1 | 30 | 236 | 4 | 11 | 12 | 0 | 1 | 2 | 8 % | 252 MB |
+| 10 | 300 | 349 | 2 | 7 | 11 | 0 | 1 | 3 | 84 % | 299 MB |
+| 20 | 600 | 184 | 2 | 6 | 10 | 0 | 1 | 2 | 84 % | 416 MB |
+| 30 | 900 | 397 | 2 | 7 | 12 | 0 | 2 | 1 | 100 % | 536 MB |
+| 40 | 1200 | 215 | 2 | 8 | 12 | 0 | 2 | 2 | 99 % | 661 MB |
+| 50 | 1500 | 247 | 2 | 9 | 14 | 0 | 2 | 2 | 100 % | 866 MB |
+| 60 | 1800 | 136 | 4 | **25** | **105** | 0 | 2 | 1 | 100 % | 962 MB |
+
+The same container then played the one-room series again (the second sample of
+measure 3):
+
+| Players, one room | ack p95 | ack p99 | start spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|
+| 300 | 8 | 16 | 12 | 56 % | 368 MB |
+| 700 | 17 | 23 | 25 | 100 % | 496 MB |
+| 1000 | 26 | 32 | 51 | 101 % | 489 MB |
+| 1500 | 41 | 52 | 69 | 104 % | 790 MB |
+
+**Reading**
+
+- **60 rooms of 30 (1800 players) stay within the 100 ms threshold** (p95 25 ms); the
+  p99 crosses it (105 ms). The limit is beyond 60 rooms, not measured.
+- **Several small rooms cost less than one large room of the same size**: 1500 players
+  as 50 rooms, p95 9 ms; as one room, 41 ms (61 ms in measure 3). A room's events go to
+  its own devices only: 30 per event instead of 1500.
+- **Each room stays in step**: its devices receive a question within 2 ms of each other.
+- **Memory grows with the players**: 866 MB at 1500 players in 50 rooms, 790 MB in one
+  room. Not a like-for-like comparison: the rooms ran every step on one process, the
+  one-room 1500 on a process that had played 1000 only.
+- Redis's peak after the rooms read 19 MB, where the one-room runs reached 271 MB:
+  not explained, to look into before relying on it.
+
+Raw results: [`load-results/2026-09-27-rooms.json`](load-results/2026-09-27-rooms.json).
+
 ### After the refactoring lots (2026-09-27, evening)
 
 The same setup and series, on the code after every lot (2, 4a to 4d, perf, 5).
@@ -303,4 +352,5 @@ For operators, from these figures: [sizing the VM](../self-hosting/sizing.md).
   server.
 - **Postgres under load.** A game touches it at its creation and at the
   archive only; the archive of a large session is not timed here.
-- **Several rooms at once.** One room per run; rooms share the same core.
+- **Several rooms at the same pace as real ones.** `--rooms` starts every room
+  together; real rooms start and answer at their own moments.
