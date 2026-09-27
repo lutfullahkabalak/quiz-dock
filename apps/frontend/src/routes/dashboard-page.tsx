@@ -69,8 +69,8 @@ export function DashboardPage() {
   // et le tri/filtre ci-dessous se recalculerait pour rien.
   const quizzes = useMemo(() => data?.data ?? [], [data]);
   const [search, setSearch] = useState('');
-  // The statuses ticked; none = every status.
-  const [statuses, setStatuses] = useState<string[]>([]);
+  // The statuses ticked (none = every status): the archived ones out of the way by default.
+  const [statuses, setStatuses] = useState<string[]>(['draft', 'ready']);
   const [sort, setSort] = useState<'recent' | 'title' | 'questions'>('recent');
   const [language, setLanguage] = useState('');
   // Whose quizzes: '' all, ME the caller's, else an owner's name (a shared quiz, a manager's view).

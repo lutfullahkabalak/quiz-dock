@@ -275,14 +275,15 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Page 1 sur 2')).toBeInTheDocument();
 
     // Filtre par statut : un seul quiz est « prêt ».
-    // The statuses are ticked in a list: ready alone.
+    // The statuses are ticked in a list (draft and ready by default, archived out): ready alone.
     fireEvent.click(screen.getByRole('button', { name: 'Statut' }));
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Prêt' }));
+    expect(screen.getByRole('checkbox', { name: 'Archivé' })).not.toBeChecked();
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Brouillon' }));
     await waitFor(() => expect(screen.getByText('1 quiz')).toBeInTheDocument());
     expect(screen.queryByText('Page 1 sur 2')).toBeNull();
 
     // Recherche : insensible à la casse et aux accents, et elle ramène à la page 1.
-    fireEvent.click(screen.getByRole('checkbox', { name: 'Prêt' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Brouillon' }));
     fireEvent.change(screen.getByPlaceholderText('Rechercher un quiz'), {
       target: { value: 'quiz 1' },
     });
