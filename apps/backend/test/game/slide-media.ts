@@ -220,4 +220,43 @@ export function slideMediaTests(ctx: GameContext): void {
     expect(await shown).toMatchObject({ video: { loop: true, sound: false } });
     host.emit('host:end', { pin });
   }, 15_000);
+
+  it('a video played once with its sound: it holds the slide, the host steers it, a room phone meant to hear it gets it', async () => {
+    const film = await asset('video', 5_000);
+    const quiz = await quizWithSlide(
+      { videoMediaId: film.id, videoLoop: false, videoSound: true, audioTarget: 'everyone' },
+      { mediaTailS: 1 },
+    );
+    const { host, pin } = await open(quiz.id);
+    const phone = h.connect();
+    const preload = nextEvent<{ slideIndex?: number; media: { visual?: { url: string } } }>(
+      phone,
+      'media:preload',
+    );
+    await phone.emitWithAck('player:join', { pin, nickname: 'Lou' });
+    // In the room, but the slide's sound is for every device: its video is fetched.
+    expect(await preload).toMatchObject({ slideIndex: 0, media: { visual: { url: film.url } } });
+    phone.emit('media:ready', { pin, questionIndex: 0, slideIndex: 0 });
+    const screen = await screenOf(pin);
+    screen.on('media:preload', (p: { questionIndex: number; slideIndex?: number }) =>
+      screen.emit('media:ready', { pin, ...p }),
+    );
+    host.emit('host:mode', { pin, mode: 'auto' });
+    await nextEvent(screen, 'game:mode');
+    const mode = nextEvent<{ autoNextMs?: number }>(screen, 'game:mode', {
+      where: (m) => !!m.autoNextMs,
+    });
+    const shown = nextEvent<SlideShow>(screen, 'slide:show');
+    host.emit('host:start', { pin });
+    expect(await shown).toMatchObject({
+      video: { loop: false, sound: true },
+      audioTarget: 'everyone',
+    });
+    expect(Math.abs((await mode).autoNextMs! - (MEDIA_LEAD_MS + 5_000 + 1_000))).toBeLessThan(300);
+    // The console's transport acts on the video, as on a question's.
+    const control = nextEvent(screen, 'media:control');
+    host.emit('host:media', { pin, action: 'seek', t: 2, playing: true });
+    expect(await control).toMatchObject({ slideIndex: 0, t: 2, playing: true });
+    host.emit('host:end', { pin });
+  }, 15_000);
 }
