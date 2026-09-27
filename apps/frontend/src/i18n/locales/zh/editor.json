@@ -310,7 +310,9 @@
     "stretchedTime": "媒体时长 {{media}} 秒：此题将持续 {{total}} 秒（媒体结束 + 测验设置的 {{tail}} 秒停顿）。",
     "listenFirstLabel": "媒体结束后再开始计时",
     "listenFirstHint": "先听后答：播放声音或视频期间无法作答，之后每个人都有相同的思考时间。",
-    "listenFirstTime": "媒体播放 {{media}} 秒，然后开始 {{time}} 秒的作答时间。"
+    "listenFirstTime": "媒体播放 {{media}} 秒，然后开始 {{time}} 秒的作答时间。",
+    "promptImageNotice": "题干中的这张图片放在题目媒体中会更好：在所有屏幕上都有合适的框，可在手机上放大，并会提前加载。",
+    "promptImageMove": "移到媒体"
   },
   "preview": {
     "view": "预览（玩家视图）",

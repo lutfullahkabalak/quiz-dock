@@ -65,6 +65,39 @@ describe('QuestionForm', () => {
     }
   });
 
+  it('offers to move an image of the prompt to the media, its description with it', async () => {
+    const ID = '01M3GM8JMFRA3DJ04SWWDWPPBY';
+    const fetchMock = mockApi([
+      {
+        method: 'GET',
+        path: `/media/${ID}/meta`,
+        body: { id: ID, alt: null, credit: null, durationMs: null },
+      },
+      { method: 'PUT', path: `/media/${ID}/alt`, body: { id: ID, alt: 'La tour Eiffel' } },
+      { method: 'POST', path: '/quizzes/q1/questions', status: 201, body: {} },
+    ]);
+    const { onClose } = renderForm();
+    setMarkdownField('Énoncé', `Quelle ville ?\n\n![La tour Eiffel](/api/v1/media/${ID})`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Déplacer dans les médias' }));
+    // Moved: the suggestion is gone, the description follows the image.
+    await waitFor(() =>
+      expect(screen.queryByRole('button', { name: 'Déplacer dans les médias' })).toBeNull(),
+    );
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, o]) => String(url).includes(`/media/${ID}/alt`) && o?.method === 'PUT',
+        ),
+      ).toBe(true),
+    );
+    fireEvent.click(screen.getAllByRole('radio')[0]);
+    fireEvent.click(screen.getByText('Ajouter'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    const payload = lastPost(fetchMock);
+    expect(payload.prompt).toBe('Quelle ville ?');
+    expect(payload.media.visual).toEqual({ kind: 'image', assetId: ID });
+  });
+
   it('sends the per-question reveal delay when set (#6)', async () => {
     const fetchMock = mockApi([
       { method: 'POST', path: '/quizzes/q1/questions', status: 201, body: {} },

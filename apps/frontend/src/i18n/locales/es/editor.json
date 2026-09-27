@@ -310,7 +310,9 @@
     "stretchedTime": "El medio dura {{media}} s: la pregunta durará {{total}} s (final del medio + pausa de {{tail}} s del quiz).",
     "listenFirstLabel": "Iniciar el cronómetro al terminar el medio",
     "listenFirstHint": "Primero escuchar, luego responder: nadie puede responder mientras suena el sonido o el vídeo, y después todos tienen el mismo tiempo para pensar.",
-    "listenFirstTime": "El medio dura {{media}} s y luego empiezan los {{time}} s para responder."
+    "listenFirstTime": "El medio dura {{media}} s y luego empiezan los {{time}} s para responder.",
+    "promptImageNotice": "Esta imagen del enunciado estaría mejor en los medios de la pregunta: encuadrada en todas las pantallas, ampliable en los teléfonos, cargada de antemano.",
+    "promptImageMove": "Mover a los medios"
   },
   "preview": {
     "view": "Vista previa (vista del jugador)",
