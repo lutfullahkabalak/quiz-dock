@@ -69,6 +69,8 @@ export interface SnapshotQuestion {
   numericTolerance: number | null;
   /** Réponses acceptées **normalisées** (type `text_input`) — secret serveur. */
   acceptedAnswersNormalized: string[];
+  /** image_choice: several pictures may be right (absent = one, older snapshots). */
+  multiSelect?: boolean;
   options: SnapshotOption[];
 }
 

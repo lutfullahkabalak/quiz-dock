@@ -322,4 +322,56 @@ export function questionLoopTests(ctx: GameContext): void {
       else process.env.GAME_ALL_ANSWERED_DELAY_MS = before;
     }
   }, 15_000);
+  it('image choice with several right pictures: a set answer scored, counted per picture', async () => {
+    const colors = ['red', 'blue', 'yellow', 'green'] as const;
+    const shapes = ['triangle', 'diamond', 'circle', 'square'] as const;
+    const { id: imageQuizId } = await ctx.h.seedQuiz({
+      questions: {
+        create: [
+          {
+            orderIndex: 0,
+            type: 'image_choice',
+            prompt: 'Which are cats?',
+            multiSelect: true,
+            options: {
+              create: colors.map((color, i) => ({
+                orderIndex: i,
+                alt: `Picture ${i + 1}`,
+                color,
+                shape: shapes[i],
+                isCorrect: i < 2,
+              })),
+            },
+          },
+        ],
+      },
+    });
+    const host = connect({ localUser: 'Animateur' });
+    const { pin } = await host.emitWithAck('host:create', { quizId: imageQuizId });
+    const player = connect();
+    await player.emitWithAck('player:join', { pin, nickname: 'Pix' });
+    const qStart = nextEvent<{
+      startedAt: number;
+      multiSelect?: boolean;
+      options: Array<{ id: string }>;
+    }>(player, 'question:start');
+    const revealP = nextEvent<{
+      correctOptionIds?: string[];
+      distribution: Record<string, number>;
+      yourResult?: { correct: boolean; points: number };
+    }>(player, 'question:reveal');
+
+    host.emit('host:start', { pin });
+    const q = await qStart;
+    expect(q.multiSelect).toBe(true);
+    const [a, b, c, d] = q.options.map((o) => o.id);
+    await new Promise((r) => setTimeout(r, Math.max(0, q.startedAt - Date.now()) + 50));
+    player.emit('player:submit', { pin, questionIndex: 0, answer: [a, b] });
+
+    const reveal = await revealP;
+    expect(reveal.correctOptionIds).toEqual([a, b]);
+    expect(reveal.distribution).toEqual({ [a]: 1, [b]: 1, [c]: 0, [d]: 0 });
+    expect(reveal.yourResult?.correct).toBe(true);
+    expect(reveal.yourResult?.points).toBeGreaterThan(0);
+  }, 15_000);
 }

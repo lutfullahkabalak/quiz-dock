@@ -1,5 +1,6 @@
 import { QuestionType } from '@quiz-dock/contracts';
 import type { AnswerRecord, SnapshotQuestion } from './game.types';
+import { scoredAs } from './scoring';
 
 /** Partie **commune** d'un reveal (identique pour tous) — sans le résultat perso. */
 export interface RevealCommon {
@@ -16,6 +17,7 @@ const OPTION_DISTRIBUTION = new Set<QuestionType>([
   QuestionType.MultipleChoice,
   QuestionType.TrueFalse,
   QuestionType.Poll,
+  QuestionType.ImageChoice,
 ]);
 
 /**
@@ -31,8 +33,8 @@ export function buildRevealCommon(q: SnapshotQuestion, records: AnswerRecord[]):
   const common: RevealCommon = { distribution: {} };
   if (q.answerExplanation) common.answerExplanation = q.answerExplanation;
 
-  // Bonne(s) réponse(s) selon le type.
-  switch (q.type) {
+  // Bonne(s) réponse(s) selon le type (an image choice as the choice it is scored as).
+  switch (scoredAs(q)) {
     case QuestionType.SingleChoice:
     case QuestionType.MultipleChoice:
     case QuestionType.TrueFalse:

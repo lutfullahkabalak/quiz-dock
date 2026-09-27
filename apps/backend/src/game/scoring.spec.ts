@@ -1,5 +1,5 @@
 import { OptionColor, OptionShape, PointsMode, QuestionType } from '@quiz-dock/contracts';
-import type { SnapshotOption, SnapshotQuestion } from './game.types';
+import type { AnswerValue, SnapshotOption, SnapshotQuestion } from './game.types';
 import {
   basePointsFor,
   creditFor,
@@ -378,5 +378,64 @@ describe('scoring variants', () => {
       ['tail2', 5, 100, false],
       ['far', 6, 100, false],
     ]);
+  });
+});
+
+// ─── image_choice: scored as the choice it is ─────────────────────────────────
+
+describe('image choice', () => {
+  const pictures = () => [opt({ isCorrect: true }), opt(), opt({ isCorrect: true }), opt()];
+  const answers: [string, (o: SnapshotOption[]) => AnswerValue][] = [
+    ['the right one', (o) => o[0].id],
+    ['a wrong one', (o) => o[1].id],
+    ['both right', (o) => [o[0].id, o[2].id]],
+    ['one right, one wrong', (o) => [o[0].id, o[1].id]],
+    ['one right only', (o) => [o[0].id]],
+    ['duplicates', (o) => [o[0].id, o[0].id]],
+  ];
+  const cases = answers.flatMap(([label, pick]) =>
+    [0, 7_000, 20_000].flatMap((tMs) =>
+      [0, 3].flatMap((prevStreak) =>
+        [PointsMode.Standard, PointsMode.Double, PointsMode.Fixed].map(
+          (pointsMode) => [label, pick, tMs, prevStreak, pointsMode] as const,
+        ),
+      ),
+    ),
+  );
+
+  it.each(cases)(
+    'single: %s at %i ms, streak %i, %s → as a single choice',
+    (_label, pick, tMs, prevStreak, pointsMode) => {
+      const options = pictures().map((o, i) => ({ ...o, isCorrect: i === 0 }));
+      const base = { options, pointsMode, basePoints: basePointsFor(pointsMode) };
+      const image = question({ ...base, type: QuestionType.ImageChoice });
+      const single = question({ ...base, type: QuestionType.SingleChoice });
+      const answer = pick(options);
+      expect(scoreAnswer({ question: image, answer, tMs, prevStreak })).toEqual(
+        scoreAnswer({ question: single, answer, tMs, prevStreak }),
+      );
+    },
+  );
+
+  it.each(cases.flatMap((c) => (['standard', 'partial'] as const).map((s) => [...c, s] as const)))(
+    'multiple: %s at %i ms, streak %i, %s, %s → as a multiple choice',
+    (_label, pick, tMs, prevStreak, pointsMode, scoring) => {
+      const options = pictures();
+      const base = { options, pointsMode, scoring, basePoints: basePointsFor(pointsMode) };
+      const image = question({ ...base, type: QuestionType.ImageChoice, multiSelect: true });
+      const multiple = question({ ...base, type: QuestionType.MultipleChoice });
+      const answer = pick(options);
+      expect(scoreAnswer({ question: image, answer, tMs, prevStreak })).toEqual(
+        scoreAnswer({ question: multiple, answer, tMs, prevStreak }),
+      );
+    },
+  );
+
+  it('single refuses a list, multiple a lone id', () => {
+    const options = pictures();
+    const single = question({ type: QuestionType.ImageChoice, options });
+    const multiple = question({ type: QuestionType.ImageChoice, options, multiSelect: true });
+    expect(creditFor(single, [options[0].id])).toBe(0);
+    expect(creditFor(multiple, options[0].id)).toBe(0);
   });
 });

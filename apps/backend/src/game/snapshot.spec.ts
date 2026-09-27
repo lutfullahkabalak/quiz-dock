@@ -133,6 +133,38 @@ describe('buildSnapshot', () => {
     });
   });
 
+  it('image choice: several right pictures travel, each with its own alt before the asset’s', () => {
+    const picture = (id: string, alt: string | null, isCorrect: boolean) => ({
+      id,
+      text: null,
+      alt,
+      color: 'red',
+      shape: 'triangle',
+      media: { url: `/media/${id}`, kind: 'image', alt: 'Asset alt' },
+      isCorrect,
+      correctOrderIndex: null,
+    });
+    const snap = buildSnapshot(
+      quiz({
+        questions: [
+          {
+            ...baseQuestion,
+            type: 'image_choice',
+            pointsMode: 'standard',
+            multiSelect: true,
+            options: [picture('o1', 'Un chat', true), picture('o2', null, true)],
+          },
+        ] as never,
+      }),
+    );
+    expect(snap.questions[0].multiSelect).toBe(true);
+    const start = buildQuestionStart(snap.questions[0], 0, 0, 0, 'projection', null);
+    expect(start.multiSelect).toBe(true);
+    expect(start.options?.map((o) => o.media?.alt)).toEqual(['Un chat', 'Asset alt']);
+    // Never the answer key before the reveal.
+    expect(JSON.stringify(start)).not.toContain('isCorrect');
+  });
+
   it('carries an audio track with its waveform and the gain it plays at', () => {
     const peaks = new Array(200).fill(0.4);
     const audio = { url: '/media/a', kind: 'audio', durationMs: 8000, peaks };

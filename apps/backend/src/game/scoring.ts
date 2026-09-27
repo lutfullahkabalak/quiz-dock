@@ -61,7 +61,7 @@ export function lenientMatch(normalizedAnswer: string, accepted: string): boolea
  */
 export function creditFor(question: SnapshotQuestion, answer: AnswerValue): number {
   const scoring = question.scoring ?? 'standard';
-  switch (question.type) {
+  switch (scoredAs(question)) {
     case QuestionType.SingleChoice:
     case QuestionType.TrueFalse: {
       if (typeof answer !== 'string') return 0;
@@ -113,6 +113,15 @@ export function creditFor(question: SnapshotQuestion, answer: AnswerValue): numb
       // poll : collecte d'opinion, jamais « correct ».
       return 0;
   }
+}
+
+/**
+ * The type whose rules score a question: an image choice is a single choice, or a
+ * multiple one when several pictures may be right — same credit, same scoring.
+ */
+export function scoredAs(question: SnapshotQuestion): QuestionType {
+  if (question.type !== QuestionType.ImageChoice) return question.type;
+  return question.multiSelect ? QuestionType.MultipleChoice : QuestionType.SingleChoice;
 }
 
 /** Numeric `closest`: points are settled at reveal, once every answer is known. */

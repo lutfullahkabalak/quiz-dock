@@ -316,7 +316,7 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `player:joined` | `{ playerId, nickname, playerCount }` | the host + the players (the lobby list) |
 | `player:left` | `{ playerId, playerCount }` | the room |
 | `game:state` | `{ state, questionIndex, totalQuestions }` | the room |
-| `question:start` | `{ questionIndex, type, prompt, media?, options:[{id,text,color,shape,media?}], timeLimitS, basePoints, startedAt, endsAt }` | the room (**without** a correct flag) |
+| `question:start` | `{ questionIndex, type, prompt, media?, options:[{id,text,color,shape,media?}], multiSelect?, timeLimitS, basePoints, startedAt, endsAt }` | the room (**without** a correct flag) |
 | `answer:ack` | `{ accepted, receivedAt }` | the sending player |
 | `answer:count` | `{ answered, total }` | the host |
 | `question:reveal` | `{ correctOptionIds \| correctValue, distribution, yourResult:{ correct, points, totalScore, rank } }` | the room (the personal result aimed per socket) |

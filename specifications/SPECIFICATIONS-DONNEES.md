@@ -331,6 +331,7 @@ interface QuestionStartPayload {            // server → client (WITHOUT the ri
   prompt: string;
   media?: { url: string; kind: 'image' | 'audio' };
   options?: { id: string; text?: string; color: string; shape: string }[];
+  multiSelect?: boolean;                    // image_choice: several pictures may be picked
   timeLimitS: number;
   basePoints: number;
   startedAt: number;   // server epoch ms
