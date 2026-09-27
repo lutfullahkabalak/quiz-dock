@@ -158,11 +158,14 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   // (la même que sur le podium, la projection et la console) — un rechargement
   // sans graine locale ou un choix non enregistré ne doivent pas diverger.
   const myId = loadPlayerSession()?.playerId;
-  const remoteHere = view.players.find((p) => p.playerId === myId)?.presence === 'remote';
+  // Where this device follows from: in the room, or remote (it then gets the whole
+  // question, its sound when the room's reaches remote devices, the game's sounds).
+  const presence = view.players.find((p) => p.playerId === myId)?.presence ?? 'room';
+  const remote = presence === 'remote';
   // The game's sounds (#93) on a remote phone, when the room's sound reaches remote
   // devices; on the big screen view (#104), the projection's surface plays them.
   const gameSoundsHere =
-    remoteHere &&
+    remote &&
     view.gameAudioTarget !== 'projection' &&
     !!view.sounds &&
     (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
@@ -320,8 +323,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
 
   /** Shares the projection's copy: the share sheet where there is one, else the link copied and its QR code. */
   const shareProjection = async () => {
-    const remoteHere = view.players.find((p) => p.playerId === myId)?.presence === 'remote';
-    const url = `${window.location.origin}/join/${pin}/screen${remoteHere ? '?sound=1' : ''}`;
+    const url = `${window.location.origin}/join/${pin}/screen${remote ? '?sound=1' : ''}`;
     try {
       if (navigator.share) {
         await navigator.share({
@@ -445,13 +447,10 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     setTopbarSlot(document.getElementById('participant-topbar'));
     setTopbarStart(document.getElementById('participant-topbar-start'));
   }, []);
-  // Where this device follows from, and whether the current question sounds here.
-  const presence = view.players.find((p) => p.playerId === myId)?.presence ?? 'room';
-  const device = presence === 'remote' ? 'remote' : 'room';
-  const hears = !!question?.audioTarget && playsSound(question.audioTarget, device);
-  // A remote participant gets the whole question (a muted video when the sound is not
-  // theirs); in the room, the phone shows the image unless the sound is meant for it too.
-  const remote = presence === 'remote';
+  // Whether the current question sounds here. A remote participant gets the whole question
+  // (a muted video when the sound is not theirs); in the room, the phone shows the image
+  // unless the sound is meant for it too.
+  const hears = !!question?.audioTarget && playsSound(question.audioTarget, presence);
   const playsHere = remote || hears;
 
   const participantTop =
@@ -469,7 +468,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
               {t('player.leave')}
             </Button>
             {/* This device's sound: when it plays something (the question here, or the game's). */}
-            {hears || gameSoundsHere || remoteHere ? <SoundButton onUnmute={claimSound} /> : null}
+            {hears || gameSoundsHere || remote ? <SoundButton onUnmute={claimSound} /> : null}
             <span className="hidden max-w-[10rem] truncate text-sm font-medium sm:inline">
               {nickname}
             </span>
@@ -643,7 +642,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
           view={view}
           socket={socket}
           role="follow"
-          sound={presence === 'remote' && !muted}
+          sound={remote && !muted}
           embedded
         />
       </div>
@@ -658,7 +657,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
     // Its media as a question's (#125): a remote participant sees the videos and hears
     // the sound meant for them; a phone in the room plays only a sound meant for everyone.
-    const slideHears = !!slide.audioTarget && playsSound(slide.audioTarget, device);
+    const slideHears = !!slide.audioTarget && playsSound(slide.audioTarget, presence);
     return (
       <div
         className={cn('-my-4 mx-[calc(50%-50vw)] flex min-h-[calc(100dvh-4rem)]', TYPE_BASE.phone)}
