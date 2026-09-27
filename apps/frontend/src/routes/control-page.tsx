@@ -105,17 +105,13 @@ export function ControlPage() {
   const screenUrl = `${window.location.origin}/session/${pin}/projection`;
   const emit = (event: 'host:start' | 'host:reveal' | 'host:next') => socket?.emit(event, { pin });
   const [tab, setTab] = useState<HostTab>('control');
-  // The Tab key cycles the three views (Shift+Tab backwards) unless the host is typing.
+  // The Tab key cycles the three views (Shift+Tab backwards) from the page itself;
+  // on a control, Tab keeps moving the focus, so the keyboard reaches every button.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
-      if (
-        el &&
-        (el.closest('input, textarea, select, [contenteditable="true"]') || el.closest('dialog'))
-      ) {
-        return;
-      }
+      if (el?.closest(INTERACTIVE)) return;
       e.preventDefault();
       setTab((current) => {
         const i = HOST_TABS.indexOf(current);
@@ -157,13 +153,7 @@ export function ControlPage() {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
-      if (
-        el?.closest(
-          'input, textarea, select, button, a, [role="slider"], [role="switch"], [contenteditable="true"], dialog',
-        )
-      ) {
-        return;
-      }
+      if (el?.closest(INTERACTIVE)) return;
       if (!pauseToggle.current) return;
       e.preventDefault();
       pauseToggle.current();
@@ -1463,6 +1453,10 @@ function QuestionCarousel({
 
 type HostTab = 'control' | 'screen' | 'player';
 const HOST_TABS: HostTab[] = ['control', 'screen', 'player'];
+
+/** Where a key belongs to the element that has the focus, not to the console's shortcuts. */
+const INTERACTIVE =
+  'input, textarea, select, button, a, [role="tab"], [role="slider"], [role="switch"], [contenteditable="true"], dialog';
 
 /** The three views of a running session; the projection can also open in its own window. */
 function HostTabs({
