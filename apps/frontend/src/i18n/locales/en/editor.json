@@ -60,7 +60,11 @@
     "tagsPlaceholder": "Add a tag…",
     "tagsHelp": "Up to 5 keywords to find the quiz among templates. Press Enter to add one.",
     "removeTag": "Remove tag {{tag}}",
-    "saveError": "Could not save the change."
+    "saveError": "Could not save the change.",
+    "sharedLabel": "Share with the instance’s other hosts",
+    "sharedHelp": "They see it in their quizzes, read-only, and can create their own copy from it. Unchecked, it stays yours alone.",
+    "sharedOn": "Shared",
+    "sharedOff": "Private"
   },
   "broadcast": {
     "title": "Broadcast",
@@ -179,7 +183,27 @@
     "videoSound": "Sound",
     "videoSoundHint": "Plays the video’s own sound. Off: muted, and the slide can have a sound of its own.",
     "audioExcludesVideoSound": "The slide already has a sound: one sound at a time. Remove it to turn the video’s on.",
-    "videoSoundExcludesAudio": "The video plays its own sound: no extra sound. Mute the video to add one."
+    "videoSoundExcludesAudio": "The video plays its own sound: no extra sound. Mute the video to add one.",
+    "variablesLegend": "Variables",
+    "variablesHint": "Write one in a heading or a text: it is replaced wherever the slide shows. The quiz’s appear filled in the preview, the room’s once the quiz is played.",
+    "variables": {
+      "title": "The quiz’s title",
+      "description": "The quiz’s description",
+      "questions": "How many questions it has",
+      "author": "Its author",
+      "tags": "Its tags",
+      "license": "Its licence",
+      "room": "The room’s name",
+      "host": "The host’s name",
+      "pin": "The room’s PIN",
+      "join": "The address to join (host/join)",
+      "players": "How many participants are connected",
+      "question": "The number of the question that follows the slide",
+      "total": "How many questions the quiz has",
+      "remaining": "How many questions are left, the next one included",
+      "date": "Today’s date",
+      "time": "The time"
+    }
   },
   "discardConfirm": {
     "title": "Discard changes?",
@@ -300,7 +324,9 @@
     "optionFallback": "Option {{index}}",
     "acceptedAnswers": "Accepted answers: {{answers}}",
     "numericTarget": "Target: {{value}} (± {{tolerance}})",
-    "credits": "Credits"
+    "credits": "Credits",
+    "video": "Question video",
+    "sound": "Sound · {{seconds}} s"
   },
   "media": {
     "alt": "question media",
@@ -443,6 +469,13 @@
     "slugChanged": "Changing it from “{{previous}}” makes a new quiz for the store: delete the old file from your repository."
   },
   "readOnly": {
-    "notice": "{{owner}}'s quiz: you can read it, not change it."
+    "notice": "{{owner}}'s quiz: you can read it, not change it.",
+    "createFrom": "Create from this quiz",
+    "props": {
+      "orderShown": "Listed in the right order.",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "muted": "muted"
+    }
   }
 }

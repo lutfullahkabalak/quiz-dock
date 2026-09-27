@@ -214,7 +214,7 @@ export function liveMediaUrls(media: LiveQuestionMedia | null | undefined): stri
 // ─── Timing ───────────────────────────────────────────────────────────────
 
 /** Default pause kept after a question's media ends, before its time can run out (s). */
-export const MEDIA_TAIL_DEFAULT_S = 3;
+export const MEDIA_TAIL_DEFAULT_S = 1;
 /** Bounds of that pause, set once per quiz. */
 export const MEDIA_TAIL_MAX_S = 30;
 

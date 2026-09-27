@@ -178,5 +178,18 @@
       "next": "Suivant",
       "close": "Fermer"
     }
-  }
+  },
+  "starter": {
+    "prompt": "Votre question ?",
+    "answer1": "Réponse 1",
+    "answer2": "Réponse 2"
+  },
+  "createFrom": "Créer à partir de ce quiz",
+  "readOnly": "Lecture seule : partagé par un autre animateur",
+  "filterOwner": "Propriétaire",
+  "ownerAll": "Tous",
+  "ownerMe": "Moi",
+  "ownerNone": "Aucun propriétaire de ce nom",
+  "statusCount_one": "{{count}} statut",
+  "statusCount_other": "{{count}} statuts"
 }

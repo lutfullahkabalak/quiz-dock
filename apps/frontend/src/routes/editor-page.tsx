@@ -102,6 +102,7 @@ import { useGameControllerMine } from '../api/generated/games/games';
 import { useQuestionsControllerRemove } from '../api/generated/questions/questions';
 import { getDemo } from '../config';
 import { editorRoute } from '../router';
+import { PageLoading } from '@/components/ui/loading';
 
 /**
  * The page has two columns, and they are the same from top to bottom: the
@@ -116,7 +117,7 @@ export function EditorPage() {
   const { quizId } = editorRoute.useParams();
   const { data, isLoading, error } = useQuizzesControllerGet(quizId);
 
-  if (isLoading) return <p className="text-muted-foreground">{t('common:loading')}</p>;
+  if (isLoading) return <PageLoading />;
   if (error || !data) return <p className="text-destructive">{t('notFound')}</p>;
   // Another host's quiz, opened by a manager: read, never changed (#82).
   if (!data.data.editable) return <QuizReadOnly quiz={data.data} />;
@@ -277,6 +278,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   const setAudioTarget = (audioTarget: AudioTarget) => saveSettings({ audioTarget });
   const setLicense = (license: (typeof QUIZ_LICENSES)[number] | null) => saveSettings({ license });
   const setLanguage = (language: string) => saveSettings({ language });
+  const setShared = (shared: boolean) => saveSettings({ shared });
   const setTags = (tags: string[]) => saveSettings({ tags });
   const setMediaTailS = (mediaTailS: number) => saveSettings({ mediaTailS });
 
@@ -333,6 +335,17 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   };
 
   const editingItem = items.find((it) => it.id === editing);
+  // What a slide's quiz variables read in the builder's preview (`{title}`, `{questions}`…).
+  const slideQuizFields = quiz
+    ? {
+        title: quiz.title,
+        description: quiz.description,
+        questionCount: quiz.questionCount,
+        ...(quiz.ownerName ? { author: quiz.ownerName } : {}),
+        tags: quiz.tags,
+        license: quiz.license,
+      }
+    : undefined;
   const openForm: ReactNode =
     editing === 'new' ? (
       <QuestionForm
@@ -343,7 +356,13 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         onDirtyChange={onFormDirty}
       />
     ) : editing === 'new-slide' ? (
-      <SlideForm key="new-slide" quizId={quiz.id} onClose={closeForm} onDirtyChange={onFormDirty} />
+      <SlideForm
+        key="new-slide"
+        quizId={quiz.id}
+        quizFields={slideQuizFields}
+        onClose={closeForm}
+        onDirtyChange={onFormDirty}
+      />
     ) : editingItem?.kind === 'question' ? (
       // Keyed by item: switching items must remount the form (fresh defaults, fresh dirty state).
       <QuestionForm
@@ -359,6 +378,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         key={editingItem.id}
         quizId={quiz.id}
         slide={editingItem.slide}
+        quizFields={slideQuizFields}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
       />
@@ -596,6 +616,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                 className="-mx-3 border-t px-3 pt-1"
                 title={t('settings.sharingLegend')}
                 value={[
+                  quiz.shared ? t('settings.sharedOn') : t('settings.sharedOff'),
                   languageName(quiz.language, i18n.language),
                   quiz.license
                     ? t('settings.sharingSummary', {
@@ -605,6 +626,20 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                     : t('settings.noLicense'),
                 ].join(' · ')}
               >
+                {/* Private by default: the other hosts see nothing of it until it is shared. */}
+                <label className="mb-2 flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="accent-primary mt-0.5"
+                    checked={quiz.shared}
+                    disabled={update.isPending}
+                    onChange={(e) => void setShared(e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-medium">{t('settings.sharedLabel')}</span>
+                    <span className="text-muted-foreground block">{t('settings.sharedHelp')}</span>
+                  </span>
+                </label>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                   <label
                     className="flex items-center gap-2 text-sm"

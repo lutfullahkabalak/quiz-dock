@@ -8,7 +8,7 @@ import { cn } from '@/lib/utils';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { COLOR_BG, OPTION_BG_FALLBACK, SHAPE_GLYPH } from '@/lib/option-style';
+import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { getQuizzesControllerListQueryKey } from '../api/generated/quizzes/quizzes';
 import {
   getStoreControllerListQueryKey,
@@ -22,6 +22,8 @@ import { useRole } from '../auth/use-role';
 import { getDemo } from '../config';
 import { templateRoute } from '../router';
 import { TemplateSlide } from './templates-page';
+import { PageLoading } from '@/components/ui/loading';
+import { ShapeIcon } from '@/components/shape-icon';
 
 /**
  * Un modèle, vu **avant** d'en prendre une copie (#39) : ce qu'il contient,
@@ -66,7 +68,7 @@ export function TemplatePage() {
     }
   };
 
-  if (isPending) return <p className="text-muted-foreground">{t('common:loading')}</p>;
+  if (isPending) return <PageLoading />;
   if (!template) return <p className="text-destructive">{t('notFound')}</p>;
 
   return (
@@ -165,7 +167,9 @@ export function TemplatePage() {
                           COLOR_BG[option.color] ?? OPTION_BG_FALLBACK
                         }`}
                       >
-                        <span aria-hidden>{SHAPE_GLYPH[option.shape] ?? ''}</span>
+                        <span aria-hidden>
+                          <ShapeIcon shape={option.shape} />
+                        </span>
                         <span className="min-w-0 truncate">{option.text}</span>
                       </li>
                     ))}

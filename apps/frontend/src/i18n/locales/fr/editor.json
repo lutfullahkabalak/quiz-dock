@@ -60,7 +60,11 @@
     "tagsPlaceholder": "Ajouter un tag…",
     "tagsHelp": "Jusqu’à 5 mots-clés pour retrouver le quiz parmi les modèles. Entrée pour en ajouter un.",
     "removeTag": "Retirer le tag {{tag}}",
-    "saveError": "Impossible d’enregistrer la modification."
+    "saveError": "Impossible d’enregistrer la modification.",
+    "sharedLabel": "Partager avec les autres animateurs de l’instance",
+    "sharedHelp": "Ils le voient dans leurs quiz, en lecture seule, et peuvent en créer leur propre copie. Décoché, il reste à vous seul.",
+    "sharedOn": "Partagé",
+    "sharedOff": "Privé"
   },
   "broadcast": {
     "title": "Diffusion",
@@ -179,7 +183,27 @@
     "videoSound": "Son",
     "videoSoundHint": "Joue le son de la vidéo. Désactivé : muette, et la slide peut avoir son propre son.",
     "audioExcludesVideoSound": "La slide a déjà un son : un seul son à la fois. Retirez-le pour activer celui de la vidéo.",
-    "videoSoundExcludesAudio": "La vidéo joue son propre son : pas de son en plus. Coupez le son de la vidéo pour en ajouter un."
+    "videoSoundExcludesAudio": "La vidéo joue son propre son : pas de son en plus. Coupez le son de la vidéo pour en ajouter un.",
+    "variablesLegend": "Variables",
+    "variablesHint": "À écrire dans un titre ou un texte : elle est remplacée partout où la slide s’affiche. Celles du quiz apparaissent dans l’aperçu, celles du salon quand le quiz est joué.",
+    "variables": {
+      "title": "Le titre du quiz",
+      "description": "La description du quiz",
+      "questions": "Son nombre de questions",
+      "author": "Son auteur",
+      "tags": "Ses mots-clés",
+      "license": "Sa licence",
+      "room": "Le nom du salon",
+      "host": "Le nom de l’animateur",
+      "pin": "Le PIN du salon",
+      "join": "L’adresse pour rejoindre (hôte/join)",
+      "players": "Le nombre de participants connectés",
+      "question": "Le numéro de la question qui suit la slide",
+      "total": "Le nombre de questions du quiz",
+      "remaining": "Le nombre de questions restantes, la suivante comprise",
+      "date": "La date du jour",
+      "time": "L’heure"
+    }
   },
   "discardConfirm": {
     "title": "Abandonner les modifications ?",
@@ -300,7 +324,9 @@
     "optionFallback": "Option {{index}}",
     "acceptedAnswers": "Réponses acceptées : {{answers}}",
     "numericTarget": "Cible : {{value}} (± {{tolerance}})",
-    "credits": "Crédits"
+    "credits": "Crédits",
+    "video": "Vidéo de la question",
+    "sound": "Son · {{seconds}} s"
   },
   "media": {
     "alt": "média de la question",
@@ -443,6 +469,13 @@
     "slugChanged": "Le changer (auparavant « {{previous}} ») crée un nouveau quiz pour le catalogue : supprimez l’ancien fichier de votre dépôt."
   },
   "readOnly": {
-    "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier."
+    "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier.",
+    "createFrom": "Créer à partir de ce quiz",
+    "props": {
+      "orderShown": "Listées dans le bon ordre.",
+      "seconds_one": "{{count}} seconde",
+      "seconds_other": "{{count}} secondes",
+      "muted": "sans le son"
+    }
   }
 }

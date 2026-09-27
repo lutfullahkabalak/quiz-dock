@@ -178,5 +178,18 @@
       "next": "Siguiente",
       "close": "Cerrar"
     }
-  }
+  },
+  "starter": {
+    "prompt": "¿Tu pregunta?",
+    "answer1": "Respuesta 1",
+    "answer2": "Respuesta 2"
+  },
+  "createFrom": "Crear a partir de este quiz",
+  "readOnly": "Solo lectura: compartido por otro anfitrión",
+  "filterOwner": "Propietario",
+  "ownerAll": "Todos",
+  "ownerMe": "Yo",
+  "ownerNone": "Ningún propietario con ese nombre",
+  "statusCount_one": "{{count}} estado",
+  "statusCount_other": "{{count}} estados"
 }

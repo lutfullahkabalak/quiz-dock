@@ -105,9 +105,23 @@ export function synthGong(at?: number): () => void {
 }
 
 /**
- * A ding as a question starts: one bright tone with two discreet harmonics for
- * the crystal (no low body, or it turns into a cowbell), and a short struck
- * transient for a clean attack.
+ * The ding's low-pass, chosen by ear in the Ding Lab: far under the tone (300 Hz
+ * for 880 Hz) on a gentle slope — a biquad, 12 dB per octave; Web Audio reads its
+ * Q in dB: −3 dB is flat, no bump. Every partial comes out darker, the higher the
+ * more; +2.6 dB after it, as set in the lab.
+ */
+const DING_SOFTEN_HZ = 300;
+/** How long the ding takes to reach its level: soft enough not to snap. */
+const DING_ATTACK_S = 0.008;
+const DING_SOFTEN_Q = -3;
+/** +2.6 dB after the filter, as set in the Ding Lab. */
+const DING_MAKEUP = 1.35;
+
+/**
+ * A ding as a question starts: one clear tone (A5, 880 Hz — the first ding's
+ * 1550 Hz pierced) with two discreet overtones for the
+ * crystal (no low body, or it turns into a cowbell), an 8 ms attack and a faint
+ * strike: struck, not snapped. All through a gentle low-pass.
  */
 export function synthDing(at?: number): () => void {
   const mixer = getMixer();
@@ -116,20 +130,26 @@ export function synthDing(at?: number): () => void {
   const { ctx } = mixer;
   const t = Math.max(at ?? 0, ctx.currentTime);
   const out = ctx.createGain();
-  out.gain.value = 0.8;
-  out.connect(into);
+  out.gain.value = 0.7;
+  const soften = ctx.createBiquadFilter();
+  soften.type = 'lowpass';
+  soften.frequency.value = DING_SOFTEN_HZ;
+  soften.Q.value = DING_SOFTEN_Q;
+  const makeup = ctx.createGain();
+  makeup.gain.value = DING_MAKEUP;
+  out.connect(soften).connect(makeup).connect(into);
   const sources: AudioScheduledSourceNode[] = [];
   for (const { freq, level, decay } of [
-    { freq: 1550, level: 1, decay: 1.1 },
-    { freq: 2300, level: 0.18, decay: 0.6 },
-    { freq: 3150, level: 0.08, decay: 0.35 },
+    { freq: 880, level: 1, decay: 1.2 },
+    { freq: 1306, level: 0.14, decay: 0.6 },
+    { freq: 1787, level: 0.05, decay: 0.35 },
   ]) {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
     osc.frequency.value = freq;
     const g = ctx.createGain();
     g.gain.setValueAtTime(0, t);
-    g.gain.linearRampToValueAtTime(level, t + 0.002);
+    g.gain.linearRampToValueAtTime(level, t + DING_ATTACK_S);
     g.gain.exponentialRampToValueAtTime(0.001, t + decay);
     osc.connect(g).connect(out);
     osc.start(t);
@@ -140,10 +160,10 @@ export function synthDing(at?: number): () => void {
   noise.buffer = seededNoise(ctx, 0.015);
   const band = ctx.createBiquadFilter();
   band.type = 'bandpass';
-  band.frequency.value = 3200;
+  band.frequency.value = 1500;
   band.Q.value = 0.5;
   const ng = ctx.createGain();
-  ng.gain.setValueAtTime(0.4, t);
+  ng.gain.setValueAtTime(0.12, t);
   ng.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
   noise.connect(band).connect(ng).connect(out);
   noise.start(t);

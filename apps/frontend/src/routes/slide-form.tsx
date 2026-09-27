@@ -26,6 +26,7 @@ import type {
   SlideTextSize,
   SlideTextTone,
 } from '@quiz-dock/contracts';
+import { SLIDE_VARIABLES, fillSlideBlocks, quizVariables } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlignCenter,
@@ -129,11 +130,14 @@ function complete(blocks: SlideBlock[]): SlideBlock[] {
 export function SlideForm({
   quizId,
   slide,
+  quizFields,
   onClose,
   onDirtyChange,
 }: {
   quizId: string;
   slide?: QuizDetailDtoSlidesItem;
+  /** The quiz's fields its variables read in the preview; the room's stay as written. */
+  quizFields?: Parameters<typeof quizVariables>[0];
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -228,7 +232,7 @@ export function SlideForm({
   const stage = {
     slideIndex: 0,
     questionIndex: 0,
-    blocks: values.blocks,
+    blocks: quizFields ? fillSlideBlocks(values.blocks, quizVariables(quizFields)) : values.blocks,
     background: values.mediaId
       ? { url: `/api/v1/media/${values.mediaId}` }
       : values.gradient
@@ -323,6 +327,7 @@ export function SlideForm({
           </SortableContext>
         </DndContext>
         <AddBlockBar onAdd={addBlock} />
+        <VariablesHelp />
       </fieldset>
 
       <SlideMediaField
@@ -361,6 +366,29 @@ export function SlideForm({
         }}
       />
     </form>
+  );
+}
+
+/**
+ * The variables a heading or a text may hold, each with what it becomes: the
+ * quiz's are shown filled in the preview, the room's once the quiz is played.
+ */
+function VariablesHelp() {
+  const { t } = useTranslation('editor');
+  return (
+    <Disclosure title={t('slideForm.variablesLegend')} value={`{${SLIDE_VARIABLES[0]}} …`}>
+      <p className="text-muted-foreground text-xs">{t('slideForm.variablesHint')}</p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        {SLIDE_VARIABLES.map((name) => (
+          <div key={name} className="contents">
+            <dt>
+              <code className="bg-muted rounded px-1">{`{${name}}`}</code>
+            </dt>
+            <dd className="text-muted-foreground">{t(`slideForm.variables.${name}`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </Disclosure>
   );
 }
 

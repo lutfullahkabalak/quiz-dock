@@ -35,10 +35,10 @@ import {
   VolumeX,
   Users,
   Wifi,
-  X,
+  Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
 import { Input } from '@/components/ui/input';
@@ -47,6 +47,7 @@ import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
 import { ConsoleTransport } from '../game/media/console-transport';
 import { SlidePlaybackContext } from '../game/media/slide-media';
+import { RoomVariables } from '../game/slide-variables';
 import { anchorOf, followed } from '../game/media/followed';
 import { serverNow } from '../game/clock';
 import { Switch } from '@/components/ui/switch';
@@ -73,6 +74,7 @@ import { joinBase, joinHostLabel, joinUrlFor } from '../game/join-url';
 import { JoinAddressPicker } from '../game/join-address-picker';
 import { type GameView, type RosterPlayer, useGameSession } from '../game/use-game-session';
 import { ScreenView } from './screen-page';
+import { PageLoading } from '@/components/ui/loading';
 
 /** Boutons d'ajustement du chrono (§8) : retire/ajoute des secondes en direct. */
 const CHRONO_STEPS = [-5, -1, 1, 5] as const;
@@ -143,6 +145,31 @@ export function ControlPage() {
   const banPlayer = (playerId: string, minutes: number) =>
     socket?.emit('host:ban', { pin, playerId, minutes });
   const setPaused = (paused: boolean) => socket?.emit('host:pause', { pin, paused });
+  // The space bar pauses the game or resumes it, as its button does — once the quiz
+  // runs, and never while the host types, holds a control or reads a dialog.
+  const pauseToggle = useRef<(() => void) | null>(null);
+  pauseToggle.current =
+    view.state && !['LOBBY', 'PODIUM', 'ENDED'].includes(view.state)
+      ? () => setPaused(!view.paused)
+      : null;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (
+        el?.closest(
+          'input, textarea, select, button, a, [role="slider"], [role="switch"], [contenteditable="true"], dialog',
+        )
+      ) {
+        return;
+      }
+      if (!pauseToggle.current) return;
+      e.preventDefault();
+      pauseToggle.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   // The question's sound or video, steered from here while it runs.
   const steerable =
     view.state === 'ANSWERING' &&
@@ -198,7 +225,7 @@ export function ControlPage() {
   };
 
   if (view.status === 'connecting') {
-    return <p className="text-muted-foreground py-16 text-center">{t('control.connecting')}</p>;
+    return <PageLoading label={t('control.connecting')} />;
   }
   if (view.status === 'error') {
     return (
@@ -222,7 +249,7 @@ export function ControlPage() {
             <ScreenView pin={pin} />
           </div>
         ) : (
-          <ParticipantPreview view={view} />
+          <ParticipantPreview view={view} pin={pin} />
         )}
       </section>
     );
@@ -547,7 +574,9 @@ export function ControlPage() {
               follow: followed(view, step),
             }}
           >
-            <SlideView key={slide.slideIndex} slide={slide} />
+            <RoomVariables view={view} pin={pin}>
+              <SlideView key={slide.slideIndex} slide={slide} />
+            </RoomVariables>
           </SlidePlaybackContext.Provider>
         </div>
         {soundMedia ? (
@@ -1153,7 +1182,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
           onClick={() => setOpen(true)}
           className="size-6 rounded-full"
         >
-          <X className="text-destructive size-3.5" strokeWidth={3} />
+          <Trash2 className="text-destructive size-3.5" />
         </Button>
       </Tooltip>
       <ConfirmDialog

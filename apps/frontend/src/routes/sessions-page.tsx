@@ -15,6 +15,7 @@ import {
 } from '../api/generated/quizzes/quizzes';
 import type { SessionDetailDtoRoom, SessionListDtoSessionsItem } from '../api/generated/model';
 import { sessionDetailRoute, sessionPlayerRoute, sessionsRoute } from '../router';
+import { ListSkeleton, PageLoading } from '@/components/ui/loading';
 
 function statusLabel(t: TFunction, status: string): string {
   return t(`status.${status}`, { defaultValue: status });
@@ -73,7 +74,7 @@ export function SessionsPage() {
         </Link>
       </header>
 
-      {isLoading ? <p className="text-muted-foreground">{t('common:loading')}</p> : null}
+      {isLoading ? <ListSkeleton rows={4} /> : null}
       {error ? <p className="text-destructive">{t('list.loadError')}</p> : null}
       {sessions && sessions.length === 0 ? (
         <Card>
@@ -149,7 +150,7 @@ export function SessionDetailPage() {
   const { data, isLoading, error } = useQuizzesControllerSessionDetail(quizId, sessionId);
   const s = data?.data;
 
-  if (isLoading) return <p className="text-muted-foreground">{t('common:loading')}</p>;
+  if (isLoading) return <PageLoading />;
   if (error || !s) return <p className="text-destructive">{t('detail.notFound')}</p>;
 
   // Export global (tableur animateur) : une ligne par participant.
@@ -459,7 +460,7 @@ export function SessionPlayerPage() {
   );
   const p = data?.data;
 
-  if (isLoading) return <p className="text-muted-foreground">{t('common:loading')}</p>;
+  if (isLoading) return <PageLoading />;
   if (error || !p) return <p className="text-destructive">{t('player.notFound')}</p>;
 
   const hasAnswers = p.fullCapture && p.answers.length > 0;

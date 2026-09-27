@@ -199,6 +199,9 @@ model Quiz {
   coverMediaId       String?        @map("cover_media_id") @db.Char(26)
   status             QuizStatus     @default(draft)
   visibility         QuizVisibility @default(private)
+  /// Shared with the instance's other hosts: listed in their bank, read-only, to copy from
+  /// ("Create from this"). Off by default: a private quiz is the owner's alone.
+  shared             Boolean        @default(false)
   language           String         @default("fr")
   questionCount      Int            @default(0) @map("question_count")
   /// Quiz Store identity (docs/quiz-bundle.md): kebab-case, taken from an imported bundle or set at first export.
@@ -220,7 +223,7 @@ model Quiz {
   feedbackEnabled    Boolean        @default(true) @map("feedback_enabled")
   /// Pause kept after a question's sound or video before its time can run out (s, 0–30):
   /// a question whose media outlasts its timer is stretched, never cut mid-play.
-  mediaTailS         Int            @default(3) @map("media_tail_s")
+  mediaTailS         Int            @default(1) @map("media_tail_s")
   /// Level every sound and video is brought to at playback (LUFS): -14 loud, -16 balanced, -23 calm.
   loudnessTargetLufs Int            @default(-16) @map("loudness_target_lufs")
   /// Which devices play the sounds, unless a question or the game says otherwise.

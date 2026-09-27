@@ -49,6 +49,7 @@ import type {
   MediaFilesPageDtoItemsItem,
 } from '../api/generated/model';
 import { useRole } from '../auth/use-role';
+import { Spinner } from '@/components/ui/loading';
 
 const PAGE_SIZE = 25;
 /** The owner key of the instance's own media (#62). */
@@ -119,7 +120,7 @@ function Overview() {
     }
   };
 
-  if (!data) return <p className="text-muted-foreground text-sm">{t('mediaAdmin.loading')}</p>;
+  if (!data) return <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />;
   const { cleanup } = data;
   return (
     <div className="grid gap-4 md:grid-cols-2">
@@ -397,7 +398,7 @@ function Files() {
         </p>
       ) : null}
       {!list ? (
-        <p className="text-muted-foreground text-sm">{t('mediaAdmin.loading')}</p>
+        <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />
       ) : list.items.length === 0 ? (
         <p className="text-muted-foreground text-sm">
           {scope === 'global' && !q ? t('mediaAdmin.instance.empty') : t('mediaAdmin.files.none')}
@@ -843,7 +844,7 @@ function DeleteFileDialog({
       onConfirm={() => void (info?.playing ? undefined : confirm())}
     >
       {!info ? (
-        <p className="text-muted-foreground text-sm">{t('mediaAdmin.loading')}</p>
+        <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />
       ) : (
         <div className="flex flex-col gap-2 text-sm">
           {info.playing ? (

@@ -1,9 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
+  CopyPlus,
+  Eye,
   LayoutGrid,
   List as ListIcon,
   ListChecks,
+  Lock,
   Pencil,
   Play,
   Plus,
@@ -16,6 +19,8 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Segmented } from '@/components/ui/segmented';
@@ -25,6 +30,9 @@ import { fold } from '@/lib/text';
 import { useStoredView } from '@/lib/use-stored-view';
 import { useRole } from '../auth/use-role';
 import { useLaunchSession } from '../game/use-launch-session';
+import { addStarter } from './quiz-starter';
+import { useCopyQuiz } from './use-copy-quiz';
+import { QuizFirstStep } from './quiz-first-step';
 import {
   getQuizzesControllerListQueryKey,
   useQuizzesControllerCreate,
@@ -33,6 +41,7 @@ import {
 } from '../api/generated/quizzes/quizzes';
 import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
+import { ListSkeleton } from '@/components/ui/loading';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
@@ -52,6 +61,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
   const { launch, isLaunching, error: launchError, dialog: launchDialog } = useLaunchSession();
+  const { copy, copying } = useCopyQuiz();
   // Un gestionnaire lit l'instance ; s'il n'anime pas, il ne crée, n'importe ni ne
   // présente rien. Un compte qui cumule garde tout (RG-14).
   const { isManager, isHost } = useRole();
@@ -60,13 +70,34 @@ export function DashboardPage() {
   // et le tri/filtre ci-dessous se recalculerait pour rien.
   const quizzes = useMemo(() => data?.data ?? [], [data]);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'draft' | 'ready' | 'archived'>('all');
+  // The statuses ticked (none = every status): the archived ones out of the way by default.
+  const [statuses, setStatuses] = useState<string[]>(['draft', 'ready']);
   const [sort, setSort] = useState<'recent' | 'title' | 'questions'>('recent');
   const [language, setLanguage] = useState('');
+  // Whose quizzes: '' all, ME the caller's, else an owner's name (a shared quiz, a manager's view).
+  const [owner, setOwner] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [view, setView] = useStoredView('quizdock.quizzes.view');
   const languages = useMemo(() => [...new Set(quizzes.map((q) => q.language))].sort(), [quizzes]);
+  const others = useMemo(
+    () =>
+      [
+        ...new Set(
+          quizzes.flatMap((q) => (q.editable === false && q.ownerName ? [q.ownerName] : [])),
+        ),
+      ].sort((a, b) => a.localeCompare(b)),
+    [quizzes],
+  );
+  // The caller first, then the others by name; everyone last (the default).
+  const ownerOptions = useMemo(
+    () => [
+      { value: ME, label: t('ownerMe') },
+      ...others.map((name) => ({ value: name, label: name })),
+      { value: '', label: t('ownerAll') },
+    ],
+    [others, t],
+  );
   const allTags = useMemo(() => tagsOf(quizzes), [quizzes]);
 
   // A bank grows past what one screen holds: filter first, then sort, then cut
@@ -76,8 +107,9 @@ export function DashboardPage() {
     const needle = fold(search);
     const kept = quizzes.filter(
       (q) =>
-        (status === 'all' || q.status === status) &&
+        (statuses.length === 0 || statuses.includes(q.status)) &&
         (!language || q.language === language) &&
+        (!owner || ownerKey(q) === owner) &&
         tags.every((tag) => q.tags.includes(tag)) &&
         (!needle || fold(`${q.title} ${q.description ?? ''}`).includes(needle)),
     );
@@ -86,7 +118,7 @@ export function DashboardPage() {
     else if (sort === 'questions') sorted.sort((a, b) => b.questionCount - a.questionCount);
     else sorted.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return sorted;
-  }, [quizzes, search, status, language, tags, sort]);
+  }, [quizzes, search, statuses, language, owner, tags, sort]);
 
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   // Filtering can leave the current page behind the end of the list.
@@ -123,10 +155,17 @@ export function DashboardPage() {
       // No language: the server gives the instance's (#83).
       { data: { title: t('newQuiz') } },
       {
-        onSuccess: () =>
-          queryClient.invalidateQueries({
+        onSuccess: async (res) => {
+          // A draft to start from: an intro slide and a first question (see `addStarter`).
+          await addStarter(res.data.id, {
+            prompt: t('starter.prompt'),
+            answer1: t('starter.answer1'),
+            answer2: t('starter.answer2'),
+          }).catch(() => undefined);
+          await queryClient.invalidateQueries({
             queryKey: getQuizzesControllerListQueryKey(),
-          }),
+          });
+        },
       },
     );
   };
@@ -168,7 +207,7 @@ export function DashboardPage() {
         </p>
       ) : null}
 
-      {isLoading && <p className="text-muted-foreground">{t('common:loading')}</p>}
+      {isLoading && <ListSkeleton variant={view} rows={view === 'grid' ? 6 : 5} />}
       {error ? (
         <p className="text-destructive" role="alert">
           {seatTaken ? t('seatTaken') : t('loadError')}{' '}
@@ -216,18 +255,46 @@ export function DashboardPage() {
                 className="pl-8"
               />
             </label>
-            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-              {t('filterStatus')}
-              <Select
-                value={status}
-                onChange={(e) => narrow(() => setStatus(e.target.value as typeof status))}
-              >
-                <option value="all">{t('statusAll')}</option>
-                <option value="draft">{t('common:quizStatus.draft')}</option>
-                <option value="ready">{t('common:quizStatus.ready')}</option>
-                <option value="archived">{t('common:quizStatus.archived')}</option>
-              </Select>
-            </label>
+            {/* Not a <label>: it holds a list of its own labelled boxes. */}
+            <div className="text-muted-foreground flex flex-col gap-1 text-xs">
+              <span>{t('filterStatus')}</span>
+              <MultiSelect
+                aria-label={t('filterStatus')}
+                className="w-44"
+                options={(['draft', 'ready', 'archived'] as const).map((v) => ({
+                  value: v,
+                  label: t(`common:quizStatus.${v}`),
+                }))}
+                value={statuses}
+                onChange={(v) => narrow(() => setStatuses(v))}
+                allLabel={t('statusAll')}
+                countLabel={(count) => t('statusCount', { count })}
+              />
+            </div>
+            {others.length > 0 ? (
+              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+                {t('filterOwner')}
+                {others.length > OWNER_SELECT_MAX ? (
+                  // Many hosts share: a list to type into rather than to scroll.
+                  <Combobox
+                    aria-label={t('filterOwner')}
+                    className="w-48"
+                    options={ownerOptions}
+                    value={owner}
+                    onChange={(v) => narrow(() => setOwner(v))}
+                    emptyText={t('ownerNone')}
+                  />
+                ) : (
+                  <Select value={owner} onChange={(e) => narrow(() => setOwner(e.target.value))}>
+                    {ownerOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </label>
+            ) : null}
             {languages.length > 1 ? (
               <label className="text-muted-foreground flex flex-col gap-1 text-xs">
                 {t('filterLanguage')}
@@ -287,15 +354,32 @@ export function DashboardPage() {
         }
       >
         {visible.map((quiz) => {
+          // Someone else's: shared with the instance (or a manager's overview) — read, copied.
+          const readOnly = quiz.editable === false;
+          const lock = readOnly ? (
+            <Lock className="text-muted-foreground size-3.5 shrink-0" aria-label={t('readOnly')} />
+          ) : null;
           const actions = (
             <span className="flex flex-wrap gap-2">
               <Link to="/quizzes/$quizId" params={{ quizId: quiz.id }}>
                 <Button type="button" size="sm" variant="outline">
-                  <Pencil className="size-4" />
-                  {quiz.ownerName && !isHost ? t('view') : t('edit')}
+                  {readOnly ? <Eye className="size-4" /> : <Pencil className="size-4" />}
+                  {readOnly ? t('view') : t('edit')}
                 </Button>
               </Link>
-              {!managerOnly && quiz.status === 'ready' && (
+              {readOnly && quiz.shared && !managerOnly ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={copying}
+                  onClick={() => copy(quiz.id)}
+                >
+                  <CopyPlus className="size-4" />
+                  {t('createFrom')}
+                </Button>
+              ) : null}
+              {!managerOnly && !readOnly && quiz.status === 'ready' && (
                 <Button
                   type="button"
                   size="sm"
@@ -317,10 +401,17 @@ export function DashboardPage() {
                 params={{ quizId: quiz.id }}
                 className="hover:bg-accent flex flex-1 flex-col transition-colors"
               >
-                <QuizCover quiz={quiz} className="aspect-video w-full" />
+                <QuizFirstStep
+                  quizId={quiz.id}
+                  hasCover={!!quiz.coverMediaId}
+                  fallback={<QuizCover quiz={quiz} className="aspect-video w-full" />}
+                />
                 <span className="flex flex-1 flex-col gap-2 p-4">
                   <span className="flex items-start justify-between gap-2">
-                    <span className="font-semibold">{quiz.title}</span>
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      {lock}
+                      {quiz.title}
+                    </span>
                     <StatusBadge status={quiz.status} />
                   </span>
                   {quiz.description ? (
@@ -342,6 +433,7 @@ export function DashboardPage() {
               {/* Le titre peut être long : il tronque au lieu de pousser les actions hors écran. */}
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex min-w-0 items-center gap-2">
+                  {lock}
                   <Link
                     to="/quizzes/$quizId"
                     params={{ quizId: quiz.id }}
@@ -363,6 +455,15 @@ export function DashboardPage() {
     </section>
   );
 }
+
+/** Past this many other owners, the filter becomes a list to type into. */
+const OWNER_SELECT_MAX = 8;
+
+/** The owner filter's value for the caller's own quizzes (never a name). */
+const ME = '\u0000me';
+
+/** Whose a quiz is, as the owner filter reads it. */
+const ownerKey = (q: QuizDto) => (q.editable === false ? (q.ownerName ?? '') : ME);
 
 function StatusBadge({ status }: { status: string }) {
   const { t } = useTranslation('common');

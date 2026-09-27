@@ -60,7 +60,11 @@
     "tagsPlaceholder": "新增標籤…",
     "tagsHelp": "最多 5 個關鍵字，方便在範本中找到此測驗。按 Enter 新增。",
     "removeTag": "移除標籤 {{tag}}",
-    "saveError": "無法儲存變更。"
+    "saveError": "無法儲存變更。",
+    "sharedLabel": "與本實例的其他主持人共享",
+    "sharedHelp": "他們會在自己的測驗中看到它（唯讀），並可建立自己的副本。不勾選則只有你能看到。",
+    "sharedOn": "已共享",
+    "sharedOff": "私人"
   },
   "broadcast": {
     "title": "廣播",
@@ -179,7 +183,27 @@
     "videoSound": "聲音",
     "videoSoundHint": "播放影片本身的聲音。關閉：靜音，簡報可以有自己的聲音。",
     "audioExcludesVideoSound": "簡報已有聲音：一次只能有一個聲音。移除它才能開啟影片的聲音。",
-    "videoSoundExcludesAudio": "影片播放本身的聲音：不能再加聲音。將影片靜音後才能加入。"
+    "videoSoundExcludesAudio": "影片播放本身的聲音：不能再加聲音。將影片靜音後才能加入。",
+    "variablesLegend": "變數",
+    "variablesHint": "寫在標題或文字中：簡報顯示時會被替換。測驗的變數在預覽中顯示，房間的變數在進行測驗時顯示。",
+    "variables": {
+      "title": "測驗標題",
+      "description": "測驗說明",
+      "questions": "題目數量",
+      "author": "作者",
+      "tags": "標籤",
+      "license": "授權",
+      "room": "房間名稱",
+      "host": "主持人名稱",
+      "pin": "房間 PIN",
+      "join": "加入網址（主機/join）",
+      "players": "已連線的參與者人數",
+      "question": "簡報之後的題號",
+      "total": "測驗的題目總數",
+      "remaining": "剩餘題目數（含下一題）",
+      "date": "今天的日期",
+      "time": "時間"
+    }
   },
   "discardConfirm": {
     "title": "放棄修改？",
@@ -300,7 +324,9 @@
     "optionFallback": "選項 {{index}}",
     "acceptedAnswers": "可接受的答案：{{answers}}",
     "numericTarget": "目標：{{value}}（± {{tolerance}}）",
-    "credits": "出處"
+    "credits": "出處",
+    "video": "題目影片",
+    "sound": "聲音 · {{seconds}} 秒"
   },
   "media": {
     "alt": "題目媒體",
@@ -443,6 +469,13 @@
     "slugChanged": "變更它（原為「{{previous}}」）會在目錄中產生新的測驗：請從儲存庫刪除舊檔案。"
   },
   "readOnly": {
-    "notice": "{{owner}} 的測驗：你可以檢視，但不能修改。"
+    "notice": "{{owner}} 的測驗：你可以檢視，但不能修改。",
+    "createFrom": "以此測驗建立",
+    "props": {
+      "orderShown": "依正確順序列出。",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒",
+      "muted": "靜音"
+    }
   }
 }

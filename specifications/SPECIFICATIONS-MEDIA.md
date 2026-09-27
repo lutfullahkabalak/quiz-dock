@@ -33,7 +33,7 @@ A video brings its own sound, so it excludes the sound slot.
   job does it since #50.
 - **Playback**: the media starts with `question:start` and follows the host's pause. Autoplay happens in the
   **projection window only**; phones show the image alone. Peer-to-peer delivery is ruled out (same Wi-Fi access point).
-- **Length**: a question lasts at least as long as its media plus a tail (`media_tail_s`, 3 s by default).
+- **Length**: a question lasts at least as long as its media plus a tail (`media_tail_s`, 1 s by default; 3 s before 2026-09-27).
 - **Loudness**: measured (ITU-R BS.1770) in the browser at upload, corrected by a Web Audio gain at playback, capped by
   the peak — never re-encoded. Each quiz picks a level: loud −14 / balanced −16 (default) / quiet −23 LUFS.
 - **Interruption**: playback resumes one second before the point reached; the console can restart the media.
@@ -238,8 +238,10 @@ interface sounds (to come) ───────────────► UI  
   half), the last tac left out so a second of silence leads to **the gong, struck on zero itself** (the reveal comes a
   moment later and does not strike it again). Everyone answered before zero, or a pause: what has not sounded yet is
   called off, and the reveal strikes the gong. On in a new room (`countdown`), synthesised only.
-- **The ding** (2026-09-27): a question starts — one bright tone (1550 Hz) with two discreet harmonics (2300, 3150 Hz)
-  and a 15 ms struck transient; not over a question with its own sound or video. On in a new room (`ding`).
+- **The ding** (2026-09-27): a question starts — one clear tone, A5 (880 Hz; the first 1550 Hz pierced), with two discreet
+  overtones (1306, 1787 Hz), an 8 ms attack and a faint strike (a noise burst around 1.5 kHz), all through a
+  low-pass far under it (300 Hz, 12 dB per octave, Q −3 dB: flat; chosen by ear in a sandbox) and +2.6 dB after it; not over a
+  question with its own sound or video. On in a new room (`ding`).
 - **The synthesised gong**: eight inharmonic sine partials (105–890 Hz, slightly detuned), the low ones louder, under a
   low-pass darkening from 7 kHz to 500 Hz over 2.5 s; no mallet noise — after a countdown it reads as one click
   too many.
