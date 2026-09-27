@@ -15,6 +15,13 @@ export const READ_DELAY_MS = 3_000;
 export const ALL_ANSWERED_DELAY_MS = 1_000;
 
 /**
+ * How often, at most, a room's answer count goes out while answers come in: ten
+ * times a second, too quick to see; each answer still gets its tick (up to five
+ * at once, `game/media/game-sounds.ts` on the screens).
+ */
+export const ANSWER_COUNT_EVERY_MS = 100;
+
+/**
  * How long the room waits at most for the devices that play a question's sound
  * or video to load it (`GAME_MEDIA_WAIT_S`, 0 = never wait).
  */

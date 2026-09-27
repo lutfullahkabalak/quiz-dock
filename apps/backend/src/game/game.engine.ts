@@ -35,6 +35,7 @@ import type { Server } from 'socket.io';
 import { GameService } from './game.service';
 import {
   ALL_ANSWERED_DELAY_MS,
+  ANSWER_COUNT_EVERY_MS,
   AUTO_ADVANCE_MS,
   CHRONO_FLOOR_MS,
   GAME_TTL_S,
@@ -190,6 +191,8 @@ export class GameEngine {
    * a resume would otherwise write over the time just added. One process only.
    */
   private readonly clockCommands = new Map<string, Promise<unknown>>();
+  /** Per room, when the answer count last went out, and whether one waits (`countAnswers`). */
+  private readonly answerCounts = new Map<string, { at: number; waiting: boolean }>();
 
   constructor(
     private readonly game: GameService,
@@ -775,6 +778,9 @@ export class GameEngine {
       return; // un autre chemin a déjà révélé cette question
     }
     this.timers.cancel('reveal', pin);
+    // A count waiting for its window goes out before the reveal: the screens then show
+    // every answer the reveal counts (the lock taken above closes the answers).
+    if (this.answerCounts.get(pin)?.waiting) await this.sendAnswerCount(ref, index, false);
     const snapshot = await this.game.getSnapshot(gameId);
     // Numeric `closest`: the points wait for every answer — settled before the state
     // says REVEAL, so a screen (re)attaching meanwhile never reads them unsettled. The
@@ -1472,6 +1478,7 @@ export class GameEngine {
     if (meta.state === GameState.Ended) return; // déjà terminée (ré-entrée / double-clic) → pas de double archive
     if (archive) await this.archiveAsked(pin, meta);
     this.timers.cancelAll(pin);
+    this.answerCounts.delete(pin);
     await this.redis.hset(gameKeys.game(meta.id), gameHash({ state: GameState.Ended }));
     // After the state: an answer arriving meanwhile can no longer be scored and missed.
     await this.foldGame(refOf(pin, meta), meta);
@@ -1509,10 +1516,12 @@ export class GameEngine {
         // (the quiz goes on, the host can retry); then no answer is scored any more.
         if (archive) await this.archiveAsked(pin, meta, true);
         this.timers.cancelAll(pin);
+        this.answerCounts.delete(pin);
         await this.redis.hset(gameKeys.game(meta.id), gameHash({ state: GameState.Ended }));
         if (archive) await this.foldGame(refOf(pin, meta), meta);
       }
       this.timers.cancelAll(pin);
+      this.answerCounts.delete(pin);
       await this.game.openGameWith(pin, snapshot);
     } catch (err) {
       await this.redis.del(lock); // nothing moved: the host can try again
@@ -2086,18 +2095,56 @@ export class GameEngine {
     scored.streak = score.newStreak;
     await this.redis.hset(gameKeys.scores(meta.id), playerId, JSON.stringify(scored));
 
-    // §8 : convergence sur les **connectés en attente**, pas le total jamais joint
-    // (sinon un seul départ figerait la question jusqu'au timer).
-    const progress = await this.connectedProgress(refOf(pin, meta), questionIndex);
-    const { answered, total, allAnswered } = progress;
-    this.server.to(pin).emit('answer:count', { answered, total });
-
-    // Everyone answered: the reveal a moment later, the last tick heard apart from the gong.
-    if (allAnswered) {
-      const delay = gameSetting('GAME_ALL_ANSWERED_DELAY_MS', ALL_ANSWERED_DELAY_MS);
-      this.scheduleReveal(refOf(pin, meta), questionIndex, delay, 'all');
-    }
+    await this.countAnswers(refOf(pin, meta), questionIndex);
     return { accepted: true, receivedAt };
+  }
+
+  /**
+   * After an answer: the count to the room, and the reveal armed once everyone
+   * answered. At most one count every `ANSWER_COUNT_EVERY_MS` per room: an answer
+   * in a quiet moment goes out at once, those that follow within the window go
+   * out together at its end, the last one always. At 400 players the room got a
+   * message per answer to every device, 160,000 a question, and the players were
+   * counted on every answer; now about ten times a second at most.
+   */
+  private async countAnswers(ref: GameRef, questionIndex: number): Promise<void> {
+    const last = this.answerCounts.get(ref.pin);
+    const sinceMs = Date.now() - (last?.at ?? 0);
+    if (last && (last.waiting || sinceMs < ANSWER_COUNT_EVERY_MS)) {
+      if (!last.waiting) {
+        last.waiting = true;
+        this.timers.arm('answerCount', ref.pin, ANSWER_COUNT_EVERY_MS - sinceMs, () =>
+          this.sendAnswerCount(ref, questionIndex, true),
+        );
+      }
+      return;
+    }
+    await this.sendAnswerCount(ref, questionIndex, true);
+  }
+
+  /**
+   * The answer count out now. §8: over the players **connected**, not all who ever
+   * joined (one departure would otherwise hold the question until its timer). With
+   * `converge`, everyone answered arms the reveal a moment later, the last tick heard
+   * apart from the gong. A count sent once the question is revealed still goes out (an
+   * answer taken just before), but arms nothing.
+   */
+  private async sendAnswerCount(
+    ref: GameRef,
+    questionIndex: number,
+    converge: boolean,
+  ): Promise<void> {
+    this.timers.cancel('answerCount', ref.pin);
+    this.answerCounts.set(ref.pin, { at: Date.now(), waiting: false });
+    const meta = await this.currentMeta(ref);
+    if (!meta || meta.currentIndex !== questionIndex) return;
+    if (meta.state !== GameState.Answering && meta.state !== GameState.Reveal) return;
+    const { answered, total, allAnswered } = await this.connectedProgress(ref, questionIndex);
+    this.server.to(ref.pin).emit('answer:count', { answered, total });
+    if (converge && allAnswered && meta.state === GameState.Answering) {
+      const delay = gameSetting('GAME_ALL_ANSWERED_DELAY_MS', ALL_ANSWERED_DELAY_MS);
+      this.scheduleReveal(ref, questionIndex, delay, 'all');
+    }
   }
 
   /**

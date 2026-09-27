@@ -1050,6 +1050,46 @@ describe('GameEngine (characterization)', () => {
   });
 
   /** Bugs found by the audit (docs/dev/audit-2026-09.md), each reproduced before its fix. */
+  describe('the answer count (performance roadmap 3.0)', () => {
+    it('answers pouring in go out as one count, the last one always, before the reveal', async () => {
+      const players = Object.fromEntries(
+        ['p1', 'p2', 'p3', 'p4'].map((id, i) => [id, player(`P${i}`)]),
+      );
+      const t0 = await startedAt(snapshotOf([question()]), players);
+      const counts = () => roomOf<{ answered: number; total: number }>('answer:count');
+      const before = counts().length;
+      await engine.submit(pin, 'p1', 0, 'x', t0 + 1);
+      await engine.submit(pin, 'p2', 0, 'x', t0 + 1);
+      await engine.submit(pin, 'p3', 0, 'x', t0 + 1);
+      // The first at once; the two that follow within the window, together at its end.
+      expect(counts().slice(before)).toEqual([{ answered: 1, total: 4 }]);
+      await eventually(async () => counts().length === before + 2);
+      expect(counts().at(-1)).toEqual({ answered: 3, total: 4 });
+      // The last one in: everyone answered, its count goes out, then the reveal.
+      await engine.submit(pin, 'p4', 0, 'x', t0 + 1);
+      await revealed();
+      const reveal = room.findIndex(
+        ([e, p]) => e === 'game:state' && (p as { state: string }).state === 'REVEAL',
+      );
+      const sent = room.slice(0, reveal).filter(([e]) => e === 'answer:count');
+      expect(sent.at(-1)?.[1]).toEqual({ answered: 4, total: 4 });
+    });
+
+    it('the host revealing early still sends the count that was waiting', async () => {
+      const players = Object.fromEntries(['p1', 'p2', 'p3'].map((id, i) => [id, player(`P${i}`)]));
+      const t0 = await startedAt(snapshotOf([question()]), players);
+      await engine.submit(pin, 'p1', 0, 'x', t0 + 1);
+      await engine.submit(pin, 'p2', 0, 'x', t0 + 1);
+      await engine.reveal(pin, HOST);
+      await revealed();
+      const reveal = room.findIndex(
+        ([e, p]) => e === 'game:state' && (p as { state: string }).state === 'REVEAL',
+      );
+      const sent = room.slice(0, reveal).filter(([e]) => e === 'answer:count');
+      expect(sent.at(-1)?.[1]).toEqual({ answered: 2, total: 3 });
+    });
+  });
+
   describe('audit fixes', () => {
     it('a screen reattaching while closest points are settled never sees them unsettled', async () => {
       const q = question({
