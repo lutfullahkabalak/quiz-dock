@@ -102,6 +102,21 @@ describe('game sounds (#93)', () => {
     expect(oscillators).toHaveLength(5);
   });
 
+  it('the last answer, which ends the question, still gets its tick before the gong', () => {
+    const { rerender } = renderHook(({ g }) => useGameSounds(SOUNDS, g, true), {
+      initialProps: { g: game() },
+    });
+    // A question that ends on its time: the gong alone.
+    rerender({ g: game({ state: 'REVEAL' }) });
+    const gong = oscillators.length;
+    expect(gong).toBeGreaterThan(0);
+    oscillators.length = 0;
+    // One player: their answer and the reveal arrive together — the tick too.
+    rerender({ g: game({ questionIndex: 1 }) });
+    rerender({ g: game({ questionIndex: 1, state: 'REVEAL', answered: 1 }) });
+    expect(oscillators).toHaveLength(gong + 1);
+  });
+
   it('plays nothing on a device that does not play the game’s sounds, nor what is switched off', () => {
     const { rerender } = renderHook(({ g, s, on }) => useGameSounds(s, g, on), {
       initialProps: { g: game(), s: SOUNDS, on: false },

@@ -169,12 +169,11 @@ export function useGameSounds(
     };
     if (!on || !sounds || !running()) return;
     const sameQuestion = prev.questionIndex === game.questionIndex;
-    if (
-      sounds.tick &&
-      game.state === 'ANSWERING' &&
-      sameQuestion &&
-      game.answered > prev.answered
-    ) {
+    // The last answer moves the question to its reveal: its count arrives with the
+    // new state, and it still gets its tick (before the gong).
+    const answering =
+      game.state === 'ANSWERING' || (game.state === 'REVEAL' && prev.state === 'ANSWERING');
+    if (sounds.tick && answering && sameQuestion && game.answered > prev.answered) {
       void playEffect(sounds.tickUrl, synthTick);
     }
     if (sounds.gong && prev.state === 'ANSWERING' && game.state === 'REVEAL' && sameQuestion) {

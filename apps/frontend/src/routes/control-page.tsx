@@ -60,6 +60,7 @@ import {
   Podium,
   RevealAnswer,
   SlideView,
+  timeTone,
 } from '../game/live-components';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { ChromiumNotice } from '@/components/chromium-notice';
@@ -630,13 +631,7 @@ export function ControlPage() {
   const answered = view.answerCount?.answered ?? 0;
   const totalPlayers = view.answerCount?.total ?? view.players.length;
   const timePct = remaining != null && timeLimit > 0 ? (remaining / timeLimit) * 100 : 0;
-  const timeTone = view.paused
-    ? 'bg-muted-foreground'
-    : timePct <= 20
-      ? 'bg-destructive'
-      : timePct <= 50
-        ? 'bg-amber-500'
-        : 'bg-success';
+  const tone = timeTone(timePct / 100, view.paused);
   const answeredPct = totalPlayers > 0 ? (answered / totalPlayers) * 100 : 0;
   // Bonne réponse mise en avant pour l'animateur (clé de correction du sommaire hôte).
   const correctIds = view.outline.find((q) => q.index === view.questionIndex)?.correctOptionIds;
@@ -657,7 +652,7 @@ export function ControlPage() {
           <ChronoControls remaining={remaining} paused={view.paused} onAdjust={adjustTime} />
         </div>
 
-        <ProgressBar pct={timePct} barClassName={timeTone} />
+        <ProgressBar pct={timePct} barClassName={tone} />
 
         {/* Shown still: the projection is the one place that plays the sound; its
             waveform follows where the projection is in it. While the question runs,
