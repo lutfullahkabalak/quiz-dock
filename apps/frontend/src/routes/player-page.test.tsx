@@ -230,6 +230,44 @@ describe('PlayerPage (client participant)', () => {
     await waitFor(() => expect(disconnectGame).toHaveBeenCalled());
   });
 
+  it('the host adjusting the time keeps the order a player is putting together (audit F4)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    const now = Date.now();
+    const ordering = (endsAt: number) =>
+      ({
+        questionIndex: 0,
+        type: 'ordering',
+        prompt: 'Dans l’ordre ?',
+        options: ['Alpha', 'Beta', 'Gamma'].map((text) => ({ id: text, text })),
+        startedAt: now - 1_000,
+        endsAt,
+        timeLimitS: 20,
+      }) as never;
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: ordering(now + 20_000),
+    });
+    renderApp('/join/771122');
+    await screen.findByText('Dans l’ordre ?');
+
+    // The host adds 5 s: the same question comes back with a later end…
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: ordering(now + 25_000),
+    });
+    // …while the player moves Alpha down.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Descendre' })[0]);
+    const text = () => document.body.textContent ?? '';
+    await waitFor(() => expect(text().indexOf('Beta')).toBeLessThan(text().indexOf('Alpha')));
+  });
+
   describe('“Ready!” in the lobby (#104)', () => {
     const session = { pin: '771122', nickname: 'Bob', sessionToken: 't', playerId: 'p1' };
 

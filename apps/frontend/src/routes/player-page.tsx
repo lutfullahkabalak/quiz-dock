@@ -221,10 +221,13 @@ export function PlayerPage() {
   useEffect(() => {
     if (view.answerRefusal === 'early') setSubmitted(false);
   }, [view.answerRefusal, view.answerAckAt]);
-  // L'ordre de départ suit l'arrivée de la question (remise en ordre).
+  // L'ordre de départ suit l'arrivée d'une question (remise en ordre) : une nouvelle
+  // question, pas un nouvel objet — l'hôte qui ajuste le chrono renvoie la même.
+  const questionKey = question ? question.questionIndex : null;
   useEffect(() => {
     setOrder(question?.options?.map((o) => o.id) ?? []);
-  }, [question]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- reset per question only
+  }, [questionKey]);
 
   // What the next question will show or play here, fetched while the room waits;
   // the host's console hears when this device is ready to play it.
