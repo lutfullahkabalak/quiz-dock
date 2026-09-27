@@ -185,5 +185,11 @@
     "answer2": "答案 2"
   },
   "createFrom": "以此測驗建立",
-  "readOnly": "唯讀：由其他主持人共享"
+  "readOnly": "唯讀：由其他主持人共享",
+  "filterOwner": "擁有者",
+  "ownerAll": "全部",
+  "ownerMe": "我",
+  "ownerNone": "沒有該擁有者",
+  "statusCount_one": "{{count}} 個狀態",
+  "statusCount_other": "{{count}} 個狀態"
 }

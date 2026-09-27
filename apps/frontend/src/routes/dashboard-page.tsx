@@ -19,6 +19,8 @@ import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { Combobox } from '@/components/ui/combobox';
+import { MultiSelect } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
 import { Pagination } from '@/components/ui/pagination';
 import { Segmented } from '@/components/ui/segmented';
@@ -67,13 +69,34 @@ export function DashboardPage() {
   // et le tri/filtre ci-dessous se recalculerait pour rien.
   const quizzes = useMemo(() => data?.data ?? [], [data]);
   const [search, setSearch] = useState('');
-  const [status, setStatus] = useState<'all' | 'draft' | 'ready' | 'archived'>('all');
+  // The statuses ticked; none = every status.
+  const [statuses, setStatuses] = useState<string[]>([]);
   const [sort, setSort] = useState<'recent' | 'title' | 'questions'>('recent');
   const [language, setLanguage] = useState('');
+  // Whose quizzes: '' all, ME the caller's, else an owner's name (a shared quiz, a manager's view).
+  const [owner, setOwner] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(1);
   const [view, setView] = useStoredView('quizdock.quizzes.view');
   const languages = useMemo(() => [...new Set(quizzes.map((q) => q.language))].sort(), [quizzes]);
+  const others = useMemo(
+    () =>
+      [
+        ...new Set(
+          quizzes.flatMap((q) => (q.editable === false && q.ownerName ? [q.ownerName] : [])),
+        ),
+      ].sort((a, b) => a.localeCompare(b)),
+    [quizzes],
+  );
+  // The caller first, then the others by name; everyone last (the default).
+  const ownerOptions = useMemo(
+    () => [
+      { value: ME, label: t('ownerMe') },
+      ...others.map((name) => ({ value: name, label: name })),
+      { value: '', label: t('ownerAll') },
+    ],
+    [others, t],
+  );
   const allTags = useMemo(() => tagsOf(quizzes), [quizzes]);
 
   // A bank grows past what one screen holds: filter first, then sort, then cut
@@ -83,8 +106,9 @@ export function DashboardPage() {
     const needle = fold(search);
     const kept = quizzes.filter(
       (q) =>
-        (status === 'all' || q.status === status) &&
+        (statuses.length === 0 || statuses.includes(q.status)) &&
         (!language || q.language === language) &&
+        (!owner || ownerKey(q) === owner) &&
         tags.every((tag) => q.tags.includes(tag)) &&
         (!needle || fold(`${q.title} ${q.description ?? ''}`).includes(needle)),
     );
@@ -93,7 +117,7 @@ export function DashboardPage() {
     else if (sort === 'questions') sorted.sort((a, b) => b.questionCount - a.questionCount);
     else sorted.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
     return sorted;
-  }, [quizzes, search, status, language, tags, sort]);
+  }, [quizzes, search, statuses, language, owner, tags, sort]);
 
   const pageCount = Math.max(1, Math.ceil(shown.length / PAGE_SIZE));
   // Filtering can leave the current page behind the end of the list.
@@ -230,18 +254,46 @@ export function DashboardPage() {
                 className="pl-8"
               />
             </label>
-            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-              {t('filterStatus')}
-              <Select
-                value={status}
-                onChange={(e) => narrow(() => setStatus(e.target.value as typeof status))}
-              >
-                <option value="all">{t('statusAll')}</option>
-                <option value="draft">{t('common:quizStatus.draft')}</option>
-                <option value="ready">{t('common:quizStatus.ready')}</option>
-                <option value="archived">{t('common:quizStatus.archived')}</option>
-              </Select>
-            </label>
+            {/* Not a <label>: it holds a list of its own labelled boxes. */}
+            <div className="text-muted-foreground flex flex-col gap-1 text-xs">
+              <span>{t('filterStatus')}</span>
+              <MultiSelect
+                aria-label={t('filterStatus')}
+                className="w-44"
+                options={(['draft', 'ready', 'archived'] as const).map((v) => ({
+                  value: v,
+                  label: t(`common:quizStatus.${v}`),
+                }))}
+                value={statuses}
+                onChange={(v) => narrow(() => setStatuses(v))}
+                allLabel={t('statusAll')}
+                countLabel={(count) => t('statusCount', { count })}
+              />
+            </div>
+            {others.length > 0 ? (
+              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+                {t('filterOwner')}
+                {others.length > OWNER_SELECT_MAX ? (
+                  // Many hosts share: a list to type into rather than to scroll.
+                  <Combobox
+                    aria-label={t('filterOwner')}
+                    className="w-48"
+                    options={ownerOptions}
+                    value={owner}
+                    onChange={(v) => narrow(() => setOwner(v))}
+                    emptyText={t('ownerNone')}
+                  />
+                ) : (
+                  <Select value={owner} onChange={(e) => narrow(() => setOwner(e.target.value))}>
+                    {ownerOptions.map((o) => (
+                      <option key={o.value} value={o.value}>
+                        {o.label}
+                      </option>
+                    ))}
+                  </Select>
+                )}
+              </label>
+            ) : null}
             {languages.length > 1 ? (
               <label className="text-muted-foreground flex flex-col gap-1 text-xs">
                 {t('filterLanguage')}
@@ -398,6 +450,15 @@ export function DashboardPage() {
     </section>
   );
 }
+
+/** Past this many other owners, the filter becomes a list to type into. */
+const OWNER_SELECT_MAX = 8;
+
+/** The owner filter's value for the caller's own quizzes (never a name). */
+const ME = '\u0000me';
+
+/** Whose a quiz is, as the owner filter reads it. */
+const ownerKey = (q: QuizDto) => (q.editable === false ? (q.ownerName ?? '') : ME);
 
 function StatusBadge({ status }: { status: string }) {
   const { t } = useTranslation('common');

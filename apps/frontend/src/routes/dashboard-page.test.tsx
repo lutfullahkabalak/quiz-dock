@@ -80,6 +80,54 @@ describe('DashboardPage', () => {
     );
   });
 
+  it('filters by owner: me first, then the others, everyone by default', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [
+          quiz({ id: 'mine', title: 'Le mien' }),
+          quiz({ id: 'b', title: 'De Billy', editable: false, shared: true, ownerName: 'Billy' }),
+          quiz({ id: 'a', title: 'D’Alice', editable: false, shared: true, ownerName: 'Alice' }),
+        ],
+      },
+    ]);
+    renderApp('/quizzes');
+    await screen.findByText('Le mien');
+    const select = screen.getByLabelText('Propriétaire') as HTMLSelectElement;
+    expect([...select.options].map((o) => o.text)).toEqual(['Moi', 'Alice', 'Billy', 'Tous']);
+    expect(select.value).toBe('');
+    fireEvent.change(select, { target: { value: select.options[0].value } });
+    expect(screen.getByText('Le mien')).toBeInTheDocument();
+    expect(screen.queryByText('De Billy')).toBeNull();
+    fireEvent.change(select, { target: { value: 'Billy' } });
+    expect(screen.getByText('De Billy')).toBeInTheDocument();
+    expect(screen.queryByText('Le mien')).toBeNull();
+  });
+
+  it('many owners: the owner filter becomes a list to type into', async () => {
+    const names = ['Ana', 'Ben', 'Cléo', 'Dan', 'Eva', 'Fred', 'Gus', 'Hana', 'Ivo'];
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [
+          quiz({ id: 'mine', title: 'Le mien' }),
+          ...names.map((n) =>
+            quiz({ id: n, title: `Quiz ${n}`, editable: false, shared: true, ownerName: n }),
+          ),
+        ],
+      },
+    ]);
+    renderApp('/quizzes');
+    await screen.findByText('Le mien');
+    const box = screen.getByRole('combobox', { name: 'Propriétaire' });
+    fireEvent.change(box, { target: { value: 'cleo' } });
+    fireEvent.click(screen.getByRole('option', { name: 'Cléo' }));
+    await waitFor(() => expect(screen.queryByText('Le mien')).toBeNull());
+    expect(screen.getByText('Quiz Cléo')).toBeInTheDocument();
+  });
+
   it('narrows by language and tag, and shows what tells quizzes apart', async () => {
     mockApi([
       {
@@ -227,12 +275,14 @@ describe('DashboardPage', () => {
     expect(screen.getByText('Page 1 sur 2')).toBeInTheDocument();
 
     // Filtre par statut : un seul quiz est « prêt ».
-    fireEvent.change(screen.getByLabelText('Statut'), { target: { value: 'ready' } });
+    // The statuses are ticked in a list: ready alone.
+    fireEvent.click(screen.getByRole('button', { name: 'Statut' }));
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Prêt' }));
     await waitFor(() => expect(screen.getByText('1 quiz')).toBeInTheDocument());
     expect(screen.queryByText('Page 1 sur 2')).toBeNull();
 
     // Recherche : insensible à la casse et aux accents, et elle ramène à la page 1.
-    fireEvent.change(screen.getByLabelText('Statut'), { target: { value: 'all' } });
+    fireEvent.click(screen.getByRole('checkbox', { name: 'Prêt' }));
     fireEvent.change(screen.getByPlaceholderText('Rechercher un quiz'), {
       target: { value: 'quiz 1' },
     });

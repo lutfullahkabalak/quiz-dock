@@ -185,5 +185,11 @@
     "answer2": "Answer 2"
   },
   "createFrom": "Create from this quiz",
-  "readOnly": "Read-only: shared by another host"
+  "readOnly": "Read-only: shared by another host",
+  "filterOwner": "Owner",
+  "ownerAll": "Everyone",
+  "ownerMe": "Me",
+  "ownerNone": "No such owner",
+  "statusCount_one": "{{count}} status",
+  "statusCount_other": "{{count}} statuses"
 }
