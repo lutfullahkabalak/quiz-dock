@@ -15,7 +15,7 @@ import {
 } from '../api/generated/quizzes/quizzes';
 import type { SessionDetailDtoRoom, SessionListDtoSessionsItem } from '../api/generated/model';
 import { sessionDetailRoute, sessionPlayerRoute, sessionsRoute } from '../router';
-import { ListSkeleton, PageLoading } from '@/components/ui/loading';
+import { ListSkeleton, LoadFailed, PageLoading } from '@/components/ui/loading';
 
 function statusLabel(t: TFunction, status: string): string {
   return t(`status.${status}`, { defaultValue: status });
@@ -151,7 +151,7 @@ export function SessionDetailPage() {
   const s = data?.data;
 
   if (isLoading) return <PageLoading />;
-  if (error || !s) return <p className="text-destructive">{t('detail.notFound')}</p>;
+  if (error || !s) return <LoadFailed error={error} notFound={t('detail.notFound')} />;
 
   // Export global (tableur animateur) : une ligne par participant.
   const exportGlobal = () => {
@@ -461,7 +461,7 @@ export function SessionPlayerPage() {
   const p = data?.data;
 
   if (isLoading) return <PageLoading />;
-  if (error || !p) return <p className="text-destructive">{t('player.notFound')}</p>;
+  if (error || !p) return <LoadFailed error={error} notFound={t('player.notFound')} />;
 
   const hasAnswers = p.fullCapture && p.answers.length > 0;
   const exportPlayer = () => {

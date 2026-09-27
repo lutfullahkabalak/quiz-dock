@@ -102,7 +102,7 @@ import { useGameControllerMine } from '../api/generated/games/games';
 import { useQuestionsControllerRemove } from '../api/generated/questions/questions';
 import { getDemo } from '../config';
 import { editorRoute } from '../router';
-import { PageLoading } from '@/components/ui/loading';
+import { LoadFailed, PageLoading } from '@/components/ui/loading';
 
 /**
  * The page has two columns, and they are the same from top to bottom: the
@@ -118,7 +118,7 @@ export function EditorPage() {
   const { data, isLoading, error } = useQuizzesControllerGet(quizId);
 
   if (isLoading) return <PageLoading />;
-  if (error || !data) return <p className="text-destructive">{t('notFound')}</p>;
+  if (error || !data) return <LoadFailed error={error} notFound={t('notFound')} />;
   // Another host's quiz, opened by a manager: read, never changed (#82).
   if (!data.data.editable) return <QuizReadOnly quiz={data.data} />;
   return <QuizEditor quiz={data.data} />;

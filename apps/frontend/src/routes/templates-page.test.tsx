@@ -132,6 +132,15 @@ describe('TemplatesPage (galerie)', () => {
     localStorage.clear();
     vi.unstubAllGlobals();
   });
+
+  it('a catalogue that cannot be read says so, not that it is empty (audit E5)', async () => {
+    localStorage.setItem('live.localUser', 'Marc');
+    mockApi([{ method: 'GET', path: '/store', status: 500, body: {} }]);
+    renderApp('/templates');
+    expect(await screen.findByText('Une erreur est survenue.')).toBeInTheDocument();
+    expect(screen.queryByText('Aucun modèle pour l’instant')).toBeNull();
+    localStorage.clear();
+  });
 });
 
 describe('TemplatePage (aperçu)', () => {

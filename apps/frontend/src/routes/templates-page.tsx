@@ -20,7 +20,7 @@ import { getQuizzesControllerListQueryKey } from '../api/generated/quizzes/quizz
 import { apiErrorText } from '../api/http';
 import { useRole } from '../auth/use-role';
 import { SlideStage } from '../game/slide-stage';
-import { ListSkeleton } from '@/components/ui/loading';
+import { ListSkeleton, LoadFailed } from '@/components/ui/loading';
 
 const PAGE_SIZE = 20;
 
@@ -94,7 +94,8 @@ export function TemplatesPage() {
 
       {list.isPending ? <ListSkeleton variant="grid" rows={6} /> : null}
 
-      {!list.isPending && entries.length === 0 ? <EmptyCatalogue /> : null}
+      {list.isError ? <LoadFailed error={list.error} /> : null}
+      {list.isSuccess && entries.length === 0 ? <EmptyCatalogue /> : null}
 
       {entries.length > 0 ? (
         <>

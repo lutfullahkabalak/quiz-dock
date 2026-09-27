@@ -49,7 +49,7 @@ import type {
   MediaFilesPageDtoItemsItem,
 } from '../api/generated/model';
 import { useRole } from '../auth/use-role';
-import { Spinner } from '@/components/ui/loading';
+import { LoadFailed, Spinner } from '@/components/ui/loading';
 
 const PAGE_SIZE = 25;
 /** The owner key of the instance's own media (#62). */
@@ -120,6 +120,7 @@ function Overview() {
     }
   };
 
+  if (overview.isError) return <LoadFailed error={overview.error} />;
   if (!data) return <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />;
   const { cleanup } = data;
   return (
@@ -397,7 +398,9 @@ function Files() {
           {error}
         </p>
       ) : null}
-      {!list ? (
+      {files.isError ? (
+        <LoadFailed error={files.error} />
+      ) : !list ? (
         <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />
       ) : list.items.length === 0 ? (
         <p className="text-muted-foreground text-sm">

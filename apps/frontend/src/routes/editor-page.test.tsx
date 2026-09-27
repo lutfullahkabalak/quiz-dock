@@ -694,4 +694,17 @@ describe('EditorPage', () => {
     fireEvent.click(within(openDialog).getByRole('button', { name: 'Abandonner' }));
     await waitFor(() => expect(screen.getByLabelText('Énoncé').textContent).toContain('Seconde'));
   });
+
+  it('says the quiz is not found only when the server says so (audit E5)', async () => {
+    mockApi([{ method: 'GET', path: '/quizzes/q1', status: 500, body: {} }]);
+    const { unmount } = renderApp('/quizzes/q1');
+    expect(await screen.findByText('Une erreur est survenue.')).toBeInTheDocument();
+    expect(screen.queryByText('Quiz introuvable.')).toBeNull();
+    unmount();
+    mockApi([
+      { method: 'GET', path: '/quizzes/q1', status: 404, body: { code: 'quiz.not_found' } },
+    ]);
+    renderApp('/quizzes/q1');
+    expect(await screen.findByText('Quiz introuvable.')).toBeInTheDocument();
+  });
 });
