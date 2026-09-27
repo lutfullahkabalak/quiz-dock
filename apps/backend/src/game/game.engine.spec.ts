@@ -208,6 +208,19 @@ describe('GameEngine (characterization)', () => {
     return (await meta()).questionStartedAt;
   }
 
+  /**
+   * The reveal is over: its last event, the pace, has gone out after its state.
+   * Not the state in Redis, written before the points of a `closest` question
+   * are settled and the results sent.
+   */
+  const revealed = () =>
+    eventually(async () => {
+      const at = room.findIndex(
+        ([e, p]) => e === 'game:state' && (p as { state: string }).state === 'REVEAL',
+      );
+      return at >= 0 && room.slice(at + 1).some(([e]) => e === 'game:mode');
+    });
+
   const rightOption = async (index = 0) =>
     (await game.getSnapshot(gameId))!.questions[index].options[0].id;
 
@@ -384,7 +397,7 @@ describe('GameEngine (characterization)', () => {
       });
       await engine.submit(pin, 'p2', 0, await rightOption(), t0 + 100);
       await engine.submit(pin, 'p1', 0, 'nope', t0 + 100);
-      await eventually(async () => (await state()) === 'REVEAL');
+      await revealed();
       await engine.next(pin, HOST);
 
       expect(await state()).toBe('PODIUM');
@@ -422,7 +435,7 @@ describe('GameEngine (characterization)', () => {
       expect(await state()).toBe('ANSWERING');
 
       await engine.submit(pin, 'p2', 0, 'nope', t0 + 1);
-      await eventually(async () => (await state()) === 'REVEAL');
+      await revealed();
       const reveals = roomOf<{ state: string }>('game:state').filter((s) => s.state === 'REVEAL');
       expect(reveals).toHaveLength(1);
       const reveal = ann.of<{ yourResult: { correct: boolean; points: number; rank: number } }>(
@@ -459,7 +472,7 @@ describe('GameEngine (characterization)', () => {
       await engine.submit(pin, 'p2', 0, 90, t0 + 1);
       expect((await scoreOf('p1')).score).toBe(0); // nothing before every answer is in
       await engine.submit(pin, 'p3', 0, 130, t0 + 1);
-      await eventually(async () => (await state()) === 'REVEAL');
+      await revealed();
 
       expect(await Promise.all(['p1', 'p2', 'p3'].map(scoreOf))).toEqual([
         { score: 1000, streak: 1 },
@@ -592,7 +605,7 @@ describe('GameEngine (characterization)', () => {
         p1: player('Ann'),
       });
       await engine.submit(pin, 'p1', 0, await rightOption(), t0 + 1);
-      await eventually(async () => (await state()) === 'REVEAL');
+      await revealed();
       await engine.next(pin, HOST);
     }
 
@@ -643,7 +656,7 @@ describe('GameEngine (characterization)', () => {
     it('at a reveal: the question first, then the personal result and the leaderboard', async () => {
       const t0 = await startedAt(snapshotOf([question()]), { p1: player('Ann') });
       await engine.submit(pin, 'p1', 0, 'x', t0 + 1);
-      await eventually(async () => (await state()) === 'REVEAL');
+      await revealed();
       const back = new FakeSocket({ playerId: 'p1' });
       await engine.sendStateTo(back, pin);
 
@@ -916,7 +929,7 @@ describe('GameEngine (characterization)', () => {
       });
       await engine.submit(pin, 'p1', 0, await rightOption(), t0 + 1);
       await engine.submit(pin, 'p2', 0, 'nope', t0 + 1);
-      await eventually(async () => (await state()) === 'REVEAL');
+      await revealed();
       await engine.next(pin, HOST); // podium
 
       const reveals = devices.map(commonReveal);
