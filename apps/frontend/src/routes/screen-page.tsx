@@ -138,6 +138,7 @@ export function ScreenSurface({
       media: view.question?.media,
       mediaStartAt: view.question?.mediaStartAt ?? null,
       endsAt: view.question?.endsAt ?? null,
+      startedAt: view.question?.startedAt ?? null,
       anchor:
         view.question && view.mediaControl?.questionIndex === view.question.questionIndex
           ? view.mediaControl

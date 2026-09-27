@@ -612,7 +612,10 @@ describe('PlayerPage (client participant)', () => {
     });
     renderApp('/join/771122');
 
-    fireEvent.change(await screen.findByPlaceholderText(/nombre/), { target: { value: '42' } });
+    // The answers are open: the input has the focus, the phone's keyboard with it.
+    const input = await screen.findByPlaceholderText(/nombre/);
+    expect(input).toHaveFocus();
+    fireEvent.change(input, { target: { value: '42' } });
     fireEvent.click(screen.getByRole('button', { name: /Valider/ }));
     expect(fakeSocket.emit).toHaveBeenCalledWith('player:submit', {
       pin: '771122',

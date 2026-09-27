@@ -190,6 +190,8 @@ export interface GameSoundsState {
   anchor?: MediaAnchor | null;
   /** When the question's time runs out, on the server's clock (`question:start`). */
   endsAt?: number | null;
+  /** When the answers open, on the server's clock: the reading (or listening) comes first. */
+  startedAt?: number | null;
 }
 
 /**
@@ -320,8 +322,26 @@ export function useGameSounds(
     const timer = setTimeout(() => setMediaOver(true), left);
     return () => clearTimeout(timer);
   }, [endsAt]);
+  // Only once the answers open: not over the reading of the question (nor its listening).
+  const [answersOpen, setAnswersOpen] = useState(false);
+  useEffect(() => {
+    const opens = game.startedAt;
+    if (opens == null) {
+      setAnswersOpen(true);
+      return;
+    }
+    const left = opens - serverNow();
+    setAnswersOpen(left <= 0);
+    if (left <= 0) return;
+    const timer = setTimeout(() => setAnswersOpen(true), left);
+    return () => clearTimeout(timer);
+  }, [game.startedAt]);
   const plays =
-    !!trackUrl && game.state === 'ANSWERING' && !game.paused && (!ownSound || mediaOver);
+    !!trackUrl &&
+    game.state === 'ANSWERING' &&
+    !game.paused &&
+    answersOpen &&
+    (!ownSound || mediaOver);
   const [track, setTrack] = useState<ReturnType<typeof loopTrack> | null>(null);
   useEffect(() => {
     if (!trackUrl) return;

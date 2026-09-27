@@ -202,6 +202,16 @@ describe('game sounds (#93)', () => {
     expect(played).toEqual([]);
   });
 
+  it('waits for the answers to open: never over the reading of the question', async () => {
+    const withTrack = { ...SOUNDS, musicUrl: '/api/v1/media/track-3' };
+    const reading = game({ startedAt: Date.now() + 300 });
+    renderHook(() => useGameSounds(withTrack, reading, true));
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(track).not.toContain('play'); // still reading
+    await vi.waitFor(() => expect(track.at(-1)).toBe('play'), { timeout: 2000 });
+  });
+
   it('comes back once the question’s own sound is over, not while the host holds it', async () => {
     const withTrack = { ...SOUNDS, musicUrl: '/api/v1/media/track-2' };
     const ownSound = { visual: null, audio: { url: '/a.m4a', durationMs: 2000 } } as never;

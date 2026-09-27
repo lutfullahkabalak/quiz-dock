@@ -106,7 +106,7 @@ export function OptionGrid({
             onClick={onPick ? () => onPick(o.id) : undefined}
             aria-pressed={onPick ? isPicked : undefined}
             className={cn(
-              'flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.6em] text-left leading-tight font-semibold text-white shadow transition',
+              'flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.45em] text-left leading-[1.1] font-semibold text-white shadow transition',
               // Five answers and more: lower tiles, so four rows still leave room above.
               many ? 'min-h-[2.6em]' : 'min-h-[3.25em]',
               long ? 'text-[0.95em]' : many ? 'text-[1em]' : 'text-[1.125em]',

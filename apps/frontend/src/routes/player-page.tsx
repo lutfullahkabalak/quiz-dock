@@ -156,6 +156,7 @@ export function PlayerPage() {
       media: view.question?.media,
       mediaStartAt: view.question?.mediaStartAt ?? null,
       endsAt: view.question?.endsAt ?? null,
+      startedAt: view.question?.startedAt ?? null,
       anchor:
         view.question && view.mediaControl?.questionIndex === view.question.questionIndex
           ? view.mediaControl
@@ -345,7 +346,10 @@ export function PlayerPage() {
             submit(numeric ? Number(freeValue) : freeValue.trim());
           }}
         >
+          {/* Shown once the answers open (the reading shows a message instead): the
+              focus goes straight to it, the phone's keyboard with it. */}
           <Input
+            autoFocus
             value={freeValue}
             onChange={(e) => setFreeValue(e.target.value)}
             type={numeric ? 'number' : 'text'}

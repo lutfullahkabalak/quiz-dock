@@ -241,7 +241,8 @@ interface sounds (to come) ───────────────► UI  
 - **The synthesised gong**: eight inharmonic sine partials (105–890 Hz, slightly detuned), the low ones louder, under a
   low-pass darkening from 7 kHz to 500 Hz over 2.5 s; no mallet noise — after a countdown it reads as one click
   too many.
-- **The background track** loops while players answer only. Between questions and while the game is paused it fades
+- **The background track** loops while players answer only — from the moment the answers open, never over the reading
+  (or the listening) of the question. Between questions and while the game is paused it fades
   out and **keeps its place**, then comes back where it was — never from the top at each question. It makes way for a
   question's own sound or video while that plays (§9).
 - **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
