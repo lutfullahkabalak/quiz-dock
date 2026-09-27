@@ -53,7 +53,9 @@ describe('GameSoundsPanel (#93)', () => {
       </QueryClientProvider>,
     );
     // Folded, the line says what is on.
-    expect(screen.getByText('Tic · Ding · Tic-tac · Gong')).toBeInTheDocument();
+    expect(
+      screen.getByText('Réponse reçue · Début de question · Compte à rebours · Fin du temps'),
+    ).toBeInTheDocument();
     const track = screen.getByRole('combobox', { name: 'Musique de fond pendant les réponses' });
     // Only the built-in choice and the way to the library: no list of every file.
     expect(screen.queryByRole('option', { name: 'My jingle' })).toBeNull();
@@ -64,14 +66,14 @@ describe('GameSoundsPanel (#93)', () => {
     fireEvent.change(track, { target: { value: '' } });
     expect(onChange).toHaveBeenCalledWith({ musicId: '' });
 
-    fireEvent.click(screen.getByRole('switch', { name: 'Un tic à chaque réponse' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Un son à chaque réponse' }));
     expect(onChange).toHaveBeenCalledWith({ tick: false });
     fireEvent.change(screen.getByRole('slider', { name: 'Effets' }), { target: { value: '30' } });
     expect(onChange).toHaveBeenCalledWith({ sfxLevel: 0.3 });
     // Every effect can be heard here first, the room does not hear it.
-    for (const name of ['Ding', 'Tic', 'Tic-tac', 'Gong']) {
+    for (const name of ['Début de question', 'Réponse reçue', 'Compte à rebours', 'Fin du temps']) {
       expect(
-        screen.getByRole('button', { name: `Écouter : ${name} (ici seulement)` }),
+        screen.getByRole('button', { name: `Écouter « ${name} » (ici seulement)` }),
       ).toBeInTheDocument();
     }
     // Each channel of the room has its own mute.

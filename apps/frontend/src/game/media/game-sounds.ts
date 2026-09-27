@@ -104,10 +104,14 @@ export function synthGong(at?: number): () => void {
   };
 }
 
+/** Where the ding's low-pass starts to soften: above its tone, under its brightest harmonics. */
+const DING_SOFTEN_HZ = 2600;
+
 /**
  * A ding as a question starts: one bright tone with two discreet harmonics for
  * the crystal (no low body, or it turns into a cowbell), and a short struck
- * transient for a clean attack.
+ * transient for a clean attack — all through a gentle low-pass that softens the
+ * highs without taking them away (a low Q: no resonance, a slow slope).
  */
 export function synthDing(at?: number): () => void {
   const mixer = getMixer();
@@ -117,7 +121,11 @@ export function synthDing(at?: number): () => void {
   const t = Math.max(at ?? 0, ctx.currentTime);
   const out = ctx.createGain();
   out.gain.value = 0.8;
-  out.connect(into);
+  const soften = ctx.createBiquadFilter();
+  soften.type = 'lowpass';
+  soften.frequency.value = DING_SOFTEN_HZ;
+  soften.Q.value = 0.5;
+  out.connect(soften).connect(into);
   const sources: AudioScheduledSourceNode[] = [];
   for (const { freq, level, decay } of [
     { freq: 1550, level: 1, decay: 1.1 },
