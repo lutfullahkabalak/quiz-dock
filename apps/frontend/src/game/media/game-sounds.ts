@@ -47,34 +47,95 @@ export function synthTick(): void {
   osc.stop(t + 0.08);
 }
 
-/** A gong: a few inharmonic partials struck together, with a long decay. */
-export function synthGong(): void {
+const noop = () => undefined;
+
+/**
+ * A gong: eight inharmonic sine partials, slightly detuned for a metallic sheen,
+ * the low ones louder, under a low-pass that darkens from 7 kHz to 500 Hz. No
+ * mallet noise: struck after a countdown, a noise attack reads as one click too
+ * many. `at` on the context's clock (now when omitted); the cancel stops it if it
+ * has not started yet.
+ */
+export function synthGong(at?: number): () => void {
   const mixer = getMixer();
   const into = busInput('sfx');
-  if (!mixer || !into) return;
+  if (!mixer || !into) return noop;
   const { ctx } = mixer;
-  const t = ctx.currentTime;
+  const t = Math.max(at ?? 0, ctx.currentTime);
   const out = ctx.createGain();
-  out.gain.setValueAtTime(0.0001, t);
-  out.gain.exponentialRampToValueAtTime(0.6, t + 0.01);
-  out.gain.exponentialRampToValueAtTime(0.0001, t + 2.8);
-  out.connect(into);
-  for (const [freq, level] of [
-    [98, 1],
-    [196.7, 0.5],
-    [262.3, 0.35],
-    [411.1, 0.2],
-  ] as const) {
+  out.gain.value = 0.8;
+  const lowpass = ctx.createBiquadFilter();
+  lowpass.type = 'lowpass';
+  lowpass.frequency.setValueAtTime(7000, t);
+  lowpass.frequency.exponentialRampToValueAtTime(500, t + 2.5);
+  out.connect(lowpass).connect(into);
+  const oscs: OscillatorNode[] = [];
+  [105, 168, 211, 337, 480, 551, 719, 890].forEach((freq, i) => {
     const osc = ctx.createOscillator();
-    const g = ctx.createGain();
     osc.type = 'sine';
-    osc.frequency.setValueAtTime(freq, t);
-    g.gain.value = level;
+    osc.frequency.value = freq * (1 + (Math.random() - 0.5) * 0.01);
+    const g = ctx.createGain();
+    const level = 0.75 / (i * 0.5 + 1);
+    const duration = 1.4 + Math.random() * 0.6;
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.001, t + duration);
     osc.connect(g).connect(out);
     osc.start(t);
-    osc.stop(t + 3);
-  }
+    osc.stop(t + duration + 0.1);
+    oscs.push(osc);
+  });
+  return () => {
+    if (ctx.currentTime < t) oscs.forEach((o) => o.stop());
+  };
 }
+
+/** One noise for every countdown click, drawn once from a fixed seed: each tic, each tac sounds the same. */
+const clickNoise = new WeakMap<BaseAudioContext, AudioBuffer>();
+function seededNoise(ctx: BaseAudioContext): AudioBuffer {
+  const known = clickNoise.get(ctx);
+  if (known) return known;
+  const size = Math.floor(ctx.sampleRate * 0.03);
+  const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
+  const data = buffer.getChannelData(0);
+  let seed = 0x2f6b1d3a;
+  for (let i = 0; i < size; i++) {
+    seed ^= seed << 13;
+    seed ^= seed >>> 17;
+    seed ^= seed << 5; // xorshift32
+    data[i] = ((seed >>> 0) / 0xffffffff) * 2 - 1;
+  }
+  clickNoise.set(ctx, buffer);
+  return buffer;
+}
+
+/** A mechanical click of the countdown: the fixed noise through a band-pass at `freq`, 30 ms. */
+export function synthClick(at: number, freq: number): () => void {
+  const mixer = getMixer();
+  const into = busInput('sfx');
+  if (!mixer || !into) return noop;
+  const { ctx } = mixer;
+  const t = Math.max(at, ctx.currentTime);
+  const noise = ctx.createBufferSource();
+  noise.buffer = seededNoise(ctx);
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = freq;
+  band.Q.value = 4;
+  const g = ctx.createGain();
+  g.gain.setValueAtTime(0.9, t);
+  g.gain.exponentialRampToValueAtTime(0.001, t + 0.03);
+  noise.connect(band).connect(g).connect(into);
+  noise.start(t);
+  return () => {
+    if (ctx.currentTime < t) noise.stop();
+  };
+}
+
+/** The countdown: tic on the second, tac on the half, over its last seconds. */
+const COUNTDOWN_S = 5;
+const TIC_HZ = 1800;
+const TAC_HZ = 1100;
 
 /** Decoded samples and tracks, fetched once per URL. */
 const decoded = new Map<string, Promise<AudioBuffer | null>>();
@@ -93,15 +154,27 @@ export function loadSound(url: string): Promise<AudioBuffer | null> {
   return loading;
 }
 
-/** Plays an effect: its sample when the room gave one, else the synthesised one. */
-async function playEffect(url: string | null, synth: () => void): Promise<void> {
-  if (!url) {
-    synth();
-    return;
-  }
-  const buffer = await loadSound(url);
-  if (buffer) playBuffer(buffer, 'sfx');
-  else synth(); // a sample that does not load: the room still hears something
+/**
+ * Plays an effect: its sample when the room gave one, else the synthesised one —
+ * now, or at `at` on the context's clock. Returns how to cancel it before it starts.
+ */
+function playEffect(
+  url: string | null,
+  synth: (at?: number) => (() => void) | void,
+  at?: number,
+): () => void {
+  if (!url) return synth(at) ?? noop;
+  let cancelled = false;
+  let cancel: () => void = noop;
+  void loadSound(url).then((buffer) => {
+    if (cancelled) return;
+    // A sample that does not load: the room still hears something.
+    cancel = buffer ? playBuffer(buffer, 'sfx', { at }) : (synth(at) ?? noop);
+  });
+  return () => {
+    cancelled = true;
+    cancel();
+  };
 }
 
 /** What the game's sounds follow of a live view. */
@@ -115,6 +188,8 @@ export interface GameSoundsState {
   mediaStartAt?: number | null;
   /** Where the host put it from the console, for this question. */
   anchor?: MediaAnchor | null;
+  /** When the question's time runs out, on the server's clock (`question:start`). */
+  endsAt?: number | null;
 }
 
 /**
@@ -158,6 +233,8 @@ export function useGameSounds(
     answered: 0,
   });
   const running = () => getMixer()?.ctx.state === 'running';
+  // The gong the countdown struck on zero, so the reveal does not strike it again.
+  const countdownGong = useRef<{ questionIndex: number; at: number } | null>(null);
 
   // The tick and the gong: from the changes of the view, not events of their own.
   useEffect(() => {
@@ -174,12 +251,54 @@ export function useGameSounds(
     const answering =
       game.state === 'ANSWERING' || (game.state === 'REVEAL' && prev.state === 'ANSWERING');
     if (sounds.tick && answering && sameQuestion && game.answered > prev.answered) {
-      void playEffect(sounds.tickUrl, synthTick);
+      playEffect(sounds.tickUrl, synthTick);
     }
-    if (sounds.gong && prev.state === 'ANSWERING' && game.state === 'REVEAL' && sameQuestion) {
-      void playEffect(sounds.gongUrl, synthGong);
+    // The gong at the reveal — unless the countdown already struck it at zero.
+    const struck = countdownGong.current?.questionIndex === game.questionIndex;
+    if (
+      sounds.gong &&
+      !struck &&
+      prev.state === 'ANSWERING' &&
+      game.state === 'REVEAL' &&
+      sameQuestion
+    ) {
+      playEffect(sounds.gongUrl, synthGong);
     }
   }, [on, sounds, game.state, game.questionIndex, game.answered]);
+
+  // The countdown: tic… tac… over the last five seconds of the time, on the server's
+  // clock, the last tac left out so a clear silence leads to the gong, struck on zero
+  // itself (the reveal comes a moment later). Everyone answered before the end, or a
+  // pause: what has not sounded yet is called off — the reveal brings the gong.
+  useEffect(() => {
+    const endsAt = game.endsAt;
+    if (!on || !sounds?.countdown || game.state !== 'ANSWERING' || game.paused || !endsAt) {
+      return;
+    }
+    const ctx = getMixer()?.ctx;
+    if (!ctx || ctx.state !== 'running') return;
+    const toCtx = (serverMs: number) => ctx.currentTime + (serverMs - serverNow()) / 1000;
+    const cancels: (() => void)[] = [];
+    const first = endsAt - COUNTDOWN_S * 1000;
+    // Ten half-beats, the last (a tac) left out.
+    for (let slot = 0; slot < COUNTDOWN_S * 2 - 1; slot++) {
+      const at = first + slot * 500;
+      // Already gone by (a question shorter than the countdown); one just due still sounds.
+      if (at < serverNow() - 50) continue;
+      cancels.push(synthClick(toCtx(at), slot % 2 === 0 ? TIC_HZ : TAC_HZ));
+    }
+    if (sounds.gong) {
+      cancels.push(playEffect(sounds.gongUrl, synthGong, toCtx(endsAt)));
+      countdownGong.current = { questionIndex: game.questionIndex, at: endsAt };
+    }
+    return () => {
+      cancels.forEach((cancel) => cancel());
+      // Called off before zero: the gong was not struck, the reveal strikes it.
+      if (countdownGong.current && countdownGong.current.at > serverNow()) {
+        countdownGong.current = null;
+      }
+    };
+  }, [on, sounds, game.state, game.paused, game.endsAt, game.questionIndex]);
 
   // The track: looped while players answer, never under a question's own sound or
   // video — two sounds are never laid over each other: it fades out as that media

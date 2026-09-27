@@ -281,7 +281,15 @@ export function playBuffer(
     gain = 1,
     fadeInS = FADE_IN_S,
     fadeOutS = FADE_OUT_S,
-  }: { loop?: boolean; gain?: number; fadeInS?: number; fadeOutS?: number } = {},
+    at,
+  }: {
+    loop?: boolean;
+    gain?: number;
+    fadeInS?: number;
+    fadeOutS?: number;
+    /** When it starts, on the context's clock; now when omitted. */
+    at?: number;
+  } = {},
 ): () => void {
   const m = getMixer();
   if (!m) return () => undefined;
@@ -290,13 +298,18 @@ export function playBuffer(
   source.loop = loop;
   const own = m.ctx.createGain();
   // In from silence: a sample that starts mid-wave does not click.
-  const t = m.ctx.currentTime;
+  const t = Math.max(at ?? 0, m.ctx.currentTime);
   own.gain.setValueAtTime(0, t);
   own.gain.linearRampToValueAtTime(gain, t + fadeInS);
   source.connect(own).connect(m.strips[bus].level);
-  source.start();
+  source.start(t);
   return () => {
     const now = m.ctx.currentTime;
+    // Scheduled and not started yet: it never plays.
+    if (now < t) {
+      source.stop();
+      return;
+    }
     own.gain.cancelScheduledValues(now);
     own.gain.setValueAtTime(own.gain.value, now);
     own.gain.linearRampToValueAtTime(0, now + fadeOutS);

@@ -158,6 +158,7 @@ export interface RoomMeta {
 export interface RoomSounds {
   tick: boolean;
   gong: boolean;
+  countdown: boolean;
   tickId: string;
   gongId: string;
   musicId: string;
@@ -170,10 +171,11 @@ export interface RoomSounds {
   sfxMuted: boolean;
 }
 
-/** A new room's sounds: the tick and the gong on, no track (SPECIFICATIONS-MEDIA §9). */
+/** A new room's sounds: the tick, the countdown and the gong on, no track (SPECIFICATIONS-MEDIA §9). */
 export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
   tick: true,
   gong: true,
+  countdown: true,
   tickId: '',
   gongId: '',
   musicId: '',

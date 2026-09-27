@@ -555,6 +555,7 @@ export class GameService {
     const next: RoomSounds = { ...room.sounds };
     if (typeof patch.tick === 'boolean') next.tick = patch.tick;
     if (typeof patch.gong === 'boolean') next.gong = patch.gong;
+    if (typeof patch.countdown === 'boolean') next.countdown = patch.countdown;
     if (typeof patch.musicMuted === 'boolean') next.musicMuted = patch.musicMuted;
     if (typeof patch.sfxMuted === 'boolean') next.sfxMuted = patch.sfxMuted;
     const level = (v: unknown, fallback: number) =>

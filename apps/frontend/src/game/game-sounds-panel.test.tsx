@@ -25,6 +25,7 @@ const item = (id: string, name: string) => ({
 const SOUNDS = {
   tick: true,
   gong: true,
+  countdown: true,
   tickUrl: null,
   gongUrl: null,
   musicUrl: null,
@@ -49,7 +50,7 @@ describe('GameSoundsPanel (#93)', () => {
       </QueryClientProvider>,
     );
     // Folded, the line says what is on.
-    expect(screen.getByText('Tic · Gong')).toBeInTheDocument();
+    expect(screen.getByText('Tic · Tic-tac · Gong')).toBeInTheDocument();
     const track = screen.getByRole('combobox', { name: 'Musique de fond pendant les réponses' });
     // Only the built-in choice and the way to the library: no list of every file.
     expect(screen.queryByRole('option', { name: 'My jingle' })).toBeNull();
