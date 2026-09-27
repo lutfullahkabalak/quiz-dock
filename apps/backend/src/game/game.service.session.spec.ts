@@ -113,6 +113,17 @@ describe('GameService: the hashes of a new session (integration)', () => {
     });
   });
 
+  it('opens a room with its game sounds off: the host turns on the ones they want', async () => {
+    const { pin } = await game.createSession(ownerId, { quizId });
+    pins.push(pin);
+    const sounds = JSON.parse((await redis.hget(gameKeys.room(pin), 'sounds'))!) as Record<
+      string,
+      unknown
+    >;
+    expect(sounds).toMatchObject({ tick: false, ding: false, countdown: false, gong: false });
+    expect(sounds.musicUrl).toBeNull();
+  });
+
   it('tells a player what joining asks, in one read of the room and its game', async () => {
     await expect(game.peek('000000')).rejects.toThrow('session.not_found');
     const { pin } = await game.createSession(ownerId, { quizId });

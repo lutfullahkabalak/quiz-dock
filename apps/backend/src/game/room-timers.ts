@@ -6,11 +6,25 @@ import type { Logger } from '@nestjs/common';
  * - `hostGrace` — the grace before the host is declared gone (§7.1);
  * - `hostWindow` — the host's reconnection window before the game ends (§7.3);
  * - `autoNext` — the next step in auto mode (§8);
- * - `mediaWait` — the cap of a wait for media, after which the step starts anyway.
+ * - `mediaWait` — the cap of a wait for media, after which the step starts anyway;
+ * - `answerCount` — the end of a window in which answers came in, their count then sent.
  */
-export type RoomTimerKind = 'reveal' | 'hostGrace' | 'hostWindow' | 'autoNext' | 'mediaWait';
+export type RoomTimerKind =
+  | 'reveal'
+  | 'hostGrace'
+  | 'hostWindow'
+  | 'autoNext'
+  | 'mediaWait'
+  | 'answerCount';
 
-const KINDS: RoomTimerKind[] = ['reveal', 'hostGrace', 'hostWindow', 'autoNext', 'mediaWait'];
+const KINDS: RoomTimerKind[] = [
+  'reveal',
+  'hostGrace',
+  'hostWindow',
+  'autoNext',
+  'mediaWait',
+  'answerCount',
+];
 
 /**
  * The live engine's timers, in this process. A timer only **triggers** a
