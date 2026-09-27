@@ -105,12 +105,12 @@ export function synthGong(at?: number): () => void {
 }
 
 /**
- * The ding's low-pass on a gentle slope — a biquad, 12 dB per octave; Web Audio
- * reads its Q in dB: −3 dB is flat, no bump. Well over the 300 Hz tone, it only
- * takes the edge off the strike's click; the gain after it is the level heard in
- * the Ding Lab, where these settings were chosen.
+ * The ding's low-pass, chosen by ear in the Ding Lab: far under the tone (300 Hz
+ * for 880 Hz) on a gentle slope — a biquad, 12 dB per octave; Web Audio reads its
+ * Q in dB: −3 dB is flat, no bump. Every partial comes out darker, the higher the
+ * more; +2.6 dB after it, as set in the lab.
  */
-const DING_SOFTEN_HZ = 925;
+const DING_SOFTEN_HZ = 300;
 /** How long the ding takes to reach its level: soft enough not to snap. */
 const DING_ATTACK_S = 0.008;
 const DING_SOFTEN_Q = -3;
@@ -118,8 +118,8 @@ const DING_SOFTEN_Q = -3;
 const DING_MAKEUP = 1.35;
 
 /**
- * A ding as a question starts: one low, round tone (300 Hz, chosen by ear in
- * the Ding Lab — 1550 Hz pierced, 1047 and 880 Hz were still bright) with two discreet overtones for the
+ * A ding as a question starts: one clear tone (A5, 880 Hz — the first ding's
+ * 1550 Hz pierced) with two discreet overtones for the
  * crystal (no low body, or it turns into a cowbell), an 8 ms attack and a faint
  * strike: struck, not snapped. All through a gentle low-pass.
  */
@@ -140,9 +140,9 @@ export function synthDing(at?: number): () => void {
   out.connect(soften).connect(makeup).connect(into);
   const sources: AudioScheduledSourceNode[] = [];
   for (const { freq, level, decay } of [
-    { freq: 300, level: 1, decay: 1.2 },
-    { freq: 445, level: 0.14, decay: 0.6 },
-    { freq: 609, level: 0.05, decay: 0.35 },
+    { freq: 880, level: 1, decay: 1.2 },
+    { freq: 1306, level: 0.14, decay: 0.6 },
+    { freq: 1787, level: 0.05, decay: 0.35 },
   ]) {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
