@@ -24,6 +24,8 @@ function Row({ label, children }: { label: string; children: ReactNode }) {
 export function QuestionProperties({ question: q }: { question: QuizDetailDtoQuestionsItem }) {
   const { t } = useTranslation(['editor', 'live']);
   const media = q.media;
+  // The wrong answers greyed, when the question has right ones (not a poll, not an order).
+  const markWrong = q.type !== 'ordering' && q.options.some((o) => o.isCorrect);
   const hasSound = !!media?.audio || media?.visual?.kind === 'video';
   // The types that have a scoring variant name theirs; the others have none to show.
   const scoringLabel = t(`questionForm.scoring.${q.type}.${q.scoring}`, { defaultValue: '' });
@@ -51,6 +53,7 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
                     className={cn(
                       'flex size-5 shrink-0 items-center justify-center rounded text-[0.7rem] text-white',
                       COLOR_BG[o.color] ?? OPTION_BG_FALLBACK,
+                      markWrong && !o.isCorrect && 'opacity-40 grayscale',
                     )}
                     aria-hidden
                   >
@@ -61,7 +64,13 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
                       {o.correctOrderIndex + 1}.
                     </span>
                   ) : null}
-                  <span className={cn('min-w-0 flex-1', o.isCorrect && 'font-medium')}>
+                  <span
+                    className={cn(
+                      'min-w-0 flex-1',
+                      o.isCorrect && 'font-medium',
+                      markWrong && !o.isCorrect && 'text-muted-foreground',
+                    )}
+                  >
                     {o.text || t('preview.optionFallback', { index: o.orderIndex + 1 })}
                   </span>
                   {o.isCorrect ? (

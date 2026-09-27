@@ -69,6 +69,7 @@ export function slideShowOf(
 /** A question laid out on the 1280×720 stage: fixed sizes, scaled with the box. */
 export function QuestionPreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
   const { t } = useTranslation('editor');
+  const markWrong = question.type !== 'ordering' && question.options.some((o) => o.isCorrect);
   return (
     // Centred, as the projection shows a question.
     <article className="flex h-full w-full flex-col items-center justify-center gap-5 p-12 text-center">
@@ -113,6 +114,8 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
                 'px-6 py-4 text-2xl',
                 COLOR_BG[opt.color] ?? OPTION_BG_FALLBACK,
                 opt.isCorrect && 'outline outline-2 outline-offset-2 outline-success',
+                // The wrong ones greyed, when the question has right ones (not a poll, not an order).
+                markWrong && !opt.isCorrect && 'opacity-40 grayscale',
               )}
             >
               <span className="text-3xl" aria-hidden="true">
