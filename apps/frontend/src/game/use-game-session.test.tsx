@@ -77,6 +77,15 @@ describe('useGameSession', () => {
     expect(result.current.view.players.map((p) => p.nickname)).toEqual(['Alice']);
   });
 
+  it('a new question starts at 0 answers, not at the last one’s count', async () => {
+    const { result } = renderHook(() => useGameSession('123456', 'host'));
+    await waitFor(() => expect(emitted.some((e) => e.event === 'host:attach')).toBe(true));
+    fire('question:start', { questionIndex: 0, startedAt: 0, endsAt: 1 });
+    fire('answer:count', { answered: 3, total: 3 });
+    fire('question:start', { questionIndex: 1, startedAt: 0, endsAt: 1 });
+    expect(result.current.view.answerCount).toEqual({ answered: 0, total: 3 });
+  });
+
   it('the room’s next quiz: its lobby clears the last quiz, keeps what came just before, and the quiz to rate', async () => {
     loadPlayerSession.mockReturnValue({ pin: '482913', sessionToken: 't', playerId: 'p1' });
     const { result } = renderHook(() => useGameSession('482913', 'player'));
