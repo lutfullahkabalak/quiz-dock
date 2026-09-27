@@ -25,7 +25,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { clearRoomPositions } from '../game/media/media-position';
+import { hasGameSounds, useRoomMedia } from '../game/media/use-room-media';
 import { Avatar } from '../game/avatar';
 import {
   joinSession,
@@ -55,12 +55,7 @@ import { ImageChoiceGrid } from '../game/image-choice';
 import { cn } from '@/lib/utils';
 import { Surface } from '../game/surface';
 import { unlockAudio } from '../game/media/audio-unlock';
-import {
-  claimMediaElements,
-  mediaElementsClaimed,
-  preloadMedia,
-  waitedFor,
-} from '../game/media/media-pool';
+import { claimMediaElements, mediaElementsClaimed } from '../game/media/media-pool';
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
 import { SlidePlaybackContext } from '../game/media/slide-media';
 import { RoomVariables } from '../game/slide-variables';
@@ -68,7 +63,6 @@ import { anchorOf, followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
 import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
 import { SoundButton } from '../game/media/sound-button';
-import { useGameSounds } from '../game/media/game-sounds';
 import { roomLabel } from '../game/room-components';
 import { useCountdown, useQuestionClock } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
@@ -165,30 +159,10 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   // The game's sounds (#93) on a remote phone, when the room's sound reaches remote
   // devices; on the big screen view (#104), the projection's surface plays them.
   const gameSoundsHere =
-    remote &&
-    view.gameAudioTarget !== 'projection' &&
-    !!view.sounds &&
-    (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
-  // A new lobby, a new game: the media positions of the room's last one are gone
-  // (its PIN stays; a quiz played again would read "played to the end" and stay silent).
-  useEffect(() => {
-    if (view.state === 'LOBBY') clearRoomPositions(pin);
-  }, [view.state, pin]);
-  useGameSounds(
-    view.sounds,
-    {
-      state: view.state,
-      questionIndex: view.questionIndex,
-      answered: view.answerCount?.answered ?? 0,
-      paused: view.paused,
-      media: view.question?.media,
-      mediaStartAt: view.question?.mediaStartAt ?? null,
-      endsAt: view.question?.endsAt ?? null,
-      startedAt: view.question?.startedAt ?? null,
-      anchor: view.question && anchorOf(view, { questionIndex: view.question.questionIndex }),
-    },
-    gameSoundsHere && !showScreen,
-  );
+    remote && view.gameAudioTarget !== 'projection' && hasGameSounds(view.sounds);
+  // What the next question will show or play here is fetched while the room waits,
+  // and the host's console hears when this device is ready to play it.
+  useRoomMedia(view, pin, socket, { sounds: gameSoundsHere && !showScreen, preload: 'ready' });
   const serverAvatar = view.players.find((p) => p.playerId === myId)?.avatar;
   const inLobby = view.state === null || view.state === 'LOBBY';
   // Graine déjà synchronisée vers le serveur (pour n'émettre que sur changement réel).
@@ -243,26 +217,6 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     setOrder(question?.options?.map((o) => o.id) ?? []);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- reset per question only
   }, [questionKey]);
-
-  // What the next question will show or play here, fetched while the room waits;
-  // the host's console hears when this device is ready to play it.
-  useEffect(() => {
-    const next = view.preload;
-    if (!next) return;
-    let cancelled = false;
-    void preloadMedia(next.media, next.images, next.videos).then((loaded) => {
-      if (!cancelled && loaded && waitedFor(next.media, next.videos)) {
-        socket?.emit('media:ready', {
-          pin,
-          questionIndex: next.questionIndex,
-          ...(next.slideIndex !== undefined ? { slideIndex: next.slideIndex } : {}),
-        });
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [view.preload, socket, pin]);
 
   const needsJoin = view.status === 'no-session';
   useEffect(() => {
