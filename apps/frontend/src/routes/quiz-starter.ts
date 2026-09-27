@@ -1,6 +1,6 @@
 import type { SlideGradient } from '@quiz-dock/contracts';
 import { questionsControllerAdd } from '../api/generated/questions/questions';
-import { slidesControllerAdd } from '../api/generated/slides/slides';
+import { slidesControllerAdd, slidesControllerReorderItems } from '../api/generated/slides/slides';
 
 /** Colour pairs a new quiz's intro may open on: dark enough for light text. */
 const GRADIENTS: [string, string][] = [
@@ -30,7 +30,15 @@ export async function addStarter(
   quizId: string,
   texts: { prompt: string; answer1: string; answer2: string },
 ): Promise<void> {
-  await slidesControllerAdd(quizId, {
+  const question = await questionsControllerAdd(quizId, {
+    type: 'single_choice',
+    prompt: texts.prompt,
+    options: [
+      { text: texts.answer1, color: 'red', shape: 'triangle', isCorrect: true },
+      { text: texts.answer2, color: 'blue', shape: 'diamond', isCorrect: false },
+    ],
+  });
+  const slide = await slidesControllerAdd(quizId, {
     blocks: [
       { type: 'heading', id: 'starter-title', text: '{title}', level: 1, align: 'center' },
       { type: 'text', id: 'starter-text', md: '{description}', align: 'center', size: 'large' },
@@ -39,12 +47,11 @@ export async function addStarter(
     textTone: 'light',
     textOutline: true,
   });
-  await questionsControllerAdd(quizId, {
-    type: 'single_choice',
-    prompt: texts.prompt,
-    options: [
-      { text: texts.answer1, color: 'red', shape: 'triangle', isCorrect: true },
-      { text: texts.answer2, color: 'blue', shape: 'diamond', isCorrect: false },
+  // A slide is added at the end: the intro goes first, before the question.
+  await slidesControllerReorderItems(quizId, {
+    items: [
+      { kind: 'slide', id: slide.data.id },
+      { kind: 'question', id: question.data.id },
     ],
   });
 }

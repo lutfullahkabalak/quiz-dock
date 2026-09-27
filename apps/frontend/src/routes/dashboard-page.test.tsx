@@ -180,8 +180,9 @@ describe('DashboardPage', () => {
   it('crée un quiz au clic sur « Nouveau quiz », avec une slide d’intro et une question à compléter', async () => {
     const fetchMock = mockApi([
       { method: 'GET', path: '/quizzes', body: [] },
-      { method: 'POST', path: /\/slides$/, status: 201, body: {} },
-      { method: 'POST', path: /\/questions$/, status: 201, body: {} },
+      { method: 'POST', path: /\/slides$/, status: 201, body: { id: 'intro' } },
+      { method: 'POST', path: /\/questions$/, status: 201, body: { id: 'first' } },
+      { method: 'PATCH', path: /\/items\/reorder$/, body: [] },
       { method: 'POST', path: '/quizzes', status: 201, body: quiz({ id: 'fresh' }) },
     ]);
     renderApp('/quizzes');
@@ -193,7 +194,7 @@ describe('DashboardPage', () => {
       );
       return call ? JSON.parse(String(call[1]?.body)) : null;
     };
-    await waitFor(() => expect(bodyOf('questions')).not.toBeNull());
+    await waitFor(() => expect(bodyOf('slides')).not.toBeNull());
     // The intro names the quiz through its variables, on a gradient drawn at random.
     const slide = bodyOf('slides');
     expect(slide.blocks.map((b: { text?: string; md?: string }) => b.text ?? b.md)).toEqual([
@@ -201,6 +202,19 @@ describe('DashboardPage', () => {
       '{description}',
     ]);
     expect(slide.gradient.colors).toHaveLength(2);
+    // The intro first, then the question.
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.find(([url]) => String(url).endsWith('/quizzes/fresh/items/reorder')),
+      ).toBeTruthy(),
+    );
+    const reorder = fetchMock.mock.calls.find(([url]) =>
+      String(url).endsWith('/quizzes/fresh/items/reorder'),
+    );
+    expect(JSON.parse(String(reorder?.[1]?.body)).items).toEqual([
+      { kind: 'slide', id: 'intro' },
+      { kind: 'question', id: 'first' },
+    ]);
     expect(bodyOf('questions')).toMatchObject({
       type: 'single_choice',
       prompt: 'Votre question ?',
