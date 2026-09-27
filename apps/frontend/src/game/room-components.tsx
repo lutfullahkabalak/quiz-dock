@@ -54,21 +54,25 @@ export function RoomStandingsPanel({
 
 /**
  * The host picks the room's next quiz (`host:next-quiz`): from the podium (the
- * results of the quiz just played kept or not, as when ending), or from the
- * lobby (the quiz picked is replaced). Only the host's own quizzes that can be
- * played — `ready`, with a question — are offered: the server refuses the rest.
+ * results of the quiz just played kept or not, as when ending), from the lobby
+ * (the quiz picked is replaced), or during a quiz to close it (what was played
+ * so far kept or not). Only the host's own quizzes that can be played —
+ * `ready`, with a question — are offered: the server refuses the rest.
  */
 export function NextQuizButton({
   pin,
   socket,
-  fromPodium,
+  mode,
   currentQuizId,
 }: {
   pin: string;
   socket: GameSocket | null;
-  fromPodium: boolean;
+  mode: 'lobby' | 'podium' | 'close';
   currentQuizId: string | null;
 }) {
+  const fromPodium = mode === 'podium';
+  // Something was played: its results may be kept.
+  const offersArchive = mode !== 'lobby';
   const { t } = useTranslation(['live', 'common']);
   const [open, setOpen] = useState(false);
   const [quizId, setQuizId] = useState('');
@@ -85,7 +89,27 @@ export function NextQuizButton({
       (fromPodium || q.id !== currentQuizId),
   );
   const picked = playable.some((q) => q.id === quizId) ? quizId : '';
-  const label = fromPodium ? t('control.nextQuiz') : t('control.changeQuiz');
+  const label = t(
+    mode === 'podium'
+      ? 'control.nextQuiz'
+      : mode === 'close'
+        ? 'control.closeQuiz'
+        : 'control.changeQuiz',
+  );
+  const tooltip = t(
+    mode === 'podium'
+      ? 'control.nextQuizTooltip'
+      : mode === 'close'
+        ? 'control.closeQuizTooltip'
+        : 'control.changeQuizTooltip',
+  );
+  const description = t(
+    mode === 'podium'
+      ? 'control.nextQuizDescription'
+      : mode === 'close'
+        ? 'control.closeQuizDescription'
+        : 'control.changeQuizDescription',
+  );
 
   const confirm = async () => {
     if (!socket || !picked) return;
@@ -95,7 +119,7 @@ export function NextQuizButton({
       await emitWithAckOrError(socket, 'host:next-quiz', {
         pin,
         quizId: picked,
-        archive: fromPodium && archive,
+        archive: offersArchive && archive,
       });
       setOpen(false);
       setQuizId('');
@@ -108,7 +132,7 @@ export function NextQuizButton({
 
   return (
     <>
-      <Tooltip label={fromPodium ? t('control.nextQuizTooltip') : t('control.changeQuizTooltip')}>
+      <Tooltip label={tooltip}>
         <Button
           type="button"
           variant={fromPodium ? 'main-action' : 'outline'}
@@ -122,9 +146,7 @@ export function NextQuizButton({
         open={open}
         wide
         title={label}
-        description={
-          fromPodium ? t('control.nextQuizDescription') : t('control.changeQuizDescription')
-        }
+        description={description}
         confirmLabel={sending ? t('common:loading') : t('control.openQuiz')}
         cancelLabel={t('common:cancel')}
         confirmDisabled={!picked || sending}
@@ -144,7 +166,7 @@ export function NextQuizButton({
             playingId={fromPodium ? currentQuizId : null}
           />
         )}
-        {fromPodium ? (
+        {offersArchive ? (
           <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
             <input
               type="checkbox"
@@ -153,8 +175,12 @@ export function NextQuizButton({
               onChange={(e) => setArchive(e.target.checked)}
             />
             <span>
-              <span className="font-medium">{t('control.archiveLabel')}</span>
-              <span className="text-muted-foreground block">{t('control.archiveHint')}</span>
+              <span className="font-medium">
+                {t(mode === 'close' ? 'control.archiveSoFarLabel' : 'control.archiveLabel')}
+              </span>
+              <span className="text-muted-foreground block">
+                {t(mode === 'close' ? 'control.archiveSoFarHint' : 'control.archiveHint')}
+              </span>
             </span>
           </label>
         ) : null}

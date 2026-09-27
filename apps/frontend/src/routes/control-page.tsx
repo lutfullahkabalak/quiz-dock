@@ -437,12 +437,7 @@ export function ControlPage() {
           end={<EndGameButton label={t('control.stopSession')} onConfirm={endGame} />}
           nav={
             <>
-              <NextQuizButton
-                pin={pin}
-                socket={socket}
-                fromPodium={false}
-                currentQuizId={view.quizId}
-              />
+              <NextQuizButton pin={pin} socket={socket} mode="lobby" currentQuizId={view.quizId} />
               {screenButton}
             </>
           }
@@ -490,7 +485,12 @@ export function ControlPage() {
           ) : null}
         </div>
         <ActionBar
-          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+          end={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            </>
+          }
           primary={
             <Button type="button" variant="main-action" onClick={() => emit('host:next')}>
               <Play className="size-4" />
@@ -536,7 +536,12 @@ export function ControlPage() {
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+          end={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            </>
+          }
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -579,7 +584,12 @@ export function ControlPage() {
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+          end={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            </>
+          }
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -608,7 +618,7 @@ export function ControlPage() {
           end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
           nav={navBar}
           primary={
-            <NextQuizButton pin={pin} socket={socket} fromPodium currentQuizId={view.quizId} />
+            <NextQuizButton pin={pin} socket={socket} mode="podium" currentQuizId={view.quizId} />
           }
         />
       </section>
@@ -710,7 +720,12 @@ export function ControlPage() {
       <QuestionCarousel outline={view.outline} currentIndex={view.questionIndex} />
 
       <ActionBar
-        end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+        end={
+          <>
+            <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+            <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+          </>
+        }
         primary={
           <Button type="button" onClick={() => emit('host:reveal')}>
             <Eye className="size-4" />

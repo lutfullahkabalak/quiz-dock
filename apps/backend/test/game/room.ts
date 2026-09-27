@@ -112,35 +112,42 @@ export function roomTests(ctx: GameContext): void {
     ).resolves.toBeUndefined();
   });
 
-  it('refuses the next quiz mid-question, and opens it once on a double click', async () => {
+  it('closes a quiz mid-way for the next one: kept as interrupted and counted, or dropped', async () => {
+    const second = await ctx.h.seedQuiz({ title: 'Next one' });
+
+    // Kept: what was played so far is archived (interrupted) and counts in the room.
     const host = connect({ localUser: 'Animateur' });
     const pin = await ctx.h.createGame(host, ctx.quizId);
     const { socket: player } = await ctx.h.join(pin, 'Nico');
-    const second = await ctx.h.seedQuiz({ title: 'Next one' });
-
-    const start = nextEvent<QuestionStart>(player, 'question:start');
-    const reveal = nextEvent(player, 'question:reveal');
-    host.emit('host:start', { pin });
-    const q = await start;
-    const refused = nextEvent<{ code: string }>(host, 'error');
-    host.emit('host:next-quiz', { pin, quizId: second.id });
-    expect((await refused).code).toBe('session.next_quiz_unavailable');
-
-    await settle(Math.max(0, q.startedAt - Date.now()) + 50);
-    const paris = q.options.find((o) => o.text === 'Paris')!.id;
-    player.emit('player:submit', { pin, questionIndex: 0, answer: paris });
-    await reveal;
-    await toPodium(host, pin, player);
+    const [played] = await playParis(host, pin, [player]);
+    const points = played.yourResult!.points;
+    expect(points).toBeGreaterThan(0);
     const firstGame = (await game.getMeta(pin))!.id;
+    const lobby = stateEvent(player, 'LOBBY');
     // Two clicks: one archive, one new game.
     host.emit('host:next-quiz', { pin, quizId: second.id, archive: true });
     await nextQuiz(host, pin, second.id, true);
+    await lobby;
     await settle(200);
     const meta = (await game.getMeta(pin))!;
+    expect(meta).toMatchObject({ quizId: second.id, state: 'LOBBY' });
     expect(meta.id).not.toBe(firstGame);
-    expect(meta.quizId).toBe(second.id);
-    expect(await ctx.h.prisma.gameSessionLog.count({ where: { pin } })).toBe(1);
+    const sessions = await ctx.h.prisma.gameSessionLog.findMany({ where: { pin } });
+    expect(sessions.map((x) => x.status)).toEqual(['interrupted']);
+    const standings = await game.standings(pin);
+    expect(standings.quizzesPlayed).toBe(1);
+    expect(standings.ranked[0]).toMatchObject({ score: points });
     await ctx.h.prisma.gameSessionLog.deleteMany({ where: { pin } });
+
+    // Dropped: nothing of it stays, neither in History nor in the room's standings.
+    const host2 = connect({ localUser: 'Animateur' });
+    const pin2 = await ctx.h.createGame(host2, ctx.quizId);
+    const { socket: player2 } = await ctx.h.join(pin2, 'Zoe');
+    await playParis(host2, pin2, [player2]);
+    await nextQuiz(host2, pin2, second.id, false);
+    expect(await game.getMeta(pin2)).toMatchObject({ quizId: second.id, state: 'LOBBY' });
+    expect(await ctx.h.prisma.gameSessionLog.count({ where: { pin: pin2 } })).toBe(0);
+    expect((await game.standings(pin2)).quizzesPlayed).toBe(0);
   });
 
   it('someone joining at the podium waits for the next quiz, then plays it', async () => {

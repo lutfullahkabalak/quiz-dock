@@ -1560,22 +1560,33 @@ export class GameEngine {
   }
 
   /**
-   * `host:next-quiz`: the room plays `quizId` next, from its lobby. Allowed in
-   * the lobby (the quiz picked is replaced, nothing was played) or at the podium
-   * (`archive` keeps the results of the quiz just played, as `host:end` does).
+   * `host:next-quiz`: the room plays `quizId` next, from its lobby. In the lobby
+   * the quiz picked is replaced (nothing was played); at the podium `archive`
+   * keeps the results of the quiz just played, as `host:end` does. During a quiz
+   * the host closes it: `archive` keeps what was played so far (archived as
+   * interrupted, counted in the room's standings), otherwise nothing of it stays.
    * The players stay in, at 0; every screen is sent the new lobby.
    */
   async nextQuiz(pin: string, hostUserId: string, quizId: string, archive = false): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
-    if (meta.state !== GameState.Lobby && meta.state !== GameState.Podium) {
+    if (meta.state === GameState.Ended) {
       throw new BadRequestException('session.next_quiz_unavailable');
     }
+    const midQuiz = meta.state !== GameState.Lobby && meta.state !== GameState.Podium;
     // Checked before anything is archived: a quiz that cannot be played changes nothing.
     const snapshot = await this.game.snapshotFor(pin, quizId);
     const lock = gameKeys.advanceLock(meta.id, 'next-quiz');
     if ((await this.redis.set(lock, '1', 'EX', GAME_TTL_S, 'NX')) !== 'OK') return; // double click
     try {
       if (archive && meta.state === GameState.Podium) await this.archiveAsked(pin, meta);
+      if (midQuiz) {
+        // Closed before its end. Archived first: a failed write throws with nothing moved
+        // (the quiz goes on, the host can retry); then no answer is scored any more.
+        if (archive) await this.archiveAsked(pin, meta, true);
+        this.cancelAllTimers(pin);
+        await this.redis.hset(gameKeys.game(meta.id), { state: GameState.Ended });
+        if (archive) await this.foldGame(refOf(pin, meta), meta);
+      }
       this.cancelAllTimers(pin);
       await this.game.openGameWith(pin, snapshot);
     } catch (err) {
@@ -1593,9 +1604,9 @@ export class GameEngine {
    * a failed write is thrown and nothing is destroyed (the host can retry) — no
    * silent loss. A quiz deleted meanwhile will never archive: say so and go on.
    */
-  private async archiveAsked(pin: string, meta: GameMeta): Promise<void> {
+  private async archiveAsked(pin: string, meta: GameMeta, interrupted = false): Promise<void> {
     try {
-      await this.archive.archive(pin, meta, { interrupted: false });
+      await this.archive.archive(pin, meta, { interrupted });
     } catch (err) {
       if (!isForeignKeyViolation(err)) throw err;
       this.log.warn(`Session ${pin}: quiz ${meta.quizId} no longer exists, ended without archive`);
