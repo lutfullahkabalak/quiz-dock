@@ -203,7 +203,7 @@ export class GameEngine {
    * and auto-paced sessions would stop advancing. Re-arm them from Redis.
    */
   private async recoverTimers(): Promise<void> {
-    const keys = await this.redis.keys(gameKeys.room('*'));
+    const keys = await this.redis.scanKeys(gameKeys.room('*'));
     let armed = 0;
     for (const key of keys) {
       if (!ROOM_HASH_KEY.test(key)) continue;

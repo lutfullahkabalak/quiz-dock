@@ -15,7 +15,7 @@ describe('MediaLibraryService (integration)', () => {
   let dir: string;
   let ownerId: string;
   const env = process.env;
-  const redis = { keys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
+  const redis = { scanKeys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
 
   const png = (tag: string) =>
     Buffer.concat([

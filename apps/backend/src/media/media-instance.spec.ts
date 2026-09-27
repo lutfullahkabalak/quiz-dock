@@ -19,7 +19,7 @@ describe('Instance media and dimensions (integration)', () => {
   let adminId: string;
   let hostId: string;
   const env = process.env;
-  const redis = { keys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
+  const redis = { scanKeys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
   const janitor = { last: jest.fn(async () => null) } as unknown as MediaJanitor;
 
   /** A real PNG header (IHDR), then a tag so every file differs. */

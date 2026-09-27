@@ -732,7 +732,7 @@ export class MediaService implements OnModuleInit {
    * media). An ended session keeps its keys until they expire, but plays nothing.
    */
   private async liveSnapshots(): Promise<string[]> {
-    const keys = await this.redis.keys(gameKeys.snapshot('*' as GameId));
+    const keys = await this.redis.scanKeys(gameKeys.snapshot('*' as GameId));
     if (keys.length === 0) return [];
     const games = keys.map((k) => k.split(':')[1] as GameId);
     const states = await Promise.all(
@@ -743,7 +743,9 @@ export class MediaService implements OnModuleInit {
       ? (await this.redis.mget(...live)).filter((v): v is string => typeof v === 'string')
       : [];
     // An open room's game sounds (#93): its track and samples play there too.
-    const rooms = (await this.redis.keys(gameKeys.room('*'))).filter((k) => ROOM_HASH_KEY.test(k));
+    const rooms = (await this.redis.scanKeys(gameKeys.room('*'))).filter((k) =>
+      ROOM_HASH_KEY.test(k),
+    );
     const sounds = await Promise.all(rooms.map((k) => this.redis.hget(k, 'sounds')));
     return [...snapshots, ...sounds.filter((v): v is string => typeof v === 'string')];
   }

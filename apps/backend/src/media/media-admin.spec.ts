@@ -20,7 +20,7 @@ describe('MediaAdminService (integration)', () => {
   let alice: string;
   let bob: string;
   const env = process.env;
-  const redis = { keys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
+  const redis = { scanKeys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
   const janitor = { last: jest.fn(async () => null), run: jest.fn(async () => null) };
 
   const png = (tag: string) =>
@@ -160,7 +160,7 @@ describe('MediaAdminService (integration)', () => {
   it('refuses to delete a file while a session plays it', async () => {
     const a = await upload(alice, 'playing.webp');
     const playing = {
-      keys: jest.fn(async () => ['game:123456:snapshot']),
+      scanKeys: jest.fn(async () => ['game:123456:snapshot']),
       hget: jest.fn(async () => 'ANSWERING'),
       mget: jest.fn(async () => [`{"media":{"url":"/api/v1/media/${a.mediaId}"}}`]),
     } as unknown as RedisService;

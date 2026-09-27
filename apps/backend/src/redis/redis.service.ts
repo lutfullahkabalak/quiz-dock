@@ -17,6 +17,21 @@ export class RedisService extends Redis implements OnModuleDestroy {
     this.on('error', (err) => this.log.error(`Redis: ${err.message}`));
   }
 
+  /**
+   * Every key matching `pattern`, read a batch at a time (SCAN): unlike KEYS, it
+   * never holds Redis — and every game's commands — while it walks a large base.
+   */
+  async scanKeys(pattern: string): Promise<string[]> {
+    const found = new Set<string>(); // SCAN may return a key twice
+    let cursor = '0';
+    do {
+      const [next, keys] = await this.scan(cursor, 'MATCH', pattern, 'COUNT', 500);
+      for (const key of keys) found.add(key);
+      cursor = next;
+    } while (cursor !== '0');
+    return [...found];
+  }
+
   async onModuleDestroy(): Promise<void> {
     await this.quit();
   }

@@ -28,7 +28,7 @@ const meta = (over: Partial<GameMeta>): GameMeta =>
 /** Timers are process-local: after a restart the engine re-arms them from Redis. */
 describe('GameEngine.recoverTimers (bindServer)', () => {
   const build = (metas: Record<string, GameMeta>) => {
-    const redis = { keys: jest.fn(async () => Object.keys(metas).map((p) => `room:${p}`)) };
+    const redis = { scanKeys: jest.fn(async () => Object.keys(metas).map((p) => `room:${p}`)) };
     const game = { getMeta: jest.fn(async (pin: string) => metas[pin] ?? null) };
     const engine = new GameEngine(
       game as unknown as GameService,

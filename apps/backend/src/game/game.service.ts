@@ -813,16 +813,22 @@ export class GameService {
    * (`host:{id}:games`) : un hôte voit les siennes, l'administrateur voit tout.
    */
   async listAllActiveGames(): Promise<ActiveGame[]> {
-    const keys = await this.redis.keys(gameKeys.hostGames('*'));
+    const hostIds = (await this.redis.scanKeys(gameKeys.hostGames('*'))).map(
+      (k) => k.split(':')[1],
+    );
+    // Their names in one query, not one per host.
+    const names = new Map(
+      (
+        await this.prisma.user.findMany({
+          where: { id: { in: hostIds } },
+          select: { id: true, displayName: true },
+        })
+      ).map((u) => [u.id, u.displayName]),
+    );
     const games: ActiveGame[] = [];
-    for (const key of keys) {
-      const hostUserId = key.split(':')[1];
-      const host = await this.prisma.user.findUnique({
-        where: { id: hostUserId },
-        select: { displayName: true },
-      });
+    for (const hostUserId of hostIds) {
       for (const game of await this.listActiveHostGames(hostUserId)) {
-        games.push({ ...game, host: host?.displayName ?? hostUserId });
+        games.push({ ...game, host: names.get(hostUserId) ?? hostUserId });
       }
     }
     return games;

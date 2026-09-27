@@ -80,14 +80,14 @@ describe('MediaService', () => {
   let prisma: ReturnType<typeof makePrisma>;
   let service: MediaService;
   const redis = {
-    keys: jest.fn(async () => [] as string[]),
+    scanKeys: jest.fn(async () => [] as string[]),
     mget: jest.fn(async () => []),
     hget: jest.fn(async () => 'ANSWERING' as string | null),
   };
 
   beforeEach(() => {
     prisma = makePrisma();
-    redis.keys.mockResolvedValue([]);
+    redis.scanKeys.mockResolvedValue([]);
     service = new MediaService(
       prisma as unknown as PrismaService,
       redis as unknown as RedisService,
@@ -263,7 +263,7 @@ describe('MediaService', () => {
 
     it('keeps a media a session is playing, from its frozen snapshot', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
-      redis.keys.mockResolvedValue([`game:${GAME}:snapshot`]);
+      redis.scanKeys.mockResolvedValue([`game:${GAME}:snapshot`]);
       redis.hget.mockResolvedValueOnce('ANSWERING');
       redis.mget.mockResolvedValue(['{"media":{"url":"/api/v1/media/m1"}}'] as never);
       await service.releaseUnused(['m1']);
@@ -274,7 +274,7 @@ describe('MediaService', () => {
 
     it('lets go of a media once its session has ended, keys or not', async () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
-      redis.keys.mockResolvedValue([`game:${GAME}:snapshot`]);
+      redis.scanKeys.mockResolvedValue([`game:${GAME}:snapshot`]);
       redis.hget.mockResolvedValueOnce('ENDED');
       redis.mget.mockResolvedValue(['{"media":{"url":"/api/v1/media/m1"}}'] as never);
       await service.releaseUnused(['m1']);
