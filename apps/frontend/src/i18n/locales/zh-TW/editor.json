@@ -320,7 +320,7 @@
     "promptImageNotice": "題幹中的這張圖片放在題目媒體中會更好：在所有螢幕上都有合適的框，可在手機上放大，並會預先載入。",
     "promptImageMove": "移到媒體",
     "imagesLegend": "圖片",
-    "imageCountLabel": "圖片",
+    "imageCountLabel": "數量",
     "multiSelectLabel": "多個正確答案",
     "multiSelectHint": "參與者勾選所有正確圖片後送出——依多選題計分。",
     "imageCropNote": "每張圖片會裁切以填滿其方塊，與投影顯示一致。",

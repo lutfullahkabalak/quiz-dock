@@ -100,7 +100,8 @@
       "text_input": "Text",
       "numeric": "Numeric",
       "ordering": "Order",
-      "poll": "Poll"
+      "poll": "Poll",
+      "image_choice": "Pictures"
     },
     "previousStep": "Previous",
     "nextStep": "Next",
@@ -355,7 +356,10 @@
     "multiple_choice_partial": "Several correct answers — each right tick counts, each wrong one cancels one.",
     "ordering_partial": "Put the options in the right order — every right position counts.",
     "text_input_lenient": "Type your answer — small typos are forgiven.",
-    "fixed": "Fixed points"
+    "fixed": "Fixed points",
+    "image_choice": "One right picture — pick it.",
+    "image_choice_multi": "Several right pictures — tick them all, then submit. All or nothing.",
+    "image_choice_multi_partial": "Several right pictures — each right tick counts, each wrong one cancels one."
   },
   "preview": {
     "note": "Read-only preview of what a participant sees right now.",

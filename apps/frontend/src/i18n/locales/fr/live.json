@@ -100,7 +100,8 @@
       "text_input": "Saisie",
       "numeric": "Numérique",
       "ordering": "Ordre",
-      "poll": "Sondage"
+      "poll": "Sondage",
+      "image_choice": "Images"
     },
     "previousStep": "Précédent",
     "nextStep": "Suivant",
@@ -355,7 +356,10 @@
     "multiple_choice_partial": "Plusieurs bonnes réponses — chaque bonne case compte, chaque mauvaise en annule une.",
     "ordering_partial": "Remets les options dans le bon ordre — chaque bonne position compte.",
     "text_input_lenient": "Tape ta réponse — les petites fautes sont pardonnées.",
-    "fixed": "Points fixes"
+    "fixed": "Points fixes",
+    "image_choice": "Une seule bonne image — choisis-la.",
+    "image_choice_multi": "Plusieurs bonnes images — coche-les toutes, puis valide. Tout ou rien.",
+    "image_choice_multi_partial": "Plusieurs bonnes images — chaque bonne case compte, chaque mauvaise en annule une."
   },
   "preview": {
     "note": "Aperçu en lecture seule de ce qu’un participant voit en ce moment.",

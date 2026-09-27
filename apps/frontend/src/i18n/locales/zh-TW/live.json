@@ -100,7 +100,8 @@
       "text_input": "文字輸入",
       "numeric": "數字輸入",
       "ordering": "排序題",
-      "poll": "投票題"
+      "poll": "投票題",
+      "image_choice": "圖片題"
     },
     "previousStep": "上一步",
     "nextStep": "下一步",
@@ -355,7 +356,10 @@
     "multiple_choice_partial": "有多個正確答案——每個正確勾選計分，每個錯誤勾選抵消一個。",
     "ordering_partial": "把選項按正確順序排列——每個正確位置都計分。",
     "text_input_lenient": "輸入你的答案——小的拼字錯誤可以原諒。",
-    "fixed": "固定積分"
+    "fixed": "固定積分",
+    "image_choice": "只有一張正確圖片——選出它。",
+    "image_choice_multi": "多張正確圖片——全部勾選後送出。全對才得分。",
+    "image_choice_multi_partial": "多張正確圖片——每勾對一項得分，每勾錯一項抵銷一項。"
   },
   "preview": {
     "note": "參與者此刻所見的唯讀預覽。",

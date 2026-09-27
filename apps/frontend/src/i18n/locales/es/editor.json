@@ -320,7 +320,7 @@
     "promptImageNotice": "Esta imagen del enunciado estaría mejor en los medios de la pregunta: encuadrada en todas las pantallas, ampliable en los teléfonos, cargada de antemano.",
     "promptImageMove": "Mover a los medios",
     "imagesLegend": "Imágenes",
-    "imageCountLabel": "Imágenes",
+    "imageCountLabel": "Cantidad",
     "multiSelectLabel": "Varias respuestas correctas",
     "multiSelectHint": "Los participantes marcan todas las imágenes correctas y envían — se puntúa como una opción múltiple.",
     "imageCropNote": "Cada imagen se recorta para llenar su casilla, como la muestra la proyección.",

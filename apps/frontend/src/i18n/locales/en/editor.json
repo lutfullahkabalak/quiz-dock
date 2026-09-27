@@ -320,7 +320,7 @@
     "promptImageNotice": "This image in the prompt would be better in the question’s media: framed on every screen, zoomable on phones, loaded ahead.",
     "promptImageMove": "Move to the media",
     "imagesLegend": "Pictures",
-    "imageCountLabel": "Pictures",
+    "imageCountLabel": "How many",
     "multiSelectLabel": "Several right answers",
     "multiSelectHint": "Participants tick every right picture, then submit — scored like a multiple choice.",
     "imageCropNote": "Each picture is cropped to fill its tile, as the projection shows it.",

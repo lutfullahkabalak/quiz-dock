@@ -320,7 +320,7 @@
     "promptImageNotice": "Cette image de l’énoncé serait mieux dans les médias de la question : cadrée sur tous les écrans, agrandissable sur les téléphones, chargée à l’avance.",
     "promptImageMove": "Déplacer dans les médias",
     "imagesLegend": "Images",
-    "imageCountLabel": "Images",
+    "imageCountLabel": "Nombre",
     "multiSelectLabel": "Plusieurs bonnes réponses",
     "multiSelectHint": "Les participants cochent toutes les bonnes images puis valident — noté comme un QCM multi-réponses.",
     "imageCropNote": "Chaque image est recadrée pour remplir sa tuile, comme la projection l’affiche.",
