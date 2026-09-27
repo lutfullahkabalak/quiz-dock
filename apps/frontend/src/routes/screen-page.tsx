@@ -106,6 +106,7 @@ export function ScreenSurface({
   socket,
   role,
   sound = true,
+  embedded = false,
 }: {
   pin: string;
   view: GameView;
@@ -113,6 +114,11 @@ export function ScreenSurface({
   role: ScreenRole;
   /** Whether a `follow` copy plays the sound (the others decide by their role). */
   sound?: boolean;
+  /**
+   * Shown inside a participant's page (their switch to the big screen): no fullscreen,
+   * which would hide the way back to their answers.
+   */
+  embedded?: boolean;
 }) {
   const { t } = useTranslation('live');
   const playMedia = role === 'lead';
@@ -200,18 +206,19 @@ export function ScreenSurface({
   // This screen's own sound (#93): the projection, or a copy that plays it.
   const soundButton = role === 'lead' || (role === 'follow' && sound);
 
-  const fullscreenBtn = supported ? (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      className="absolute right-4 top-4"
-      aria-label={isFullscreen ? t('screen.exitFullscreen') : t('screen.fullscreen')}
-      onClick={() => void toggle()}
-    >
-      {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
-    </Button>
-  ) : null;
+  const fullscreenBtn =
+    supported && !embedded ? (
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="absolute right-4 top-4"
+        aria-label={isFullscreen ? t('screen.exitFullscreen') : t('screen.fullscreen')}
+        onClick={() => void toggle()}
+      >
+        {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
+      </Button>
+    ) : null;
 
   const counter =
     view.answerCount && view.state === 'ANSWERING' ? (

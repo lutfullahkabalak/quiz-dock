@@ -617,6 +617,7 @@ export function PlayerPage() {
           socket={socket}
           role="follow"
           sound={presence === 'remote' && !muted}
+          embedded
         />
       </div>
     );
