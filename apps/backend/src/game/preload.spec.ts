@@ -116,35 +116,32 @@ describe('preloadFor', () => {
 });
 
 describe('slideMediaForDevice (#125)', () => {
+  const song = {
+    url: '/song.m4a',
+    durationMs: 5000,
+    peaks: [],
+    gainDb: 0,
+    size: 'hidden' as const,
+  };
   const slide = {
     beforeQuestionIndex: 0,
     background: null,
-    backgroundVideo: { url: '/bg.mp4', loop: true, sound: false, gainDb: 0 },
-    blocks: [
-      { type: 'audio', id: 'a', mediaId: 'm', url: '/song.m4a', size: 'M', durationMs: 5000 },
-      {
-        type: 'video',
-        id: 'v',
-        mediaId: 'n',
-        url: '/clip.mp4',
-        size: 'large',
-        align: 'center',
-        sound: false,
-      },
-    ],
+    blocks: [],
+    video: { url: '/clip.mp4', loop: true, sound: false, gainDb: 0 },
+    audio: song,
   } as unknown as SnapshotSlide;
-  const song = expect.objectContaining({ url: '/song.m4a' });
 
-  it('gives a screen the sound and every muted video', () => {
-    const own = slideMediaForDevice(slide, 'projection', 'screen');
-    expect(own.media.audio).toEqual(song);
-    expect(own.videos).toEqual(['/clip.mp4', '/bg.mp4']);
+  it('gives a screen the sound and the muted video', () => {
+    expect(slideMediaForDevice(slide, 'projection', 'screen')).toEqual({
+      media: { visual: null, audio: song },
+      videos: ['/clip.mp4'],
+    });
   });
 
-  it('gives a remote participant the videos, and the sound only when it is theirs', () => {
+  it('gives a remote participant the video, and the sound only when it is theirs', () => {
     expect(slideMediaForDevice(slide, 'projection', 'remote')).toEqual({
       media: { visual: null, audio: null },
-      videos: ['/clip.mp4', '/bg.mp4'],
+      videos: ['/clip.mp4'],
     });
     expect(slideMediaForDevice(slide, 'projection_remote', 'remote').media.audio).toEqual(song);
   });
@@ -154,8 +151,25 @@ describe('slideMediaForDevice (#125)', () => {
       media: { visual: null, audio: null },
       videos: [],
     });
-    const everyone = slideMediaForDevice(slide, 'everyone', 'room');
-    expect(everyone.media.audio).toEqual(song);
-    expect(everyone.videos).toEqual([]);
+    expect(slideMediaForDevice(slide, 'everyone', 'room')).toEqual({
+      media: { visual: null, audio: song },
+      videos: [],
+    });
+  });
+
+  it('a video with its sound: muted for a remote participant it is not meant for', () => {
+    const loud = {
+      ...slide,
+      audio: null,
+      video: { ...slide.video!, sound: true },
+    } as SnapshotSlide;
+    expect(slideMediaForDevice(loud, 'projection', 'remote')).toEqual({
+      media: { visual: null, audio: null },
+      videos: ['/clip.mp4'],
+    });
+    expect(slideMediaForDevice(loud, 'everyone', 'room').media.visual).toMatchObject({
+      kind: 'video',
+      url: '/clip.mp4',
+    });
   });
 });

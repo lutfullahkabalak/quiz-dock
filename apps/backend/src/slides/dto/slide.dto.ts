@@ -1,5 +1,5 @@
 import { createZodDto } from 'nestjs-zod';
-import { AUDIO_TARGETS } from '@quiz-dock/contracts';
+import { AUDIO_TARGETS, WAVEFORM_SIZES } from '@quiz-dock/contracts';
 import { z } from 'zod';
 import { gradientSchema, slideBlockSchema } from './slide-content.schema';
 
@@ -10,11 +10,14 @@ export const slideSchema = z.object({
   beforeQuestionId: z.string().nullable(),
   orderIndex: z.number().int(),
   blocks: z.array(slideBlockSchema),
-  /** Full-cover background media, if any: an image or a video. */
+  /** Full-cover background image, if any. */
   mediaId: z.string().nullable(),
   gradient: gradientSchema.nullable(),
-  backgroundLoop: z.boolean(),
-  backgroundSound: z.boolean(),
+  videoMediaId: z.string().nullable(),
+  videoLoop: z.boolean(),
+  videoSound: z.boolean(),
+  audioMediaId: z.string().nullable(),
+  waveformSize: z.enum(WAVEFORM_SIZES),
   audioTarget: z.enum(AUDIO_TARGETS).nullable(),
   textTone: z.enum(['light', 'dark']),
   textOutline: z.boolean(),

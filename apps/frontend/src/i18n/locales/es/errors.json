@@ -109,5 +109,8 @@
     "language": "El idioma del cuestionario no es válido.",
     "tags": "Añade al menos una etiqueta antes de exportar para publicar.",
     "too_large": "El cuestionario es demasiado grande para el catálogo comunitario."
+  },
+  "slide": {
+    "two_sounds": "Una diapositiva reproduce un solo sonido a la vez: silencia su vídeo o quita su sonido."
   }
 }

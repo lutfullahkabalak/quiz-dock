@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
-import { fadeElement, muteElementForFade, routeElement } from './audio-mixer';
+import { TRACK_FADE_S, fadeElement, muteElementForFade, routeElement } from './audio-mixer';
 import { unlockAudio, useAudioUnlocked } from './audio-unlock';
 import { releaseMedia, takeMedia } from './media-pool';
 import { clearPosition, readPosition, resumeAt, writePosition } from './media-position';
@@ -25,6 +25,8 @@ export type StageAnchor = MediaAnchor & { seq: number };
 
 export interface FollowedPosition {
   questionIndex: number;
+  /** The sound of a slide (#125), not of the question. */
+  slideIndex?: number;
   t: number;
   playing: boolean;
   /** `performance.now()` at reception. */
@@ -86,11 +88,15 @@ function usePositionReport(
 /** A late device jumps to the common position only when this far from it (s). */
 const SYNC_TOLERANCE_S = 0.3;
 
-/** Puts the element at `t` seconds — once its length is known, and within it. */
+/**
+ * Puts the element at `t` seconds — once its length is known, and within it; a
+ * looped one (a slide's background, #125) at where its loop has come round to.
+ */
 function seekTo(el: HTMLMediaElement, t: number) {
   const apply = () => {
     const end = Number.isFinite(el.duration) ? el.duration : Infinity;
-    if (t < end && Math.abs(el.currentTime - t) > SYNC_TOLERANCE_S) el.currentTime = t;
+    const at = el.loop && end > 0 && end !== Infinity ? t % end : t;
+    if (at < end && Math.abs(el.currentTime - at) > SYNC_TOLERANCE_S) el.currentTime = at;
   };
   if (el.readyState >= HTMLMediaElement.HAVE_METADATA) apply();
   else el.addEventListener('loadedmetadata', apply, { once: true });
@@ -117,7 +123,10 @@ function usePlayback(
   silent = false,
   /** The common start of the media, on the server's clock (null: start at once). */
   startAt: number | null = null,
+  /** A bed (a slide's looped background, #125): long fades, like the room's track. */
+  bed = false,
 ) {
+  const fadeS = bed ? TRACK_FADE_S : undefined;
   const [blocked, setBlocked] = useState<Blocked>(null);
   const [slow, setSlow] = useState(false);
   // Sound unlocked meanwhile (the projection's overlay): what was refused plays now.
@@ -141,6 +150,7 @@ function usePlayback(
       jump();
       return;
     }
+    // A host's jump stays quick, even on a bed: out, jump, back in.
     const token = ++fading.current;
     void fadeElement(el, 'out').then(() => {
       if (fading.current !== token) return;
@@ -158,7 +168,7 @@ function usePlayback(
         el.pause();
         return;
       }
-      void fadeElement(el, 'out').then(() => {
+      void fadeElement(el, 'out', fadeS).then(() => {
         if (fading.current === token) el.pause();
       });
       return;
@@ -193,12 +203,12 @@ function usePlayback(
       if (fromSilence) muteElementForFade(el);
       if (!cancelled) await el.play();
       if (!cancelled) setBlocked(null);
-      void fadeElement(el, 'in');
+      void fadeElement(el, 'in', fadeS);
     };
     const go = () =>
       start().catch((err: DOMException) => {
         // Refused after the silence a fade starts from: back to its level.
-        void fadeElement(el, 'in');
+        void fadeElement(el, 'in', fadeS);
         if (cancelled || err.name !== 'NotAllowedError') return;
         if (el instanceof HTMLVideoElement) {
           // Picture without sound beats nothing: the room still sees the question.
@@ -223,7 +233,7 @@ function usePlayback(
       window.clearTimeout(startTimer);
       el.removeEventListener('playing', onPlaying);
     };
-  }, [el, mode, gainDb, positionKey, unlocked, silent, startAt, anchor]);
+  }, [el, mode, gainDb, positionKey, unlocked, silent, startAt, anchor, fadeS]);
 
   const enableSound = async () => {
     if (!el) return;
@@ -233,7 +243,7 @@ function usePlayback(
     try {
       await el.play();
       setBlocked(null);
-      void fadeElement(el, 'in');
+      void fadeElement(el, 'in', fadeS);
     } catch {
       // Still refused: the indicator stays, the host can try again.
     }
@@ -248,11 +258,13 @@ function useMediaElement(
   url: string | null,
   still: boolean,
   positionKey: string | null,
+  /** Never plays sound here: the phone's own element is left for the media that does. */
+  mutedElement = false,
 ) {
   const [el, setEl] = useState<HTMLMediaElement | null>(null);
   useEffect(() => {
     if (!url) return;
-    const media = takeMedia(tag, url);
+    const media = takeMedia(tag, url, { muted: mutedElement });
     if (still) {
       media.muted = true;
       media.preload = 'metadata';
@@ -272,7 +284,7 @@ function useMediaElement(
       releaseMedia(media);
       setEl(null);
     };
-  }, [tag, url, still, positionKey]);
+  }, [tag, url, still, positionKey, mutedElement]);
   return el;
 }
 
@@ -302,7 +314,7 @@ function SlowNotice() {
   );
 }
 
-function VideoBox({
+export function VideoBox({
   url,
   mode,
   gainDb,
@@ -313,6 +325,10 @@ function VideoBox({
   catchUp,
   onPosition,
   startAt,
+  loop = false,
+  cover = false,
+  notices = true,
+  mutedElement = false,
 }: {
   url: string;
   mode: StageMode;
@@ -324,10 +340,23 @@ function VideoBox({
   catchUp?: FollowedPosition | null;
   onPosition?: (t: number, playing: boolean) => void;
   startAt: number | null;
+  /** Runs as long as it shows, with long fades — a slide's background (#125). */
+  loop?: boolean;
+  /** Fills its box, cropped (a background), rather than fitting in it. */
+  cover?: boolean;
+  /** Says under the picture what went wrong (sound refused, slow); off behind a slide. */
+  notices?: boolean;
+  /** It never plays sound on this device (a slide's muted video, #125). */
+  mutedElement?: boolean;
 }) {
   const box = useRef<HTMLDivElement>(null);
   const key = resumeKey && `${resumeKey}:${url}`;
-  const el = useMediaElement('video', url, mode === 'still', key);
+  const el = useMediaElement('video', url, mode === 'still', key, mutedElement);
+  // Looped before it plays (this effect runs first): a late device lands where the loop
+  // has come round to.
+  useEffect(() => {
+    if (el) el.loop = loop;
+  }, [el, loop]);
   const { blocked, slow, enableSound } = usePlayback(
     el,
     mode,
@@ -336,6 +365,7 @@ function VideoBox({
     key,
     silent,
     startAt,
+    loop,
   );
   // Without a common start (an older server), a late device follows the projection instead;
   // never over the host's anchor.
@@ -344,20 +374,20 @@ function VideoBox({
 
   useEffect(() => {
     if (!el || !box.current) return;
-    el.className = 'absolute inset-0 h-full w-full object-contain';
+    el.className = cn('absolute inset-0 h-full w-full', cover ? 'object-cover' : 'object-contain');
     box.current.appendChild(el);
-  }, [el]);
+  }, [el, cover]);
 
   return (
     <>
       <div ref={box} className={cn('relative aspect-video max-w-full', boxClassName)} />
-      {blocked ? <SoundNotice kind="video" onEnable={() => void enableSound()} /> : null}
-      {slow ? <SlowNotice /> : null}
+      {notices && blocked ? <SoundNotice kind="video" onEnable={() => void enableSound()} /> : null}
+      {notices && slow ? <SlowNotice /> : null}
     </>
   );
 }
 
-function AudioTrack({
+export function AudioTrack({
   audio,
   mode,
   resumeKey,

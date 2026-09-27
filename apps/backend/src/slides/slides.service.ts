@@ -116,8 +116,11 @@ export class SlidesService {
       blocks: dto.blocks,
       mediaId: dto.mediaId || null,
       gradient: dto.gradient ?? Prisma.JsonNull,
-      backgroundLoop: dto.backgroundLoop,
-      backgroundSound: dto.backgroundSound,
+      videoMediaId: dto.videoMediaId || null,
+      videoLoop: dto.videoLoop,
+      videoSound: dto.videoSound,
+      audioMediaId: dto.audioMediaId || null,
+      waveformSize: dto.waveformSize,
       audioTarget: dto.audioTarget ?? null,
       textTone: dto.textTone,
       textOutline: dto.textOutline,
@@ -138,7 +141,14 @@ export class SlidesService {
   private async assertSlideOwned(ownerId: string, slideId: string) {
     const slide = await this.prisma.slide.findFirst({
       where: { id: slideId, quiz: { ownerId } },
-      select: { id: true, quizId: true, blocks: true, mediaId: true },
+      select: {
+        id: true,
+        quizId: true,
+        blocks: true,
+        mediaId: true,
+        videoMediaId: true,
+        audioMediaId: true,
+      },
     });
     if (!slide) {
       throw new NotFoundException('slide.not_found');

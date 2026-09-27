@@ -19,16 +19,19 @@ export function Surface({
   // The subtitle-like halo is the design default: only an explicit `false` removes it.
   textOutline = true,
   className,
+  backdrop,
   children,
 }: {
   background: SlideBackground | null | undefined;
   textTone?: SlideTextTone;
   textOutline?: boolean;
   className?: string;
+  /** A layer drawn behind the content in place of an image — a slide's video (#125). */
+  backdrop?: ReactNode;
   children: ReactNode;
 }) {
   const light = textTone !== 'dark';
-  const has = Boolean(background);
+  const has = Boolean(background) || Boolean(backdrop);
   return (
     <div
       className={cn(
@@ -54,6 +57,11 @@ export function Surface({
             alt=""
             className="absolute inset-0 h-full w-full object-cover"
           />
+          <div className={cn('absolute inset-0', light ? 'bg-black/40' : 'bg-white/55')} />
+        </>
+      ) : backdrop ? (
+        <>
+          {backdrop}
           <div className={cn('absolute inset-0', light ? 'bg-black/40' : 'bg-white/55')} />
         </>
       ) : null}

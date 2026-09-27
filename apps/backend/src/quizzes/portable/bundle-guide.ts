@@ -90,17 +90,19 @@ export const GUIDE_FIELDS = {
     described: ['kind', 'blocks'],
     left: [
       'backgroundImage',
-      'backgroundVideo',
-      'backgroundLoop',
-      'backgroundSound',
       'backgroundGradient',
       'textTone',
       'textOutline',
+      'video',
+      'videoLoop',
+      'videoSound',
+      'audio',
+      'waveformSize',
       'audioTarget',
       'displayDelayS',
     ],
   },
-  block: { described: ['heading', 'text'], left: ['image', 'video', 'audio', 'columns'] },
+  block: { described: ['heading', 'text'], left: ['image', 'columns'] },
 } as const;
 
 /** What each type asks for, beyond the fields every question shares. */

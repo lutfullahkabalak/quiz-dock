@@ -36,10 +36,7 @@ import type {
 } from './game.types';
 import {
   QUIZ_SNAPSHOT_INCLUDE,
-  type QuizWithContent,
-  type SlideAssets,
   buildSnapshot,
-  slideBlockMediaIds,
   refreshSnapshotForm,
   snapshotHasSound,
 } from './snapshot';
@@ -290,19 +287,11 @@ export class GameService {
     if (quiz.questions.length < 1) {
       throw new BadRequestException('quiz.empty');
     }
-    const snapshot = buildSnapshot(quiz, await this.slideAssetsOf(quiz));
+    const snapshot = buildSnapshot(quiz);
     // Frozen with the rest: a licence's attribution is owed for what was played.
     const credits = (await this.mediaLibrary?.creditsOf(quiz.id)) ?? [];
     if (credits.length > 0) snapshot.credits = credits;
     return snapshot;
-  }
-
-  /** The assets of the slides' Video and Sound blocks (#125): their URL, gain, length, waveform. */
-  private async slideAssetsOf(quiz: QuizWithContent): Promise<SlideAssets> {
-    const ids = slideBlockMediaIds(quiz);
-    if (ids.length === 0) return new Map();
-    const assets = await this.prisma.mediaAsset.findMany({ where: { id: { in: ids } } });
-    return new Map(assets.map((a) => [a.id, a]));
   }
 
   /** Queues a new game's state, in the lobby (its players come with the room's switch). */
@@ -620,7 +609,7 @@ export class GameService {
       include: QUIZ_SNAPSHOT_INCLUDE,
     });
     if (!quiz) return frozen;
-    const refreshed = refreshSnapshotForm(frozen, quiz, await this.slideAssetsOf(quiz));
+    const refreshed = refreshSnapshotForm(frozen, quiz);
     await this.redis.set(gameKeys.snapshot(gameId), JSON.stringify(refreshed), 'KEEPTTL');
     return refreshed;
   }

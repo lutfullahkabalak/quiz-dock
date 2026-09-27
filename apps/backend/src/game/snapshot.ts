@@ -43,7 +43,10 @@ const quizWithContent = Prisma.validator<Prisma.QuizDefaultArgs>()({
         acceptedAnswers: true,
       },
     },
-    slides: { orderBy: { orderIndex: 'asc' }, include: { media: true } },
+    slides: {
+      orderBy: { orderIndex: 'asc' },
+      include: { media: true, videoMedia: true, audioMedia: true },
+    },
   },
 });
 /** Whether a question plays a sound: an MP3, or a video's own track. */
@@ -51,7 +54,7 @@ export function questionHasSound(q: SnapshotQuestion): boolean {
   return !!q.media?.audio || q.media?.visual?.kind === 'video';
 }
 
-/** Whether a slide plays a sound: a Sound block, a Video block or a background with theirs (#125). */
+/** Whether a slide plays a sound: its own, or its video's (#125). */
 export function slideHasSound(slide: SnapshotSlide): boolean {
   return slideSoundMedia(slide) !== null;
 }
@@ -103,11 +106,7 @@ const readDelayMs = () => Number(process.env.GAME_READ_DELAY_MS ?? READ_DELAY_MS
  * (secret serveur) et les réponses texte normalisées. La boucle live ne touche
  * plus la base après cet appel.
  */
-export function buildSnapshot(
-  quiz: QuizWithContent,
-  /** The assets the slides' blocks point at (see {@link slideBlockMediaIds}). */
-  slideAssets: SlideAssets = new Map(),
-): QuizSnapshot {
+export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
   return {
     quizId: quiz.id,
     title: quiz.title,
@@ -163,7 +162,7 @@ export function buildSnapshot(
         })),
       }),
     ),
-    slides: buildSnapshotSlides(quiz, slideAssets),
+    slides: buildSnapshotSlides(quiz),
   };
 }
 
@@ -171,10 +170,10 @@ export function buildSnapshot(
  * Slides (#7) resolved onto question indexes: anchored before the question they
  * reference, or after the last one when unanchored. Sorted by (anchor, orderIndex).
  */
-function buildSnapshotSlides(quiz: QuizWithContent, assets: SlideAssets): SnapshotSlide[] {
+function buildSnapshotSlides(quiz: QuizWithContent): SnapshotSlide[] {
   const indexById = new Map(quiz.questions.map((q, i) => [q.id, i]));
   return orderSlides(quiz.slides, indexById, quiz.questions.length).map(({ slide, anchor }) =>
-    snapshotSlide(slide, anchor, assets, quiz.loudnessTargetLufs, quiz.mediaTailS),
+    snapshotSlide(slide, anchor, quiz.loudnessTargetLufs, quiz.mediaTailS),
   );
 }
 
@@ -193,54 +192,47 @@ function orderSlides(
     .sort((a, b) => a.anchor - b.anchor || a.slide.orderIndex - b.slide.orderIndex);
 }
 
-/** The assets of the slides' Video and Sound blocks, by id (#125). */
-export type SlideAssets = Map<string, MediaAsset>;
-
-/** The media ids a quiz's slides' blocks point at: what {@link buildSnapshot} needs looked up. */
-export function slideBlockMediaIds(quiz: QuizWithContent): string[] {
-  const ids = new Set<string>();
-  for (const slide of quiz.slides) {
-    for (const b of (slide.blocks as SlideBlock[]).flatMap((x) =>
-      x.type === 'columns' ? x.columns.flat() : [x],
-    )) {
-      if (b.type === 'video' || b.type === 'audio') ids.add(b.mediaId);
-    }
-  }
-  return [...ids];
-}
-
 function snapshotSlide(
   slide: QuizWithContent['slides'][number],
   anchor: number,
-  assets: SlideAssets,
   targetLufs: number = LOUDNESS_TARGET_LUFS,
   mediaTailS = 0,
 ): SnapshotSlide {
   const gain = (m: MediaAsset) => playbackGainDb(m.loudnessLufs, m.peakDbfs, targetLufs);
-  const bg = slide.media;
-  const backgroundVideo =
-    bg?.kind === 'video'
-      ? {
-          url: bg.url,
-          loop: slide.backgroundLoop,
-          sound: slide.backgroundSound,
-          gainDb: gain(bg),
-          ...(bg.durationMs ? { durationMs: bg.durationMs } : {}),
-        }
-      : null;
-  const blocks = resolveBlocks(slide.blocks as SlideBlock[], assets, gain);
-  const timedMs = slideTimedMs({ blocks, backgroundVideo });
+  // Media (#125): a video of the right kind, and a sound only beside a muted one.
+  const v = slide.videoMedia?.kind === 'video' ? slide.videoMedia : null;
+  const a =
+    slide.audioMedia?.kind === 'audio' && !(v && slide.videoSound) ? slide.audioMedia : null;
+  const video = v
+    ? {
+        url: v.url,
+        loop: slide.videoLoop,
+        sound: slide.videoSound,
+        gainDb: gain(v),
+        ...(v.durationMs ? { durationMs: v.durationMs } : {}),
+      }
+    : null;
+  const audio = a
+    ? {
+        url: a.url,
+        durationMs: a.durationMs ?? 0,
+        peaks: a.peaks,
+        gainDb: gain(a),
+        size: slide.waveformSize,
+      }
+    : null;
+  const timedMs = slideTimedMs({ video, audio });
   return {
     id: slide.id,
     beforeQuestionIndex: anchor,
-    blocks,
-    background:
-      bg?.kind === 'image'
-        ? { url: bg.url }
-        : slide.gradient
-          ? { gradient: slide.gradient as unknown as SlideGradient }
-          : null,
-    backgroundVideo,
+    blocks: resolveBlocks(slide.blocks as SlideBlock[]),
+    background: slide.media
+      ? { url: slide.media.url }
+      : slide.gradient
+        ? { gradient: slide.gradient as unknown as SlideGradient }
+        : null,
+    video,
+    audio,
     audioTarget: slide.audioTarget ?? null,
     mediaHoldMs: timedMs === null ? null : timedMs + mediaTailS * 1000,
     textTone: slide.textTone as SlideTextTone,
@@ -249,30 +241,12 @@ function snapshotSlide(
   };
 }
 
-/**
- * Blocks with what the screens play them from: an image's served URL, a video's
- * or a sound's URL, loudness gain, length and waveform (#125). A Video or Sound
- * block whose asset is gone is left out — nothing to play.
- */
-function resolveBlocks(
-  blocks: SlideBlock[],
-  assets: SlideAssets,
-  gain: (m: MediaAsset) => number,
-): SlideBlock[] {
-  const leaf = (b: SlideLeafBlock): SlideLeafBlock[] => {
-    if (b.type === 'image') return [{ ...b, url: `/api/v1/media/${b.mediaId}` }];
-    if (b.type !== 'video' && b.type !== 'audio') return [b];
-    const asset = assets.get(b.mediaId);
-    if (!asset || asset.kind !== b.type) return [];
-    const common = {
-      url: asset.url,
-      gainDb: gain(asset),
-      ...(asset.durationMs ? { durationMs: asset.durationMs } : {}),
-    };
-    return b.type === 'video' ? [{ ...b, ...common }] : [{ ...b, ...common, peaks: asset.peaks }];
-  };
-  return blocks.flatMap((b): SlideBlock[] =>
-    b.type === 'columns' ? [{ ...b, columns: b.columns.map((c) => c.flatMap(leaf)) }] : leaf(b),
+/** Image blocks get their served URL so the clients never build one from an id. */
+function resolveBlocks(blocks: SlideBlock[]): SlideBlock[] {
+  const leaf = (b: SlideLeafBlock): SlideLeafBlock =>
+    b.type === 'image' ? { ...b, url: `/api/v1/media/${b.mediaId}` } : b;
+  return blocks.map((b) =>
+    b.type === 'columns' ? { ...b, columns: b.columns.map((c) => c.map(leaf)) } : leaf(b),
   );
 }
 
@@ -293,7 +267,8 @@ export function buildSlideShow(
     questionIndex: slide.beforeQuestionIndex,
     blocks: slide.blocks,
     background: slide.background,
-    ...(slide.backgroundVideo ? { backgroundVideo: slide.backgroundVideo } : {}),
+    ...(slide.video ? { video: slide.video } : {}),
+    ...(slide.audio ? { audio: slide.audio } : {}),
     ...(gameTarget && slideHasSound(slide)
       ? { audioTarget: slideAudioTarget(slide, gameTarget) }
       : {}),
@@ -361,12 +336,8 @@ export function buildQuestionStart(
  * (they carry no history). Questions are matched by id; a question deleted
  * meanwhile keeps its frozen version.
  */
-export function refreshSnapshotForm(
-  frozen: QuizSnapshot,
-  current: QuizWithContent,
-  slideAssets: SlideAssets = new Map(),
-): QuizSnapshot {
-  const fresh = buildSnapshot(current, slideAssets);
+export function refreshSnapshotForm(frozen: QuizSnapshot, current: QuizWithContent): QuizSnapshot {
+  const fresh = buildSnapshot(current);
   const freshById = new Map(fresh.questions.map((q) => [q.id, q]));
   const questions = frozen.questions.map((q): SnapshotQuestion => {
     const now = freshById.get(q.id);
@@ -385,7 +356,7 @@ export function refreshSnapshotForm(
   const indexById = new Map(frozen.questions.map((q, i) => [q.id, i]));
   const slides = orderSlides(current.slides, indexById, frozen.questions.length).map(
     ({ slide, anchor }) =>
-      snapshotSlide(slide, anchor, slideAssets, current.loudnessTargetLufs, current.mediaTailS),
+      snapshotSlide(slide, anchor, current.loudnessTargetLufs, current.mediaTailS),
   );
   return {
     ...frozen,

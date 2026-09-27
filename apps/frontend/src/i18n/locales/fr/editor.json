@@ -171,7 +171,15 @@
       "large": "L"
     },
     "titleEdit": "Modifier la slide",
-    "titleAdd": "Nouvelle slide"
+    "titleAdd": "Nouvelle slide",
+    "mediaLegend": "Médias de la slide",
+    "videoCover": "Remplit la slide derrière son contenu (recadrée à l’écran).",
+    "videoLoop": "Boucle",
+    "videoLoopHint": "Tourne tant que la slide est affichée. Désactivée : joue une fois et reste sur sa dernière image — en mode auto, la slide attend sa fin.",
+    "videoSound": "Son",
+    "videoSoundHint": "Joue le son de la vidéo. Désactivé : muette, et la slide peut avoir son propre son.",
+    "audioExcludesVideoSound": "La slide a déjà un son : un seul son à la fois. Retirez-le pour activer celui de la vidéo.",
+    "videoSoundExcludesAudio": "La vidéo joue son propre son : pas de son en plus. Coupez le son de la vidéo pour en ajouter un."
   },
   "discardConfirm": {
     "title": "Abandonner les modifications ?",

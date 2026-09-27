@@ -3,6 +3,7 @@ import type {
   AudioTarget,
   PlayerPresence,
   GameMode,
+  LiveAudio,
   LiveQuestionMedia,
   OptionColor,
   OptionShape,
@@ -12,7 +13,7 @@ import type {
   QuestionType,
   SessionNotice,
   SlideBackground,
-  SlideBackgroundVideo,
+  SlideVideo,
   SlideBlock,
   SlideTextTone,
 } from '@quiz-dock/contracts';
@@ -78,11 +79,13 @@ export interface SnapshotQuestion {
 export interface SnapshotSlide {
   id: string;
   beforeQuestionIndex: number;
-  /** Blocks with their media resolved: URLs, loudness gains, lengths, waveforms (#125). */
+  /** Blocks with image URLs resolved (the client never needs a media id). */
   blocks: SlideBlock[];
   background: SlideBackground | null;
-  /** A video filling the slide behind its content (#125); `background` is then null. */
-  backgroundVideo?: SlideBackgroundVideo | null;
+  /** A video filling the slide behind its content (#125), over its background. */
+  video?: SlideVideo | null;
+  /** The slide's sound (#125); never with a video that plays its own. */
+  audio?: LiveAudio | null;
   /** Who hears the slide's sound: its own target, null = the game's (#125). */
   audioTarget?: AudioTarget | null;
   /**

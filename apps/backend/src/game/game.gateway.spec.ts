@@ -5,6 +5,7 @@ import { mediaTests } from '../../test/game/media';
 import { questionLoopTests } from '../../test/game/question-loop';
 import { resilienceTests } from '../../test/game/resilience';
 import { roomTests } from '../../test/game/room';
+import { slideMediaTests } from '../../test/game/slide-media';
 import { timingTests } from '../../test/game/timing';
 
 /**
@@ -34,4 +35,5 @@ describe('GameGateway (intégration socket)', () => {
   describe('resilience', () => resilienceTests(ctx));
   describe('archive', () => archiveTests(ctx));
   describe('room', () => roomTests(ctx));
+  describe('slide media', () => slideMediaTests(ctx));
 });

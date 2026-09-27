@@ -223,7 +223,12 @@ export const TRACK_FADE_S = 1.5;
  * done. An element the mixer does not hold (no Web Audio, a context not running)
  * cannot fade: it resolves at once and plays or stops as it is.
  */
-export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<void> {
+export function fadeElement(
+  el: HTMLMediaElement,
+  to: 'in' | 'out',
+  /** How long it takes (s); the short attack or release when omitted. A bed passes TRACK_FADE_S. */
+  spanS?: number,
+): Promise<void> {
   const gain = routed.get(el);
   const m = mixer;
   if (!gain || !m) return Promise.resolve();
@@ -235,7 +240,7 @@ export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<voi
     gain.gain.value = target;
     return Promise.resolve();
   }
-  const span = to === 'in' ? FADE_IN_S : FADE_OUT_S;
+  const span = spanS ?? (to === 'in' ? FADE_IN_S : FADE_OUT_S);
   const t = m.ctx.currentTime;
   gain.gain.cancelScheduledValues(t);
   gain.gain.setValueAtTime(gain.gain.value, t);

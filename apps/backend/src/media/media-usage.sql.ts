@@ -23,7 +23,9 @@ export const QUIZ_MEDIA_REFS = Prisma.sql`
   SELECT x.quiz_id, o.media_id FROM answer_option o JOIN question x ON x.id = o.question_id
     WHERE o.media_id IS NOT NULL
   UNION ALL
-  SELECT s.quiz_id, s.media_id FROM slide s WHERE s.media_id IS NOT NULL
+  SELECT s.quiz_id, v.media_id FROM slide s
+    CROSS JOIN LATERAL (VALUES (s.media_id), (s.video_media_id), (s.audio_media_id)) v (media_id)
+    WHERE v.media_id IS NOT NULL
   UNION ALL
   SELECT q.id, r[1] FROM quiz q, regexp_matches(COALESCE(q.description, ''), ${MEDIA_ID}, 'g') r
   UNION ALL

@@ -59,7 +59,8 @@ import {
   waitedFor,
 } from '../game/media/media-pool';
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
-import { followed } from '../game/media/followed';
+import { SlidePlaybackContext } from '../game/media/slide-media';
+import { anchorOf, followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
 import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
 import { SoundButton } from '../game/media/sound-button';
@@ -163,10 +164,7 @@ export function PlayerPage() {
       mediaStartAt: view.question?.mediaStartAt ?? null,
       endsAt: view.question?.endsAt ?? null,
       startedAt: view.question?.startedAt ?? null,
-      anchor:
-        view.question && view.mediaControl?.questionIndex === view.question.questionIndex
-          ? view.mediaControl
-          : null,
+      anchor: view.question && anchorOf(view, { questionIndex: view.question.questionIndex }),
     },
     gameSoundsHere && !showScreen,
   );
@@ -228,9 +226,13 @@ export function PlayerPage() {
     const next = view.preload;
     if (!next) return;
     let cancelled = false;
-    void preloadMedia(next.media, next.images).then(() => {
-      if (!cancelled && waitedFor(next.media)) {
-        socket?.emit('media:ready', { pin, questionIndex: next.questionIndex });
+    void preloadMedia(next.media, next.images, next.videos).then((loaded) => {
+      if (!cancelled && loaded && waitedFor(next.media, next.videos)) {
+        socket?.emit('media:ready', {
+          pin,
+          questionIndex: next.questionIndex,
+          ...(next.slideIndex !== undefined ? { slideIndex: next.slideIndex } : {}),
+        });
       }
     });
     return () => {
@@ -627,12 +629,31 @@ export function PlayerPage() {
   // A slide is projected, not read: it breaks out of the phone column to the whole
   // viewport (width and height under the header), content centred.
   if (view.state === 'SLIDE_SHOW' && view.slide) {
+    const slide = view.slide;
+    const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
+    // Its media as a question's (#125): a remote participant sees the videos and hears
+    // the sound meant for them; a phone in the room plays only a sound meant for everyone.
+    const slideHears = !!slide.audioTarget && playsSound(slide.audioTarget, device);
     return (
       <div
         className={cn('-my-4 mx-[calc(50%-50vw)] flex min-h-[calc(100dvh-4rem)]', TYPE_BASE.phone)}
       >
         {participantBar}
-        <SlideView slide={view.slide} />
+        <SlidePlaybackContext.Provider
+          value={{
+            mode: view.nav?.review ? 'still' : view.paused ? 'pause' : 'play',
+            audible: slideHears,
+            muted,
+            startAt: slide.mediaStartAt ?? null,
+            anchor: anchorOf(view, step),
+            resumeKey: `${pin}:s${slide.slideIndex}`,
+            follow: slideHears ? undefined : followed(view, step),
+            catchUp: followed(view, step),
+            videos: remote,
+          }}
+        >
+          <SlideView key={slide.slideIndex} slide={slide} />
+        </SlidePlaybackContext.Provider>
       </div>
     );
   }
@@ -832,17 +853,13 @@ export function PlayerPage() {
               mode={view.paused ? 'pause' : 'play'}
               audible={hears}
               muted={muted}
-              follow={hears ? undefined : followed(view, question.questionIndex)}
-              catchUp={followed(view, question.questionIndex)}
+              follow={hears ? undefined : followed(view, { questionIndex: question.questionIndex })}
+              catchUp={followed(view, { questionIndex: question.questionIndex })}
               startAt={question.mediaStartAt ?? null}
               zoomable
               boxClassName="w-full max-h-[30dvh]"
               resumeKey={`${pin}:${question.questionIndex}`}
-              anchor={
-                view.mediaControl?.questionIndex === question.questionIndex
-                  ? view.mediaControl
-                  : null
-              }
+              anchor={anchorOf(view, { questionIndex: question.questionIndex })}
             />
           ) : (
             <>
@@ -852,7 +869,7 @@ export function PlayerPage() {
               {question.media?.audio && question.listenFirst ? (
                 <FollowedWaveform
                   audio={question.media.audio}
-                  follow={followed(view, question.questionIndex)}
+                  follow={followed(view, { questionIndex: question.questionIndex })}
                 />
               ) : null}
             </>

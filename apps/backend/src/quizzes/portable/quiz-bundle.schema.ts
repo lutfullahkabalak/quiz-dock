@@ -33,18 +33,9 @@ export const BUNDLE_FORMAT = 'quizdock/quiz';
  */
 export const BUNDLE_VERSION = 5;
 
-/** Whether a slide item uses what version 5 brought: media blocks, a video background, its own target. */
+/** Whether a slide item uses what version 5 brought: a video, a sound (#125). */
 function slideUsesMedia(it: SlideBundleItem): boolean {
-  if (it.backgroundVideo || it.audioTarget) return true;
-  const hasMediaBlock = (b: unknown): boolean => {
-    if (!b || typeof b !== 'object') return false;
-    const block = b as { type?: unknown; columns?: unknown };
-    if (block.type === 'columns' && Array.isArray(block.columns)) {
-      return block.columns.some((c) => Array.isArray(c) && c.some(hasMediaBlock));
-    }
-    return block.type === 'video' || block.type === 'audio';
-  };
-  return (it.blocks ?? []).some(hasMediaBlock);
+  return Boolean(it.video || it.audio);
 }
 
 /**
@@ -154,12 +145,16 @@ export const slideBundleSchema = z.object({
   kind: z.literal('slide'),
   blocks: z.array(z.unknown()).optional(),
   ...backgroundBundleFields,
-  /** An MP4 filling the slide behind its content (version 5), instead of an image. */
-  backgroundVideo: mediaPathSchema.nullable().optional(),
-  /** The video background loops (version 5); absent = yes. */
-  backgroundLoop: z.boolean().optional(),
-  /** The video background plays its own sound (version 5); absent = yes. */
-  backgroundSound: z.boolean().optional(),
+  /** An MP4 filling the slide behind its content (version 5). */
+  video: mediaPathSchema.optional(),
+  /** The video loops (version 5); absent = yes. */
+  videoLoop: z.boolean().optional(),
+  /** The video plays its own sound (version 5); absent = yes. Then no `audio`. */
+  videoSound: z.boolean().optional(),
+  /** The slide's sound (version 5). */
+  audio: mediaPathSchema.optional(),
+  /** How thick its waveform is drawn (version 5); absent = hidden. */
+  waveformSize: z.enum(WAVEFORM_SIZES).optional(),
   /** Which devices play the slide's sound (version 5); absent = the quiz's default. */
   audioTarget: z.enum(AUDIO_TARGETS).optional(),
   displayDelayS: z.number().int().nullable().optional(),

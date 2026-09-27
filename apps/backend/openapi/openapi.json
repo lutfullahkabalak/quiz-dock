@@ -3800,6 +3800,39 @@
                   ],
                   "nullable": true
                 },
+                "videoMediaId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "videoLoop": {
+                  "type": "boolean"
+                },
+                "videoSound": {
+                  "type": "boolean"
+                },
+                "audioMediaId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "waveformSize": {
+                  "type": "string",
+                  "enum": [
+                    "S",
+                    "M",
+                    "L",
+                    "hidden"
+                  ]
+                },
+                "audioTarget": {
+                  "type": "string",
+                  "enum": [
+                    "projection",
+                    "projection_remote",
+                    "everyone",
+                    null
+                  ],
+                  "nullable": true
+                },
                 "textTone": {
                   "type": "string",
                   "enum": [
@@ -3825,6 +3858,12 @@
                 "blocks",
                 "mediaId",
                 "gradient",
+                "videoMediaId",
+                "videoLoop",
+                "videoSound",
+                "audioMediaId",
+                "waveformSize",
+                "audioTarget",
                 "textTone",
                 "textOutline",
                 "displayDelayS"
@@ -7086,6 +7125,46 @@
             ],
             "nullable": true
           },
+          "videoMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "videoLoop": {
+            "default": true,
+            "type": "boolean"
+          },
+          "videoSound": {
+            "default": true,
+            "type": "boolean"
+          },
+          "audioMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "waveformSize": {
+            "default": "hidden",
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "hidden"
+            ]
+          },
+          "audioTarget": {
+            "type": "string",
+            "enum": [
+              "projection",
+              "projection_remote",
+              "everyone",
+              null
+            ],
+            "nullable": true
+          },
           "textTone": {
             "default": "light",
             "type": "string",
@@ -7481,6 +7560,39 @@
             ],
             "nullable": true
           },
+          "videoMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "videoLoop": {
+            "type": "boolean"
+          },
+          "videoSound": {
+            "type": "boolean"
+          },
+          "audioMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "waveformSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "hidden"
+            ]
+          },
+          "audioTarget": {
+            "type": "string",
+            "enum": [
+              "projection",
+              "projection_remote",
+              "everyone",
+              null
+            ],
+            "nullable": true
+          },
           "textTone": {
             "type": "string",
             "enum": [
@@ -7506,6 +7618,12 @@
           "blocks",
           "mediaId",
           "gradient",
+          "videoMediaId",
+          "videoLoop",
+          "videoSound",
+          "audioMediaId",
+          "waveformSize",
+          "audioTarget",
           "textTone",
           "textOutline",
           "displayDelayS"
@@ -7905,6 +8023,46 @@
             "required": [
               "angle",
               "colors"
+            ],
+            "nullable": true
+          },
+          "videoMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "videoLoop": {
+            "default": true,
+            "type": "boolean"
+          },
+          "videoSound": {
+            "default": true,
+            "type": "boolean"
+          },
+          "audioMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "waveformSize": {
+            "default": "hidden",
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "hidden"
+            ]
+          },
+          "audioTarget": {
+            "type": "string",
+            "enum": [
+              "projection",
+              "projection_remote",
+              "everyone",
+              null
             ],
             "nullable": true
           },

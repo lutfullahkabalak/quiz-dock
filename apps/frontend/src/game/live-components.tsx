@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar } from './avatar';
 import { Surface } from './surface';
+import { SlideSound, SlideVideoLayer } from './media/slide-media';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -627,6 +628,8 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
   return (
     <Surface
       background={slide.background}
+      // A video behind the content (#125), played as the screen's playback says.
+      backdrop={slide.video ? <SlideVideoLayer video={slide.video} /> : null}
       textTone={slide.textTone}
       textOutline={slide.textOutline}
       // No explicit height: a flex parent stretches it (`h-full` would opt out of stretching).
@@ -652,6 +655,8 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
             <SlideBlockView key={b.id} block={b} />
           ),
         )}
+        {/* Its sound (#125), under the content: drawn at its size, hidden by default. */}
+        {slide.audio ? <SlideSound audio={slide.audio} /> : null}
       </article>
     </Surface>
   );

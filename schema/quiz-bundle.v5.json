@@ -487,22 +487,28 @@
               "textOutline": {
                 "type": "boolean"
               },
-              "backgroundVideo": {
-                "anyOf": [
-                  {
-                    "type": "string",
-                    "pattern": "^media\\/[A-Za-z0-9][A-Za-z0-9._-]{0,120}$"
-                  },
-                  {
-                    "type": "null"
-                  }
+              "video": {
+                "type": "string",
+                "pattern": "^media\\/[A-Za-z0-9][A-Za-z0-9._-]{0,120}$"
+              },
+              "videoLoop": {
+                "type": "boolean"
+              },
+              "videoSound": {
+                "type": "boolean"
+              },
+              "audio": {
+                "type": "string",
+                "pattern": "^media\\/[A-Za-z0-9][A-Za-z0-9._-]{0,120}$"
+              },
+              "waveformSize": {
+                "type": "string",
+                "enum": [
+                  "S",
+                  "M",
+                  "L",
+                  "hidden"
                 ]
-              },
-              "backgroundLoop": {
-                "type": "boolean"
-              },
-              "backgroundSound": {
-                "type": "boolean"
               },
               "audioTarget": {
                 "type": "string",

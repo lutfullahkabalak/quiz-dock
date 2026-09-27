@@ -138,14 +138,12 @@ Contributors changing the bundle schema or a content schema run
 - `waveformSize` (version 3): how thick its sound's waveform is drawn — `S`,
   `M` (default) or `L`; `hidden` (version 4): not drawn on the projection nor
   the phones, only on the host's console (the sound still plays).
-- Slides with media (version 5): a `video` block (`media`: an MP4, `size` and
-  `align` as an image's, `sound`: `false` to play it muted) and an `audio` block
-  (`media`: a sound, `size`: its waveform, `S` / `M` / `L` / `hidden`); a
-  `backgroundVideo` (an MP4, instead of a `backgroundImage`) with
-  `backgroundLoop` and `backgroundSound` (both `true` when omitted); and the
-  slide's own `audioTarget`. A slide plays **one sound at most** — an `audio`
-  block, a `video` block with its sound, or the background video with its sound
-  — otherwise it is refused (`slide.two_sounds`).
+- Slides with media (version 5), set like a question's: `video` (an MP4 filling
+  the slide behind its content) with `videoLoop` and `videoSound` (both `true`
+  when omitted), `audio` (a sound) with its `waveformSize` (`hidden` when
+  omitted), and the slide's own `audioTarget`. A slide plays **one sound at
+  most**: a video with its sound and an `audio` together are refused
+  (`slide.two_sounds`).
 - Questions and slides follow the API content rules (question types and their
   fields, block types, colour/shape names, limits). Defaults apply when a
   field is omitted: `timeLimitS` 20, `pointsMode` standard, `textTone` light,

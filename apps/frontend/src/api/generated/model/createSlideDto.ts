@@ -5,9 +5,11 @@
  * API REST du builder de quiz et des restitutions
  * OpenAPI spec version: 0.1.0
  */
+import type { CreateSlideDtoAudioTarget } from './createSlideDtoAudioTarget';
 import type { CreateSlideDtoBlocksItem } from './createSlideDtoBlocksItem';
 import type { CreateSlideDtoGradient } from './createSlideDtoGradient';
 import type { CreateSlideDtoTextTone } from './createSlideDtoTextTone';
+import type { CreateSlideDtoWaveformSize } from './createSlideDtoWaveformSize';
 
 export interface CreateSlideDto {
   /** @maxItems 30 */
@@ -20,6 +22,23 @@ export interface CreateSlideDto {
   mediaId?: string | null;
   /** @nullable */
   gradient?: CreateSlideDtoGradient;
+  /**
+     * @minLength 26
+     * @maxLength 26
+     * @nullable
+     */
+  videoMediaId?: string | null;
+  videoLoop?: boolean;
+  videoSound?: boolean;
+  /**
+     * @minLength 26
+     * @maxLength 26
+     * @nullable
+     */
+  audioMediaId?: string | null;
+  waveformSize?: CreateSlideDtoWaveformSize;
+  /** @nullable */
+  audioTarget?: CreateSlideDtoAudioTarget;
   textTone?: CreateSlideDtoTextTone;
   textOutline?: boolean;
   /**

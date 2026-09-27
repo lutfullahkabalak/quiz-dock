@@ -15,7 +15,7 @@ export * from './question-media';
 export * from './quiz-terms';
 export * from './slide-media';
 import type { ParticipantAccess } from './preferences';
-import type { AudioTarget, LiveQuestionMedia, WaveformSize } from './question-media';
+import type { AudioTarget, LiveAudio, LiveQuestionMedia } from './question-media';
 
 export const CONTRACTS_VERSION = '0.3.0' as const;
 
@@ -254,32 +254,6 @@ export type SlideLeafBlock =
       url?: string;
       size: SlideImageSize;
       align: 'left' | 'center' | 'right';
-    }
-  | {
-      /** A video of the library (#125), sized and aligned like an image. */
-      type: 'video';
-      id: string;
-      mediaId: string;
-      url?: string;
-      size: SlideImageSize;
-      align: 'left' | 'center' | 'right';
-      /** Plays its own sound; false = muted (the slide's one sound is elsewhere). */
-      sound: boolean;
-      /** Live payload: the loudness correction and the length, when known. */
-      gainDb?: number;
-      durationMs?: number;
-    }
-  | {
-      /** A sound of the library (#125), drawn as its waveform. */
-      type: 'audio';
-      id: string;
-      mediaId: string;
-      url?: string;
-      size: WaveformSize;
-      /** Live payload: the loudness correction, the length and the waveform. */
-      gainDb?: number;
-      durationMs?: number;
-      peaks?: number[];
     };
 export type SlideBlock =
   | SlideLeafBlock
@@ -301,12 +275,12 @@ export interface SlideGradient {
 export type SlideBackground = { url: string } | { gradient: SlideGradient };
 
 /**
- * A slide's video background (#125), filling the slide behind its content.
+ * A slide's video (#125), filling the slide behind its content (cover).
  * `loop`: it runs as long as the slide shows (else it plays once and stays on
- * its last frame); `sound`: it plays its own sound (else muted, the slide's
- * sound left to a block).
+ * its last frame); `sound`: it plays its own sound (else muted, and the slide
+ * may have a sound of its own).
  */
-export interface SlideBackgroundVideo {
+export interface SlideVideo {
   url: string;
   loop: boolean;
   sound: boolean;
@@ -330,8 +304,10 @@ export interface SlideShowPayload {
   textOutline: boolean;
   /** Auto-mode display time: null = engine default, 0 = the host clicks, else seconds. */
   displayDelayS: number | null;
-  /** A video filling the slide behind its content (#125); `background` is then null. */
-  backgroundVideo?: SlideBackgroundVideo | null;
+  /** A video filling the slide behind its content (#125), over its background. */
+  video?: SlideVideo | null;
+  /** The slide's sound (#125); never with a video that plays its own. */
+  audio?: LiveAudio | null;
   /** Which devices play the slide's sound, resolved for this game (present when it has one). */
   audioTarget?: AudioTarget;
   /** When every device starts the slide's videos and sound (server ms epoch; present when it has some). */
@@ -347,13 +323,13 @@ export interface MediaPreloadPayload {
   questionIndex: number;
   /** The step is the slide `slideIndex` (shown before question `questionIndex`). */
   slideIndex?: number;
-  /** A question's media; for a slide, its one sound-bearing media (see `slideSoundMedia`). */
+  /** A question's media; for a slide, its sound-bearing media (see `slideSoundMedia`). */
   media: LiveQuestionMedia;
   /** Which devices will play its sound (present when it has one). */
   audioTarget?: AudioTarget;
   /** Images of the slides coming (a slide's background and image blocks). */
   images?: string[];
-  /** A slide's muted videos this device shows (#125). */
+  /** A slide's video this device shows muted (#125). */
   videos?: string[];
 }
 

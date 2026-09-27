@@ -27,30 +27,49 @@ function preloadImage(url: string): void {
 }
 
 /**
- * Starts fetching the media of an upcoming question, and the images of the
- * slides before it. On a phone the sound and the video load into its own
- * elements (free between questions): an element made now could not play
- * sound later on iOS.
+ * Starts fetching the media of the upcoming step — a question, or a slide — and
+ * the images of the slides coming. On a phone the sound and the video load into
+ * its own elements (free between steps): an element made now could not play
+ * sound later on iOS. A slide's muted videos (#125) load into elements of their
+ * own, which play muted anywhere. Resolves true once everything can play
+ * through; false when the phone's element is still busy with the step on screen
+ * — the room's wait for this step asks again once it is free.
  */
-export function preloadMedia(media: LiveQuestionMedia, slideImages: string[] = []): Promise<void> {
+export function preloadMedia(
+  media: LiveQuestionMedia,
+  slideImages: string[] = [],
+  mutedVideos: string[] = [],
+): Promise<boolean> {
   const { visual, audio } = media;
   slideImages.forEach(preloadImage);
   if (visual?.kind === 'image') preloadImage(visual.url);
-  const loading: HTMLMediaElement[] = [];
+  const loading: (HTMLMediaElement | null)[] = [];
   if (visual?.kind === 'video' && 'url' in visual) loading.push(fetchAhead('video', visual.url));
   if (audio) loading.push(fetchAhead('audio', audio.url));
+  for (const url of mutedVideos) loading.push(fetchPooled('video', url));
+  if (loading.includes(null)) return Promise.resolve(false);
   // Ready once each can play to its end without stalling; an image is not waited for.
-  return Promise.all(loading.map(playable)).then(() => undefined);
+  return Promise.all((loading as HTMLMediaElement[]).map(playable)).then(() => true);
 }
 
-/** Whether media hold a sound or a video — what the room waits for (an image is not). */
-export function waitedFor(media: LiveQuestionMedia): boolean {
-  return !!media.audio || media.visual?.kind === 'video';
+/** Whether a step holds a sound or a video — what the room waits for (an image is not). */
+export function waitedFor(media: LiveQuestionMedia, mutedVideos: string[] = []): boolean {
+  return !!media.audio || media.visual?.kind === 'video' || mutedVideos.length > 0;
 }
 
-/** The element fetching `url` ahead: the phone's own when free, else one of the pool. */
-function fetchAhead(tag: 'video' | 'audio', url: string): HTMLMediaElement {
+/**
+ * The element fetching `url` ahead: the phone's own when free, else one of the
+ * pool — except on a phone whose own is busy (the step on screen plays in it):
+ * an element made now would stay silent on iOS, so nothing is fetched (null).
+ */
+function fetchAhead(tag: 'video' | 'audio', url: string): HTMLMediaElement | null {
   if (loadInto(tag, url)) return dedicated[tag]!;
+  if (dedicated[tag] && pool.get(url) === undefined) return null;
+  return fetchPooled(tag, url);
+}
+
+/** An element of the pool fetching `url` ahead (a projection's, or a video that plays muted). */
+function fetchPooled(tag: 'video' | 'audio', url: string): HTMLMediaElement {
   let el = pool.get(url);
   if (!el) {
     el = create(tag, url);
@@ -138,12 +157,21 @@ function loadInto(tag: 'video' | 'audio', url: string): boolean {
   return true;
 }
 
-/** The element for `url`: the one fetched ahead, else the phone's own, else a fresh one. */
-export function takeMedia(tag: 'video' | 'audio', url: string): HTMLMediaElement {
+/**
+ * The element for `url`: the one fetched ahead, else the phone's own, else a
+ * fresh one. `muted`: it never plays sound (a slide's muted video, #125) — the
+ * phone's own is left for the media that does.
+ */
+export function takeMedia(
+  tag: 'video' | 'audio',
+  url: string,
+  { muted = false }: { muted?: boolean } = {},
+): HTMLMediaElement {
   const ready = pool.get(url);
   pool.delete(url);
   images.delete(url);
   if (ready && ready.tagName.toLowerCase() === tag) return ready;
+  if (muted) return create(tag, url);
   const own = dedicated[tag];
   if (own && loadInto(tag, url)) {
     // Loaded ahead already when the preload named it: it starts from its buffer.
@@ -158,6 +186,7 @@ export function takeMedia(tag: 'video' | 'audio', url: string): HTMLMediaElement
 export function releaseMedia(el: HTMLMediaElement): void {
   el.pause();
   el.remove();
+  el.loop = false; // a slide's looped background (#125) must not loop the next question's
   if (inUse.has(el)) {
     // The phone's own element waits for the next question, its buffer kept: taken
     // back for the same media (a remount), it starts over without fetching again.

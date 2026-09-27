@@ -171,7 +171,15 @@
       "large": "L"
     },
     "titleEdit": "Edit slide",
-    "titleAdd": "New slide"
+    "titleAdd": "New slide",
+    "mediaLegend": "Slide media",
+    "videoCover": "Fills the slide behind its content (cropped to the screen).",
+    "videoLoop": "Loop",
+    "videoLoopHint": "Runs as long as the slide shows. Off: plays once and stays on its last frame — the slide waits for its end in auto mode.",
+    "videoSound": "Sound",
+    "videoSoundHint": "Plays the video’s own sound. Off: muted, and the slide can have a sound of its own.",
+    "audioExcludesVideoSound": "The slide already has a sound: one sound at a time. Remove it to turn the video’s on.",
+    "videoSoundExcludesAudio": "The video plays its own sound: no extra sound. Mute the video to add one."
   },
   "discardConfirm": {
     "title": "Discard changes?",

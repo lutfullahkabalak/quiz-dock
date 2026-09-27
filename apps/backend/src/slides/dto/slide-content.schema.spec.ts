@@ -19,19 +19,18 @@ describe('slideContentSchema', () => {
     ).toBe(false);
   });
 
-  it('refuses two blocks playing sound, columns included (#125)', () => {
-    const sound = { type: 'audio', id: 'a', mediaId: '01ARZ3NDEKTSV4RRFFQ69G5FAV' };
-    const video = (id: string, sound?: boolean) => ({
-      type: 'video',
-      id,
-      mediaId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
-      ...(sound === undefined ? {} : { sound }),
+  it('one sound at a time: a video with its own excludes the sound (#125)', () => {
+    const VID = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
+    const SND = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
+    const both = slideContentSchema.safeParse({ videoMediaId: VID, audioMediaId: SND });
+    expect(both.success).toBe(false);
+    expect(both.error?.issues[0].message).toBe('slide.two_sounds');
+    const muted = slideContentSchema.parse({
+      videoMediaId: VID,
+      videoSound: false,
+      audioMediaId: SND,
     });
-    const parse = (blocks: unknown[]) => slideContentSchema.safeParse({ blocks });
-    expect(parse([sound, video('v', false)]).success).toBe(true);
-    // A video block keeps its sound unless told otherwise.
-    const twice = parse([sound, { type: 'columns', id: 'c', columns: [[video('v')], []] }]);
-    expect(twice.success).toBe(false);
-    expect(twice.error?.issues[0].message).toBe('slide.two_sounds');
+    // A video alone is enough to show; looped by default, the waveform hidden.
+    expect(muted).toMatchObject({ videoLoop: true, waveformSize: 'hidden' });
   });
 });
