@@ -323,6 +323,32 @@ describe('ControlPage (console hôte)', () => {
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:reveal', { pin: '482913' });
   });
 
+  it('the space bar pauses the game and resumes it — not while typing, nor in the lobby', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: { prompt: 'Capitale ?' } as never,
+    });
+    const { unmount } = renderApp('/session/482913/console');
+    await screen.findByText('Capitale ?');
+    fireEvent.keyDown(document.body, { code: 'Space', key: ' ' });
+    expect(fakeSocket.emit).toHaveBeenCalledWith('host:pause', { pin: '482913', paused: true });
+    fakeSocket.emit.mockClear();
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    fireEvent.keyDown(field, { code: 'Space', key: ' ' });
+    expect(fakeSocket.emit).not.toHaveBeenCalledWith('host:pause', expect.anything());
+    field.remove();
+    unmount();
+    hookState.value = view({});
+    renderApp('/session/482913/console');
+    await screen.findAllByText(/482\s?913/);
+    fireEvent.keyDown(document.body, { code: 'Space', key: ' ' });
+    expect(fakeSocket.emit).not.toHaveBeenCalledWith('host:pause', expect.anything());
+  });
+
   it('le bouton « Partager » diffuse le lien de la partie (Web Share)', async () => {
     localStorage.setItem('live.localUser', 'Animateur');
     hookState.value = view({});

@@ -35,10 +35,10 @@ import {
   VolumeX,
   Users,
   Wifi,
-  X,
+  Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
 import { Input } from '@/components/ui/input';
@@ -143,6 +143,31 @@ export function ControlPage() {
   const banPlayer = (playerId: string, minutes: number) =>
     socket?.emit('host:ban', { pin, playerId, minutes });
   const setPaused = (paused: boolean) => socket?.emit('host:pause', { pin, paused });
+  // The space bar pauses the game or resumes it, as its button does — once the quiz
+  // runs, and never while the host types, holds a control or reads a dialog.
+  const pauseToggle = useRef<(() => void) | null>(null);
+  pauseToggle.current =
+    view.state && !['LOBBY', 'PODIUM', 'ENDED'].includes(view.state)
+      ? () => setPaused(!view.paused)
+      : null;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (
+        el?.closest(
+          'input, textarea, select, button, a, [role="slider"], [role="switch"], [contenteditable="true"], dialog',
+        )
+      ) {
+        return;
+      }
+      if (!pauseToggle.current) return;
+      e.preventDefault();
+      pauseToggle.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   // The question's sound or video, steered from here while it runs.
   const steerable =
     view.state === 'ANSWERING' &&
@@ -1153,7 +1178,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
           onClick={() => setOpen(true)}
           className="size-6 rounded-full"
         >
-          <X className="text-destructive size-3.5" strokeWidth={3} />
+          <Trash2 className="text-destructive size-3.5" />
         </Button>
       </Tooltip>
       <ConfirmDialog
