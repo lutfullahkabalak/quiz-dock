@@ -32,6 +32,7 @@ import { RedisService } from '../redis/redis.service';
 import { parseUploadMeta } from './dto/media-upload-meta';
 import { mediaLimits, mediaUrl, uploadCeiling } from './media.config';
 import { mediaDimensions } from './media-dimensions';
+import { MEDIA_SLOTS, shownInText } from './media-usage.sql';
 
 interface UploadFile {
   buffer: Buffer;
@@ -482,14 +483,7 @@ export class MediaService implements OnModuleInit {
         createdAt: { lt: new Date(Date.now() - olderThanMs) },
         // The instance's media are kept for the hosts, used or not (#62).
         instance: false,
-        coverForQuizzes: { none: {} },
-        questionVisuals: { none: {} },
-        questionAudios: { none: {} },
-        questionBackgrounds: { none: {} },
-        slides: { none: {} },
-        slideVideos: { none: {} },
-        slideAudios: { none: {} },
-        options: { none: {} },
+        ...Object.fromEntries(MEDIA_SLOTS.map((slot) => [slot, { none: {} }])),
       },
       select: { id: true },
     });
@@ -691,43 +685,23 @@ export class MediaService implements OnModuleInit {
   }
 
   /**
-   * Every place a media id can be used: slots, options, slides, covers, inline
-   * Markdown — and the archived sessions, whose frozen questions the results
-   * still show.
+   * Every place a media id can be used (`media-usage.sql.ts`): the slots first,
+   * then the texts — inline Markdown, slide blocks, and the archived sessions,
+   * whose frozen questions the results still show.
    */
   private async isReferenced(id: string): Promise<boolean> {
     const direct = await this.prisma.mediaAsset.findUnique({
       where: { id },
       select: {
         instance: true,
-        _count: {
-          select: {
-            coverForQuizzes: true,
-            questionVisuals: true,
-            questionAudios: true,
-            questionBackgrounds: true,
-            slides: true,
-            slideVideos: true,
-            slideAudios: true,
-            options: true,
-          },
-        },
+        _count: { select: Object.fromEntries(MEDIA_SLOTS.map((slot) => [slot, true])) },
       },
     });
     if (!direct) return true; // already gone: nothing to delete
     if (direct.instance) return true; // the instance's: only an administrator removes it
     if (Object.values(direct._count).some((n) => n > 0)) return true;
-    // Images typed into Markdown or placed in slide blocks point at the id as text.
-    const pattern = `%${id}%`;
     const [row] = await this.prisma.$queryRaw<{ used: boolean }[]>`
-      SELECT (
-        EXISTS (SELECT 1 FROM "slide" WHERE "blocks"::text LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "quiz" WHERE "description" LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "question"
-                   WHERE "prompt" LIKE ${pattern} OR "answer_explanation" LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "answer_option" WHERE "text" LIKE ${pattern})
-        OR EXISTS (SELECT 1 FROM "game_session_log" WHERE "quiz_snapshot"::text LIKE ${pattern})
-      ) AS used`;
+      SELECT ${shownInText(id)} AS used`;
     return row?.used ?? true;
   }
 

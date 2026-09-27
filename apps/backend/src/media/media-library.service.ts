@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { type MediaAsset, type MediaKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { readableBy } from '../quizzes/quiz-access';
+import { ARCHIVED_MEDIA_REFS, QUIZ_MEDIA_REFS } from './media-usage.sql';
 
 /** One entry of an author's library: a file, whatever number of their media use it. */
 export interface MediaLibraryItem {
@@ -59,24 +60,6 @@ const KINDS: MediaKind[] = ['image', 'video', 'audio'];
 const LIST_MAX = 300;
 
 /**
- * Where a media is used, as SQL: the quiz `q` refers to the media `m` through a
- * slot, an option, a slide, or as text (a Markdown image, a slide's image block).
- * The same places `MediaService.isReferenced` looks, per quiz.
- */
-export const USED_BY_QUIZ = Prisma.sql`(
-  q.cover_media_id = m.id
-  OR q.description LIKE '%' || m.id || '%'
-  OR EXISTS (SELECT 1 FROM question x WHERE x.quiz_id = q.id AND (
-       x.visual_media_id = m.id OR x.audio_media_id = m.id OR x.background_media_id = m.id
-       OR x.prompt LIKE '%' || m.id || '%' OR x.answer_explanation LIKE '%' || m.id || '%'))
-  OR EXISTS (SELECT 1 FROM answer_option o JOIN question x ON x.id = o.question_id
-             WHERE x.quiz_id = q.id AND (o.media_id = m.id OR o.text LIKE '%' || m.id || '%'))
-  OR EXISTS (SELECT 1 FROM slide s WHERE s.quiz_id = q.id AND (
-       s.media_id = m.id OR s.video_media_id = m.id OR s.audio_media_id = m.id
-       OR s.blocks::text LIKE '%' || m.id || '%'))
-)`;
-
-/**
  * The author's side of the media library (#53): what they uploaded, to reuse
  * or delete; the credits a quiz owes; and the free libraries to look in.
  */
@@ -108,22 +91,21 @@ export class MediaLibraryService {
           ${kind ? Prisma.sql`AND m.kind = ${kind}::media_kind` : Prisma.empty}
       ),
       used AS (
-        SELECT m.file, COUNT(DISTINCT q.id)::int AS n
-        FROM mine m JOIN quiz q ON q.owner_id = ${ownerId} AND ${USED_BY_QUIZ}
+        SELECT m.file, COUNT(DISTINCT r.quiz_id)::int AS n
+        FROM mine m JOIN (${QUIZ_MEDIA_REFS}) r ON r.media_id = m.id
+             JOIN quiz q ON q.id = r.quiz_id AND q.owner_id = ${ownerId}
         GROUP BY m.file
+      ),
+      shown AS (
+        SELECT DISTINCT m.file FROM mine m JOIN (${ARCHIVED_MEDIA_REFS}) a ON a.media_id = m.id
       ),
       latest AS (
         SELECT DISTINCT ON (file) * FROM mine ORDER BY file, created_at DESC
       )
       SELECT l.id, l.url, l.kind, l.name, l.alt, l.credit, l.duration_ms AS "durationMs",
              l.peaks, l.width, l.height, l.size_bytes AS "sizeBytes", l.created_at AS "createdAt",
-             COALESCE(u.n, 0) AS "usedIn",
-             EXISTS (
-               SELECT 1 FROM mine m JOIN game_session_log g
-                 ON g.quiz_snapshot::text LIKE '%' || m.id || '%'
-               WHERE m.file = l.file
-             ) AS "inHistory"
-      FROM latest l LEFT JOIN used u ON u.file = l.file
+             COALESCE(u.n, 0) AS "usedIn", s.file IS NOT NULL AS "inHistory"
+      FROM latest l LEFT JOIN used u ON u.file = l.file LEFT JOIN shown s ON s.file = l.file
       ${
         q
           ? Prisma.sql`WHERE l.name ILIKE ${q} OR l.alt ILIKE ${q} OR l.credit ILIKE ${q}`
@@ -211,8 +193,8 @@ export class MediaLibraryService {
   async creditsOf(quizId: string): Promise<string[]> {
     const rows = await this.prisma.$queryRaw<Array<{ credit: string }>>`
       SELECT DISTINCT m.credit
-      FROM media_asset m JOIN quiz q ON q.id = ${quizId}
-      WHERE m.credit IS NOT NULL AND m.credit <> '' AND ${USED_BY_QUIZ}
+      FROM (${QUIZ_MEDIA_REFS}) r JOIN media_asset m ON m.id = r.media_id
+      WHERE r.quiz_id = ${quizId} AND m.credit IS NOT NULL AND m.credit <> ''
       ORDER BY m.credit`;
     return rows.map((r) => r.credit);
   }

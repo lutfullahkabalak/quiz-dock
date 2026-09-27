@@ -7,6 +7,7 @@ import {
 import { readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { Prisma } from '@prisma/client';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { RedisService } from '../redis/redis.service';
 import { MediaService, uploadName } from './media.service';
@@ -303,8 +304,11 @@ describe('MediaService', () => {
       prisma.mediaAsset.findUnique.mockResolvedValue(unused);
       prisma.$queryRaw.mockResolvedValue([{ used: true }]);
       await service.releaseUnused(['m1']);
-      const [sql] = prisma.$queryRaw.mock.calls[0] as unknown as [TemplateStringsArray];
-      expect(sql.join('?')).toContain('"game_session_log"');
+      const [strings, ...values] = prisma.$queryRaw.mock.calls[0] as unknown as [
+        TemplateStringsArray,
+        ...Prisma.Sql[],
+      ];
+      expect(Prisma.sql(strings, ...values).sql).toContain('game_session_log');
       expect(prisma.mediaAsset.delete).not.toHaveBeenCalled();
     });
 

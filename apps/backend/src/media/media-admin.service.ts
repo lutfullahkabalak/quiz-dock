@@ -2,7 +2,6 @@ import { ConflictException, Injectable, NotFoundException } from '@nestjs/common
 import { type MediaKind, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { type LastSweep, MediaJanitor, type SweepResult } from './media-janitor.service';
-import { USED_BY_QUIZ } from './media-library.service';
 import { ARCHIVED_MEDIA_REFS, QUIZ_MEDIA_REFS } from './media-usage.sql';
 import { ORPHAN_GRACE_MS, MediaService } from './media.service';
 
@@ -24,6 +23,26 @@ const OWNER_KEY = Prisma.sql`CASE WHEN m.instance THEN ${GLOBAL_OWNER} ELSE m.ow
  * by archived sessions).
  */
 const REFS = Prisma.sql`qr AS (${QUIZ_MEDIA_REFS}), ar AS (${ARCHIVED_MEDIA_REFS})`;
+
+/** One row per file, with what the list shows and what its filters read (`f.*`). */
+const FILES = Prisma.sql`
+  SELECT ${FILE_KEY} AS k,
+         (ARRAY_AGG(m.id ORDER BY m.created_at DESC))[1] AS id,
+         (ARRAY_AGG(m.url ORDER BY m.created_at DESC))[1] AS url,
+         (ARRAY_AGG(m.name ORDER BY m.created_at DESC) FILTER (WHERE m.name IS NOT NULL))[1] AS name,
+         MIN(m.kind::text) AS kind, MIN(m.mime) AS mime, MAX(m.size_bytes) AS bytes,
+         ARRAY_AGG(DISTINCT m.owner_id) FILTER (WHERE NOT m.instance) AS owner_ids,
+         COALESCE(ARRAY_AGG(DISTINCT u.display_name) FILTER (WHERE NOT m.instance), '{}') AS owners,
+         (ARRAY_AGG(m.id) FILTER (WHERE m.instance))[1] AS "instanceId",
+         (ARRAY_AGG(m.credit) FILTER (WHERE m.instance))[1] AS "instanceCredit",
+         COUNT(*)::int AS "mediaCount",
+         MIN(m.created_at) AS created_at,
+         MAX(m.width) AS width, MAX(m.height) AS height,
+         MAX(m.duration_ms) AS "durationMs",
+         BOOL_OR(m.instance) AS "inCatalog",
+         BOOL_OR(m.mime <> ALL (${CURRENT_MIMES})) AS legacy
+  FROM media_asset m JOIN "user" u ON u.id = m.owner_id
+  GROUP BY 1`;
 
 export interface MediaOverview {
   files: number;
@@ -204,25 +223,7 @@ export class MediaAdminService {
       shown AS (
         SELECT DISTINCT ${FILE_KEY} AS k FROM ar JOIN media_asset m ON m.id = ar.media_id
       ),
-      f AS (
-        SELECT ${FILE_KEY} AS k,
-               (ARRAY_AGG(m.id ORDER BY m.created_at DESC))[1] AS id,
-               (ARRAY_AGG(m.url ORDER BY m.created_at DESC))[1] AS url,
-               (ARRAY_AGG(m.name ORDER BY m.created_at DESC) FILTER (WHERE m.name IS NOT NULL))[1] AS name,
-               MIN(m.kind::text) AS kind, MIN(m.mime) AS mime, MAX(m.size_bytes) AS bytes,
-               ARRAY_AGG(DISTINCT m.owner_id) FILTER (WHERE NOT m.instance) AS owner_ids,
-               COALESCE(ARRAY_AGG(DISTINCT u.display_name) FILTER (WHERE NOT m.instance), '{}') AS owners,
-               (ARRAY_AGG(m.id) FILTER (WHERE m.instance))[1] AS "instanceId",
-               (ARRAY_AGG(m.credit) FILTER (WHERE m.instance))[1] AS "instanceCredit",
-               COUNT(*)::int AS "mediaCount",
-               MIN(m.created_at) AS created_at,
-               MAX(m.width) AS width, MAX(m.height) AS height,
-               MAX(m.duration_ms) AS "durationMs",
-               BOOL_OR(m.instance) AS "inCatalog",
-               BOOL_OR(m.mime <> ALL (${CURRENT_MIMES})) AS legacy
-        FROM media_asset m JOIN "user" u ON u.id = m.owner_id
-        GROUP BY 1
-      )
+      f AS (${FILES})
       SELECT f.id, f.url, f.kind, f.mime, f.name, f.bytes, f.width, f.height, f."durationMs",
              -- A sound's waveform, for the preview's player (indexed by blob).
              COALESCE((SELECT w.peaks FROM media_asset w
@@ -268,12 +269,11 @@ export class MediaAdminService {
     const [quizzes, archived, playing] = await Promise.all([
       this.prisma.$queryRaw<Array<{ id: string; title: string; owner: string }>>`
         SELECT DISTINCT q.id, q.title, u.display_name AS owner
-        FROM media_asset m JOIN quiz q ON ${USED_BY_QUIZ} JOIN "user" u ON u.id = q.owner_id
-        WHERE m.id = ANY (${ids}) ORDER BY q.title`,
+        FROM (${QUIZ_MEDIA_REFS}) r JOIN quiz q ON q.id = r.quiz_id JOIN "user" u ON u.id = q.owner_id
+        WHERE r.media_id = ANY (${ids}) ORDER BY q.title`,
       this.prisma.$queryRaw<Array<{ n: number }>>`
-        SELECT COUNT(DISTINCT g.id)::int AS n FROM media_asset m
-        JOIN game_session_log g ON g.quiz_snapshot::text LIKE '%' || m.id || '%'
-        WHERE m.id = ANY (${ids})`,
+        SELECT COUNT(DISTINCT a.session_id)::int AS n FROM (${ARCHIVED_MEDIA_REFS}) a
+        WHERE a.media_id = ANY (${ids})`,
       this.media.playing(ids),
     ]);
     return { quizzes, archivedSessions: archived[0]?.n ?? 0, playing };
@@ -310,17 +310,10 @@ export class MediaAdminService {
     return group.map((m) => m.id);
   }
 
+  /** The total past the last page, where the page's own rows cannot carry it. */
   private async countFiles(filtered: Prisma.Sql): Promise<number> {
     const [row] = await this.prisma.$queryRaw<Array<{ n: number }>>`
-      WITH f AS (
-        SELECT ${FILE_KEY} AS k, MIN(m.kind::text) AS kind, MIN(m.mime) AS mime,
-               ARRAY_AGG(DISTINCT m.owner_id) FILTER (WHERE NOT m.instance) AS owner_ids,
-               BOOL_OR(m.instance) AS "inCatalog",
-               (ARRAY_AGG(m.name ORDER BY m.created_at DESC) FILTER (WHERE m.name IS NOT NULL))[1] AS name,
-               BOOL_OR(m.mime <> ALL (${CURRENT_MIMES})) AS legacy
-        FROM media_asset m GROUP BY 1
-      )
-      SELECT COUNT(*)::int AS n FROM f ${filtered}`;
+      WITH f AS (${FILES}) SELECT COUNT(*)::int AS n FROM f ${filtered}`;
     return row?.n ?? 0;
   }
 }

@@ -1,4 +1,5 @@
 import { ConflictException } from '@nestjs/common';
+import { readFileSync } from 'node:fs';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -7,6 +8,7 @@ import type { RedisService } from '../redis/redis.service';
 import { MediaAdminService } from './media-admin.service';
 import type { MediaJanitor } from './media-janitor.service';
 import { MediaLibraryService } from './media-library.service';
+import { MEDIA_SLOTS } from './media-usage.sql';
 import { mediaUrl } from './media.config';
 import { MediaService } from './media.service';
 
@@ -145,6 +147,13 @@ describe('Where a media is used (integration)', () => {
     await prisma.user.delete({ where: { id: ownerId } });
     await prisma.$disconnect();
     await rm(dir, { recursive: true, force: true });
+  });
+
+  it('knows every relation through which the schema lets a media be held', () => {
+    const schema = readFileSync(join(__dirname, '../../prisma/schema.prisma'), 'utf8');
+    const model = /model MediaAsset \{([^}]*)\}/.exec(schema)![1];
+    const lists = [...model.matchAll(/^\s*(\w+)\s+\w+\[\]\s+@relation/gm)].map((m) => m[1]);
+    expect([...MEDIA_SLOTS].sort()).toEqual(lists.sort());
   });
 
   it("the author's library: used by the quiz, kept for past results, or unused", async () => {
