@@ -220,6 +220,38 @@ describe('PlayerPage (client participant)', () => {
     expect(await screen.findByRole('timer', { name: 'Écoute en cours' })).toHaveTextContent('4');
   });
 
+  it('carries the branding hooks: the page, its state, the clock, the prompt, the answers (lot 5)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: {
+        questionIndex: 0,
+        type: 'single_choice',
+        prompt: 'Capitale ?',
+        options: [PARIS],
+        timeLimitS: 20,
+        basePoints: 1000,
+        startedAt: now - 1_000,
+        endsAt: now + 19_000,
+        media: { visual: null, audio: null },
+      } as never,
+    });
+    const { container } = renderApp('/join/771122');
+    await screen.findByText('Capitale ?');
+    const $ = (sel: string) => container.querySelector(sel);
+    expect($('.qd-shell[data-shell="participant"] .qd-main')).not.toBeNull();
+    expect($('.qd-player[data-state="ANSWERING"] .qd-timer')).not.toBeNull();
+    expect($('.qd-player .qd-prompt')).toHaveTextContent('Capitale ?');
+    expect($('.qd-player .qd-answer[data-color="red"]')).not.toBeNull();
+  });
+
   it('MEDIA_LOADING: the phone says the question is coming', async () => {
     loadPlayerSession.mockReturnValue({
       pin: '771122',

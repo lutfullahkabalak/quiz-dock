@@ -101,7 +101,10 @@ export function ControlPage() {
   return (
     <>
       <ConnectionLost lost={session.view.connectionLost} />
-      <HostConsole pin={pin} session={session} />
+      {/* A hook for override.css, with the game's state (no box: the layout is the page's). */}
+      <div className="qd-console contents" data-state={session.view.state ?? 'none'}>
+        <HostConsole pin={pin} session={session} />
+      </div>
     </>
   );
 }
@@ -1356,7 +1359,7 @@ function ChronoControls({
 }) {
   const { t } = useTranslation('live');
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="qd-chrono flex items-center gap-1.5">
       {CHRONO_STEPS.filter((s) => s < 0).map((s) => (
         <Button key={s} type="button" variant="outline" size="sm" onClick={() => onAdjust(s)}>
           {s}

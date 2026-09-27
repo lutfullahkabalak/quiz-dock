@@ -65,3 +65,93 @@ Example `branding/override.css` (recolor the primary):
 > **Logo size.** It is rendered 28 px high with a free width, so any ratio works, but
 > keep it between 1:1 and ~3:1 — at 4:1 the header navigation wraps on a 360 px-wide
 > phone. SVG, or a raster at least 56 px high with a transparent background.
+
+## Customising the look
+
+### Design tokens
+
+`override.css` is loaded after the app's own stylesheet: a variable set in `:root`
+there wins. The main ones:
+
+| Token | What it colours |
+|---|---|
+| `--primary`, `--primary-foreground` | buttons, links, the focus ring, the leaderboard bars |
+| `--background`, `--foreground`, `--muted`, `--muted-foreground`, `--border` | the surfaces and their text |
+| `--success`, `--destructive`, `--warning` | right / wrong / the second half of a question's time (red for its last fifth), and the rating stars |
+| `--warning-text` | words in that amber on a light ground (the double points badge) |
+| `--answer-red`, `--answer-blue`, `--answer-yellow`, `--answer-green`, `--answer-purple`, `--answer-orange`, `--answer-pink`, `--answer-teal` | each answer's colour, as the quiz's author picked it (tiles, legends, reveal bars) |
+| `--answer-none` | an answer with no colour |
+| `--podium-1`, `--podium-2`, `--podium-3` | the podium's steps |
+| `--font-sans` | the app's typeface |
+| `--radius` | the roundness of cards, buttons and fields |
+
+The colours are in [oklch](https://oklch.com); any CSS colour works.
+
+### Hooks on the live screens
+
+The home page, the participant's phone, the projected screen and the host's console
+carry `qd-*` classes that stay the same across versions, whatever their markup
+becomes (a change to one is noted in the changelog). They have **no style of their
+own**: only yours. States are `data-*` attributes.
+
+| Hook | Where | Attributes |
+|---|---|---|
+| `qd-shell` | every page's outer frame | `data-shell`: `app`, `participant` (a phone), `bare` (the projection) |
+| `qd-header`, `qd-logo`, `qd-main` | the top bar, its logo, the page area | |
+| `qd-home`, `qd-pin-form` | the home page, the form to type a PIN (also on `/join`) | |
+| `qd-screen` | the projected screen | `data-state`: the game's state (`LOBBY`, `ANSWERING`, `REVEAL`, `LEADERBOARD`, `PODIUM`…) |
+| `qd-player` | the participant's phone | `data-state` |
+| `qd-console` | the host's console | `data-state` |
+| `qd-lobby`, `qd-roster` | the projection's lobby, its list of participants | |
+| `qd-join`, `qd-join-pin`, `qd-join-qr` | how to join: the bar during a question, the PIN, the QR code | |
+| `qd-timer` | a question's clock | `data-tone`: `ok`, `warning`, `critical`, `paused` |
+| `qd-chrono` | the console's clock and its ± buttons | |
+| `qd-prompt` | a question's text | |
+| `qd-rules` | the line under it (one answer, several, double points…) | |
+| `qd-answers` | the answers | `data-layout`: `list` (a phone's legend), `images` (picture answers) |
+| `qd-answer` | one answer | `data-color`, `data-correct` (`true`/`false`, once revealed), `data-picked` |
+| `qd-reveal`, `qd-distribution`, `qd-closest` | the answer revealed, how the room answered, the closest numbers | |
+| `qd-explanation` | the explanation shown with the answer | |
+| `qd-verdict` | right or wrong, on the phone | `data-correct` |
+| `qd-leaderboard`, `qd-leaderboard-row` | the ranking and each line | `data-rank`, `data-you` (the participant's own line) |
+| `qd-podium`, `qd-podium-step` | the podium and each step | `data-rank` |
+| `qd-slide` | a content slide | |
+| `qd-connection-lost` | the banner shown while a device's connection is down | |
+
+`qd-player` and `qd-console` generate no box of their own (the page lays itself out):
+use them to scope a rule (`.qd-player .qd-answer`), and `.qd-shell[data-shell="participant"]`
+for the phone's background.
+
+Example `branding/override.css`:
+
+```css
+:root {
+  --primary: oklch(0.55 0.2 150);
+  --font-sans: 'Atkinson Hyperlegible', system-ui, sans-serif;
+  /* Brand colours for the four usual answers. */
+  --answer-red: #d7263d;
+  --answer-blue: #1b998b;
+  --answer-yellow: #f4a259;
+  --answer-green: #2e294e;
+  --podium-1: gold;
+}
+
+/* A bigger PIN on the projection's lobby. */
+.qd-screen[data-state='LOBBY'] .qd-join-pin {
+  font-size: 6em;
+}
+
+/* Right answers outlined in the brand colour once revealed. */
+.qd-answer[data-correct='true'] {
+  outline: 0.2em solid var(--primary);
+}
+
+/* The last seconds in bold on the big screen. */
+.qd-screen .qd-timer[data-tone='critical'] {
+  font-weight: 900;
+  color: var(--destructive);
+}
+```
+
+A font of your own needs its `@font-face` (or an `@import` of a font service) in the same
+file.

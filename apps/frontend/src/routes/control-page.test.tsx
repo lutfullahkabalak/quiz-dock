@@ -386,6 +386,29 @@ describe('ControlPage (console hôte)', () => {
     expect(container.querySelector('span[aria-label="Temps restant"]')).toHaveTextContent('⏸ 7');
   });
 
+  it('carries the branding hooks: the console, its state, its chrono (lot 5)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: {
+        questionIndex: 0,
+        prompt: 'Capitale ?',
+        timeLimitS: 20,
+        startedAt: now - 5_000,
+        endsAt: now + 15_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    const { container } = renderApp('/session/482913/console');
+    await screen.findByText('Capitale ?');
+    expect(
+      container.querySelector('.qd-console[data-state="ANSWERING"] .qd-chrono'),
+    ).toHaveTextContent('15');
+  });
+
   it('ANSWERING : compteur + « Révéler » émet host:reveal', async () => {
     localStorage.setItem('live.localUser', 'Animateur');
     hookState.value = view({

@@ -45,7 +45,9 @@ export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string
       <div className="flex min-h-[32em] w-full flex-col gap-[0.75em] p-[1em] text-center">
         {clock ? <QuestionClockBar clock={clock} className="text-[1.25em]" /> : null}
         <div className="flex flex-1 flex-col justify-center py-[1em]">
-          <Markdown className="text-[1.5em] font-semibold text-balance">{q.prompt}</Markdown>
+          <Markdown className="qd-prompt text-[1.5em] font-semibold text-balance">
+            {q.prompt}
+          </Markdown>
         </div>
         <AnswerRules question={q} />
         {q.type === 'image_choice' ? (

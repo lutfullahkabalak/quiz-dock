@@ -3,6 +3,7 @@ import { type FormEvent, type ReactNode, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { cn } from '@/lib/utils';
 
 /**
  * The PIN a participant types to join a game, sent on to its page (`/join/$pin`),
@@ -43,7 +44,10 @@ export function PinForm({
     />
   );
   return (
-    <form className={stacked ? 'flex flex-col gap-4 text-left' : 'flex gap-2'} onSubmit={onSubmit}>
+    <form
+      className={cn('qd-pin-form', stacked ? 'flex flex-col gap-4 text-left' : 'flex gap-2')}
+      onSubmit={onSubmit}
+    >
       {stacked ? (
         <Label>
           {label}
