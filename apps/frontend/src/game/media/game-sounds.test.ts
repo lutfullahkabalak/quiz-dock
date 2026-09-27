@@ -59,7 +59,7 @@ vi.mock('./audio-mixer', () => ({
   setRoomLevel: (bus: string, v: number) => levels.push([bus, v]),
 }));
 
-import { useGameSounds } from './game-sounds';
+import { tickPitch, useGameSounds } from './game-sounds';
 
 const SOUNDS: RoomSoundsPayload = {
   tick: true,
@@ -117,6 +117,12 @@ describe('game sounds (#93)', () => {
     // A new question starting at 0 answers: no tick for the count going back.
     rerender({ g: game({ questionIndex: 1, answered: 0 }) });
     expect(oscillators).toHaveLength(9);
+  });
+
+  it('each answer’s tick a little higher or lower than the last, never twice the same in a row', () => {
+    const pitches = Array.from({ length: 20 }, (_, i) => tickPitch(i + 1));
+    for (let i = 1; i < pitches.length; i++) expect(pitches[i]).not.toBe(pitches[i - 1]);
+    for (const p of pitches) expect(Math.abs(p - 1)).toBeLessThanOrEqual(0.1 + 1e-9);
   });
 
   it('a tick for every answer, one after the other', () => {

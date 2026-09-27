@@ -32,8 +32,17 @@ export function questionHasOwnSound(media: LiveQuestionMedia | null | undefined)
 const TICK_SPACING_S = 0.08;
 const MAX_TICKS_AT_ONCE = 5;
 
+/**
+ * Each answer's tick a little higher or lower than the last, by its rank in the
+ * question — never twice the same in a row, so a burst of answers is not a
+ * machine gun. Within ±10 %: still the same tick.
+ */
+const TICK_PITCHES = [1, 1.07, 0.94, 1.1, 0.97, 1.04, 0.91];
+export const tickPitch = (answer: number) =>
+  TICK_PITCHES[(((answer - 1) % TICK_PITCHES.length) + TICK_PITCHES.length) % TICK_PITCHES.length];
+
 /** A short, dry click: a triangle wave with a fast decay; `at` on the context's clock. */
-export function synthTick(at?: number): void {
+export function synthTick(at?: number, pitch = 1): void {
   const mixer = getMixer();
   const into = busInput('sfx');
   if (!mixer || !into) return;
@@ -42,8 +51,8 @@ export function synthTick(at?: number): void {
   const osc = ctx.createOscillator();
   const env = ctx.createGain();
   osc.type = 'triangle';
-  osc.frequency.setValueAtTime(1400, t);
-  osc.frequency.exponentialRampToValueAtTime(900, t + 0.05);
+  osc.frequency.setValueAtTime(1400 * pitch, t);
+  osc.frequency.exponentialRampToValueAtTime(900 * pitch, t + 0.05);
   env.gain.setValueAtTime(0.0001, t);
   env.gain.exponentialRampToValueAtTime(0.5, t + 0.004);
   env.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
@@ -350,7 +359,8 @@ export function useGameSounds(
       const now = getMixer()!.ctx.currentTime;
       const count = Math.min(game.answered - prev.answered, MAX_TICKS_AT_ONCE);
       for (let i = 0; i < count; i++) {
-        playEffect(sounds.tickUrl, (at) => synthTick(at), now + i * TICK_SPACING_S);
+        const pitch = tickPitch(game.answered - count + 1 + i);
+        playEffect(sounds.tickUrl, (at) => synthTick(at, pitch), now + i * TICK_SPACING_S, pitch);
       }
     }
     // The ding: a new question starts (not over its own sound or video).
