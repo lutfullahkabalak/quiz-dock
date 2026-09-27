@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, setMarkdownField } from '../test/harness';
 import { QuestionForm } from './question-form';
@@ -54,6 +54,13 @@ describe('QuestionForm', () => {
     // #5 / #6: optional fields left empty are sent as null (= defaults)
     expect(payload.answerExplanation).toBeNull();
     expect(payload.revealDelayS).toBeNull();
+  });
+
+  it('the answer explanation offers no image to upload', () => {
+    renderForm();
+    const field = screen.getByLabelText('Explication de la réponse (affichée après la révélation)');
+    const editor = field.closest('[data-markdown-editor]') as HTMLElement;
+    expect(within(editor).queryByRole('button', { name: /Insérer une image/ })).toBeNull();
   });
 
   it('sends the per-question reveal delay when set (#6)', async () => {

@@ -30,6 +30,8 @@ export interface MarkdownEditorProps {
   placeholder?: string;
   'aria-label'?: string;
   className?: string;
+  /** Offer to insert an image (block fields); false where a picture has no place. */
+  images?: boolean;
 }
 
 /** Single-paragraph document for the inline profile (no Enter, no blocks). */
@@ -77,6 +79,7 @@ export function MarkdownEditor({
   placeholder,
   'aria-label': ariaLabel,
   className,
+  images = true,
 }: MarkdownEditorProps) {
   const { t } = useTranslation('common');
   const [source, setSource] = useState(false);
@@ -117,7 +120,7 @@ export function MarkdownEditor({
             'bg-background absolute right-0 bottom-full z-10 mb-1 hidden rounded-md border px-1 py-0.5 shadow-sm group-focus-within:flex',
         )}
       >
-        {editor && !source ? <Toolbar editor={editor} profile={profile} /> : null}
+        {editor && !source ? <Toolbar editor={editor} profile={profile} images={images} /> : null}
         <button
           type="button"
           className="text-muted-foreground ml-auto text-xs underline-offset-2 hover:underline"
@@ -156,7 +159,15 @@ export function MarkdownEditor({
   );
 }
 
-function Toolbar({ editor, profile }: { editor: Editor; profile: MarkdownProfile }) {
+function Toolbar({
+  editor,
+  profile,
+  images,
+}: {
+  editor: Editor;
+  profile: MarkdownProfile;
+  images: boolean;
+}) {
   const { t } = useTranslation('common');
   const active = useEditorState({
     editor,
@@ -218,7 +229,7 @@ function Toolbar({ editor, profile }: { editor: Editor; profile: MarkdownProfile
             <SquareCode className="size-4" />
           </ToolButton>
           {/* No uploads on a demo instance. */}
-          {getDemo() ? null : <ImageButton editor={editor} />}
+          {getDemo() || !images ? null : <ImageButton editor={editor} />}
         </>
       ) : null}
     </>

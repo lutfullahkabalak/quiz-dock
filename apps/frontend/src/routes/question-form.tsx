@@ -798,6 +798,8 @@ export function QuestionForm({
                 value={field.state.value}
                 onChange={field.handleChange}
                 placeholder={t('questionForm.answerExplanationPlaceholder')}
+                // Text to read at the reveal: no picture to upload here.
+                images={false}
               />
             </Disclosure>
           )}
