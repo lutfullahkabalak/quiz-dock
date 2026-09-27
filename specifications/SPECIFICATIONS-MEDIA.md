@@ -268,3 +268,54 @@ interface sounds (to come) ───────────────► UI  
   still unlocks the browser's audio — and readies a phone's media elements — but mutes the device; the sound button turns
   it on at once, without asking again. A device kept muted is not asked again.
 
+
+## 10. Media on slides (arbitrated 2026-09-27)
+
+A slide (#7) can carry a video or a sound, as a block of its content or as its background. Everything a question's
+media already does is reused — library media only, loudness correction, a common start on the server's clock,
+fetched ahead, the wait for the devices that play it, the console's transport, the audio routing of §9. Decided with
+the author:
+
+### 10.1 What the builder offers
+
+- **Two new blocks**: **Video** (an MP4 of the library) and **Sound** (a sound of the library, drawn as its waveform,
+  with the same sizes as a question's — `hidden` included). Embedded videos (YouTube, Vimeo) are left for later.
+- **A video background**, beside the image and the gradient: it fills the slide behind its content. Its options:
+  - **Loop** (a switch, per slide): looped, it runs as long as the slide is shown; not looped, it plays once and
+    stays on its last frame.
+  - **Sound** (on by default, a switch to mute it): muted, it frees the slide's sound for a block.
+  - Looped, its fades are long (a bed, like the room's track); played once, it behaves as a timed media.
+- No separate "background sound" field: a sound bed is a Sound block, or the background video's own sound.
+
+### 10.2 One sound at a time
+
+- **A slide has at most one media that plays sound**: a Sound block, a Video block with its sound, or the background
+  video with its sound. Every other video plays muted. The builder enforces it (a second source is offered muted, or
+  the author mutes the background) and the server refuses a slide breaking it (`slide.two_sounds`).
+- The room's background track never plays on a slide (it only plays while players answer, §9.1).
+
+### 10.3 Timing
+
+- **Auto mode**: a slide with a timed media — a block, or a background video played once with its sound — stays until
+  that media has played, plus the quiz's pause after it (`mediaTailS`), like a question stretched by its media. Its own
+  display time still applies when longer. A looped background never stretches it.
+- The media starts on the common start (`mediaStartAt`, `MEDIA_LEAD_MS` after the slide shows), and the room waits for
+  the devices that play it, as for a question (§5.4). Every device is fetched the slide's media ahead (§5.3).
+
+### 10.4 Who hears, and the console
+
+- **Who hears**: as a question — the quiz's audio target (projection / + remote participants / everyone), overridable
+  per slide and per session; a phone in the room follows the same rules as for a question.
+- **The console**: the slide's sound-bearing media gets the question's transport (play / pause, the waveform to click
+  or drag, restart), anchored on the server's clock (`media:control`, keyed by the step); a muted background video only
+  its mute.
+
+### 10.5 Format and scope
+
+- The bundle manifest gains the blocks and the background fields: **version 5**; an export still stamps the lowest
+  version it needs (a quiz without slide media stays at 3 or 4). The format guide lists the new fields as *left out*
+  until a converted quiz can carry media.
+- Engine: the slide step gets the media machinery of the question step (preload, readiness, media wait, anchor,
+  stretch). Screens: `SlideView` renders the blocks and the background through `QuestionMediaStage`'s players.
+- Tests: the one-sound rule (builder and server), the stretch, the common start and the wait on a slide, a looped
+  background never stretching, the transport on a slide, bundle v5 round trip.
