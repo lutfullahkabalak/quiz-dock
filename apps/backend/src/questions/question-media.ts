@@ -9,6 +9,7 @@ import {
   type WaveformSize,
   playbackGainDb,
 } from '@quiz-dock/contracts';
+import { assertAssets } from '../media/assert-assets';
 import type { PrismaService } from '../prisma/prisma.service';
 
 /** Relations a question needs to say what its media are. */
@@ -105,20 +106,7 @@ export async function resolveQuestionMedia(
   const expected = new Map<string, MediaKind>();
   if (visual) expected.set(visual.assetId, visual.kind);
   if (audio) expected.set(audio.assetId, 'audio');
-  if (expected.size > 0) {
-    const assets = await prisma.mediaAsset.findMany({
-      where: {
-        id: { in: [...expected.keys()] },
-        OR: [{ ownerId }, { id: { in: attached.filter((id): id is string => !!id) } }],
-      },
-      select: { id: true, kind: true },
-    });
-    for (const [id, kind] of expected) {
-      const asset = assets.find((a) => a.id === id);
-      if (!asset) throw new BadRequestException('media.not_found');
-      if (asset.kind !== kind) throw new BadRequestException('media.wrong_kind');
-    }
-  }
+  await assertAssets(prisma, ownerId, expected, attached);
   return {
     visualMediaId: visual && 'assetId' in visual ? visual.assetId : null,
     audioMediaId: audio?.assetId ?? null,
@@ -136,18 +124,6 @@ export async function assertOptionImages(
   mediaIds: (string | null | undefined)[],
   attached: (string | null)[] = [],
 ): Promise<void> {
-  const ids = [...new Set(mediaIds.filter((id): id is string => !!id))];
-  if (ids.length === 0) return;
-  const assets = await prisma.mediaAsset.findMany({
-    where: {
-      id: { in: ids },
-      OR: [{ ownerId }, { id: { in: attached.filter((id): id is string => !!id) } }],
-    },
-    select: { id: true, kind: true },
-  });
-  for (const id of ids) {
-    const asset = assets.find((a) => a.id === id);
-    if (!asset) throw new BadRequestException('media.not_found');
-    if (asset.kind !== 'image') throw new BadRequestException('media.wrong_kind');
-  }
+  const ids = mediaIds.filter((id): id is string => !!id);
+  await assertAssets(prisma, ownerId, new Map(ids.map((id) => [id, 'image'])), attached);
 }

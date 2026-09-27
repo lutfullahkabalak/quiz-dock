@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { assertAssets, expectImage } from '../media/assert-assets';
 import { Prisma } from '@prisma/client';
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -49,6 +50,7 @@ export class QuestionsService {
       ownerId,
       dto.options.map((o) => o.mediaId),
     );
+    await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId));
     const [question] = await this.prisma.$transaction([
       this.prisma.question.create({
         data: {
@@ -83,6 +85,9 @@ export class QuestionsService {
       dto.options.map((o) => o.mediaId),
       current.options.map((o) => o.mediaId),
     );
+    await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId), [
+      current.backgroundMediaId,
+    ]);
     const question = await this.prisma.question.update({
       where: { id: questionId },
       data: {
@@ -227,6 +232,7 @@ export class QuestionsService {
         quizId: true,
         visualMediaId: true,
         audioMediaId: true,
+        backgroundMediaId: true,
         options: { select: { mediaId: true } },
       },
     });
