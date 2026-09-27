@@ -27,6 +27,7 @@ export function GameSoundsPanel({
   if (!sounds) return null;
   const summary = [
     sounds.tick ? t('control.sounds.tick') : null,
+    sounds.ding ? t('control.sounds.ding') : null,
     sounds.countdown ? t('control.sounds.countdown') : null,
     sounds.gong ? t('control.sounds.gong') : null,
     sounds.musicUrl ? t('control.sounds.music') : null,
@@ -253,6 +254,14 @@ export function GameSoundsControls({
             : null}
         </div>
       </div>
+      <label className="flex items-center gap-2">
+        <Switch
+          checked={sounds.ding}
+          onCheckedChange={(ding) => onChange({ ding })}
+          aria-label={t('control.sounds.dingLabel')}
+        />
+        {t('control.sounds.dingLabel')}
+      </label>
       {/* The countdown is synthesised only: a clock keeps a steady click, not a sample's. */}
       <label className="flex items-center gap-2">
         <Switch

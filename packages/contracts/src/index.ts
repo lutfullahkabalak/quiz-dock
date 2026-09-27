@@ -464,6 +464,8 @@ export interface RoomSoundsPayload {
   gong: boolean;
   /** Tic… tac… on the last five seconds of a question, the gong on zero. */
   countdown: boolean;
+  /** A bright ding as a question starts (not over a question with its own sound). */
+  ding: boolean;
   /** A sample replacing the synthesised tick / gong (a sound of the library), null = synthesised. */
   tickUrl: string | null;
   gongUrl: string | null;
@@ -482,6 +484,7 @@ export interface RoomSoundsSettings {
   tick?: boolean;
   gong?: boolean;
   countdown?: boolean;
+  ding?: boolean;
   /** A media id of the library ('' = back to the synthesised effect / no track). */
   tickId?: string;
   gongId?: string;

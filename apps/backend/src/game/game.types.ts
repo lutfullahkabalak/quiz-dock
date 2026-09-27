@@ -159,6 +159,7 @@ export interface RoomSounds {
   tick: boolean;
   gong: boolean;
   countdown: boolean;
+  ding: boolean;
   tickId: string;
   gongId: string;
   musicId: string;
@@ -176,6 +177,7 @@ export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
   tick: true,
   gong: true,
   countdown: true,
+  ding: true,
   tickId: '',
   gongId: '',
   musicId: '',

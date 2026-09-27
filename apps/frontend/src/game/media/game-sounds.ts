@@ -90,12 +90,63 @@ export function synthGong(at?: number): () => void {
   };
 }
 
+/**
+ * A ding as a question starts: one bright tone with two discreet harmonics for
+ * the crystal (no low body, or it turns into a cowbell), and a short struck
+ * transient for a clean attack.
+ */
+export function synthDing(at?: number): () => void {
+  const mixer = getMixer();
+  const into = busInput('sfx');
+  if (!mixer || !into) return noop;
+  const { ctx } = mixer;
+  const t = Math.max(at ?? 0, ctx.currentTime);
+  const out = ctx.createGain();
+  out.gain.value = 0.8;
+  out.connect(into);
+  const sources: AudioScheduledSourceNode[] = [];
+  for (const { freq, level, decay } of [
+    { freq: 1550, level: 1, decay: 1.1 },
+    { freq: 2300, level: 0.18, decay: 0.6 },
+    { freq: 3150, level: 0.08, decay: 0.35 },
+  ]) {
+    const osc = ctx.createOscillator();
+    osc.type = 'sine';
+    osc.frequency.value = freq;
+    const g = ctx.createGain();
+    g.gain.setValueAtTime(0, t);
+    g.gain.linearRampToValueAtTime(level, t + 0.002);
+    g.gain.exponentialRampToValueAtTime(0.001, t + decay);
+    osc.connect(g).connect(out);
+    osc.start(t);
+    osc.stop(t + decay + 0.1);
+    sources.push(osc);
+  }
+  const noise = ctx.createBufferSource();
+  noise.buffer = seededNoise(ctx, 0.015);
+  const band = ctx.createBiquadFilter();
+  band.type = 'bandpass';
+  band.frequency.value = 3200;
+  band.Q.value = 0.5;
+  const ng = ctx.createGain();
+  ng.gain.setValueAtTime(0.4, t);
+  ng.gain.exponentialRampToValueAtTime(0.001, t + 0.015);
+  noise.connect(band).connect(ng).connect(out);
+  noise.start(t);
+  sources.push(noise);
+  return () => {
+    if (ctx.currentTime < t) sources.forEach((s) => s.stop());
+  };
+}
+
 /** One noise for every countdown click, drawn once from a fixed seed: each tic, each tac sounds the same. */
-const clickNoise = new WeakMap<BaseAudioContext, AudioBuffer>();
-function seededNoise(ctx: BaseAudioContext): AudioBuffer {
-  const known = clickNoise.get(ctx);
+const noises = new WeakMap<BaseAudioContext, Map<number, AudioBuffer>>();
+function seededNoise(ctx: BaseAudioContext, seconds = 0.03): AudioBuffer {
+  const mine = noises.get(ctx) ?? new Map<number, AudioBuffer>();
+  noises.set(ctx, mine);
+  const known = mine.get(seconds);
   if (known) return known;
-  const size = Math.floor(ctx.sampleRate * 0.03);
+  const size = Math.floor(ctx.sampleRate * seconds);
   const buffer = ctx.createBuffer(1, size, ctx.sampleRate);
   const data = buffer.getChannelData(0);
   let seed = 0x2f6b1d3a;
@@ -105,7 +156,7 @@ function seededNoise(ctx: BaseAudioContext): AudioBuffer {
     seed ^= seed << 5; // xorshift32
     data[i] = ((seed >>> 0) / 0xffffffff) * 2 - 1;
   }
-  clickNoise.set(ctx, buffer);
+  mine.set(seconds, buffer);
   return buffer;
 }
 
@@ -255,6 +306,15 @@ export function useGameSounds(
     if (sounds.tick && answering && sameQuestion && game.answered > prev.answered) {
       playEffect(sounds.tickUrl, synthTick);
     }
+    // The ding: a new question starts (not over its own sound or video).
+    if (
+      sounds.ding &&
+      game.state === 'ANSWERING' &&
+      (!sameQuestion || prev.state !== 'ANSWERING') &&
+      !questionHasOwnSound(game.media)
+    ) {
+      synthDing();
+    }
     // The gong at the reveal — unless the countdown already struck it at zero.
     const struck = countdownGong.current?.questionIndex === game.questionIndex;
     if (
@@ -277,6 +337,9 @@ export function useGameSounds(
     if (!on || !sounds?.countdown || game.state !== 'ANSWERING' || game.paused || !endsAt) {
       return;
     }
+    // An end already gone by: the previous question's, until this one's `question:start`
+    // arrives — nothing to count down (it would strike the gong now).
+    if (endsAt <= serverNow()) return;
     const ctx = getMixer()?.ctx;
     if (!ctx || ctx.state !== 'running') return;
     const toCtx = (serverMs: number) => ctx.currentTime + (serverMs - serverNow()) / 1000;

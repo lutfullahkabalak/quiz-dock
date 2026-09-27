@@ -65,6 +65,7 @@ const SOUNDS: RoomSoundsPayload = {
   tick: true,
   gong: true,
   countdown: true,
+  ding: false, // its own test below: the counts of the others stay theirs
   tickUrl: null,
   gongUrl: null,
   musicUrl: null,
@@ -165,6 +166,30 @@ describe('game sounds (#93)', () => {
     renderHook(() =>
       useGameSounds({ ...SOUNDS, countdown: false }, game({ endsAt: Date.now() + 5000 }), true),
     );
+    expect(clicks).toHaveLength(0);
+  });
+
+  it('a ding as a question starts, not over a question with its own sound', () => {
+    const withDing = { ...SOUNDS, ding: true };
+    const { rerender } = renderHook(({ g }) => useGameSounds(withDing, g, true), {
+      initialProps: { g: game({ state: 'LOBBY' }) },
+    });
+    expect(oscillators).toHaveLength(0);
+    rerender({ g: game() }); // question 0 starts
+    const ding = oscillators.length;
+    expect(ding).toBeGreaterThan(0);
+    rerender({ g: game({ answered: 1, state: 'REVEAL' }) });
+    oscillators.length = 0;
+    rerender({
+      g: game({ questionIndex: 1, media: { visual: null, audio: { url: '/a.m4a' } } as never }),
+    });
+    expect(oscillators).toHaveLength(0); // its own sound: no ding over it
+  });
+
+  it('never strikes the gong as a question starts (the last question’s end still in the view)', () => {
+    // The new question's state arrives before its question:start: the end known is the last one's.
+    renderHook(() => useGameSounds(SOUNDS, game({ endsAt: Date.now() - 2000 }), true));
+    expect(oscillators).toHaveLength(0);
     expect(clicks).toHaveLength(0);
   });
 

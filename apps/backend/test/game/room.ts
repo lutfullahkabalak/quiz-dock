@@ -319,6 +319,7 @@ export function roomTests(ctx: GameContext): void {
         tick: true,
         gong: true,
         countdown: true,
+        ding: true,
         tickUrl: null,
         gongUrl: null,
         musicUrl: null,
