@@ -158,8 +158,10 @@ interface FormValues {
   acceptedAnswers: { text: string }[];
 }
 
+// Unique across page loads too: a restored draft keeps the keys of the previous load
+// (a counter alone starts over at each load and would hand one out again).
 let optionSeq = 0;
-const optionKey = () => `opt-${++optionSeq}`;
+const optionKey = () => `opt-${Date.now().toString(36)}-${++optionSeq}`;
 
 function newOption(i: number, text = ''): OptionValue {
   return {
