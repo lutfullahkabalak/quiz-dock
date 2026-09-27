@@ -341,14 +341,19 @@ export class GameEngine {
     if (!step) return;
     const { pin } = ref;
     const gameTarget = await this.gameTarget(ref.id, snapshot);
-    const players = await this.game.players(pin);
+    // The whole room: every record, read once. One device (a join): its record alone,
+    // or each of 400 joins would decode the whole room again.
+    const players = only ? null : await this.game.players(pin);
     const payloads = new Map<PreloadDevice, MediaPreloadPayload | null>();
     const sockets: Emitter[] = only ? [only] : await this.server.in(pin).fetchSockets();
     for (const socket of sockets) {
       const playerId = socket.data.playerId;
-      const device: PreloadDevice = !playerId
-        ? 'screen'
-        : (players.get(playerId)?.presence ?? 'room');
+      const record = !playerId
+        ? null
+        : players
+          ? players.get(playerId)
+          : await this.game.getPlayer(pin, playerId);
+      const device: PreloadDevice = !playerId ? 'screen' : (record?.presence ?? 'room');
       if (!payloads.has(device)) {
         payloads.set(device, preloadFor(snapshot, step, gameTarget, device));
       }
