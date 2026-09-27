@@ -231,4 +231,14 @@ describe('AdminMediaPage', () => {
     expect(next.querySelector('audio')).toHaveAttribute('src', '/api/v1/media/m2');
     expect(screen.getByRole('button', { name: 'Lire' })).toBeInTheDocument();
   });
+
+  it('says so when the media cannot be read, instead of loading forever (audit E5)', async () => {
+    mockApi([
+      me(['admin']),
+      { ...overview, status: 500, body: {} },
+      { ...files, status: 500, body: {} },
+    ]);
+    renderPage();
+    await waitFor(() => expect(screen.getAllByText('Une erreur est survenue.')).toHaveLength(2));
+  });
 });

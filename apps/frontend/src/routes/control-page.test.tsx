@@ -349,6 +349,26 @@ describe('ControlPage (console hôte)', () => {
     expect(fakeSocket.emit).not.toHaveBeenCalledWith('host:pause', expect.anything());
   });
 
+  it('Tab moves the focus between controls; it cycles the views only from the page (audit F3)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: { prompt: 'Capitale ?' } as never,
+    });
+    renderApp('/session/482913/console');
+    await screen.findByText('Capitale ?');
+    // On a control, the browser keeps Tab: the keyboard can reach every button.
+    const reveal = screen.getByRole('button', { name: /Révéler/ });
+    expect(fireEvent.keyDown(reveal, { key: 'Tab' })).toBe(true);
+    // From the page itself, Tab still switches the view.
+    const selected = () => screen.getAllByRole('tab').find((t) => t.ariaSelected === 'true');
+    const before = selected();
+    expect(fireEvent.keyDown(document.body, { key: 'Tab' })).toBe(false);
+    expect(selected()).not.toBe(before);
+  });
+
   it('le bouton « Partager » diffuse le lien de la partie (Web Share)', async () => {
     localStorage.setItem('live.localUser', 'Animateur');
     hookState.value = view({});

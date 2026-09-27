@@ -291,6 +291,30 @@ describe('EditorPage', () => {
     });
   });
 
+  it('saving the title never writes back the language chosen before (audit E1)', async () => {
+    const fetchMock = mockApi([
+      { method: 'GET', path: '/quizzes/q1', body: detail({ language: 'fr' }) },
+      { method: 'PUT', path: '/quizzes/q1', body: detail() },
+    ]);
+    renderApp('/quizzes/q1');
+    const puts = () =>
+      fetchMock.mock.calls
+        .filter(([url, opts]) => String(url).endsWith('/quizzes/q1') && opts?.method === 'PUT')
+        .map(([, opts]) => JSON.parse(String(opts?.body)) as Record<string, unknown>);
+    const title = await screen.findByDisplayValue('Mon quiz');
+    fireEvent.change(title, { target: { value: 'Mon quiz révisé' } });
+    // The language is changed on its own, then the title is saved.
+    fireEvent.change(screen.getByLabelText('Langue', { selector: 'select' }), {
+      target: { value: 'de' },
+    });
+    await waitFor(() => expect(puts()).toContainEqual({ language: 'de' }));
+    const header = within(title.closest('form') as HTMLElement);
+    fireEvent.click(await header.findByRole('button', { name: /Enregistrer/ }));
+    await waitFor(() => expect(puts().some((b) => b.title === 'Mon quiz révisé')).toBe(true));
+    const titleSave = puts().find((b) => b.title === 'Mon quiz révisé');
+    expect(titleSave).not.toHaveProperty('language');
+  });
+
   describe("another host's quiz, opened by a manager (#82)", () => {
     const foreign = () => detail({ editable: false, ownerName: 'Alice', title: 'Quiz d’Alice' });
 
@@ -669,5 +693,18 @@ describe('EditorPage', () => {
     expect(openDialog.textContent).toContain('Abandonner les modifications ?');
     fireEvent.click(within(openDialog).getByRole('button', { name: 'Abandonner' }));
     await waitFor(() => expect(screen.getByLabelText('Énoncé').textContent).toContain('Seconde'));
+  });
+
+  it('says the quiz is not found only when the server says so (audit E5)', async () => {
+    mockApi([{ method: 'GET', path: '/quizzes/q1', status: 500, body: {} }]);
+    const { unmount } = renderApp('/quizzes/q1');
+    expect(await screen.findByText('Une erreur est survenue.')).toBeInTheDocument();
+    expect(screen.queryByText('Quiz introuvable.')).toBeNull();
+    unmount();
+    mockApi([
+      { method: 'GET', path: '/quizzes/q1', status: 404, body: { code: 'quiz.not_found' } },
+    ]);
+    renderApp('/quizzes/q1');
+    expect(await screen.findByText('Quiz introuvable.')).toBeInTheDocument();
   });
 });

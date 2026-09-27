@@ -23,5 +23,5 @@ export function useCopyQuiz() {
         },
       },
     );
-  return { copy, copying: duplicate.isPending };
+  return { copy, copying: duplicate.isPending, copyError: duplicate.error };
 }

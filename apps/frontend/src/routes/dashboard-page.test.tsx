@@ -323,4 +323,21 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('Quiz 24')).toBeInTheDocument();
     expect(screen.getByText('Page 2 sur 2')).toBeInTheDocument();
   });
+
+  it('says so when a quiz cannot be created, or copied (audit E3)', async () => {
+    mockApi([
+      { method: 'POST', path: '/quizzes/shared/duplicate', status: 500, body: {} },
+      { method: 'POST', path: '/quizzes', status: 500, body: {} },
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [quiz({ id: 'shared', title: 'Partagé', editable: false, shared: true })],
+      },
+    ]);
+    renderApp('/quizzes');
+    fireEvent.click((await screen.findAllByRole('button', { name: /Nouveau quiz/ }))[0]);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Créer à partir de ce quiz/ }));
+    await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2));
+  });
 });

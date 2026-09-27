@@ -1,5 +1,5 @@
 import { GameState } from '@quiz-dock/contracts';
-import { fireEvent, screen, waitFor } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameView } from '../game/use-game-session';
 import { configureAnonymousParticipants } from '../config';
@@ -36,6 +36,7 @@ vi.mock('../game/media/question-media-stage', () => ({
   ),
 }));
 const joinSession = vi.fn();
+const disconnectGame = vi.fn();
 const loadPlayerSession = vi.fn();
 const peekSession = vi.fn(() =>
   Promise.resolve({ hasSound: false, participantAccess: 'account' as 'account' | 'open' }),
@@ -53,6 +54,7 @@ vi.mock('../game/game-client', () => ({
   saveNickname: () => undefined,
   clearPlayerSession: () => undefined,
   saveAvatarSeed: () => undefined,
+  disconnectGame: () => disconnectGame(),
 }));
 
 const view = (partial: Partial<GameView>): GameView => ({
@@ -209,6 +211,61 @@ describe('PlayerPage (client participant)', () => {
 
     expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
     expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
+  });
+
+  it('leaving closes this device’s connection for good, so it can join another game (audit F1)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    hookState.value = view({ state: GameState.Lobby });
+    renderApp('/join/771122');
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Quitter' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Quitter' }));
+    // Forgotten, not just disconnected: the next join opens a new connection.
+    await waitFor(() => expect(disconnectGame).toHaveBeenCalled());
+  });
+
+  it('the host adjusting the time keeps the order a player is putting together (audit F4)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    const now = Date.now();
+    const ordering = (endsAt: number) =>
+      ({
+        questionIndex: 0,
+        type: 'ordering',
+        prompt: 'Dans l’ordre ?',
+        options: ['Alpha', 'Beta', 'Gamma'].map((text) => ({ id: text, text })),
+        startedAt: now - 1_000,
+        endsAt,
+        timeLimitS: 20,
+      }) as never;
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: ordering(now + 20_000),
+    });
+    renderApp('/join/771122');
+    await screen.findByText('Dans l’ordre ?');
+
+    // The host adds 5 s: the same question comes back with a later end…
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: ordering(now + 25_000),
+    });
+    // …while the player moves Alpha down.
+    fireEvent.click(screen.getAllByRole('button', { name: 'Descendre' })[0]);
+    const text = () => document.body.textContent ?? '';
+    await waitFor(() => expect(text().indexOf('Beta')).toBeLessThan(text().indexOf('Alpha')));
   });
 
   describe('“Ready!” in the lobby (#104)', () => {
