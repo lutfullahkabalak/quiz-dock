@@ -197,11 +197,16 @@ tick, gong (synthesised, or a sample) ────► SFX   ─┼─► MASTER 
 interface sounds (to come) ───────────────► UI    ─┘
 ```
 
-- **A bus is two gains in a row**: its *level* (a host's volume) and its *duck* (automatic), so a volume change never
-  fights a duck. **MASTER** carries the participant's own mute; a **limiter** after it keeps simultaneous sources from
-  clipping.
-- **The rules follow the game's state, not the signal**: while a question plays its own sound or video, MUSIC ducks to
-  silence and comes back after; SFX is never ducked (the effects are short).
+- **A bus is three gains in a row**: its *level* (a host's volume), its *duck* (from the game's state) and its *side*
+  (the sidechain), so a volume change never fights a duck. **MASTER** carries the participant's own mute; a **limiter**
+  after it keeps simultaneous sources from clipping.
+- **MUSIC is sidechained on QUIZ**: an envelope follower reads the QUIZ bus (every 50 ms) and pushes MUSIC down to
+  −14 dB while it sounds — fast down (50 ms), slow back (0.6 s) — so a question's sound or video comes through and the
+  track returns when it ends, whatever the media's length or silences. Web Audio's own compressor takes no key input,
+  hence the follower. SFX is never ducked (the effects are short).
+- **Faders are tapered**: a position (0–100 %) becomes its cube as a gain, close to how loudness is heard — half-way
+  is about −18 dB, not the −6 dB a straight line gives. Positions are what is kept (the room's levels, a device's
+  volume and trims).
 - **QUIZ** keeps its per-media loudness correction (§2); it is not a host's volume. A media element joins the bus once
   the context runs (a suspended context would silence it) and once in its life — the phones reuse theirs.
 - **Which buses a device plays**:
@@ -225,8 +230,9 @@ interface sounds (to come) ───────────────► UI  
 - **The tick** plays at each new answer while players answer (from `answer:count`), **the gong** when a question moves
   to its reveal — no event of their own. Both are on in a new room; each can take a sound of the library instead of
   the synthesised one.
-- **The background track** loops while players answer, never over a question that plays its own sound or video; a
-  pause ducks it (it picks up where it was).
+- **The background track** loops while players answer only. Between questions and while the game is paused it fades
+  out and **keeps its place**, then comes back where it was — never from the top at each question. Under a question
+  with its own sound or video it plays on, pushed aside by the sidechain.
 - **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
   (`host:sounds`), sent to every screen as URLs and levels (`room:sounds`). A sample or a track must be a sound of the
   host's or of the instance's; the hourly media sweep keeps what an open room plays.

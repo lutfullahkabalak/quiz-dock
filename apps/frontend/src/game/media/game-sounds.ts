@@ -1,11 +1,11 @@
 import type { LiveQuestionMedia, RoomSoundsPayload } from '@quiz-dock/contracts';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   TRACK_FADE_S,
   busInput,
   getMixer,
+  loopTrack,
   playBuffer,
-  setBusDucked,
   setRoomLevel,
 } from './audio-mixer';
 
@@ -155,28 +155,31 @@ export function useGameSounds(
     }
   }, [on, sounds, game.state, game.questionIndex, game.answered]);
 
-  // The track: while players answer, unless the question plays its own sound.
+  // The track: looped while players answer. Between questions, and while the game
+  // is paused, it fades out and keeps its place, then comes back where it was —
+  // never from the top at each question. A question's own sound or video pushes
+  // it aside through the sidechain (the mixer), not by stopping it.
   const trackUrl = on ? (sounds?.musicUrl ?? null) : null;
-  const plays = !!trackUrl && game.state === 'ANSWERING' && !questionHasOwnSound(game.media);
-  // A pause ducks it (it picks up where it was), never stops it.
+  const plays = !!trackUrl && game.state === 'ANSWERING' && !game.paused;
+  const [track, setTrack] = useState<ReturnType<typeof loopTrack> | null>(null);
   useEffect(() => {
-    if (on) setBusDucked('music', game.paused);
-  }, [on, game.paused]);
-  useEffect(() => {
-    if (!plays || !trackUrl || !running()) return;
-    let stop: (() => void) | null = null;
+    if (!trackUrl) return;
     let cancelled = false;
+    let loaded: ReturnType<typeof loopTrack> | null = null;
     void loadSound(trackUrl).then((buffer) => {
-      if (!cancelled && buffer) {
-        stop = playBuffer(buffer, 'music', {
-          loop: true,
-          fadeOutS: TRACK_FADE_S,
-        });
-      }
+      if (cancelled || !buffer) return;
+      loaded = loopTrack(buffer, 'music', TRACK_FADE_S);
+      setTrack(loaded);
     });
     return () => {
       cancelled = true;
-      stop?.();
+      loaded?.hold();
+      setTrack(null);
     };
-  }, [plays, trackUrl, game.questionIndex]);
+  }, [trackUrl]);
+  useEffect(() => {
+    if (!track) return;
+    if (plays && running()) track.play();
+    else track.hold();
+  }, [track, plays]);
 }

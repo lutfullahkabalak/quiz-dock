@@ -3,7 +3,7 @@ import type { RoomSoundsPayload } from '@quiz-dock/contracts';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 // A fake mixer: counts the oscillators each effect starts, records the buffers played.
-const { mixer, oscillators, played, ducked, levels } = vi.hoisted(() => {
+const { mixer, oscillators, played, track, ducked, levels } = vi.hoisted(() => {
   const oscillators: string[] = [];
   const param = () => ({
     value: 1,
@@ -28,6 +28,7 @@ const { mixer, oscillators, played, ducked, levels } = vi.hoisted(() => {
     mixer: { ctx },
     oscillators,
     played: [] as { bus: string; loop?: boolean }[],
+    track: [] as string[],
     ducked: [] as boolean[],
     levels: [] as [string, number][],
   };
@@ -42,6 +43,7 @@ vi.mock('./audio-mixer', () => ({
     return () => undefined;
   },
   setBusDucked: (_bus: string, d: boolean) => ducked.push(d),
+  loopTrack: () => ({ play: () => track.push('play'), hold: () => track.push('hold') }),
   setRoomLevel: (bus: string, v: number) => levels.push([bus, v]),
 }));
 
@@ -69,6 +71,7 @@ describe('game sounds (#93)', () => {
   beforeEach(() => {
     oscillators.length = 0;
     played.length = 0;
+    track.length = 0;
     ducked.length = 0;
     levels.length = 0;
     vi.stubGlobal(
@@ -110,18 +113,21 @@ describe('game sounds (#93)', () => {
     expect(oscillators).toHaveLength(0);
   });
 
-  it('loops the track while players answer, not over a question with its own sound; a pause ducks it', async () => {
+  it('plays the track while players answer and holds it in between, never from the top again', async () => {
     const withTrack = { ...SOUNDS, musicUrl: '/api/v1/media/track' };
     const { rerender } = renderHook(({ g }) => useGameSounds(withTrack, g, true), {
+      // A question with its own sound: the track plays too, the sidechain pushes it aside.
       initialProps: {
         g: game({ media: { visual: null, audio: { url: '/a.m4a' } } as never }),
       },
     });
-    await vi.waitFor(() => expect(fetch).not.toHaveBeenCalled());
-    expect(played).toEqual([]);
-    rerender({ g: game({ questionIndex: 1 }) });
-    await vi.waitFor(() => expect(played).toEqual([{ bus: 'music', loop: true }]));
+    await vi.waitFor(() => expect(track).toEqual(['play']));
+    rerender({ g: game({ state: 'REVEAL' }) });
+    rerender({ g: game({ state: 'ANSWERING', questionIndex: 1 }) });
     rerender({ g: game({ questionIndex: 1, paused: true }) });
-    expect(ducked.at(-1)).toBe(true);
+    rerender({ g: game({ questionIndex: 1 }) });
+    // One track, held and played again (it keeps its place): never a new one per question.
+    expect(track).toEqual(['play', 'hold', 'play', 'hold', 'play']);
+    expect(played).toEqual([]);
   });
 });

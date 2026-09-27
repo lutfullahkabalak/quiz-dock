@@ -10,11 +10,12 @@ import { audioContext, isAudioUnlocked } from './audio-unlock';
  *   tick, gong (synthesised or a sample) ───► SFX   ─┼─► MASTER ─► limiter ─► speakers
  *   interface sounds (to come) ─────────────► UI    ─┘
  *
- * Each bus is two gains in a row: its **level** (a host's volume) and its
- * **duck** (automatic, from the game's state — the music steps aside while a
- * question plays its own sound), so a volume change never fights a duck.
- * MASTER carries the participant's own mute; the limiter keeps simultaneous
- * sources from clipping.
+ * Each bus is three gains in a row: its **level** (a host's volume), its
+ * **duck** (from the game's state) and its **side** (the sidechain: the music
+ * steps aside while the QUIZ bus sounds — a question's sound or video — and
+ * comes back after), so a volume change never fights a duck. MASTER carries
+ * the participant's own mute; the limiter keeps simultaneous sources from
+ * clipping. Faders are tapered (`faderGain`): half-way is quiet, not loud.
  */
 export const BUSES = ['quiz', 'music', 'sfx', 'ui'] as const;
 export type Bus = (typeof BUSES)[number];
@@ -22,6 +23,7 @@ export type Bus = (typeof BUSES)[number];
 interface Strip {
   level: GainNode;
   duck: GainNode;
+  side: GainNode;
 }
 
 interface Mixer {
@@ -53,14 +55,58 @@ export function getMixer(): Mixer | null {
   for (const bus of BUSES) {
     const level = ctx.createGain();
     const duck = ctx.createGain();
-    level.connect(duck).connect(master);
-    strips[bus] = { level, duck };
+    const side = ctx.createGain();
+    level.connect(duck).connect(side).connect(master);
+    strips[bus] = { level, duck, side };
   }
   mixer = { ctx, strips, master };
+  sidechain(mixer);
   // What this device chose before (its volume, mute and trims) holds from the start.
   master.gain.value = masterValue();
   for (const bus of BUSES) strips[bus].level.gain.value = busValue(bus);
   return mixer;
+}
+
+/** How far the music steps aside while the QUIZ bus sounds (−14 dB), and when it counts as sounding. */
+const SIDE_DUCK = 0.2;
+const SIDE_THRESHOLD_RMS = 0.01;
+/** Down fast (the question's sound comes through at once), back slowly (no pumping). */
+const SIDE_ATTACK_S = 0.05;
+const SIDE_RELEASE_S = 0.6;
+const SIDE_EVERY_MS = 50;
+
+/**
+ * A compressor keyed on the QUIZ bus, for the music: an envelope follower reads
+ * the bus a few times a second and moves the music's `side` gain — Web Audio's
+ * own compressor cannot take a key input. Without an analyser (tests, an old
+ * browser), the music simply stays where its level puts it.
+ */
+function sidechain(m: Mixer): void {
+  if (typeof m.ctx.createAnalyser !== 'function') return;
+  const analyser = m.ctx.createAnalyser();
+  analyser.fftSize = 512;
+  // A tap: into a silent gain, so the analyser is pulled without being heard.
+  const sink = m.ctx.createGain();
+  sink.gain.value = 0;
+  m.strips.quiz.side.connect(analyser).connect(sink).connect(m.ctx.destination);
+  const samples = new Float32Array(analyser.fftSize);
+  let ducked = false;
+  setInterval(() => {
+    if (m.ctx.state !== 'running') return;
+    analyser.getFloatTimeDomainData(samples);
+    let sum = 0;
+    for (const v of samples) sum += v * v;
+    const loud = Math.sqrt(sum / samples.length) > SIDE_THRESHOLD_RMS;
+    if (loud === ducked) return;
+    ducked = loud;
+    const side = m.strips.music.side.gain;
+    side.cancelScheduledValues(m.ctx.currentTime);
+    side.setTargetAtTime(
+      loud ? SIDE_DUCK : 1,
+      m.ctx.currentTime,
+      loud ? SIDE_ATTACK_S : SIDE_RELEASE_S,
+    );
+  }, SIDE_EVERY_MS);
 }
 
 /** Where a source of `bus` plugs in; null without Web Audio. */
@@ -121,8 +167,15 @@ let device: DeviceSound = loadDevice();
 const roomLevels: Record<Bus, number> = { ...FULL };
 const deviceListeners = new Set<() => void>();
 
-const masterValue = () => (device.muted ? 0 : device.volume);
-const busValue = (bus: Bus) => clamp(roomLevels[bus] * device.trims[bus]);
+/**
+ * A fader's position (0..1) as a gain: cubed, close to how loudness is heard —
+ * half-way is about −18 dB, not the −6 dB a straight line gives (which sounds
+ * nearly as loud as the top).
+ */
+export const faderGain = (position: number) => clamp(position) ** 3;
+
+const masterValue = () => (device.muted ? 0 : faderGain(device.volume));
+const busValue = (bus: Bus) => clamp(faderGain(roomLevels[bus]) * faderGain(device.trims[bus]));
 
 function saveDevice(next: DeviceSound): void {
   device = next;
@@ -281,6 +334,49 @@ export function playBuffer(
     own.gain.linearRampToValueAtTime(0, now + fadeOutS);
     source.stop(now + fadeOutS + 0.02);
   };
+}
+
+/**
+ * A background track that plays and holds in turn, looped: held, it fades out
+ * and stops, keeping its place; played again, it comes back in where it was —
+ * never from the top at each question.
+ */
+export function loopTrack(
+  buffer: AudioBuffer,
+  bus: Bus,
+  fadeOutS = FADE_OUT_S,
+): { play: () => void; hold: () => void } {
+  let source: AudioBufferSourceNode | null = null;
+  let own: GainNode | null = null;
+  let startedAt = 0;
+  let offset = 0;
+  const hold = () => {
+    const m = mixer;
+    if (!m || !source || !own) return;
+    const now = m.ctx.currentTime;
+    offset = (offset + (now - startedAt)) % buffer.duration;
+    own.gain.cancelScheduledValues(now);
+    own.gain.setValueAtTime(own.gain.value, now);
+    own.gain.linearRampToValueAtTime(0, now + fadeOutS);
+    source.stop(now + fadeOutS + 0.02);
+    source = null;
+    own = null;
+  };
+  const play = () => {
+    const m = getMixer();
+    if (!m || source) return;
+    source = m.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    own = m.ctx.createGain();
+    const now = m.ctx.currentTime;
+    own.gain.setValueAtTime(0, now);
+    own.gain.linearRampToValueAtTime(1, now + FADE_IN_S);
+    source.connect(own).connect(m.strips[bus].level);
+    source.start(now, offset);
+    startedAt = now;
+  };
+  return { play, hold };
 }
 
 /** For the tests: forget the mixer and this device's choices. */
