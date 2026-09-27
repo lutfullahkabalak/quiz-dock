@@ -1,29 +1,40 @@
-# Performance roadmap (draft)
+# Performance roadmap
 
-> **Status: draft, 2026-09-27.** Where the live engine spends its time today,
-> and the options to go further, in the order they are worth trying. Every step
-> is measured with the [load test](load-testing.md) before and after, and must
-> keep the sync tests green (`src/game/game.engine.spec.ts`, "sync between
-> devices").
+> **Status: 2026-09-27, after the refactoring lots.** Where the live engine
+> spends its time, what was done, and the options to go further, in the order
+> they are worth trying. Every step is measured with the [load test](load-testing.md)
+> before and after, and must keep the sync tests green
+> (`src/game/game.engine.spec.ts`, "sync between devices").
 
 ## 1. Where we stand
 
-From the [baseline](load-testing.md#3-results) (one room, questions without
-media, Xeon @ 2.10 GHz):
+From the [measure after the lots](load-testing.md#3-results), taken on a machine that
+had just started (one room, questions without media, Xeon @ 2.10 GHz):
 
-- **Stable up to 700 players**: no answer lost, the devices receive each event
-  within 35 ms of each other.
-- **Fluid up to ~400 players on one core.** Past that, answers queue: 0.6 s at
-  500, 3.4 s at 700.
-- **A second core barely helps** (0.1 s at 500, still 2.8 s at 700): the engine
-  runs on Node's single JavaScript thread.
-- **CPU grows faster than the players**: 16 % of a core at 100, 40 % at 200,
-  75 % at 300.
-
-The last point is the lead: the limit comes from the algorithms before it
-comes from the hardware.
+- **Fluid up to ~1500 players in one room, on one core**: an answer acknowledged in
+  18 ms (p95) at 700 players, 61 ms at 1500 where the slowest 1 % reach 0.4 s. The
+  baseline, before the lots, queued the answers past 400 players (3.4 s at 700).
+- **No answer lost**, the devices receive each question within 40 ms of each other
+  up to 700 players.
+- **A second core barely changes it** for one room: the engine runs on Node's single
+  JavaScript thread.
+- **Several rooms at once**: 60 rooms of 30 (1800 players), all started together,
+  answered within 25 ms (p95) on one core; the limit is beyond.
 
 ## 2. Where the time goes
+
+**Measured** with a CPU profile of the backend at 400 players (one core saturated,
+`node --cpu-prof`-style sampling through the inspector), after the lots and before 3.0:
+
+| Share of the backend's time | What |
+|--:|---|
+| ~27 % | sending over the network (`writev`, engine.io, socket.io): mostly `answer:count`, sent to every device on every answer, so 400 × 400 = 160,000 messages a question |
+| ~6 % | re-reading and parsing every player on every answer, to count who answered |
+| ~4 % | Redis transfers |
+| ~3 % | garbage collection |
+| ~40 % | idle (the joins, the waits between questions) |
+
+Before that measure, the analysis read the code:
 
 | Moment | What the engine does | Cost |
 |---|---|---|
@@ -34,7 +45,31 @@ comes from the hardware.
 
 ## 3. Options, in order
 
-### 3.1 In-memory indexes and a snapshot cache — low risk
+### 3.0 Coalescing `answer:count`: **done** (lot 5b)
+
+- The answer count goes out at most every 100 ms (`ANSWER_COUNT_EVERY_MS`), the last
+  one always, instead of on every answer: an answer in a quiet moment goes out at once,
+  those within the next 100 ms together at its end. A count still waiting when the
+  question is revealed goes out first, so the screens show every answer the reveal
+  counts. The count is the same on every device, only its steps are coarser: the room's
+  sync is untouched.
+- **Audible**: the screens tick once per answer counted, at most 5 ticks per update.
+  In a large room (133 answers a second at 400 players) the clatter thins out; in a
+  room of 30, answers rarely come within 100 ms of each other and nothing changes.
+  The game's sounds are off in a new room anyway: the host turns on the ones they want.
+- **Measured**, A/B against the code before the lots, alternated, three rounds, on a
+  machine that had just started: answer ack p95 from 120–623 ms to 11–12 ms at 500
+  players on two cores, from 18–37 ms to 7–8 ms at 300 on one; Redis from 12 to 10
+  commands per answer; no answer lost. A warm A/B just before and after this change
+  alone gave the same order (480–503 ms to 12 ms).
+
+### 3.1 In-memory indexes and a snapshot cache (low risk): **done**
+
+- **Done**: the rank index (lot 2) and the snapshot cache (`GameService`, the last
+  50 games). Measured on a text-heavy quiz (`--rich`, 10 questions) at 400 players:
+  answer ack p95 from 91–129 ms to 60–75 ms, the start spread from 23–35 ms to
+  17–21 ms. The CPU stays saturated: it lightens each answer, it does not move
+  the ceiling.
 
 - **Rank index.** Build `playerId → rank` once per reveal or podium, instead
   of a linear search per device. Same result, pure code.
@@ -45,7 +80,11 @@ comes from the hardware.
   the time: they stay in Redis, the source of truth, so a restart (timers
   re-armed from Redis) and, later, several processes stay correct.
 
-### 3.2 Indexes in Redis — medium risk
+### 3.2 Indexes in Redis (medium risk): **not done**
+
+- The profile gives what they would save, the per-answer parse of every player,
+  about 6 % of the time at 400 players (and less since 3.0: the players are counted
+  once per count sent, not once per answer). Not worth the drift risk.
 
 - A set of the game's **connected players** and a set of **who answered** each
   question, kept up to date on join, reconnect, disconnect, ban, answer and
@@ -83,20 +122,26 @@ comes from the hardware.
 
 ## 4. Order of work
 
-1. The engine refactoring (lot 2), behaviour unchanged, measured.
-2. 3.1, measured; then 3.2, measured.
-3. 3.3 if the product accepts it.
-4. The sizing table measured again and published in the
-   [self-hosting guides](../self-hosting/README.md).
+1. ~~The engine refactoring (lot 2), behaviour unchanged, measured.~~ Done.
+2. ~~3.1, measured.~~ Done. 3.2 set aside (see above).
+3. ~~3.0.~~ Done (lot 5b). 3.3 if the product accepts it.
+4. ~~The sizing table measured again and published in the
+   [self-hosting guides](../self-hosting/sizing.md).~~ Done, measured cold, 3.0 included.
 5. 3.4 only on a confirmed need, after a multi-room measure.
 
 ## 5. Also noted
 
-- The reveal writes its state in Redis **before** settling the points of a
-  `closest` question: a screen reattaching in those few milliseconds would get
-  unsettled scores. To fix in the engine work.
-- The server logs a `pg` deprecation under load ("`client.query()` when the
-  client is already executing a query"): concurrent queries on one client, to
-  look at before `pg@9`.
+- Fixed in lot 4a: the reveal settled a `closest` question's points after writing its
+  state; the `pg` overlap warning under load.
+- **Found while measuring**: the author's media library matched every media against
+  every quiz with `LIKE`, 28.6 s for an author with 2,000 quizzes and 200 media. It
+  reads the one-pass definition the administration used: 0.25 s (lot 4c).
+- **Candidate, not measured**: the archive of a finished game writes one row per
+  player, in a transaction (`createManyAndReturn` would take one query). A game's
+  end, not its play: to measure before changing.
+- **Found while measuring several rooms**: Redis's peak memory stayed near 19 MB over
+  60 rooms of 30 and a room of 300, but reached 71 MB from 400 to 700 players in one room
+  and 271 MB after 1000 and 1500: a large room seems to hold more in Redis than its
+  players alone. Not explained, to look into.
 - Not measured yet: media (bandwidth, the reverse proxy), a real Wi-Fi network,
-  several rooms at once, Postgres archiving a large session.
+  Postgres archiving a large session, rooms starting at their own moments.

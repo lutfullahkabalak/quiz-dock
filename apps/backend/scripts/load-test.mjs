@@ -7,6 +7,11 @@
  *   node scripts/load-test.mjs --url http://localhost:3000 --players 10,50,100 \
  *     [--questions 10] [--rich] [--server-pid <pid>] [--redis redis://localhost:6379] [--out result.json]
  *
+ * `--rooms 1,10,20 --players 30`: several rooms at once instead, each step N rooms
+ * of that many players, all started together (the worst case for the server), each
+ * playing at its own pace. The largest step whose answer ack p95 stays within
+ * `--threshold-ms` (100) is reported.
+ *
  * `--rich`: questions as long as the editor lets them be (prompt, explanation,
  * answers), for a snapshot the size of a real text-heavy quiz.
  *
@@ -25,6 +30,8 @@ const { values: args } = parseArgs({
   options: {
     url: { type: 'string', default: 'http://localhost:3000' },
     players: { type: 'string', default: '10,50,100,200,300' },
+    rooms: { type: 'string' },
+    'threshold-ms': { type: 'string', default: '100' },
     questions: { type: 'string', default: '10' },
     'answer-window': { type: 'string', default: '3000' }, // players answer within it (ms)
     rich: { type: 'boolean', default: false },
@@ -36,7 +43,11 @@ const { values: args } = parseArgs({
 
 const URL_BASE = args.url.replace(/\/$/, '');
 const HOST = 'loadtest-host';
-const COUNTS = args.players.split(',').map(Number);
+// One room per step (`--players` lists the steps), or several (`--rooms` does).
+const STEPS = args.rooms
+  ? args.rooms.split(',').map((rooms) => ({ rooms: Number(rooms), count: Number(args.players) }))
+  : args.players.split(',').map((count) => ({ rooms: 1, count: Number(count) }));
+const THRESHOLD_MS = Number(args['threshold-ms']);
 const QUESTIONS = Number(args.questions);
 const ANSWER_WINDOW_MS = Number(args['answer-window']);
 const EVENT_TIMEOUT_MS = 30_000;
@@ -172,106 +183,135 @@ async function seedQuiz() {
 
 // ── One game with N players ─────────────────────────────────────────────────
 
-async function play(quizId, count, redis) {
+/**
+ * One step: `rooms` rooms of `count` players each. The hosts open their rooms,
+ * the players join (50 at a time over every room), then every room starts at once.
+ */
+async function play(quizId, rooms, count, redis) {
   const sockets = [];
   const connect = (auth) => {
     const s = io(`${URL_BASE}/game`, { transports: ['websocket'], auth, forceNew: true });
     sockets.push(s);
     return s;
   };
-  const errors = [];
-  const joinMs = [];
-  const ackMs = [];
-  const refused = {};
-  let lost = 0;
-  const startSpread = [];
-  const revealSpread = [];
+  // What the rooms measure, together.
+  const m = {
+    errors: [],
+    joinMs: [],
+    ackMs: [],
+    refused: {},
+    lost: 0,
+    startSpread: [],
+    revealSpread: [],
+  };
 
   try {
-    const host = connect({ localUser: HOST });
-    host.on('error', (e) => errors.push(`host: ${JSON.stringify(e)}`));
-    const { pin } = await host.emitWithAck('host:create', { quizId });
+    const hosts = [];
+    for (let r = 0; r < rooms; r++) {
+      const host = connect({ localUser: HOST });
+      host.on('error', (e) => m.errors.push(`host ${r}: ${JSON.stringify(e)}`));
+      const { pin } = await host.emitWithAck('host:create', { quizId });
+      hosts.push({ host, pin });
+    }
 
-    const players = await pool(
-      Array.from({ length: count }, (_, i) => i),
-      50,
-      async (i) => {
-        const socket = connect();
-        socket.on('error', (e) => errors.push(`p${i}: ${JSON.stringify(e)}`));
-        const t = performance.now();
-        const ack = await socket.timeout(EVENT_TIMEOUT_MS).emitWithAck('player:join', {
-          pin,
-          nickname: `p${i}`,
-        });
-        joinMs.push(performance.now() - t);
-        return { socket, playerId: ack.playerId };
-      },
+    const seats = hosts.flatMap(({ pin }, r) =>
+      Array.from({ length: count }, (_, i) => ({ r, pin, i })),
     );
+    const players = await pool(seats, 50, async ({ r, pin, i }) => {
+      const socket = connect();
+      socket.on('error', (e) => m.errors.push(`r${r} p${i}: ${JSON.stringify(e)}`));
+      const t = performance.now();
+      const ack = await socket.timeout(EVENT_TIMEOUT_MS).emitWithAck('player:join', {
+        pin,
+        nickname: `p${i}`,
+      });
+      m.joinMs.push(performance.now() - t);
+      return { r, socket, playerId: ack.playerId };
+    });
 
     const commandsBefore = redis ? await redisCommands(redis) : 0;
     const t0 = performance.now();
-
-    for (let q = 0; q < QUESTIONS; q++) {
-      // Every device receives the question; each player answers in the window.
-      const starts = players.map(({ socket }) =>
-        once(socket, 'question:start', (p) => p.questionIndex === q).then((p) => ({
-          p,
-          at: Date.now(),
-        })),
-      );
-      const reveals = players.map(({ socket }) =>
-        once(socket, 'question:reveal').then(() => Date.now()),
-      );
-      host.emit(q === 0 ? 'host:start' : 'host:next', { pin });
-      const received = await Promise.all(starts);
-      startSpread.push(
-        Math.max(...received.map((r) => r.at)) - Math.min(...received.map((r) => r.at)),
-      );
-
-      await Promise.all(
-        players.map(async ({ socket }, i) => {
-          const { p } = received[i];
-          const opensIn = Math.max(0, p.startedAt - Date.now());
-          await sleep(opensIn + Math.random() * ANSWER_WINDOW_MS);
-          const answer = p.options[Math.floor(Math.random() * p.options.length)].id;
-          const t = performance.now();
-          const ack = once(socket, 'answer:ack', () => true, 10_000);
-          socket.emit('player:submit', { pin, questionIndex: q, answer });
-          try {
-            const a = await ack;
-            ackMs.push(performance.now() - t);
-            if (!a.accepted) refused[a.reason] = (refused[a.reason] ?? 0) + 1;
-          } catch {
-            lost++;
-          }
-        }),
-      );
-      const revealedAt = await Promise.all(reveals);
-      revealSpread.push(Math.max(...revealedAt) - Math.min(...revealedAt));
-    }
-
-    host.emit('host:next', { pin }); // the podium
-    await once(host, 'game:podium');
+    await Promise.all(
+      hosts.map(({ host, pin }, r) =>
+        playRoom(
+          host,
+          pin,
+          players.filter((p) => p.r === r),
+          m,
+        ),
+      ),
+    );
     const gameS = (performance.now() - t0) / 1000;
     const commands = redis ? (await redisCommands(redis)) - commandsBefore : null;
-    host.emit('host:end', { pin });
+    for (const { host, pin } of hosts) host.emit('host:end', { pin });
     await sleep(200);
 
     return {
-      players: count,
+      rooms,
+      playersPerRoom: count,
+      players: rooms * count,
       gameS: Math.round(gameS),
-      joinMs: stats(joinMs),
-      answerAckMs: stats(ackMs),
-      answersRefused: refused,
-      answersLost: lost,
-      questionStartSpreadMs: stats(startSpread),
-      revealSpreadMs: stats(revealSpread),
-      redisCommandsPerAnswer: commands === null ? null : Math.round(commands / (count * QUESTIONS)),
-      errors: errors.slice(0, 5),
+      joinMs: stats(m.joinMs),
+      answerAckMs: stats(m.ackMs),
+      answersRefused: m.refused,
+      answersLost: m.lost,
+      questionStartSpreadMs: stats(m.startSpread),
+      revealSpreadMs: stats(m.revealSpread),
+      redisCommandsPerAnswer:
+        commands === null ? null : Math.round(commands / (rooms * count * QUESTIONS)),
+      errors: m.errors.slice(0, 5),
     };
   } finally {
     for (const s of sockets) s.disconnect();
   }
+}
+
+/**
+ * One room's game, from its first question to its podium. The spreads are within
+ * the room: how far apart its devices received the same event.
+ */
+async function playRoom(host, pin, players, m) {
+  for (let q = 0; q < QUESTIONS; q++) {
+    // Every device receives the question; each player answers in the window.
+    const starts = players.map(({ socket }) =>
+      once(socket, 'question:start', (p) => p.questionIndex === q).then((p) => ({
+        p,
+        at: Date.now(),
+      })),
+    );
+    const reveals = players.map(({ socket }) =>
+      once(socket, 'question:reveal').then(() => Date.now()),
+    );
+    host.emit(q === 0 ? 'host:start' : 'host:next', { pin });
+    const received = await Promise.all(starts);
+    m.startSpread.push(
+      Math.max(...received.map((r) => r.at)) - Math.min(...received.map((r) => r.at)),
+    );
+
+    await Promise.all(
+      players.map(async ({ socket }, i) => {
+        const { p } = received[i];
+        const opensIn = Math.max(0, p.startedAt - Date.now());
+        await sleep(opensIn + Math.random() * ANSWER_WINDOW_MS);
+        const answer = p.options[Math.floor(Math.random() * p.options.length)].id;
+        const t = performance.now();
+        const ack = once(socket, 'answer:ack', () => true, 10_000);
+        socket.emit('player:submit', { pin, questionIndex: q, answer });
+        try {
+          const a = await ack;
+          m.ackMs.push(performance.now() - t);
+          if (!a.accepted) m.refused[a.reason] = (m.refused[a.reason] ?? 0) + 1;
+        } catch {
+          m.lost++;
+        }
+      }),
+    );
+    const revealedAt = await Promise.all(reveals);
+    m.revealSpread.push(Math.max(...revealedAt) - Math.min(...revealedAt));
+  }
+
+  host.emit('host:next', { pin }); // the podium
+  await once(host, 'game:podium');
 }
 
 // ── Main ────────────────────────────────────────────────────────────────────
@@ -279,11 +319,11 @@ async function play(quizId, count, redis) {
 const redis = args.redis ? new Redis(args.redis) : null;
 const quizId = await seedQuiz();
 const results = [];
-for (const count of COUNTS) {
+for (const { rooms, count } of STEPS) {
   const stop = args['server-pid'] ? sampleProcess(args['server-pid']) : () => null;
-  process.stdout.write(`${count} players… `);
+  process.stdout.write(args.rooms ? `${rooms} rooms of ${count}… ` : `${count} players… `);
   try {
-    const result = await play(quizId, count, redis);
+    const result = await play(quizId, rooms, count, redis);
     result.server = stop();
     results.push(result);
     console.log(
@@ -292,7 +332,7 @@ for (const count of COUNTS) {
     );
   } catch (err) {
     stop();
-    results.push({ players: count, failed: err.message });
+    results.push({ rooms, playersPerRoom: count, players: rooms * count, failed: err.message });
     console.log(`FAILED: ${err.message}`);
   }
   await sleep(1_000);
@@ -303,8 +343,9 @@ await redis?.quit();
 console.table(
   results.map((r) =>
     r.failed
-      ? { players: r.players, failed: r.failed }
+      ? { rooms: r.rooms, players: r.players, failed: r.failed }
       : {
+          rooms: r.rooms,
           players: r.players,
           'join p95': r.joinMs.p95,
           'ack p50': r.answerAckMs.p50,
@@ -320,5 +361,16 @@ console.table(
         },
   ),
 );
+if (args.rooms) {
+  // The largest step before the first one past the threshold (or failed).
+  const firstOver = results.findIndex((r) => r.failed || r.answerAckMs.p95 > THRESHOLD_MS);
+  const within = firstOver === -1 ? results.at(-1) : results[firstOver - 1];
+  console.log(
+    within
+      ? `Largest step with ack p95 within ${THRESHOLD_MS} ms: ${within.rooms} rooms of ${within.playersPerRoom} (${within.players} players)` +
+          (firstOver === -1 ? ', the last one measured: the limit is further.' : '.')
+      : `Ack p95 over ${THRESHOLD_MS} ms from the first step.`,
+  );
+}
 if (args.out) writeFileSync(args.out, JSON.stringify(results, null, 2));
 process.exit(0);

@@ -231,7 +231,10 @@ implemented.
   number of answers with the **number of connected players**, not with everyone who ever
   joined. Otherwise one departure hangs the question until the timer.
   → the condition becomes `answered ≥ count(players where connected)`.
-- `answer:count` broadcasts `{ answered, total }` with `total` = the **connected** players.
+- `answer:count` broadcasts `{ answered, total }` with `total` = the **connected** players,
+  at most every 100 ms per room (`ANSWER_COUNT_EVERY_MS`): the answers within that window
+  go out in one count at its end, the last one always, and a count still waiting goes out
+  before the reveal.
 
 ---
 

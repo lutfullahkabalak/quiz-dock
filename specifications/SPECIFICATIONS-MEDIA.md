@@ -230,7 +230,8 @@ interface sounds (to come) ───────────────► UI  
 
 ### 9.1 The game's sounds (#93)
 
-- **The tick** plays at each new answer while players answer (from `answer:count`) — the last answer too, whose count
+- **The tick** plays at each new answer while players answer (from `answer:count`, sent at most every 100 ms: up to
+  five ticks for the answers of one count) — the last answer too, whose count
   arrives with the reveal; **the gong** when a question moves to its reveal — no event of their own. Each can take a
   sound of the library instead of the synthesised one.
 - **Off in a new room** (2026-09-27): the tick, the countdown, the ding and the gong; the host turns on the ones they
