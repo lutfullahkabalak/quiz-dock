@@ -316,6 +316,8 @@ export function roomTests(ctx: GameContext): void {
         musicUrl: null,
         musicLevel: 0.5,
         sfxLevel: 0.8,
+        musicMuted: false,
+        sfxMuted: false,
       });
 
       const changed = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
@@ -325,6 +327,10 @@ export function roomTests(ctx: GameContext): void {
         musicUrl: '/api/v1/media/room-track',
         musicLevel: 1, // clamped
       });
+      // A channel off for the whole room, its level kept for when it is back.
+      const muted = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
+      host.emit('host:sounds', { pin, musicMuted: true, sfxMuted: 'yes' });
+      expect(await muted).toMatchObject({ musicMuted: true, sfxMuted: false, musicLevel: 1 });
       const refused = nextEvent<{ code: string }>(host, 'error');
       host.emit('host:sounds', { pin, gongId: theirs.id });
       expect((await refused).code).toBe('media.not_found');

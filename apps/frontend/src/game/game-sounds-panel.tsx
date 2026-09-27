@@ -1,5 +1,5 @@
 import type { RoomSoundsPayload, RoomSoundsSettings } from '@quiz-dock/contracts';
-import { SlidersHorizontal } from 'lucide-react';
+import { SlidersHorizontal, Volume2, VolumeX } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
@@ -159,9 +159,44 @@ export function GameSoundsControls({
       onChange={(id) => onChange({ [key]: id ?? '' })}
     />
   );
-  const level = (label: string, value: number, key: 'musicLevel' | 'sfxLevel') => (
+  const level = (
+    label: string,
+    value: number,
+    key: 'musicLevel' | 'sfxLevel',
+    muteKey: 'musicMuted' | 'sfxMuted',
+  ) => (
     <label className="flex items-center gap-3">
-      <span className="text-muted-foreground w-24 shrink-0 text-xs">{label}</span>
+      {/* The room's channel off (for every screen), its level kept for when it is back. */}
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="size-8 shrink-0"
+        aria-pressed={sounds[muteKey]}
+        aria-label={t(
+          sounds[muteKey] ? 'control.sounds.unmuteChannel' : 'control.sounds.muteChannel',
+          { bus: label },
+        )}
+        title={t(sounds[muteKey] ? 'control.sounds.unmuteChannel' : 'control.sounds.muteChannel', {
+          bus: label,
+        })}
+        onClick={() => onChange({ [muteKey]: !sounds[muteKey] })}
+      >
+        {sounds[muteKey] ? (
+          <VolumeX className="text-destructive size-4" />
+        ) : (
+          <Volume2 className="size-4" />
+        )}
+      </Button>
+      <span
+        className={
+          sounds[muteKey]
+            ? 'text-muted-foreground w-20 shrink-0 text-xs line-through'
+            : 'text-muted-foreground w-20 shrink-0 text-xs'
+        }
+      >
+        {label}
+      </span>
       <input
         type="range"
         min={0}
@@ -224,8 +259,8 @@ export function GameSoundsControls({
         'musicId',
       )}
       <div className="flex flex-col gap-2">
-        {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel')}
-        {level(t('control.sounds.sfxLevel'), sounds.sfxLevel, 'sfxLevel')}
+        {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel', 'musicMuted')}
+        {level(t('control.sounds.sfxLevel'), sounds.sfxLevel, 'sfxLevel', 'sfxMuted')}
       </div>
     </div>
   );

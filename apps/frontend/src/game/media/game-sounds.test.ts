@@ -55,6 +55,8 @@ const SOUNDS: RoomSoundsPayload = {
   musicUrl: null,
   musicLevel: 0.4,
   sfxLevel: 0.7,
+  musicMuted: false,
+  sfxMuted: false,
 };
 const game = (over: Partial<Parameters<typeof useGameSounds>[1]> = {}) => ({
   state: 'ANSWERING',

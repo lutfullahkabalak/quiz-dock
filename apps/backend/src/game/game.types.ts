@@ -166,6 +166,8 @@ export interface RoomSounds {
   musicUrl: string | null;
   musicLevel: number;
   sfxLevel: number;
+  musicMuted: boolean;
+  sfxMuted: boolean;
 }
 
 /** A new room's sounds: the tick and the gong on, no track (SPECIFICATIONS-MEDIA §9). */
@@ -180,6 +182,8 @@ export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
   musicUrl: null,
   musicLevel: 0.5,
   sfxLevel: 0.8,
+  musicMuted: false,
+  sfxMuted: false,
 };
 
 /** The room fields, as the game view (`GameMeta`) carries them. */

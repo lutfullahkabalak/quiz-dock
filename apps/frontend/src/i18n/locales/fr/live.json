@@ -182,7 +182,9 @@
       "noMusic": "Aucune",
       "musicLevel": "Musique",
       "sfxLevel": "Effets",
-      "instanceMedia": "{{name}} (instance)"
+      "instanceMedia": "{{name}} (instance)",
+      "muteChannel": "Couper {{bus}} pour le salon",
+      "unmuteChannel": "Rétablir {{bus}} pour le salon"
     }
   },
   "screen": {

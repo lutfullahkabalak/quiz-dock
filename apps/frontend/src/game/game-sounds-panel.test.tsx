@@ -30,6 +30,8 @@ const SOUNDS = {
   musicUrl: null,
   musicLevel: 0.5,
   sfxLevel: 0.8,
+  musicMuted: false,
+  sfxMuted: false,
 };
 
 describe('GameSoundsPanel (#93)', () => {
@@ -62,6 +64,9 @@ describe('GameSoundsPanel (#93)', () => {
     expect(onChange).toHaveBeenCalledWith({ tick: false });
     fireEvent.change(screen.getByRole('slider', { name: 'Effets' }), { target: { value: '30' } });
     expect(onChange).toHaveBeenCalledWith({ sfxLevel: 0.3 });
+    // Each channel of the room has its own mute.
+    fireEvent.click(screen.getByRole('button', { name: 'Couper Musique pour le salon' }));
+    expect(onChange).toHaveBeenCalledWith({ musicMuted: true });
   });
 
   it('a sound of the library already chosen shows as such, ready to change or remove', async () => {

@@ -182,7 +182,9 @@
       "noMusic": "Ninguna",
       "musicLevel": "Música",
       "sfxLevel": "Efectos",
-      "instanceMedia": "{{name}} (instancia)"
+      "instanceMedia": "{{name}} (instancia)",
+      "muteChannel": "Silenciar {{bus}} en la sala",
+      "unmuteChannel": "Activar {{bus}} en la sala"
     }
   },
   "screen": {

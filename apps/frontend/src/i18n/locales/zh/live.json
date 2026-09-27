@@ -182,7 +182,9 @@
       "noMusic": "无",
       "musicLevel": "音乐",
       "sfxLevel": "音效",
-      "instanceMedia": "{{name}}（实例）"
+      "instanceMedia": "{{name}}（实例）",
+      "muteChannel": "为房间静音：{{bus}}",
+      "unmuteChannel": "为房间取消静音：{{bus}}"
     }
   },
   "screen": {

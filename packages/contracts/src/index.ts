@@ -470,6 +470,9 @@ export interface RoomSoundsPayload {
   /** Levels of the MUSIC and SFX buses, 0..1. */
   musicLevel: number;
   sfxLevel: number;
+  /** A bus the host switched off for the room, its level kept for when it is back. */
+  musicMuted: boolean;
+  sfxMuted: boolean;
 }
 
 /** What the host sets (media ids, not URLs); every field optional. */
@@ -482,6 +485,8 @@ export interface RoomSoundsSettings {
   musicId?: string;
   musicLevel?: number;
   sfxLevel?: number;
+  musicMuted?: boolean;
+  sfxMuted?: boolean;
 }
 
 export interface RoomStandingsPayload {
