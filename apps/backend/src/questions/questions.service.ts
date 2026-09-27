@@ -3,8 +3,13 @@ import { assertAssets, expectImage } from '../media/assert-assets';
 import { Prisma } from '@prisma/client';
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  acceptedAnswersData,
+  optionsData,
+  questionCreateData,
+  questionData,
+} from './question-data';
 import type { QuestionContent } from './dto/question-content.schema';
-import { normalizeAnswer } from './dto/question-content.schema';
 import type { ReorderQuestionsDto } from './dto/reorder-questions.dto';
 import {
   QUESTION_MEDIA_INCLUDE,
@@ -64,14 +69,7 @@ export class QuestionsService {
     await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId));
     const [{ id }] = await this.prisma.$transaction([
       this.prisma.question.create({
-        data: {
-          quizId,
-          orderIndex,
-          ...this.contentData(dto),
-          ...media,
-          options: { create: this.optionsCreate(dto) },
-          acceptedAnswers: { create: this.answersCreate(dto) },
-        },
+        data: { quizId, ...questionCreateData(dto, orderIndex, media) },
         // Its relations are read after: inside the transaction, Prisma would fetch them
         // at once on the one connection it holds, which pg deprecates.
         select: { id: true },
@@ -108,10 +106,10 @@ export class QuestionsService {
     const question = await this.prisma.question.update({
       where: { id: questionId },
       data: {
-        ...this.contentData(dto),
+        ...questionData(dto),
         ...media,
-        options: { deleteMany: {}, create: this.optionsCreate(dto) },
-        acceptedAnswers: { deleteMany: {}, create: this.answersCreate(dto) },
+        options: { deleteMany: {}, create: optionsData(dto) },
+        acceptedAnswers: { deleteMany: {}, create: acceptedAnswersData(dto) },
       },
       include: QUESTION_INCLUDE,
     });
@@ -184,50 +182,6 @@ export class QuestionsService {
       include: QUESTION_INCLUDE,
     });
     return questions.map(toQuestionOutput);
-  }
-
-  private contentData(dto: QuestionContent) {
-    const isNumeric = dto.type === 'numeric';
-    return {
-      type: dto.type,
-      prompt: dto.prompt,
-      answerExplanation: dto.answerExplanation || null,
-      backgroundMediaId: dto.backgroundMediaId || null,
-      backgroundGradient: dto.backgroundGradient ?? Prisma.JsonNull,
-      textTone: dto.textTone,
-      textOutline: dto.textOutline,
-      timeLimitS: dto.timeLimitS,
-      revealDelayS: dto.revealDelayS ?? null,
-      audioTarget: dto.audioTarget ?? null,
-      waveformSize: dto.waveformSize,
-      timerAfterMedia: dto.timerAfterMedia,
-      // Un sondage ne rapporte aucun point (technique §4).
-      pointsMode: dto.type === 'poll' ? 'none' : dto.pointsMode,
-      scoring: dto.scoring,
-      numericValue: isNumeric ? dto.numericValue : null,
-      numericTolerance: isNumeric ? dto.numericTolerance : null,
-      multiSelect: dto.type === 'image_choice' && dto.multiSelect,
-    };
-  }
-
-  private optionsCreate(dto: QuestionContent) {
-    return dto.options.map((o, orderIndex) => ({
-      orderIndex,
-      text: o.text,
-      mediaId: o.mediaId,
-      alt: o.alt || null,
-      color: o.color,
-      shape: o.shape,
-      isCorrect: o.isCorrect,
-      correctOrderIndex: o.correctOrderIndex,
-    }));
-  }
-
-  private answersCreate(dto: QuestionContent) {
-    return dto.acceptedAnswers.map((a) => ({
-      text: a.text,
-      normalized: normalizeAnswer(a.text),
-    }));
   }
 
   private async assertQuizOwned(ownerId: string, quizId: string): Promise<void> {

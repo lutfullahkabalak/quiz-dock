@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
-import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ReorderItemsDto } from './dto/reorder-items.dto';
 import type { SlideContent } from './dto/slide-content.schema';
 import { checkSlideMedia, slideMediaIds } from './slide-media';
+import { slideData } from './slide-data';
 
 /** Temporary shift so questions can be renumbered without hitting @@unique([quizId, orderIndex]). */
 const REORDER_OFFSET = 1000;
@@ -30,7 +30,7 @@ export class SlidesService {
         quizId,
         beforeQuestionId: null,
         orderIndex: (agg._max.orderIndex ?? -1) + 1,
-        ...this.contentData(dto),
+        ...slideData(dto),
       },
     });
   }
@@ -38,7 +38,7 @@ export class SlidesService {
   async update(ownerId: string, slideId: string, dto: SlideContent) {
     const slide = await this.assertSlideOwned(ownerId, slideId);
     await checkSlideMedia(this.prisma, ownerId, dto, slideMediaIds(slide));
-    return this.prisma.slide.update({ where: { id: slideId }, data: this.contentData(dto) });
+    return this.prisma.slide.update({ where: { id: slideId }, data: slideData(dto) });
   }
 
   async remove(ownerId: string, slideId: string): Promise<void> {
@@ -109,23 +109,6 @@ export class SlidesService {
       ),
     ]);
     return this.prisma.slide.findMany({ where: { quizId }, orderBy: { orderIndex: 'asc' } });
-  }
-
-  private contentData(dto: SlideContent) {
-    return {
-      blocks: dto.blocks,
-      mediaId: dto.mediaId || null,
-      gradient: dto.gradient ?? Prisma.JsonNull,
-      videoMediaId: dto.videoMediaId || null,
-      videoLoop: dto.videoLoop,
-      videoSound: dto.videoSound,
-      audioMediaId: dto.audioMediaId || null,
-      waveformSize: dto.waveformSize,
-      audioTarget: dto.audioTarget ?? null,
-      textTone: dto.textTone,
-      textOutline: dto.textOutline,
-      displayDelayS: dto.displayDelayS ?? null,
-    };
   }
 
   private async assertQuizOwned(ownerId: string, quizId: string): Promise<void> {

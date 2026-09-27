@@ -4,11 +4,12 @@ import {
   NotFoundException,
   PayloadTooLargeException,
 } from '@nestjs/common';
-import { Prisma, type Quiz, QuizStatus } from '@prisma/client';
+import { type Quiz, QuizStatus } from '@prisma/client';
 import { strFromU8, strToU8, zipSync } from 'fflate';
 import { MediaService } from '../../media/media.service';
 import { PrismaService } from '../../prisma/prisma.service';
-import { normalizeAnswer } from '../../questions/dto/question-content.schema';
+import { questionCreateData, questionMediaIds } from '../../questions/question-data';
+import { slideData } from '../../slides/slide-data';
 import { archiveLimits, readArchive } from './bundle-archive';
 import {
   BundleContentError,
@@ -200,52 +201,9 @@ export class QuizPortableService {
           status: QuizStatus.draft,
           questionCount: imported.questions.length,
           questions: {
-            create: imported.questions.map((dto, orderIndex) => {
-              const isNumeric = dto.type === 'numeric';
-              return {
-                orderIndex,
-                type: dto.type,
-                prompt: dto.prompt,
-                visualMediaId:
-                  dto.media?.visual && 'assetId' in dto.media.visual
-                    ? dto.media.visual.assetId
-                    : null,
-                audioMediaId: dto.media?.audio?.assetId ?? null,
-                answerExplanation: dto.answerExplanation || null,
-                backgroundMediaId: dto.backgroundMediaId || null,
-                backgroundGradient: dto.backgroundGradient ?? Prisma.JsonNull,
-                textTone: dto.textTone,
-                textOutline: dto.textOutline,
-                timeLimitS: dto.timeLimitS,
-                revealDelayS: dto.revealDelayS ?? null,
-                audioTarget: dto.audioTarget ?? null,
-                waveformSize: dto.waveformSize,
-                timerAfterMedia: dto.timerAfterMedia,
-                pointsMode: dto.type === 'poll' ? 'none' : dto.pointsMode,
-                scoring: dto.scoring,
-                numericValue: isNumeric ? dto.numericValue : null,
-                numericTolerance: isNumeric ? dto.numericTolerance : null,
-                multiSelect: dto.type === 'image_choice' && dto.multiSelect,
-                options: {
-                  create: dto.options.map((o, i) => ({
-                    orderIndex: i,
-                    text: o.text,
-                    mediaId: o.mediaId,
-                    alt: o.alt || null,
-                    color: o.color,
-                    shape: o.shape,
-                    isCorrect: o.isCorrect,
-                    correctOrderIndex: o.correctOrderIndex,
-                  })),
-                },
-                acceptedAnswers: {
-                  create: dto.acceptedAnswers.map((a) => ({
-                    text: a.text,
-                    normalized: normalizeAnswer(a.text),
-                  })),
-                },
-              };
-            }),
+            create: imported.questions.map((dto, orderIndex) =>
+              questionCreateData(dto, orderIndex, questionMediaIds(dto)),
+            ),
           },
         },
         include: { questions: { select: { id: true, orderIndex: true } } },
@@ -258,18 +216,7 @@ export class QuizPortableService {
             beforeQuestionId:
               s.beforeQuestion === null ? null : (idByIndex.get(s.beforeQuestion) ?? null),
             orderIndex: s.orderIndex,
-            blocks: s.content.blocks as Prisma.InputJsonValue,
-            mediaId: s.content.mediaId || null,
-            gradient: s.content.gradient ?? Prisma.JsonNull,
-            videoMediaId: s.content.videoMediaId || null,
-            videoLoop: s.content.videoLoop,
-            videoSound: s.content.videoSound,
-            audioMediaId: s.content.audioMediaId || null,
-            waveformSize: s.content.waveformSize,
-            audioTarget: s.content.audioTarget ?? null,
-            displayDelayS: s.content.displayDelayS ?? null,
-            textTone: s.content.textTone,
-            textOutline: s.content.textOutline,
+            ...slideData(s.content),
           })),
         });
       }
