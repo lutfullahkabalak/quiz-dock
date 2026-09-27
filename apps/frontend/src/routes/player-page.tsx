@@ -154,6 +154,11 @@ export function PlayerPage() {
       answered: view.answerCount?.answered ?? 0,
       paused: view.paused,
       media: view.question?.media,
+      mediaStartAt: view.question?.mediaStartAt ?? null,
+      anchor:
+        view.question && view.mediaControl?.questionIndex === view.question.questionIndex
+          ? view.mediaControl
+          : null,
     },
     gameSoundsHere && !showScreen,
   );

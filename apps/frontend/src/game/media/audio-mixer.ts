@@ -11,10 +11,10 @@ import { audioContext, isAudioUnlocked } from './audio-unlock';
  *   interface sounds (to come) ─────────────► UI    ─┘
  *
  * Each bus is two gains in a row: its **level** (a host's volume) and its
- * **duck** (automatic, from the game's state — the music steps aside while a
- * question plays its own sound), so a volume change never fights a duck.
+ * **duck** (from the game's state), so a volume change never fights a duck.
  * MASTER carries the participant's own mute; the limiter keeps simultaneous
- * sources from clipping.
+ * sources from clipping. Faders are tapered (`faderGain`): half-way is quiet,
+ * not loud.
  */
 export const BUSES = ['quiz', 'music', 'sfx', 'ui'] as const;
 export type Bus = (typeof BUSES)[number];
@@ -94,10 +94,13 @@ export interface DeviceSound {
   volume: number;
   muted: boolean;
   trims: Record<Bus, number>;
+  /** A bus switched off on this device, its trim kept for when it is back. */
+  mutes: Record<Bus, boolean>;
 }
 
 const DEVICE_KEY = 'live.sound';
 const FULL: Record<Bus, number> = { quiz: 1, music: 1, sfx: 1, ui: 1 };
+const ALL_ON: Record<Bus, boolean> = { quiz: false, music: false, sfx: false, ui: false };
 
 function loadDevice(): DeviceSound {
   try {
@@ -109,20 +112,29 @@ function loadDevice(): DeviceSound {
         volume: clamp(raw.volume ?? 1),
         muted: raw.muted === true,
         trims: { ...FULL, ...(raw.trims ?? {}) },
+        mutes: { ...ALL_ON, ...(raw.mutes ?? {}) },
       };
     }
   } catch {
     /* storage unavailable or garbled: the defaults */
   }
-  return { volume: 1, muted: false, trims: { ...FULL } };
+  return { volume: 1, muted: false, trims: { ...FULL }, mutes: { ...ALL_ON } };
 }
 
 let device: DeviceSound = loadDevice();
 const roomLevels: Record<Bus, number> = { ...FULL };
 const deviceListeners = new Set<() => void>();
 
-const masterValue = () => (device.muted ? 0 : device.volume);
-const busValue = (bus: Bus) => clamp(roomLevels[bus] * device.trims[bus]);
+/**
+ * A fader's position (0..1) as a gain: cubed, close to how loudness is heard —
+ * half-way is about −18 dB, not the −6 dB a straight line gives (which sounds
+ * nearly as loud as the top).
+ */
+export const faderGain = (position: number) => clamp(position) ** 3;
+
+const masterValue = () => (device.muted ? 0 : faderGain(device.volume));
+const busValue = (bus: Bus) =>
+  device.mutes[bus] ? 0 : clamp(faderGain(roomLevels[bus]) * faderGain(device.trims[bus]));
 
 function saveDevice(next: DeviceSound): void {
   device = next;
@@ -160,6 +172,12 @@ export function setLocalTrim(bus: Bus, trim: number): void {
   setBusLevel(bus, busValue(bus));
 }
 
+/** One bus off (or back on) on this device: its trim stays for when it comes back. */
+export function setLocalMute(bus: Bus, muted: boolean): void {
+  saveDevice({ ...device, mutes: { ...device.mutes, [bus]: muted } });
+  setBusLevel(bus, busValue(bus));
+}
+
 /** React view of this device's sound choices. */
 export function useDeviceSound(): DeviceSound {
   return useSyncExternalStore(
@@ -194,8 +212,11 @@ const levels = new WeakMap<HTMLMediaElement, number>();
  */
 export const FADE_IN_S = 0.005;
 export const FADE_OUT_S = 0.12;
-/** A background track goes out slower: it is a bed, not an event. */
-export const TRACK_FADE_S = 0.8;
+/**
+ * A background track fades long, in and out: it is a bed under the game, not a
+ * playback with an attack — it makes way for a question's sound and comes back.
+ */
+export const TRACK_FADE_S = 1.5;
 
 /**
  * Fades a routed element in (to its level) or out (to silence); resolves when
@@ -281,6 +302,49 @@ export function playBuffer(
     own.gain.linearRampToValueAtTime(0, now + fadeOutS);
     source.stop(now + fadeOutS + 0.02);
   };
+}
+
+/**
+ * A background track that plays and holds in turn, looped: held, it fades out
+ * and stops, keeping its place; played again, it comes back in where it was —
+ * never from the top at each question.
+ */
+export function loopTrack(
+  buffer: AudioBuffer,
+  bus: Bus,
+  { fadeInS = FADE_IN_S, fadeOutS = FADE_OUT_S }: { fadeInS?: number; fadeOutS?: number } = {},
+): { play: () => void; hold: () => void } {
+  let source: AudioBufferSourceNode | null = null;
+  let own: GainNode | null = null;
+  let startedAt = 0;
+  let offset = 0;
+  const hold = () => {
+    const m = mixer;
+    if (!m || !source || !own) return;
+    const now = m.ctx.currentTime;
+    offset = (offset + (now - startedAt)) % buffer.duration;
+    own.gain.cancelScheduledValues(now);
+    own.gain.setValueAtTime(own.gain.value, now);
+    own.gain.linearRampToValueAtTime(0, now + fadeOutS);
+    source.stop(now + fadeOutS + 0.02);
+    source = null;
+    own = null;
+  };
+  const play = () => {
+    const m = getMixer();
+    if (!m || source) return;
+    source = m.ctx.createBufferSource();
+    source.buffer = buffer;
+    source.loop = true;
+    own = m.ctx.createGain();
+    const now = m.ctx.currentTime;
+    own.gain.setValueAtTime(0, now);
+    own.gain.linearRampToValueAtTime(1, now + fadeInS);
+    source.connect(own).connect(m.strips[bus].level);
+    source.start(now, offset);
+    startedAt = now;
+  };
+  return { play, hold };
 }
 
 /** For the tests: forget the mixer and this device's choices. */

@@ -183,8 +183,19 @@ describe('this device’s sound (SPECIFICATIONS-MEDIA §9.2)', () => {
     const music = mixer.strips.music.level as unknown as FakeGain;
     mod.setRoomLevel('music', 0.5);
     mod.setLocalTrim('music', 0.4);
-    expect(music.gain.targets.at(-1)).toBeCloseTo(0.2);
+    // Tapered faders: the gain is each position cubed (0.5³ × 0.4³), not 0.5 × 0.4.
+    expect(music.gain.targets.at(-1)).toBeCloseTo(0.125 * 0.064);
     expect(JSON.parse(localStorage.getItem('live.sound')!).trims.music).toBe(0.4);
+  });
+
+  it('mutes one channel on this device, its fader kept for when it is back', () => {
+    const music = mod.getMixer()!.strips.music.level as unknown as FakeGain;
+    mod.setLocalTrim('music', 0.5);
+    mod.setLocalMute('music', true);
+    expect(music.gain.targets.at(-1)).toBe(0);
+    expect(JSON.parse(localStorage.getItem('live.sound')!).mutes.music).toBe(true);
+    mod.setLocalMute('music', false);
+    expect(music.gain.targets.at(-1)).toBeCloseTo(0.125);
   });
 
   it('mutes and sets the volume on the master; a new page starts from what was chosen', async () => {
@@ -193,7 +204,7 @@ describe('this device’s sound (SPECIFICATIONS-MEDIA §9.2)', () => {
     const master = mod.getMixer()!.master as unknown as FakeGain;
     expect(master.gain.targets.at(-1)).toBe(0);
     mod.setDeviceMuted(false);
-    expect(master.gain.targets.at(-1)).toBe(0.6);
+    expect(master.gain.targets.at(-1)).toBeCloseTo(0.6 ** 3);
     // A reload: the new mixer is built with the device's choice.
     vi.resetModules();
     const again = await import('./audio-mixer');

@@ -1,11 +1,17 @@
-import type { LiveQuestionMedia, RoomSoundsPayload } from '@quiz-dock/contracts';
-import { useEffect, useRef } from 'react';
+import {
+  type LiveQuestionMedia,
+  type MediaAnchor,
+  type RoomSoundsPayload,
+  mediaDurationMs,
+} from '@quiz-dock/contracts';
+import { serverNow } from '../clock';
+import { useEffect, useRef, useState } from 'react';
 import {
   TRACK_FADE_S,
   busInput,
   getMixer,
+  loopTrack,
   playBuffer,
-  setBusDucked,
   setRoomLevel,
 } from './audio-mixer';
 
@@ -105,6 +111,26 @@ export interface GameSoundsState {
   answered: number;
   paused: boolean;
   media: LiveQuestionMedia | null | undefined;
+  /** When the question's media starts, on the server's clock (`question:start`). */
+  mediaStartAt?: number | null;
+  /** Where the host put it from the console, for this question. */
+  anchor?: MediaAnchor | null;
+}
+
+/**
+ * When the question's own sound or video is over, on the server's clock: from
+ * its common start, or from the host's last command on it. `null` while it
+ * cannot be said to end — held by the host, or of unknown length.
+ */
+export function mediaEndsAt(
+  media: LiveQuestionMedia | null | undefined,
+  mediaStartAt: number | null | undefined,
+  anchor: MediaAnchor | null | undefined,
+): number | null {
+  const durationMs = mediaDurationMs(media);
+  if (!durationMs) return null;
+  if (anchor) return anchor.playing ? anchor.at + durationMs - anchor.t * 1000 : null;
+  return mediaStartAt != null ? mediaStartAt + durationMs : null;
 }
 
 /**
@@ -155,28 +181,47 @@ export function useGameSounds(
     }
   }, [on, sounds, game.state, game.questionIndex, game.answered]);
 
-  // The track: while players answer, unless the question plays its own sound.
+  // The track: looped while players answer, never under a question's own sound or
+  // video — two sounds are never laid over each other: it fades out as that media
+  // starts and comes back once it is over (from its start, or where the host put it).
+  // Between questions and during a pause it fades out and keeps its place: never
+  // from the top at each question. Its fades are long: a bed, not an event.
   const trackUrl = on ? (sounds?.musicUrl ?? null) : null;
-  const plays = !!trackUrl && game.state === 'ANSWERING' && !questionHasOwnSound(game.media);
-  // A pause ducks it (it picks up where it was), never stops it.
+  const ownSound = questionHasOwnSound(game.media);
+  const endsAt = ownSound ? mediaEndsAt(game.media, game.mediaStartAt, game.anchor) : null;
+  const [mediaOver, setMediaOver] = useState(false);
   useEffect(() => {
-    if (on) setBusDucked('music', game.paused);
-  }, [on, game.paused]);
+    setMediaOver(false);
+    if (endsAt === null) return;
+    const left = endsAt - serverNow();
+    if (left <= 0) {
+      setMediaOver(true);
+      return;
+    }
+    const timer = setTimeout(() => setMediaOver(true), left);
+    return () => clearTimeout(timer);
+  }, [endsAt]);
+  const plays =
+    !!trackUrl && game.state === 'ANSWERING' && !game.paused && (!ownSound || mediaOver);
+  const [track, setTrack] = useState<ReturnType<typeof loopTrack> | null>(null);
   useEffect(() => {
-    if (!plays || !trackUrl || !running()) return;
-    let stop: (() => void) | null = null;
+    if (!trackUrl) return;
     let cancelled = false;
+    let loaded: ReturnType<typeof loopTrack> | null = null;
     void loadSound(trackUrl).then((buffer) => {
-      if (!cancelled && buffer) {
-        stop = playBuffer(buffer, 'music', {
-          loop: true,
-          fadeOutS: TRACK_FADE_S,
-        });
-      }
+      if (cancelled || !buffer) return;
+      loaded = loopTrack(buffer, 'music', { fadeInS: TRACK_FADE_S, fadeOutS: TRACK_FADE_S });
+      setTrack(loaded);
     });
     return () => {
       cancelled = true;
-      stop?.();
+      loaded?.hold();
+      setTrack(null);
     };
-  }, [plays, trackUrl, game.questionIndex]);
+  }, [trackUrl]);
+  useEffect(() => {
+    if (!track) return;
+    if (plays && running()) track.play();
+    else track.hold();
+  }, [track, plays]);
 }
