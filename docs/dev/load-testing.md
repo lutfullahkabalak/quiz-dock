@@ -1,0 +1,135 @@
+# Load testing a live game
+
+How many players one QuizDock instance holds, what it needs to hold them, and
+how the devices of a room stay in step under load. The benchmark is
+`apps/backend/scripts/load-test.mjs`; run it again after any change to the live
+engine and compare with the results below.
+
+## 1. What it does
+
+One host and N players play a quiz on a running instance, through the same
+Socket.IO events as the real screens:
+
+1. It claims the host seat and creates a quiz of `--questions` single-choice
+   questions through the REST API (`AUTH_MODE=none`, header `X-Local-User`). No
+   database access: it can target any instance in local mode.
+2. For each player count, the host opens a room, the players join (50 at a
+   time), then the whole quiz is played: each player answers at a random
+   instant within `--answer-window` ms after the answers open, the host moves on
+   after each reveal, then ends at the podium.
+3. It deletes its quiz at the end.
+
+What it reports, per player count:
+
+| Measure | Meaning |
+|---|---|
+| `join p95` | time for `player:join` to be acknowledged (ms) |
+| `ack p50/p95/p99` | time from `player:submit` to its `answer:ack` (ms): what a player feels |
+| `lost` / `refused` | answers never acknowledged / refused (must stay 0) |
+| `start spread p95` | how far apart the devices received the same `question:start` (ms): the room's sync |
+| `reveal spread p95` | the same for `question:reveal` |
+| `redis cmd/answer` | Redis commands processed per answer, whole game included |
+| `cpu p95 %` | the backend process's CPU, in % of one core, sampled every 250 ms (`--server-pid`, Linux) |
+| `rss max MB` | the backend process's resident memory at its peak |
+
+## 2. Running it
+
+```sh
+# A dedicated database and Redis database: the benchmark claims the host seat.
+createdb quizdock_load
+DATABASE_URL=postgresql://…/quizdock_load pnpm --filter @quiz-dock/backend exec prisma migrate deploy
+pnpm --filter @quiz-dock/backend build
+
+# The backend, pinned to the cores it may use (here: one).
+cd apps/backend
+DATABASE_URL=postgresql://…/quizdock_load REDIS_URL=redis://localhost:6379/2 \
+AUTH_MODE=none PORT=3100 NODE_ENV=production GAME_READ_DELAY_MS=1000 \
+taskset -c 0 node dist/main.js &
+
+# The players, on the other cores.
+taskset -c 1-3 pnpm load-test --url http://localhost:3100 --players 10,50,100,200,300 \
+  --questions 10 --server-pid <backend pid> --redis redis://localhost:6379/2 --out result.json
+```
+
+`GAME_READ_DELAY_MS=1000` only shortens the reading time before each question
+(3 s by default) so a run takes less long; it changes nothing to the load.
+
+**Do not point it at a production instance**: it takes the host seat and plays
+real games there.
+
+## 3. Results
+
+### Baseline — before the engine refactoring (2026-09-27)
+
+Setup: backend, Postgres 16 and Redis 7 in one container, Intel Xeon @ 2.10 GHz,
+Node 22, questions without media, 10 questions (5 above 300 players), every
+player answering within 3 s. The players ran on the same machine, on other
+cores, over the loopback: no network latency is counted.
+
+**Backend pinned to 1 core**
+
+| Players | join p95 | ack p50 | ack p95 | ack p99 | lost | start spread p95 | reveal spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 10 | 154 | 6 | 9 | 17 | 0 | 2 | 1 | 8 % | 265 MB |
+| 50 | 372 | 4 | 8 | 9 | 0 | 2 | 3 | 8 % | 294 MB |
+| 100 | 464 | 5 | 8 | 12 | 0 | 5 | 6 | 16 % | 303 MB |
+| 200 | 403 | 7 | 15 | 37 | 0 | 7 | 14 | 40 % | 340 MB |
+| 300 | 723 | 9 | 20 | 37 | 0 | 12 | 20 | 75 % | 359 MB |
+| 400 | 743 | 12 | 31 | 57 | 0 | 15 | 19 | 100 % | 419 MB |
+| 500 | 857 | 79 | **600** | 664 | 0 | 19 | 36 | 100 % | 520 MB |
+| 700 | 1172 | 1506 | **3399** | 3843 | 0 | 35 | 42 | 100 % | 858 MB |
+
+**Backend on 2 cores**
+
+| Players | ack p95 | ack p99 | lost | start spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|
+| 300 | 14 | 32 | 0 | 13 | 100 % | 331 MB |
+| 500 | 102 | 123 | 0 | 19 | 108 % | 415 MB |
+| 700 | **2849** | 3125 | 0 | 22 | 108 % | 889 MB |
+
+Redis: 12 commands per answer, 78 MB at its peak over all the runs.
+
+Raw results: [`load-results/2026-09-27-baseline.json`](load-results/2026-09-27-baseline.json).
+
+### Reading
+
+- **Stable up to 700 players**: no answer lost or refused, no error. Past
+  its limit the instance slows down, it does not drop anything.
+- **The room stays in step**: the devices receive the same question within
+  12 ms of each other at 300 players, 35 ms at 700.
+- **The limit is one core.** The engine runs on Node's single JavaScript
+  thread: it saturates one core around 400 players, and answers then queue
+  (0.6 s at 500, 3.4 s at 700). A second core only takes the garbage collector
+  and I/O: it helps at 500 (0.1 s), not beyond. More vCPU do not raise the
+  limit; a faster core does.
+- **The CPU grows faster than the players** (16 % at 100, 40 % at 200, 75 % at
+  300): each answer re-reads every player of the room to count who answered, and
+  each reveal looks each player up in the ranking — both quadratic over a
+  question. The first target of any optimisation.
+- **Memory is not the constraint**: about 265 MB at rest, under 450 MB up to 400
+  players.
+
+### Sizing (provisional)
+
+A whole instance (backend, Postgres, Redis, the web server) on one VM, from the
+baseline above. To be measured again after the refactoring and published in the
+self-hosting guides.
+
+| Players at once | vCPU | RAM | Margin |
+|--:|--:|--:|---|
+| up to 100 | 1 | 2 GB | wide: the backend uses under a fifth of a core |
+| up to 300 | 2 | 2 GB | comfortable: three quarters of a core at the peak of a question |
+| up to 400 | 2 | 4 GB | at the limit: one core saturated during the answers, still fluid |
+| over 400 | — | — | not advised on one instance: answers slow down past 400–500 players, whatever the vCPU count |
+
+## 4. Not measured (yet)
+
+- **Media.** Questions with sound or video: the files are fetched by every
+  device, the bandwidth and the reverse proxy matter more than the CPU. See
+  [audio & video](../self-hosting/audio-video.md).
+- **A real network.** Players on phones over Wi-Fi add their own latency; the
+  spread between devices then depends on their connection more than on the
+  server.
+- **Postgres under load.** A game touches it at its creation and at the
+  archive only; the archive of a large session is not timed here.
+- **Several rooms at once.** One room per run; rooms share the same core.
