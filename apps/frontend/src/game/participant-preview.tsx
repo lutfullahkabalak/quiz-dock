@@ -49,7 +49,7 @@ export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string
         </div>
         <AnswerRules question={q} />
         {q.options?.length ? (
-          <OptionTiles options={q.options} disabled />
+          <OptionTiles options={q.options} disabled halo={q.type === 'image_choice'} />
         ) : (
           <Input disabled placeholder={t('player.answerPlaceholder')} className="text-center" />
         )}

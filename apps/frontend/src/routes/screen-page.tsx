@@ -384,12 +384,13 @@ export function ScreenSurface({
       // Image choice: one line for the prompt, the clock and the count; the pictures
       // take the rest of the screen.
       <div className="flex min-h-0 w-full max-w-[80em] flex-1 flex-col items-center gap-[0.8em]">
-        <div className="flex w-full shrink-0 items-center gap-[1em] pr-[2.5em]">
+        {/* One line on a projector; a narrow screen (the big screen view on a phone) wraps it. */}
+        <div className="flex w-full shrink-0 flex-wrap items-center justify-end gap-x-[1em] gap-y-[0.4em] pr-[2.5em]">
           <Markdown
             role="heading"
             aria-level={1}
             className={cn(
-              'line-clamp-2 min-w-0 flex-1 text-left text-[1.6em] leading-tight font-semibold',
+              'line-clamp-2 min-w-[12em] flex-1 basis-[12em] text-left text-[1.6em] leading-tight font-semibold',
               soundButton && 'pl-[2.5em]',
             )}
           >
