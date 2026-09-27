@@ -24,6 +24,7 @@ import { normalizeAnswer } from '../questions/dto/question-content.schema';
 import { RedisService } from '../redis/redis.service';
 import { GAME_TTL_S, type GameId, gameKeys } from './game.keys';
 import { type PlayerStats, type SeriesStats, answerStats, sumGames } from './player-stats';
+import { type RankedPlayer, rankPlayers } from './results';
 import { DEFAULT_ROOM_SOUNDS, type RoomSounds } from './game.types';
 import type {
   AnswerRecord,
@@ -504,6 +505,33 @@ export class GameService {
     return raw ? (JSON.parse(raw) as QuizSnapshot) : null;
   }
 
+  /** The room's players (playerId → record), whether they play the current game or wait. */
+  async players(pin: string): Promise<Map<string, PlayerRecord>> {
+    const raw = await this.redis.hgetall(gameKeys.players(pin));
+    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as PlayerRecord]));
+  }
+
+  /** One of the room's players (null when not, or no longer, in the room). */
+  async getPlayer(pin: string, playerId: string): Promise<PlayerRecord | null> {
+    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
+    return raw ? (JSON.parse(raw) as PlayerRecord) : null;
+  }
+
+  /** Who plays the game (a score in it), ranked, with who they are in the room. */
+  async rankedPlayers(pin: string, gameId: GameId): Promise<RankedPlayer[]> {
+    const [players, scores] = await Promise.all([
+      this.redis.hgetall(gameKeys.players(pin)),
+      this.redis.hgetall(gameKeys.scores(gameId)),
+    ]);
+    return rankPlayers(players, scores);
+  }
+
+  /** The graded answers to a question of a game (playerId → record). */
+  async answers(gameId: GameId, index: number): Promise<Map<string, AnswerRecord>> {
+    const raw = await this.redis.hgetall(gameKeys.answers(gameId, index));
+    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord]));
+  }
+
   /** The snapshot of the game a room plays. */
   async currentSnapshot(pin: string): Promise<QuizSnapshot | null> {
     const room = await this.getRoom(pin);
@@ -520,11 +548,7 @@ export class GameService {
     const scores = await this.redis.hgetall(gameKeys.scores(gameId));
     const answersByIndex = new Map<number, Map<string, AnswerRecord>>();
     for (const { orderIndex } of snapshot.questions) {
-      const raw = await this.redis.hgetall(gameKeys.answers(gameId, orderIndex));
-      answersByIndex.set(
-        orderIndex,
-        new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord])),
-      );
+      answersByIndex.set(orderIndex, await this.answers(gameId, orderIndex));
     }
     const played: Record<string, PlayerStats> = {};
     for (const [playerId, json] of Object.entries(scores)) {
@@ -546,15 +570,16 @@ export class GameService {
   async standings(pin: string): Promise<{ quizzesPlayed: number; ranked: RoomStanding[] }> {
     const [played, players] = await Promise.all([
       this.redis.hgetall(gameKeys.played(pin)),
-      this.redis.hgetall(gameKeys.players(pin)),
+      this.players(pin),
     ]);
     const games = Object.values(played).map(
       (json) => JSON.parse(json) as Record<string, PlayerStats>,
     );
     const ranked: RoomStanding[] = [];
     for (const [id, stats] of sumGames(games)) {
-      if (!players[id]) continue;
-      ranked.push({ id, ...(JSON.parse(players[id]) as PlayerRecord), ...stats });
+      const player = players.get(id);
+      if (!player) continue;
+      ranked.push({ id, ...player, ...stats });
     }
     ranked.sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
     return { quizzesPlayed: games.length, ranked };
@@ -631,11 +656,8 @@ export class GameService {
 
   /** Nombre de joueurs **connectés** (§8 : base de la convergence et des compteurs). */
   async connectedCount(pin: string): Promise<number> {
-    const raw = await this.redis.hgetall(gameKeys.players(pin));
     let n = 0;
-    for (const json of Object.values(raw)) {
-      if ((JSON.parse(json) as PlayerRecord).connected) n++;
-    }
+    for (const player of (await this.players(pin)).values()) if (player.connected) n++;
     return n;
   }
 
@@ -688,9 +710,8 @@ export class GameService {
     playerId: string,
     minutes: number,
   ): Promise<string | null> {
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    if (!raw) return null;
-    const record = JSON.parse(raw) as PlayerRecord;
+    const record = await this.getPlayer(pin, playerId);
+    if (!record) return null;
     const normalized = normalizeAnswer(record.nickname);
     const ttlS = Math.max(1, Math.round(minutes * 60));
     const pipe = this.redis.multi();
@@ -735,11 +756,10 @@ export class GameService {
     if (snapshot && !snapshot.feedbackEnabled) {
       return { ok: false }; // rating switched off on this quiz
     }
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    if (!raw) {
+    const player = await this.getPlayer(pin, playerId);
+    if (!player) {
       return { ok: false };
     }
-    const player = JSON.parse(raw) as PlayerRecord;
     const cleanComment = comment?.trim() ? comment.trim().slice(0, 2000) : null;
     await this.prisma.quizFeedback.upsert({
       where: { pin_playerId_quizId: { pin, playerId, quizId: rated.quizId } },

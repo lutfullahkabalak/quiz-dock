@@ -78,7 +78,6 @@ import {
   personalLeaderboard,
   personalPodium,
   personalReveal,
-  rankPlayers,
   rankingOf,
   topRows,
 } from './results';
@@ -341,15 +340,14 @@ export class GameEngine {
     if (!step) return;
     const { pin } = ref;
     const gameTarget = await this.gameTarget(ref.id, snapshot);
-    const players = await this.redis.hgetall(gameKeys.players(pin));
+    const players = await this.game.players(pin);
     const payloads = new Map<PreloadDevice, MediaPreloadPayload | null>();
     const sockets: Emitter[] = only ? [only] : await this.server.in(pin).fetchSockets();
     for (const socket of sockets) {
       const playerId = socket.data.playerId;
-      const record = playerId && players[playerId];
       const device: PreloadDevice = !playerId
         ? 'screen'
-        : ((record ? (JSON.parse(record) as PlayerRecord).presence : undefined) ?? 'room');
+        : (players.get(playerId)?.presence ?? 'room');
       if (!payloads.has(device)) {
         payloads.set(device, preloadFor(snapshot, step, gameTarget, device));
       }
@@ -788,7 +786,7 @@ export class GameEngine {
   private async emitReveal(ref: GameRef, snapshot: QuizSnapshot, index: number): Promise<void> {
     const { pin } = ref;
     const question = snapshot.questions[index];
-    const records = await this.readAnswers(ref.id, index);
+    const records = await this.game.answers(ref.id, index);
     const common = await this.revealCommon(pin, question, records);
 
     const ranking = await this.ranking(ref);
@@ -812,13 +810,13 @@ export class GameEngine {
   ): Promise<QuestionRevealPayload> {
     const common: QuestionRevealPayload = buildRevealCommon(question, [...records.values()]);
     if (!isDeferred(question)) return common;
-    const players = await this.redis.hgetall(gameKeys.players(pin));
+    const players = await this.game.players(pin);
     const rows = rankClosest(
       question,
       [...records.entries()].map(([key, r]) => ({ key, answer: r.answer })),
     );
     common.closest = rows.slice(0, 10).map((row) => {
-      const p = players[row.key] ? (JSON.parse(players[row.key]) as PlayerRecord) : null;
+      const p = players.get(row.key);
       return {
         nickname: p?.nickname ?? '?',
         avatar: p?.avatar,
@@ -841,7 +839,7 @@ export class GameEngine {
     question: SnapshotQuestion,
     index: number,
   ): Promise<void> {
-    const records = await this.readAnswers(ref.id, index);
+    const records = await this.game.answers(ref.id, index);
     if (records.size === 0) return;
     const rows = rankClosest(
       question,
@@ -1006,7 +1004,7 @@ export class GameEngine {
     snapshot: QuizSnapshot,
     index: number,
   ): Promise<void> {
-    const records = await this.readAnswers(ref.id, index);
+    const records = await this.game.answers(ref.id, index);
     const common = await this.revealCommon(ref.pin, snapshot.questions[index], records);
     const ranking = await this.ranking(ref);
     const playerId = socket.data.playerId;
@@ -1201,10 +1199,7 @@ export class GameEngine {
 
   /** The room's connected players (playerId, record), whether they play this game or wait. */
   private async connectedPlayers(pin: string): Promise<[string, PlayerRecord][]> {
-    const players = await this.redis.hgetall(gameKeys.players(pin));
-    return Object.entries(players)
-      .map(([id, json]): [string, PlayerRecord] => [id, JSON.parse(json) as PlayerRecord])
-      .filter(([, rec]) => rec.connected);
+    return [...(await this.game.players(pin))].filter(([, rec]) => rec.connected);
   }
 
   /** Joueurs **connectés** (playerId + pseudo + avatar) pour l'instantané de lobby (§6/§9). */
@@ -1969,19 +1964,9 @@ export class GameEngine {
     };
   }
 
-  /** Lit les réponses gradées d'une question (playerId → enregistrement). */
-  private async readAnswers(gameId: GameId, index: number): Promise<Map<string, AnswerRecord>> {
-    const raw = await this.redis.hgetall(gameKeys.answers(gameId, index));
-    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord]));
-  }
-
   /** The game's ranking (see `rankPlayers`), indexed once for every socket of an event. */
   private async ranking(ref: GameRef): Promise<Ranking> {
-    const [players, scores] = await Promise.all([
-      this.redis.hgetall(gameKeys.players(ref.pin)),
-      this.redis.hgetall(gameKeys.scores(ref.id)),
-    ]);
-    return rankingOf(rankPlayers(players, scores));
+    return rankingOf(await this.game.rankedPlayers(ref.pin, ref.id));
   }
 
   /**
@@ -2018,7 +2003,7 @@ export class GameEngine {
       return reject('late'); // hors délai (§6)
     }
 
-    const player = await this.getPlayer(pin, playerId);
+    const player = await this.game.getPlayer(pin, playerId);
     const scored = await this.game.getScore(meta.id, playerId);
     const snapshot = await this.game.getSnapshot(meta.id);
     if (!player || !scored || !snapshot) {
@@ -2071,11 +2056,6 @@ export class GameEngine {
       this.scheduleReveal(refOf(pin, meta), questionIndex, delay, 'all');
     }
     return { accepted: true, receivedAt };
-  }
-
-  private async getPlayer(pin: string, playerId: string): Promise<PlayerRecord | null> {
-    const raw = await this.redis.hget(gameKeys.players(pin), playerId);
-    return raw ? (JSON.parse(raw) as PlayerRecord) : null;
   }
 
   /**
