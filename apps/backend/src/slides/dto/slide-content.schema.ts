@@ -1,3 +1,9 @@
+import {
+  AUDIO_TARGETS,
+  SLIDE_TWO_SOUNDS,
+  WAVEFORM_SIZES,
+  blockSoundCount,
+} from '@quiz-dock/contracts';
 import { z } from 'zod';
 import { gradientSchema } from '../../common/background.schema';
 
@@ -29,6 +35,22 @@ const leafBlockSchema = z.discriminatedUnion('type', [
     size: z.enum(['small', 'medium', 'large', 'full']).default('large'),
     align: z.enum(['left', 'center', 'right']).default('center'),
   }),
+  // Media on slides (#125): a video of the library, a sound drawn as its waveform.
+  z.object({
+    type: z.literal('video'),
+    id: blockId,
+    mediaId: z.string().length(26),
+    size: z.enum(['small', 'medium', 'large', 'full']).default('large'),
+    align: z.enum(['left', 'center', 'right']).default('center'),
+    /** Plays its own sound; false = muted (the slide's one sound is elsewhere). */
+    sound: z.boolean().default(true),
+  }),
+  z.object({
+    type: z.literal('audio'),
+    id: blockId,
+    mediaId: z.string().length(26),
+    size: z.enum(WAVEFORM_SIZES).default('M'),
+  }),
 ]);
 
 const columnsBlockSchema = z.object({
@@ -50,8 +72,14 @@ export type SlideBlockInput = z.infer<typeof slideBlockSchema>;
 export const slideContentSchema = z
   .object({
     blocks: z.array(slideBlockSchema).max(30).default([]),
+    /** The background: an image or a video (#125) — the server tells which. */
     mediaId: z.string().length(26).nullable().optional(),
     gradient: gradientSchema.nullable().optional(),
+    /** A video background: looped (else played once), with its sound (else muted). */
+    backgroundLoop: z.boolean().default(true),
+    backgroundSound: z.boolean().default(true),
+    /** Who hears the slide's sound; null = the game's target. */
+    audioTarget: z.enum(AUDIO_TARGETS).nullable().optional(),
     textTone: z.enum(['light', 'dark']).default('light'),
     textOutline: z.boolean().default(true),
     // Auto-mode display time: null = engine default, 0 = manual override, else seconds.
@@ -64,6 +92,12 @@ export const slideContentSchema = z
   .refine((d) => !(d.mediaId && d.gradient), {
     message: 'slide.background_conflict',
     path: ['gradient'],
+  })
+  // One sound at a time; a background video's own sound is counted by the server,
+  // which alone knows whether the background is a video.
+  .refine((d) => blockSoundCount(d.blocks) <= 1, {
+    message: SLIDE_TWO_SOUNDS,
+    path: ['blocks'],
   });
 
 export type SlideContent = z.infer<typeof slideContentSchema>;

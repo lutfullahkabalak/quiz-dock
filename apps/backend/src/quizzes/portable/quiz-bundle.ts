@@ -5,6 +5,9 @@ import {
   LOUDNESS_TARGET_LUFS,
   type LoudnessTarget,
   MEDIA_TAIL_DEFAULT_S,
+  SLIDE_TWO_SOUNDS,
+  blockSoundCount,
+  slideLeaves,
 } from '@quiz-dock/contracts';
 import { ZodError } from 'zod';
 import {
@@ -33,7 +36,8 @@ export const EXPORT_INCLUDE = {
       ...QUESTION_MEDIA_INCLUDE,
     },
   },
-  slides: { orderBy: { orderIndex: 'asc' } },
+  // The background's kind: an image or a video (#125) goes in its own field.
+  slides: { orderBy: { orderIndex: 'asc' }, include: { media: { select: { kind: true } } } },
 } satisfies Prisma.QuizInclude;
 
 export type ExportableQuiz = Prisma.QuizGetPayload<{ include: typeof EXPORT_INCLUDE }>;
@@ -69,6 +73,9 @@ export class BundleContentError extends Error {
   }
 }
 
+/** Blocks holding a media of the library: an image, a video, a sound (#125). */
+const MEDIA_BLOCKS = new Set(['image', 'video', 'audio']);
+
 /** Visits every leaf block of a slide, columns included (blocks are validated later, so stay lenient). */
 function walkBlocks(blocks: unknown, visit: (b: Record<string, unknown>) => void): void {
   if (!Array.isArray(blocks)) return;
@@ -97,7 +104,7 @@ function blocksOut(blocks: unknown, pathFor: PathFor): unknown {
   if (Array.isArray(blocks)) return blocks.map((b) => blocksOut(b, pathFor));
   if (!blocks || typeof blocks !== 'object') return blocks;
   const b = blocks as Record<string, unknown>;
-  if (b.type === 'image' && typeof b.mediaId === 'string') {
+  if (MEDIA_BLOCKS.has(b.type as string) && typeof b.mediaId === 'string') {
     const { mediaId, ...rest } = b;
     return { ...rest, media: pathFor(mediaId) };
   }
@@ -131,7 +138,7 @@ export function collectMediaIds(quiz: ExportableQuiz): Set<string> {
   for (const s of quiz.slides) {
     add(s.mediaId);
     walkBlocks(s.blocks, (b) => {
-      if (b.type === 'image' && typeof b.mediaId === 'string') add(b.mediaId);
+      if (MEDIA_BLOCKS.has(b.type as string) && typeof b.mediaId === 'string') add(b.mediaId);
       if (b.type === 'text' && typeof b.md === 'string') scan(b.md);
     });
   }
@@ -185,9 +192,17 @@ function slideOut(s: ExportableQuiz['slides'][number], pathFor: PathFor): SlideB
     textTone: s.textTone,
     textOutline: s.textOutline,
   };
-  if (s.mediaId) item.backgroundImage = pathFor(s.mediaId);
+  if (s.mediaId && s.media?.kind === 'video') {
+    // A video background (#125): looped and with its sound unless said otherwise.
+    item.backgroundVideo = pathFor(s.mediaId);
+    if (!s.backgroundLoop) item.backgroundLoop = false;
+    if (!s.backgroundSound) item.backgroundSound = false;
+  } else if (s.mediaId) {
+    item.backgroundImage = pathFor(s.mediaId);
+  }
   if (s.gradient) item.backgroundGradient = s.gradient as SlideBundleItem['backgroundGradient'];
   if (s.displayDelayS !== null) item.displayDelayS = s.displayDelayS;
+  if (s.audioTarget) item.audioTarget = s.audioTarget;
   return item;
 }
 
@@ -289,7 +304,7 @@ function blocksIn(blocks: unknown, idFor: IdFor): unknown {
   if (Array.isArray(blocks)) return blocks.map((b) => blocksIn(b, idFor));
   if (!blocks || typeof blocks !== 'object') return blocks;
   const b = blocks as Record<string, unknown>;
-  if (b.type === 'image' && typeof b.media === 'string') {
+  if (MEDIA_BLOCKS.has(b.type as string) && typeof b.media === 'string') {
     const { media, ...rest } = b;
     return { ...rest, mediaId: idFor(media) };
   }
@@ -311,6 +326,7 @@ export function collectMediaPaths(bundle: QuizBundle): Set<string> {
   scan(bundle.quiz.description);
   for (const it of bundle.items) {
     add(it.backgroundImage);
+    if (it.kind === 'slide') add(it.backgroundVideo);
     if (it.kind === 'question') {
       add(it.media);
       add(it.audio);
@@ -322,7 +338,7 @@ export function collectMediaPaths(bundle: QuizBundle): Set<string> {
       }
     } else {
       walkBlocks(it.blocks, (b) => {
-        if (b.type === 'image' && typeof b.media === 'string') add(b.media);
+        if (MEDIA_BLOCKS.has(b.type as string) && typeof b.media === 'string') add(b.media);
         if (b.type === 'text' && typeof b.md === 'string') scan(b.md);
       });
     }
@@ -384,20 +400,41 @@ export function fromBundle(
   let pending: SlideContent[] = [];
   bundle.items.forEach((it, index) => {
     if (it.kind === 'slide') {
-      pending.push(
-        parseOrThrow(
-          () =>
-            slideContentSchema.parse({
-              blocks: blocksIn(it.blocks ?? [], idFor),
-              mediaId: it.backgroundImage ? idFor(it.backgroundImage) : null,
-              gradient: it.backgroundGradient ?? null,
-              textTone: it.textTone,
-              textOutline: it.textOutline,
-              displayDelayS: it.displayDelayS,
-            }),
-          index,
-        ),
+      const background = it.backgroundVideo ?? it.backgroundImage;
+      const content = parseOrThrow(
+        () =>
+          slideContentSchema.parse({
+            blocks: blocksIn(it.blocks ?? [], idFor),
+            mediaId: background ? idFor(background) : null,
+            gradient: it.backgroundGradient ?? null,
+            backgroundLoop: it.backgroundLoop,
+            backgroundSound: it.backgroundSound,
+            audioTarget: it.audioTarget ?? null,
+            textTone: it.textTone,
+            textOutline: it.textOutline,
+            displayDelayS: it.displayDelayS,
+          }),
+        index,
       );
+      // Each media block holds the kind it plays, a video background a video (#125).
+      const wrongKind =
+        (it.backgroundVideo && kindFor(it.backgroundVideo) !== 'video') ||
+        slideLeaves((it.blocks ?? []) as SlideContent['blocks']).some(
+          (b) =>
+            (b.type === 'video' || b.type === 'audio') &&
+            typeof (b as { media?: unknown }).media === 'string' &&
+            kindFor((b as unknown as { media: string }).media) !== b.type,
+        );
+      if (wrongKind) {
+        throw new BundleContentError(index, [{ field: 'blocks', code: 'media.wrong_kind' }]);
+      }
+      // One sound at a time (#125): the background's own counts once it is known a video.
+      const backgroundSounds =
+        background && kindFor(background) === 'video' && content.backgroundSound ? 1 : 0;
+      if (blockSoundCount(content.blocks) + backgroundSounds > 1) {
+        throw new BundleContentError(index, [{ field: 'blocks', code: SLIDE_TWO_SOUNDS }]);
+      }
+      pending.push(content);
       return;
     }
     const q = parseOrThrow(

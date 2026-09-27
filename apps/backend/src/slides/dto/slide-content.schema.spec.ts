@@ -18,4 +18,20 @@ describe('slideContentSchema', () => {
       }).success,
     ).toBe(false);
   });
+
+  it('refuses two blocks playing sound, columns included (#125)', () => {
+    const sound = { type: 'audio', id: 'a', mediaId: '01ARZ3NDEKTSV4RRFFQ69G5FAV' };
+    const video = (id: string, sound?: boolean) => ({
+      type: 'video',
+      id,
+      mediaId: '01ARZ3NDEKTSV4RRFFQ69G5FAW',
+      ...(sound === undefined ? {} : { sound }),
+    });
+    const parse = (blocks: unknown[]) => slideContentSchema.safeParse({ blocks });
+    expect(parse([sound, video('v', false)]).success).toBe(true);
+    // A video block keeps its sound unless told otherwise.
+    const twice = parse([sound, { type: 'columns', id: 'c', columns: [[video('v')], []] }]);
+    expect(twice.success).toBe(false);
+    expect(twice.error?.issues[0].message).toBe('slide.two_sounds');
+  });
 });

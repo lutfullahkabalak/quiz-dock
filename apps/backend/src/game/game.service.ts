@@ -36,7 +36,10 @@ import type {
 } from './game.types';
 import {
   QUIZ_SNAPSHOT_INCLUDE,
+  type QuizWithContent,
+  type SlideAssets,
   buildSnapshot,
+  slideBlockMediaIds,
   refreshSnapshotForm,
   snapshotHasSound,
 } from './snapshot';
@@ -287,11 +290,19 @@ export class GameService {
     if (quiz.questions.length < 1) {
       throw new BadRequestException('quiz.empty');
     }
-    const snapshot = buildSnapshot(quiz);
+    const snapshot = buildSnapshot(quiz, await this.slideAssetsOf(quiz));
     // Frozen with the rest: a licence's attribution is owed for what was played.
     const credits = (await this.mediaLibrary?.creditsOf(quiz.id)) ?? [];
     if (credits.length > 0) snapshot.credits = credits;
     return snapshot;
+  }
+
+  /** The assets of the slides' Video and Sound blocks (#125): their URL, gain, length, waveform. */
+  private async slideAssetsOf(quiz: QuizWithContent): Promise<SlideAssets> {
+    const ids = slideBlockMediaIds(quiz);
+    if (ids.length === 0) return new Map();
+    const assets = await this.prisma.mediaAsset.findMany({ where: { id: { in: ids } } });
+    return new Map(assets.map((a) => [a.id, a]));
   }
 
   /** Queues a new game's state, in the lobby (its players come with the room's switch). */
@@ -609,7 +620,7 @@ export class GameService {
       include: QUIZ_SNAPSHOT_INCLUDE,
     });
     if (!quiz) return frozen;
-    const refreshed = refreshSnapshotForm(frozen, quiz);
+    const refreshed = refreshSnapshotForm(frozen, quiz, await this.slideAssetsOf(quiz));
     await this.redis.set(gameKeys.snapshot(gameId), JSON.stringify(refreshed), 'KEEPTTL');
     return refreshed;
   }
@@ -926,6 +937,8 @@ function serializeGame(game: GameFields): Record<string, string> {
     autoNextAt: String(game.autoNextAt ?? 0),
     autoNextMs: String(game.autoNextMs ?? 0),
     slideIndex: String(game.slideIndex ?? -1),
+    slideMediaStartAt: String(game.slideMediaStartAt ?? 0),
+    slidePausedAt: String(game.slidePausedAt ?? 0),
   };
   if (game.prevState !== undefined) raw.prevState = game.prevState;
   if (game.pausedRemainingMs !== undefined) raw.pausedRemainingMs = String(game.pausedRemainingMs);
@@ -954,6 +967,8 @@ function deserializeGame(raw: Record<string, string>): GameFields {
     autoNextAt: raw.autoNextAt ? Number(raw.autoNextAt) : 0,
     autoNextMs: raw.autoNextMs ? Number(raw.autoNextMs) : 0,
     slideIndex: raw.slideIndex ? Number(raw.slideIndex) : -1,
+    slideMediaStartAt: raw.slideMediaStartAt ? Number(raw.slideMediaStartAt) : 0,
+    slidePausedAt: raw.slidePausedAt ? Number(raw.slidePausedAt) : 0,
     prevState: raw.prevState,
     pausedRemainingMs: raw.pausedRemainingMs ? Number(raw.pausedRemainingMs) : undefined,
     reviewStep: raw.reviewStep ?? '',

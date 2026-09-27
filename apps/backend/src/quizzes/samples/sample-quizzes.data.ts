@@ -44,6 +44,8 @@ const intro = (heading: string, md: string, colors: string[]): SlideContent => (
     { type: 'text', id: 'intro-text', md, align: 'center', size: 'large' },
   ],
   gradient: { angle: 135, colors },
+  backgroundLoop: true,
+  backgroundSound: true,
   textTone: 'light',
   textOutline: true,
   displayDelayS: 8,

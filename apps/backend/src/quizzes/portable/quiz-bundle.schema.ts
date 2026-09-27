@@ -29,8 +29,23 @@ export const BUNDLE_FORMAT = 'quizdock/quiz';
  * reads as version 0 (same layout, every Store field absent); the importer
  * accepts anything up to the current version and fills the defaults.
  * Version 4: a question's waveform may be `hidden`.
+ * Version 5: slides carry media (#125) — Video and Sound blocks, a video background.
  */
-export const BUNDLE_VERSION = 4;
+export const BUNDLE_VERSION = 5;
+
+/** Whether a slide item uses what version 5 brought: media blocks, a video background, its own target. */
+function slideUsesMedia(it: SlideBundleItem): boolean {
+  if (it.backgroundVideo || it.audioTarget) return true;
+  const hasMediaBlock = (b: unknown): boolean => {
+    if (!b || typeof b !== 'object') return false;
+    const block = b as { type?: unknown; columns?: unknown };
+    if (block.type === 'columns' && Array.isArray(block.columns)) {
+      return block.columns.some((c) => Array.isArray(c) && c.some(hasMediaBlock));
+    }
+    return block.type === 'video' || block.type === 'audio';
+  };
+  return (it.blocks ?? []).some(hasMediaBlock);
+}
 
 /**
  * The lowest version a bundle needs: an export stamps it rather than the latest,
@@ -38,6 +53,7 @@ export const BUNDLE_VERSION = 4;
  * that uses nothing newer.
  */
 export function bundleVersionOf(items: QuizBundle['items']): number {
+  if (items.some((it) => it.kind === 'slide' && slideUsesMedia(it))) return 5;
   const hides = items.some((it) => it.kind === 'question' && it.waveformSize === 'hidden');
   return hides ? 4 : 3;
 }
@@ -138,6 +154,14 @@ export const slideBundleSchema = z.object({
   kind: z.literal('slide'),
   blocks: z.array(z.unknown()).optional(),
   ...backgroundBundleFields,
+  /** An MP4 filling the slide behind its content (version 5), instead of an image. */
+  backgroundVideo: mediaPathSchema.nullable().optional(),
+  /** The video background loops (version 5); absent = yes. */
+  backgroundLoop: z.boolean().optional(),
+  /** The video background plays its own sound (version 5); absent = yes. */
+  backgroundSound: z.boolean().optional(),
+  /** Which devices play the slide's sound (version 5); absent = the quiz's default. */
+  audioTarget: z.enum(AUDIO_TARGETS).optional(),
   displayDelayS: z.number().int().nullable().optional(),
 });
 

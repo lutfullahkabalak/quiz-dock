@@ -340,8 +340,14 @@ model Slide {
   orderIndex       Int           @map("order_index")
   /// Composition (#7): ordered blocks — heading, text (Markdown), image, columns. Validated by the API.
   blocks           Json          @default("[]")
-  /// Optional full-cover background image (exclusive with `gradient`).
+  /// Optional full-cover background: an image or a video (#125) — exclusive with `gradient`.
   mediaId          String?       @map("media_id") @db.Char(26)
+  /// A video background runs as long as the slide shows; false = played once, held on its last frame.
+  backgroundLoop   Boolean       @default(true) @map("background_loop")
+  /// A video background plays its own sound; false = muted (the slide's one sound left to a block).
+  backgroundSound  Boolean       @default(true) @map("background_sound")
+  /// Who hears the slide's sound; null = the game's target (as a question's).
+  audioTarget      AudioTarget?  @map("audio_target")
   /// Optional generated background: `{ angle, colors[] }` (exclusive with `mediaId`).
   gradient         Json?
   /// Auto-mode display time in seconds: null = engine default, 0 = the host clicks (manual override).

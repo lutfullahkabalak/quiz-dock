@@ -538,14 +538,19 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.game.recordFeedback(payload.pin, playerId, payload.rating, payload.comment);
   }
 
-  /** A device has loaded what it fetched ahead of a question (its own room only). */
+  /** A device has loaded what it fetched ahead of a step, a question or a slide (its own room only). */
   @SubscribeMessage('media:ready')
   async mediaReady(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string; questionIndex: number },
+    @MessageBody() payload: { pin: string; questionIndex: number; slideIndex?: number },
   ): Promise<void> {
     if (!socket.data.pin || socket.data.pin !== payload.pin) return;
-    await this.engine.markMediaReady(payload.pin, socket, payload.questionIndex);
+    await this.engine.markMediaReady(
+      payload.pin,
+      socket,
+      payload.questionIndex,
+      payload.slideIndex,
+    );
   }
 
   /**
@@ -555,13 +560,24 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('media:position')
   mediaPosition(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string; questionIndex: number; t: number; playing: boolean },
+    @MessageBody()
+    payload: {
+      pin: string;
+      questionIndex: number;
+      slideIndex?: number;
+      t: number;
+      playing: boolean;
+    },
   ): void {
     const { pin, playerId, isHostControl, follower } = socket.data;
     if (!pin || pin !== payload.pin || playerId || isHostControl || follower) return;
-    const { questionIndex, t, playing } = payload;
+    const { questionIndex, slideIndex, t, playing } = payload;
     if (!Number.isInteger(questionIndex) || !Number.isFinite(t) || t < 0) return;
-    socket.to(pin).emit('media:position', { questionIndex, t, playing: playing === true });
+    // A slide's sound (#125) is told apart from the question it precedes.
+    const slide = Number.isInteger(slideIndex) && slideIndex! >= 0 ? { slideIndex } : {};
+    socket
+      .to(pin)
+      .emit('media:position', { questionIndex, ...slide, t, playing: playing === true });
   }
 
   @SubscribeMessage('ping')

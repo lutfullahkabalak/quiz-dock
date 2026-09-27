@@ -88,9 +88,19 @@ export const GUIDE_FIELDS = {
   },
   slide: {
     described: ['kind', 'blocks'],
-    left: ['backgroundImage', 'backgroundGradient', 'textTone', 'textOutline', 'displayDelayS'],
+    left: [
+      'backgroundImage',
+      'backgroundVideo',
+      'backgroundLoop',
+      'backgroundSound',
+      'backgroundGradient',
+      'textTone',
+      'textOutline',
+      'audioTarget',
+      'displayDelayS',
+    ],
   },
-  block: { described: ['heading', 'text'], left: ['image', 'columns'] },
+  block: { described: ['heading', 'text'], left: ['image', 'video', 'audio', 'columns'] },
 } as const;
 
 /** What each type asks for, beyond the fields every question shares. */

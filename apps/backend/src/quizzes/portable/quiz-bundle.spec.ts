@@ -215,6 +215,65 @@ describe('quiz bundle', () => {
     expect(fromBundle(bundle, idFor).questions[0]).toMatchObject({ waveformSize: 'hidden' });
   });
 
+  it('stamps version 5 once a slide carries media, and brings them back (#125)', () => {
+    const VID = '01ARZ3NDEKTSV4RRFFQ69G5FB0';
+    const SND = '01ARZ3NDEKTSV4RRFFQ69G5FB1';
+    const src = makeQuiz();
+    const intro = src.slides[1] as unknown as Record<string, unknown>;
+    intro.blocks = [
+      { type: 'audio', id: 'a', mediaId: SND, size: 'L' },
+      {
+        type: 'columns',
+        id: 'c',
+        columns: [
+          [{ type: 'video', id: 'v', mediaId: VID, size: 'medium', align: 'left', sound: false }],
+          [],
+        ],
+      },
+    ];
+    intro.mediaId = VID;
+    intro.media = { kind: 'video' };
+    intro.backgroundLoop = false;
+    intro.backgroundSound = false;
+    intro.audioTarget = 'everyone';
+    const kinds: Record<string, 'image' | 'video' | 'audio'> = { [VID]: 'video', [SND]: 'audio' };
+    const kindFor = (path: string) => kinds[idFor(path)] ?? 'image';
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(5);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    const slide = bundle.items[0];
+    if (slide.kind !== 'slide') throw new Error('expected a slide');
+    expect(slide).toMatchObject({
+      backgroundVideo: pathFor(VID),
+      backgroundLoop: false,
+      backgroundSound: false,
+      audioTarget: 'everyone',
+    });
+    expect(slide.backgroundImage).toBeUndefined();
+    expect(JSON.stringify(slide.blocks)).toContain(`"media":"${pathFor(SND)}"`);
+    expect([...collectMediaPaths(bundle)]).toEqual(
+      expect.arrayContaining([pathFor(VID), pathFor(SND)]),
+    );
+
+    const back = fromBundle(bundle, idFor, kindFor).slides[0].content;
+    expect(back).toMatchObject({
+      mediaId: VID,
+      backgroundLoop: false,
+      backgroundSound: false,
+      audioTarget: 'everyone',
+    });
+    expect(back.blocks[0]).toMatchObject({ type: 'audio', mediaId: SND, size: 'L' });
+
+    // One sound at a time: the background's own sound next to a Sound block is refused.
+    slide.backgroundSound = true;
+    expect(() => fromBundle(bundle, idFor, kindFor)).toThrow(BundleContentError);
+    slide.backgroundSound = false;
+    // A block holds the kind it plays: a sound where a video is expected is refused.
+    expect(() =>
+      fromBundle(bundle, idFor, (p) => (idFor(p) === VID ? 'audio' : kindFor(p))),
+    ).toThrow(BundleContentError);
+  });
+
   it('round-trips through import with the API content rules applied', () => {
     const src = makeQuiz();
     const imported = fromBundle(toBundle(src, pathFor), idFor);

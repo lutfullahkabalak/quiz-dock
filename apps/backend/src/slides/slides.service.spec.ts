@@ -8,6 +8,7 @@ const id = (n: string) => n.padEnd(26, '0');
 function makePrisma() {
   return {
     quiz: { findFirst: jest.fn() },
+    mediaAsset: { findMany: jest.fn() },
     question: { findMany: jest.fn(), update: jest.fn((args: unknown) => args) },
     slide: {
       findFirst: jest.fn(),
@@ -38,6 +39,8 @@ describe('SlidesService', () => {
         blocks: [{ type: 'heading', id: 'h', text: 'Intro', level: 1 }],
         textTone: 'light',
         textOutline: false,
+        backgroundLoop: true,
+        backgroundSound: true,
       });
       const data = (prisma.slide.create.mock.calls[0][0] as { data: unknown }).data;
       expect(data).toMatchObject({
@@ -57,8 +60,75 @@ describe('SlidesService', () => {
           blocks: [{ type: 'heading', id: 'h', text: 'x', level: 1 }],
           textTone: 'light',
           textOutline: false,
+          backgroundLoop: true,
+          backgroundSound: true,
         }),
       ).rejects.toBeInstanceOf(NotFoundException);
+    });
+  });
+
+  describe('media on slides (#125)', () => {
+    const VID = id('vid');
+    const SND = id('snd');
+    const content = (over: Record<string, unknown> = {}) =>
+      ({
+        blocks: [{ type: 'audio', id: 'a', mediaId: SND, size: 'M' }],
+        textTone: 'light',
+        textOutline: true,
+        backgroundLoop: true,
+        backgroundSound: true,
+        ...over,
+      }) as Parameters<SlidesService['add']>[2];
+
+    beforeEach(() => {
+      prisma.slide.aggregate.mockResolvedValue({ _max: { orderIndex: null } });
+      prisma.mediaAsset.findMany.mockResolvedValue([
+        { id: VID, kind: 'video' },
+        { id: SND, kind: 'audio' },
+      ]);
+    });
+
+    it("keeps a video background, its loop and sound switches, and the slide's target", async () => {
+      await service.add(
+        OWNER,
+        'quiz-1',
+        content({
+          mediaId: VID,
+          backgroundLoop: false,
+          backgroundSound: false,
+          audioTarget: 'everyone',
+        }),
+      );
+      const data = (prisma.slide.create.mock.calls[0][0] as { data: unknown }).data;
+      expect(data).toMatchObject({
+        mediaId: VID,
+        backgroundLoop: false,
+        backgroundSound: false,
+        audioTarget: 'everyone',
+      });
+    });
+
+    it('refuses a second sound: the background video with its own next to a Sound block', async () => {
+      await expect(service.add(OWNER, 'quiz-1', content({ mediaId: VID }))).rejects.toThrow(
+        'slide.two_sounds',
+      );
+      expect(prisma.slide.create).not.toHaveBeenCalled();
+    });
+
+    it("refuses a media of the wrong kind, or one that is not the author's", async () => {
+      await expect(
+        service.add(
+          OWNER,
+          'quiz-1',
+          content({
+            blocks: [
+              { type: 'video', id: 'v', mediaId: SND, size: 'large', align: 'center', sound: true },
+            ],
+          }),
+        ),
+      ).rejects.toThrow('media.wrong_kind');
+      prisma.mediaAsset.findMany.mockResolvedValue([]);
+      await expect(service.add(OWNER, 'quiz-1', content())).rejects.toThrow('media.not_found');
     });
   });
 
