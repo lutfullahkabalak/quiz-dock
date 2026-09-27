@@ -42,7 +42,7 @@ the results never leave your servers.
 > or from the instance's **global media**, credited, and managed on an administration page:
 > disk by kind and owner, clean-up, every file with its usages.
 >
-> **New in 0.7 — 🎧 video & sound in questions** *(experimental)*. Videos and sounds,
+> **New in 0.7 — 🎧 video & sound in questions**. Videos and sounds,
 > loudness-matched, with a waveform; played on the projection **and** on the devices of
 > remote participants, started on the same instant everywhere; *listen first* questions
 > open the answers once the media has played. Tested in Chromium browsers, not yet on
@@ -69,8 +69,9 @@ your phone to play.
   separate projection and control windows; manual or automatic pacing.
 - 🧩 **A real quiz builder** — seven question types (single/multi choice, true-false,
   text, numeric, reorder, poll), images with alternative text, Markdown everywhere, content
-  slides between questions, backgrounds, answer explanations at the reveal.
-- 🎧 **Video & sound — _experimental_** — videos and sounds in questions,
+  slides between questions, backgrounds, answer explanations at the reveal. A new quiz
+  starts from a draft: an intro slide and a first question to complete.
+- 🎧 **Video & sound** — videos and sounds in questions and slides,
   loudness-matched, drawn as a waveform with a playhead; played on the projection and on
   the devices of **remote participants** (who hears what is set per quiz, per question and
   per session), started on the same instant everywhere, fetched ahead from the lobby, and
@@ -226,15 +227,16 @@ of a sound on its waveform, the account preferences:
 <summary>Everything else QuizDock does</summary>
 
 - 📝 **Rich text** — prompts, options and descriptions in Markdown with a visual editor (bold, lists, code, inline images).
-- 🎞️ **Content slides** — headings, text, images, 2–3 columns between questions; image or gradient backgrounds for slides and questions, with a faithful 16:9 preview.
+- 🎞️ **Content slides** — headings, text, images, 2–3 columns between questions; image or gradient backgrounds for slides and questions, with a faithful 16:9 preview. A slide can play a video behind its content (looped or once, with its sound or muted) and a sound, set like a question's; in automatic mode it waits for them to play. Its text can name the quiz and the room — `{title}`, `{pin}`, `{players}`, `{question}` and more, filled wherever the slide shows.
 - 💡 **Answer explanations** — shown at the reveal, with a per-question reveal delay in automatic mode.
 - 👁️ **Preview** — rehearse your quiz exactly as it will look on the big screen, answers shown.
+- 🤝 **Share with the other hosts** — one switch in a quiz's settings: the other hosts of the instance find it in their quizzes, marked with a lock, read it step by step (as it will show, and how each question is scored) and create their own copy from it. Off by default: a quiz stays yours alone.
 - 🧾 **Credits** — author, licence and source on every media, carried with a quiz when it is exported or shared; listed on the preview page and in small print under the podium, as a CC-BY licence asks.
 - 🗄️ **Instance media** _(administrators)_ — disk used by kind and by owner, the clean-up (unused media, stray files, run it now), every file with its size in pixels, owners and usages, as a list or a grid with a preview (sound on its waveform); global media uploaded or added from any file; a file deleted even when used (moderation), once its usages are listed.
 - 🧹 **Media housekeeping** — each file stored once (SHA-256), unused media and stray files cleaned up hourly, older formats kept playing.
-- 🎛️ **Host in control** — Console / Projection / Participant views, look back over played questions without replaying anything, layout edits reach a running session at its next step, sessions survive a server restart.
+- 🎛️ **Host in control** — Console / Projection / Participant views, the space bar pauses and resumes the game, look back over played questions without replaying anything, layout edits reach a running session at its next step, sessions survive a server restart.
 - 🎚️ **The sound in the host's hands** — from the console, play / pause the question's sound or video on every device at once, click or drag its waveform to a point, or take it back to the top; a waveform can be hidden from the screens and still show on the console; every start and stop fades, no clicks. The background track never plays over a question's own sound: it steps out and comes back; every mixer has a mute per channel. The game's own sounds, synthesised in the browser: a ding as a question appears, a tick per answer, a tick-tock on the last five seconds and a gong on zero — each can be switched off, previewed on the console, or replaced by a sound of the library.
-- 🗂️ **Your bank at a glance** — My quizzes and the templates as a list or a grid, filtered by language and tags, each quiz with its cover, size, language, date, licence and tags.
+- 🗂️ **Your bank at a glance** — My quizzes and the templates as a list or a grid (each quiz showing its first slide), filtered by status, owner, language and tags, each quiz with its size, language, date, licence and tags; archived quizzes kept out of the way.
 - 🌐 **Remote participants** _(experimental)_ — a participant following from home says so when joining and gets the whole question on their device, sound and video included; the console shows who is remote and whose media are loaded.
 - 📺 **The projection on your own device** — a participant shares the big screen to a tablet or a computer (a link or a QR code, never their seat): it follows the projection, muted in the room, with sound for someone following from home. On the same phone, one tap switches between the answers and the big screen.
 - ✋ **Ready!** — participants say they are ready in the lobby; the host sees one count, including whose media are still loading, and still starts when they choose.

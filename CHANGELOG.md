@@ -14,6 +14,16 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- The ding back at 880 Hz, its low-pass down to 300 Hz *(sounds)*
+- The ding down to 300 Hz, as chosen by ear *(sounds)*
+- The ding down to A5 (880 Hz) *(sounds)*
+- A gentler ding — lower, softer attack, faint strike *(sounds)*
+- The ding's low-pass tames it for real *(sounds)*
+- Every device keeps to the room's instant while it plays *(media)*
+- Each device starts ahead by its output latency, heard together *(media)*
+- The waveform follows the sound as heard, not as decoded *(media)*
+- A phone in the room shows the slide's background, one waveform on the console *(slides)*
+- No fullscreen on the big screen shown in a participant's page *(live)*
 - A new question starts at 0 answers — its first answer gets its tick *(live)*
 - A question's media a second after it shows, replays in the same room, tiles and ticks *(live)*
 - The tick's description, plainly *(live)*
@@ -39,6 +49,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- Media on slides, as arbitrated — blocks, a video background, one sound at a time *(spec)*
+- The game's sounds in the feature list and unreleased
 - Closing a quiz mid-way in unreleased *(changelog)*
 - The track and the mixers' mutes in the feature list
 - The room's sounds, the track and the mixers in unreleased *(changelog)*
@@ -85,6 +97,22 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- Answer shapes drawn in SVG, a softer ding, a wider label column *(ui)*
+- The grid shows each quiz's first slide, fetched once in view *(quizzes)*
+- Archived quizzes out of the list by default *(quizzes)*
+- Filter by owner, and by several statuses at once *(quizzes)*
+- Wrong answers greyed in the step preview and its settings *(quiz)*
+- The read-only view as the editor lays it out, with each step's settings *(quiz)*
+- The read-only view shows each step as it will show *(quiz)*
+- Spinners and skeletons while pages load *(ui)*
+- Share a quiz with the instance's other hosts *(quiz)*
+- A new quiz starts from a draft — an intro slide and a question *(quiz)*
+- Variables in a slide's text, filled wherever it shows *(slides)*
+- The space bar pauses the game, a bin removes a participant *(console)*
+- A softer ding, generic names for the effect slots *(sounds)*
+- One second after a media by default for a new quiz *(quiz)*
+- A slide's video and sound, set like a question's media (#125) *(slides)*
+- Video and sound on slides — model, engine, bundle v5 (#125) *(slides)*
 - Each answer's tick slightly higher or lower — no machine gun *(live)*
 - Everyone answered, the reveal a second later — the last tick apart from the gong *(live)*
 - Each room effect says when it plays *(live)*
@@ -123,6 +151,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Refactor
 
+- One step preview for every page, its content centred *(quiz)*
 - The room under its PIN, each game under its own id *(game)*
 
 ### Contributors
