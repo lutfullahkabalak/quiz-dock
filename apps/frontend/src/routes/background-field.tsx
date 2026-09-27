@@ -39,13 +39,19 @@ export function BackgroundField({
   onChange: (next: BackgroundValue) => void;
 }) {
   const { t } = useTranslation('editor');
-  // The chosen kind is local UI state: "image" stays selected while the upload is pending.
+  // The kind follows the value (a discarded draft puts it back); only "image, the file
+  // still to come" has no value of its own, so it is kept here until the upload lands.
   type Kind = 'none' | 'image' | 'gradient';
-  const [kind, setKindState] = useState<Kind>(
-    value.mediaId ? 'image' : value.gradient ? 'gradient' : 'none',
-  );
+  const [imagePending, setImagePending] = useState(false);
+  const kind: Kind = value.mediaId
+    ? 'image'
+    : value.gradient
+      ? 'gradient'
+      : imagePending
+        ? 'image'
+        : 'none';
   const setKind = (k: Kind) => {
-    setKindState(k);
+    setImagePending(k === 'image');
     onChange({
       ...value,
       mediaId: k === 'image' ? value.mediaId : null,
