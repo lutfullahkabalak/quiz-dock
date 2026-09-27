@@ -89,6 +89,8 @@ export interface GameView {
   joinLocked: boolean;
   /** Renseigné si l'hôte a banni ce joueur (durée en minutes) — son client l'affiche. */
   kicked: { minutes: number } | null;
+  /** The live connection is down (reconnecting): what shows may be out of date. */
+  connectionLost: boolean;
   /** Rythme courant (§8) — `manual` par défaut. */
   mode: GameMode;
   /** Auto-progression suspendue par l'hôte (chrono gelé en ANSWERING). */
@@ -170,6 +172,7 @@ const INITIAL: GameView = {
   participantAccess: 'account',
   joinLocked: false,
   kicked: null,
+  connectionLost: false,
   mode: 'manual',
   paused: false,
   pausedRemainingMs: null,
@@ -418,6 +421,13 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
     };
 
     // Every event this view follows, taken on and off together: one list, never two to keep in step.
+    // The connection itself (socket.io's own events, outside the contract): down until it is back.
+    // Letting go of it on purpose (leaving the game) is not a loss.
+    const onDisconnect = (reason: string) => {
+      if (reason !== 'io client disconnect') patch({ connectionLost: true });
+    };
+    const onConnect = () => patch({ connectionLost: false });
+
     const handlers = {
       'game:state': onState,
       'game:roster': onRoster,
@@ -457,6 +467,8 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       socketRef.current = sock;
 
       for (const [event, handler] of events) sock.on(event, handler);
+      sock.on('disconnect', onDisconnect);
+      sock.on('connect', onConnect);
 
       // Kick — listeners déjà en place : la rafale `sendStateTo` ne peut être ratée.
       // Rejoué à chaque (re)connexion : après un redémarrage du serveur, le socket
@@ -501,6 +513,8 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       if (!s) return;
       if (reconnectHandler) s.io?.off('reconnect', reconnectHandler);
       for (const [event, handler] of events) s.off(event, handler);
+      s.off('disconnect', onDisconnect);
+      s.off('connect', onConnect);
     };
   }, [pin, role, follow]);
 

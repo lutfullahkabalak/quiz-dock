@@ -11,6 +11,7 @@ import { useFullscreen } from '@/lib/use-fullscreen';
 import { clearRoomPositions } from '../game/media/media-position';
 import { Avatar } from '../game/avatar';
 import {
+  ConnectionLost,
   AnswerExplanation,
   AnswerRules,
   LeaderboardList,
@@ -96,13 +97,16 @@ export function ScreenView({
 }) {
   const session = useGameSession(pin, 'spectator', { follow: !!follow });
   return (
-    <ScreenSurface
-      pin={pin}
-      view={session.view}
-      socket={session.socket}
-      role={follow ? 'follow' : playMedia ? 'lead' : 'preview'}
-      sound={follow?.sound ?? true}
-    />
+    <>
+      <ConnectionLost lost={session.view.connectionLost} />
+      <ScreenSurface
+        pin={pin}
+        view={session.view}
+        socket={session.socket}
+        role={follow ? 'follow' : playMedia ? 'lead' : 'preview'}
+        sound={follow?.sound ?? true}
+      />
+    </>
   );
 }
 

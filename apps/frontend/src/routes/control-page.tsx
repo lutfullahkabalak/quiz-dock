@@ -59,6 +59,7 @@ import { getAuthMode } from '../auth/auth-context';
 import { APP_NAME } from '../config';
 import { Avatar } from '../game/avatar';
 import {
+  ConnectionLost,
   AnswerExplanation,
   LeaderboardList,
   OptionGrid,
@@ -94,11 +95,28 @@ const CHRONO_STEPS = [-5, -1, 1, 5] as const;
 const CONSOLE_SECTION = 'flex min-h-[calc(100dvh-7rem)] flex-col py-6';
 
 export function ControlPage() {
+  const { pin } = useParams({ from: '/session/$pin/console' });
+  const session = useGameSession(pin, 'host');
+  return (
+    <>
+      <ConnectionLost lost={session.view.connectionLost} />
+      <HostConsole pin={pin} session={session} />
+    </>
+  );
+}
+
+/** The console of the session the page follows, in each state of the game. */
+function HostConsole({
+  pin,
+  session,
+}: {
+  pin: string;
+  session: ReturnType<typeof useGameSession>;
+}) {
   const { t } = useTranslation(['live', 'common']);
   // Same explanation as in the editor before switching full capture on (GDPR, archive size).
   const [confirmCapture, setConfirmCapture] = useState(false);
-  const { pin } = useParams({ from: '/session/$pin/console' });
-  const { view, socket } = useGameSession(pin, 'host');
+  const { view, socket } = session;
   const [shareNote, setShareNote] = useState<string | null>(null);
 
   const joinUrl = joinUrlFor(view, pin);

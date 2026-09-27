@@ -338,6 +338,7 @@
   },
   "errors": {
     "sessionNotFound": "Salon introuvable ou fermé.",
+    "connectionLost": "Connexion perdue. Reconnexion en cours…",
     "launchFailed": "Échec de l’ouverture du salon.",
     "noResponse": "Le serveur n’a pas répondu, réessayez."
   },

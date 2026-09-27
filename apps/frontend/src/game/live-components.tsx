@@ -839,3 +839,20 @@ export function Podium({ rows }: { rows: LeaderboardRow[] }) {
     </div>
   );
 }
+
+/**
+ * Shown over a live page while its connection is down: what it shows may be out
+ * of date until it is back (the session reconnects by itself).
+ */
+export function ConnectionLost({ lost }: { lost: boolean }) {
+  const { t } = useTranslation('live');
+  if (!lost) return null;
+  return (
+    <p
+      role="status"
+      className="bg-destructive text-destructive-foreground fixed inset-x-0 top-2 z-50 mx-auto w-fit rounded-md px-3 py-1.5 text-sm font-medium shadow"
+    >
+      {t('errors.connectionLost')}
+    </p>
+  );
+}

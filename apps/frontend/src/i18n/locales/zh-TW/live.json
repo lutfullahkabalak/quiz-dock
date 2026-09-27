@@ -338,6 +338,7 @@
   },
   "errors": {
     "sessionNotFound": "未找到房間或房間已關閉。",
+    "connectionLost": "連線中斷，正在重新連線…",
     "launchFailed": "開啟房間失敗。",
     "noResponse": "伺服器沒有回應，請再試一次。"
   },

@@ -40,6 +40,7 @@ import {
 import { ResultMark } from '../game/result-mark';
 import { SortableAnswer } from '../game/sortable-answer';
 import {
+  ConnectionLost,
   AnswerExplanation,
   AnswerRules,
   QuestionMedia,
@@ -97,9 +98,20 @@ function trackingNotice(
  * réponse → feedback → podium), grille verrouillée à 1 réponse (RG-06).
  */
 export function PlayerPage() {
-  const { t } = useTranslation('live');
   const { pin } = useParams({ from: '/join/$pin' });
-  const { view, socket, markJoined, markReady } = useGameSession(pin, 'player');
+  const session = useGameSession(pin, 'player');
+  return (
+    <>
+      <ConnectionLost lost={session.view.connectionLost} />
+      <PlayerView pin={pin} session={session} />
+    </>
+  );
+}
+
+/** The participant's side of the session the page follows, in each state of the game. */
+function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof useGameSession> }) {
+  const { t } = useTranslation('live');
+  const { view, socket, markJoined, markReady } = session;
   const [nickname, setNickname] = useState(() => loadPlayerSession()?.nickname ?? loadNickname());
   const [joining, setJoining] = useState(false);
   // Asked only when the quiz plays sound: a remote player then gets it on their device.

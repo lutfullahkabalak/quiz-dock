@@ -338,6 +338,7 @@
   },
   "errors": {
     "sessionNotFound": "未找到房间或房间已关闭。",
+    "connectionLost": "连接已断开，正在重新连接…",
     "launchFailed": "打开房间失败。",
     "noResponse": "服务器未响应，请重试。"
   },
