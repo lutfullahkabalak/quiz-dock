@@ -6,6 +6,20 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ## [0.9.1] - 2026-09-27
 
+### Benchmarks
+
+- Several rooms at once measured, the series sampled a second time *(perf)*
+- Several rooms at once, and a results file per measure *(bench)*
+- Additional information on the execution context, the resources allocated *(perf)*
+- Each measure of the day with its code, its machine, its method and its limits *(perf)*
+- The benchmark's full setup, next to its figures *(perf)*
+- The benchmark measured cold, one room holds about 1500 players *(perf)*
+- The answer count's coalescing measured, warm and indicative *(perf)*
+- The sizing series and the A/B of the load benchmark in one script *(bench)*
+- A --rich quiz, as long as the editor lets questions be *(load)*
+- Draft roadmap of the live engine's performance *(perf)*
+- Benchmark a live game from 10 to 700 players *(load)*
+
 ### Bug Fixes
 
 - The console's chrono shows the pause sign, as the screens do *(console)*
@@ -33,22 +47,15 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
-- Several rooms at once measured, the series sampled a second time *(perf)*
-- Additional information on the execution context, the resources allocated *(perf)*
-- Each measure of the day with its code, its machine, its method and its limits *(perf)*
-- The benchmark's full setup, next to its figures *(perf)*
-- The benchmark measured cold, one room holds about 1500 players *(perf)*
-- The answer count's coalescing measured, warm and indicative *(perf)*
+- Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
 - The answer count coalesced, the sounds off in a new room, the measures to redo cold
 - The benchmark after the lots, and a sizing page for operators
 - What each lot fixed, the profile of the engine, and the unreleased changes
 - Record the decisions taken on the audit's open points *(audit)*
 - Code audit of backend and frontend, to decide lot 4 *(audit)*
-- Draft roadmap of the live engine's performance *(perf)*
 
 ### Features
 
-- Several rooms at once, and a results file per measure *(bench)*
 - A new room's game sounds are off, the host turns on the ones they want *(game)*
 - Hooks on the live screens for an instance's override.css *(branding)*
 - Tokens for the answers' colours, warning, podium and typeface *(theme)*
@@ -141,6 +148,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The 0.7 and 0.8 notes out of the top *(readme)*
 - Ready for 0.9.0 — upgrade between two games, version examples, unreleased
 - Every screen shot again, the new ones and each question type *(screenshots)*
 - The 0.7 and 0.8 notes out of the top *(readme)*
@@ -171,7 +179,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - The multi-quiz room brief, from the model to the ordered pull requests *(spec)*
 - One answer grid in unreleased *(changelog)*
 - Exact OIDC issuer in unreleased *(changelog)*
-- The 0.7 and 0.8 notes out of the top *(readme)*
 - Unreleased before the release *(changelog)*
 - The licence, tags and language of a quiz in the feature list
 - The refactoring plan for the game gateway tests *(dev)*

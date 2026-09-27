@@ -82,6 +82,13 @@ your phone to play.
   tracking, no ads; interface in English, French, Spanish, Simplified and Traditional
   Chinese; rebrand name, logo and CSS without a rebuild.
 
+## 📈 Performance
+
+Load-tested with simulated players, the engine on one 2.1 GHz core: one room stays fluid
+up to **~1500 players** (answers acknowledged in 41–61 ms, p95; ~400 before 0.9.1), and
+**60 rooms of 30** at once in 25 ms. [Method and limits](https://github.com/quizdock/quiz-dock/blob/main/docs/dev/load-testing.md),
+[VM sizing](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/sizing.md).
+
 ## 🔑 Two ways to run it
 
 Same image, one switch: `AUTH_MODE` decides who can host.
@@ -292,8 +299,8 @@ vulnerability via [`SECURITY.md`](https://github.com/quizdock/quiz-dock/blob/mai
 
 ## 🙏 Acknowledgements
 
-Thanks to [Anthropic](https://www.anthropic.com) for the Claude Code cloud credits it offered:
-they made the heavy optimisation, clean-up and testing work of 0.9.1 much easier to carry out.
+Thanks to [Anthropic](https://www.anthropic.com) for the Claude Code cloud credits that made
+the optimisation, clean-up and testing work of 0.9.1 much easier.
 
 ## 📄 License
 
