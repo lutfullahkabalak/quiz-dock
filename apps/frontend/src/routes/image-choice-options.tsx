@@ -12,6 +12,7 @@ import { mediaControllerDescribe } from '../api/generated/media/media';
 import { ImageTile } from '../game/image-choice';
 import { MediaUpload } from './media-upload';
 import { mediaUrl } from '@/lib/media-url';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 /** What the editor keeps of an image choice answer. */
 export interface ImageOptionValue {
@@ -137,15 +138,12 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
             </button>
           ))}
         </div>
-        <label className="flex items-start gap-2 text-sm" title={t('questionForm.multiSelectHint')}>
-          <input
-            type="checkbox"
-            className="accent-primary mt-0.5"
-            checked={multiSelect}
-            onChange={(e) => onMultiSelect(e.target.checked)}
-          />
-          <span className="font-medium">{t('questionForm.multiSelectLabel')}</span>
-        </label>
+        <CheckboxField
+          title={t('questionForm.multiSelectHint')}
+          checked={multiSelect}
+          onChange={onMultiSelect}
+          label={t('questionForm.multiSelectLabel')}
+        />
       </div>
       <p className="text-muted-foreground -mt-1 text-xs">{t('questionForm.imageCropNote')}</p>
 

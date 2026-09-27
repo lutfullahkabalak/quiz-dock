@@ -77,6 +77,7 @@ import { JoinAddressPicker } from '../game/join-address-picker';
 import { type GameView, type RosterPlayer, useGameSession } from '../game/use-game-session';
 import { ScreenSurface } from './screen-page';
 import { PageLoading } from '@/components/ui/loading';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 /** Boutons d'ajustement du chrono (§8) : retire/ajoute des secondes en direct. */
 const CHRONO_STEPS = [-5, -1, 1, 5] as const;
@@ -1295,18 +1296,13 @@ function EndGameButton({
         onCancel={() => setOpen(false)}
       >
         {offerArchive ? (
-          <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={archive}
-              onChange={(e) => setArchive(e.target.checked)}
-            />
-            <span>
-              <span className="font-medium">{t('control.archiveLabel')}</span>
-              <span className="text-muted-foreground block">{t('control.archiveHint')}</span>
-            </span>
-          </label>
+          <CheckboxField
+            className="rounded-md border p-3"
+            checked={archive}
+            onChange={setArchive}
+            label={t('control.archiveLabel')}
+            hint={t('control.archiveHint')}
+          />
         ) : null}
       </ConfirmDialog>
     </>

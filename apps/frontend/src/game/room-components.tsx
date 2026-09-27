@@ -15,6 +15,7 @@ import { useQuizzesControllerList } from '../api/generated/quizzes/quizzes';
 import { type GameSocket, emitWithAckOrError } from './game-client';
 import { LeaderboardList } from './live-components';
 import { mediaUrl } from '@/lib/media-url';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 /** The room's name as the screens show it: its own, else "<host>'s room". */
 export function roomLabel(
@@ -168,22 +169,13 @@ export function NextQuizButton({
           />
         )}
         {offersArchive ? (
-          <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={archive}
-              onChange={(e) => setArchive(e.target.checked)}
-            />
-            <span>
-              <span className="font-medium">
-                {t(mode === 'close' ? 'control.archiveSoFarLabel' : 'control.archiveLabel')}
-              </span>
-              <span className="text-muted-foreground block">
-                {t(mode === 'close' ? 'control.archiveSoFarHint' : 'control.archiveHint')}
-              </span>
-            </span>
-          </label>
+          <CheckboxField
+            className="rounded-md border p-3"
+            checked={archive}
+            onChange={setArchive}
+            label={t(mode === 'close' ? 'control.archiveSoFarLabel' : 'control.archiveLabel')}
+            hint={t(mode === 'close' ? 'control.archiveSoFarHint' : 'control.archiveHint')}
+          />
         ) : null}
         {error ? <p className="text-destructive text-sm">{error}</p> : null}
       </ConfirmDialog>

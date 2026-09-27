@@ -61,6 +61,7 @@ import {
 import { getQuizzesControllerGetQueryKey } from '../api/generated/quizzes/quizzes';
 import { ShapeIcon } from '@/components/shape-icon';
 import { ImageChoiceOptions, imageOptionComplete } from './image-choice-options';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 type QType =
   | 'single_choice'
@@ -478,23 +479,13 @@ export function QuestionForm({
         {canListenFirst ? (
           <form.Field name="timerAfterMedia">
             {(field) => (
-              <label
-                className="flex items-start gap-2 text-sm"
+              <CheckboxField
                 title={t('questionForm.listenFirstHint')}
-              >
-                <input
-                  type="checkbox"
-                  className="accent-primary mt-0.5"
-                  checked={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.checked)}
-                />
-                <span>
-                  <span className="font-medium">{t('questionForm.listenFirstLabel')}</span>
-                  <span className="text-muted-foreground block">
-                    {t('questionForm.listenFirstHint')}
-                  </span>
-                </span>
-              </label>
+                checked={field.state.value}
+                onChange={field.handleChange}
+                label={t('questionForm.listenFirstLabel')}
+                hint={t('questionForm.listenFirstHint')}
+              />
             )}
           </form.Field>
         ) : null}

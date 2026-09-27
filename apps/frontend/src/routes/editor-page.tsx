@@ -103,6 +103,7 @@ import { useQuestionsControllerRemove } from '../api/generated/questions/questio
 import { getDemo } from '../config';
 import { editorRoute } from '../router';
 import { LoadFailed, PageLoading } from '@/components/ui/loading';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 /**
  * The page has two columns, and they are the same from top to bottom: the
@@ -626,19 +627,14 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                 ].join(' · ')}
               >
                 {/* Private by default: the other hosts see nothing of it until it is shared. */}
-                <label className="mb-2 flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="accent-primary mt-0.5"
-                    checked={quiz.shared}
-                    disabled={update.isPending}
-                    onChange={(e) => void setShared(e.target.checked)}
-                  />
-                  <span>
-                    <span className="font-medium">{t('settings.sharedLabel')}</span>
-                    <span className="text-muted-foreground block">{t('settings.sharedHelp')}</span>
-                  </span>
-                </label>
+                <CheckboxField
+                  className="mb-2"
+                  checked={quiz.shared}
+                  disabled={update.isPending}
+                  onChange={(shared) => void setShared(shared)}
+                  label={t('settings.sharedLabel')}
+                  hint={t('settings.sharedHelp')}
+                />
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                   <label
                     className="flex items-center gap-2 text-sm"
