@@ -32,6 +32,7 @@ import { useRole } from '../auth/use-role';
 import { useLaunchSession } from '../game/use-launch-session';
 import { addStarter } from './quiz-starter';
 import { useCopyQuiz } from './use-copy-quiz';
+import { QuizFirstStep } from './quiz-first-step';
 import {
   getQuizzesControllerListQueryKey,
   useQuizzesControllerCreate,
@@ -400,7 +401,11 @@ export function DashboardPage() {
                 params={{ quizId: quiz.id }}
                 className="hover:bg-accent flex flex-1 flex-col transition-colors"
               >
-                <QuizCover quiz={quiz} className="aspect-video w-full" />
+                <QuizFirstStep
+                  quizId={quiz.id}
+                  hasCover={!!quiz.coverMediaId}
+                  fallback={<QuizCover quiz={quiz} className="aspect-video w-full" />}
+                />
                 <span className="flex flex-1 flex-col gap-2 p-4">
                   <span className="flex items-start justify-between gap-2">
                     <span className="flex items-center gap-1.5 font-semibold">
