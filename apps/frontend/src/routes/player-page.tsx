@@ -965,7 +965,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             {view.youReady ? (
               // What the wait is about, once ready: the quiz to come and the room filling up.
               <div className="qd-pop bg-muted/40 flex w-full flex-col items-center gap-1.5 rounded-lg border p-3">
-                <p className="flex items-center gap-1.5 font-semibold text-green-700 dark:text-green-400">
+                <p className="text-success flex items-center gap-1.5 font-semibold">
                   <Check className="size-4" />
                   {t('player.readyDone')}
                 </p>

@@ -1142,10 +1142,7 @@ function ParticipantsList({
           <span className="max-w-[8rem] truncate">{p.nickname}</span>
           {readiness?.lobby ? (
             waited.get(p.playerId) ? (
-              <Check
-                className="size-3.5 text-green-600"
-                aria-label={t('control.participantReady')}
-              />
+              <Check className="size-3.5 text-success" aria-label={t('control.participantReady')} />
             ) : said.get(p.playerId) ? (
               <Loader2
                 className="text-muted-foreground size-3.5 animate-spin"
@@ -1154,7 +1151,7 @@ function ParticipantsList({
             ) : null
           ) : waited.has(p.playerId) ? (
             waited.get(p.playerId) ? (
-              <Check className="size-3.5 text-green-600" aria-label={t('control.mediaReady')} />
+              <Check className="size-3.5 text-success" aria-label={t('control.mediaReady')} />
             ) : (
               <Loader2
                 className="text-muted-foreground size-3.5 animate-spin"

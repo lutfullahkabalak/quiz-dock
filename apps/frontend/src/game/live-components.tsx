@@ -523,20 +523,20 @@ export function ZoomableImage({
 }
 
 /**
- * The question's clock as a draining bar across the top, the seconds and their
- * icon at its right end (#92): the prompt gets the room a big number took.
- */
-/**
  * The colour of a question's time, the same on every screen (console, projection,
  * phones): green, amber from half the time, red on the last fifth; grey while paused.
  */
 export function timeTone(share: number, paused: boolean): string {
   if (paused) return 'bg-muted-foreground';
   if (share <= 0.2) return 'bg-destructive';
-  if (share <= 0.5) return 'bg-amber-500';
+  if (share <= 0.5) return 'bg-warning';
   return 'bg-success';
 }
 
+/**
+ * The question's clock as a draining bar across the top, the seconds and their
+ * icon at its right end (#92): the prompt gets the room a big number took.
+ */
 export function TimerBar({
   remaining,
   totalS,
@@ -623,7 +623,7 @@ export function AnswerRules({
     >
       <span>{t(ruleKey, { defaultValue: t(`rules.${kind}`) })}</span>
       {badge ? (
-        <span className="rounded-full bg-amber-500/20 px-[0.6em] py-[0.1em] text-[0.85em] font-semibold text-amber-700">
+        <span className="bg-warning/20 text-warning-text rounded-full px-[0.6em] py-[0.1em] text-[0.85em] font-semibold">
           {badge}
         </span>
       ) : null}
@@ -849,7 +849,7 @@ export function Podium({ rows }: { rows: LeaderboardRow[] }) {
               className={cn(
                 'flex w-full items-start justify-center rounded-t-[0.5em] pt-[0.5em] text-[1.5em] font-bold text-white',
                 heights[i],
-                r.rank === 1 ? 'bg-amber-500' : r.rank === 2 ? 'bg-slate-400' : 'bg-amber-800',
+                r.rank === 1 ? 'bg-podium-1' : r.rank === 2 ? 'bg-podium-2' : 'bg-podium-3',
               )}
             >
               {r.rank}
