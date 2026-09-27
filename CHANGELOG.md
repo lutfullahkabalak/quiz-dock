@@ -33,6 +33,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The track and the mixers' mutes in the feature list
+- The room's sounds, the track and the mixers in unreleased *(changelog)*
 - The console transport, the hidden waveform and the bank's views listed
 - The fades of the audio routing *(spec)*
 - The format guide and the chatbot prompt in unreleased *(changelog)*
@@ -76,6 +78,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- Close the quiz mid-way and pick the next one, the room kept *(live)*
 - A mute per channel on the room's mixer, for every screen *(live)*
 - The room's sounds — built in, or a sound of the library with the editor's picker *(live)*
 - The track makes way for a question's sound and comes back; a mute per channel *(media)*
