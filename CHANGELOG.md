@@ -14,6 +14,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- A new question starts at 0 answers — its first answer gets its tick *(live)*
+- A question's media a second after it shows, replays in the same room, tiles and ticks *(live)*
+- The tick's description, plainly *(live)*
+- Answer tiles at line-height 1em *(live)*
+- Tighter answer tiles, a track from the answers' opening, the focus on a typed answer *(live)*
+- The time bar turns amber then red on every screen; the last answer gets its tick *(live)*
 - The sounds hint — the track makes way for a question's sound, then comes back *(live)*
 - The sounds hint says the track stops under a question's own sound *(live)*
 - No track under a question with its own sound, and no sidechain *(media)*
@@ -33,6 +39,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- Closing a quiz mid-way in unreleased *(changelog)*
 - The track and the mixers' mutes in the feature list
 - The room's sounds, the track and the mixers in unreleased *(changelog)*
 - The console transport, the hidden waveform and the bank's views listed
@@ -78,6 +85,12 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- Each answer's tick slightly higher or lower — no machine gun *(live)*
+- Everyone answered, the reveal a second later — the last tick apart from the gong *(live)*
+- Each room effect says when it plays *(live)*
+- The room's effects in one compact list — a sample for each, a preview here *(live)*
+- A ding as a question starts; no gong from the last question's end *(live)*
+- A countdown on the last five seconds, the gong on zero, a new gong *(live)*
 - Close the quiz mid-way and pick the next one, the room kept *(live)*
 - A mute per channel on the room's mixer, for every screen *(live)*
 - The room's sounds — built in, or a sound of the library with the editor's picker *(live)*
