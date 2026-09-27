@@ -4,7 +4,7 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
-## [Unreleased]
+## [0.9.0] - 2026-09-27
 
 ### ⚠️ Breaking changes
 
@@ -76,6 +76,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- Ready for 0.9.0 — upgrade between two games, version examples, unreleased
 - Every screen shot again, the new ones and each question type *(screenshots)*
 - The 0.7 and 0.8 notes out of the top *(readme)*
 - Image choice in the feature list and unreleased
@@ -105,6 +106,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - The multi-quiz room brief, from the model to the ordered pull requests *(spec)*
 - One answer grid in unreleased *(changelog)*
 - Exact OIDC issuer in unreleased *(changelog)*
+- The 0.7 and 0.8 notes out of the top *(readme)*
 - Unreleased before the release *(changelog)*
 - The licence, tags and language of a quiz in the feature list
 - The refactoring plan for the game gateway tests *(dev)*
