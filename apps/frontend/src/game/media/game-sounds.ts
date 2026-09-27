@@ -105,10 +105,16 @@ export function synthGong(at?: number): () => void {
 }
 
 /**
- * Where the ding's low-pass starts to soften: just above its tone (1550 Hz), so
- * its harmonics and the strike's click come through tamed, not cut.
+ * The ding's low-pass: well under its tone (1550 Hz) on a gentle slope — a
+ * biquad, 12 dB per octave. Web Audio reads its Q in dB: −3 dB is flat, no bump
+ * (a Q of 0.5 raised the tone instead of taming it). Measured in Chromium: the
+ * tone loses 8.3 dB, given back after the filter; relative to it, the harmonics
+ * lose 6.4 (2300 Hz) and 11.9 dB (3150 Hz), the strike's click 7.1 dB.
  */
-const DING_SOFTEN_HZ = 1900;
+const DING_SOFTEN_HZ = 1000;
+const DING_SOFTEN_Q = -3;
+/** The tone's 8.3 dB given back after the filter. */
+const DING_MAKEUP = 2.6;
 
 /**
  * A ding as a question starts: one bright tone with two discreet harmonics for
@@ -127,8 +133,10 @@ export function synthDing(at?: number): () => void {
   const soften = ctx.createBiquadFilter();
   soften.type = 'lowpass';
   soften.frequency.value = DING_SOFTEN_HZ;
-  soften.Q.value = 0.5;
-  out.connect(soften).connect(into);
+  soften.Q.value = DING_SOFTEN_Q;
+  const makeup = ctx.createGain();
+  makeup.gain.value = DING_MAKEUP;
+  out.connect(soften).connect(makeup).connect(into);
   const sources: AudioScheduledSourceNode[] = [];
   for (const { freq, level, decay } of [
     { freq: 1550, level: 1, decay: 1.1 },
