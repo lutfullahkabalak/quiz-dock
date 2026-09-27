@@ -115,10 +115,10 @@ describe('game sounds (#93)', () => {
 
   it('plays the track while players answer, holds it anywhere else, never from the top again', async () => {
     const withTrack = { ...SOUNDS, musicUrl: '/api/v1/media/track' };
-    const ownSound = { visual: null, audio: { url: '/a.m4a' } } as never;
+    const ownSound = { visual: null, audio: { url: '/a.m4a', durationMs: 60_000 } } as never;
     const { rerender } = renderHook(({ g }) => useGameSounds(withTrack, g, true), {
-      // A question with its own sound: no track over it.
-      initialProps: { g: game({ media: ownSound }) },
+      // A question whose own sound plays now: no track over it.
+      initialProps: { g: game({ media: ownSound, mediaStartAt: Date.now() }) },
     });
     await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
     await Promise.resolve();
@@ -126,12 +126,32 @@ describe('game sounds (#93)', () => {
     rerender({ g: game({ questionIndex: 1 }) });
     await vi.waitFor(() => expect(track).toEqual(['play']));
     rerender({ g: game({ questionIndex: 1, state: 'REVEAL' }) });
-    rerender({ g: game({ questionIndex: 2, media: ownSound }) });
-    rerender({ g: game({ questionIndex: 3 }) });
-    rerender({ g: game({ questionIndex: 3, paused: true }) });
-    rerender({ g: game({ questionIndex: 3 }) });
+    rerender({ g: game({ questionIndex: 2 }) });
+    rerender({ g: game({ questionIndex: 2, paused: true }) });
+    rerender({ g: game({ questionIndex: 2 }) });
     // One track, held and played again (it keeps its place): never a new one per question.
     expect(track).toEqual(['play', 'hold', 'play', 'hold', 'play']);
     expect(played).toEqual([]);
+  });
+
+  it('comes back once the question’s own sound is over, not while the host holds it', async () => {
+    const withTrack = { ...SOUNDS, musicUrl: '/api/v1/media/track-2' };
+    const ownSound = { visual: null, audio: { url: '/a.m4a', durationMs: 2000 } } as never;
+    const { rerender } = renderHook(({ g }) => useGameSounds(withTrack, g, true), {
+      // Held by the host at 0:01: not over, the track stays out.
+      initialProps: {
+        g: game({
+          media: ownSound,
+          mediaStartAt: Date.now() - 10_000,
+          anchor: { t: 1, at: Date.now(), playing: false },
+        }),
+      },
+    });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(track).toEqual([]);
+    // Played to its end (started 10 s ago, 2 s long): the track comes back.
+    rerender({ g: game({ media: ownSound, mediaStartAt: Date.now() - 10_000 }) });
+    await vi.waitFor(() => expect(track).toEqual(['play']));
   });
 });

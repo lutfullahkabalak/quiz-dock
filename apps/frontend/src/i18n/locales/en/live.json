@@ -386,6 +386,8 @@
       "music": "Music",
       "sfx": "Effects",
       "ui": "Interface"
-    }
+    },
+    "muteBus": "Mute {{bus}}",
+    "unmuteBus": "Unmute {{bus}}"
   }
 }

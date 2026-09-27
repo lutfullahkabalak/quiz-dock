@@ -94,10 +94,13 @@ export interface DeviceSound {
   volume: number;
   muted: boolean;
   trims: Record<Bus, number>;
+  /** A bus switched off on this device, its trim kept for when it is back. */
+  mutes: Record<Bus, boolean>;
 }
 
 const DEVICE_KEY = 'live.sound';
 const FULL: Record<Bus, number> = { quiz: 1, music: 1, sfx: 1, ui: 1 };
+const ALL_ON: Record<Bus, boolean> = { quiz: false, music: false, sfx: false, ui: false };
 
 function loadDevice(): DeviceSound {
   try {
@@ -109,12 +112,13 @@ function loadDevice(): DeviceSound {
         volume: clamp(raw.volume ?? 1),
         muted: raw.muted === true,
         trims: { ...FULL, ...(raw.trims ?? {}) },
+        mutes: { ...ALL_ON, ...(raw.mutes ?? {}) },
       };
     }
   } catch {
     /* storage unavailable or garbled: the defaults */
   }
-  return { volume: 1, muted: false, trims: { ...FULL } };
+  return { volume: 1, muted: false, trims: { ...FULL }, mutes: { ...ALL_ON } };
 }
 
 let device: DeviceSound = loadDevice();
@@ -129,7 +133,8 @@ const deviceListeners = new Set<() => void>();
 export const faderGain = (position: number) => clamp(position) ** 3;
 
 const masterValue = () => (device.muted ? 0 : faderGain(device.volume));
-const busValue = (bus: Bus) => clamp(faderGain(roomLevels[bus]) * faderGain(device.trims[bus]));
+const busValue = (bus: Bus) =>
+  device.mutes[bus] ? 0 : clamp(faderGain(roomLevels[bus]) * faderGain(device.trims[bus]));
 
 function saveDevice(next: DeviceSound): void {
   device = next;
@@ -167,6 +172,12 @@ export function setLocalTrim(bus: Bus, trim: number): void {
   setBusLevel(bus, busValue(bus));
 }
 
+/** One bus off (or back on) on this device: its trim stays for when it comes back. */
+export function setLocalMute(bus: Bus, muted: boolean): void {
+  saveDevice({ ...device, mutes: { ...device.mutes, [bus]: muted } });
+  setBusLevel(bus, busValue(bus));
+}
+
 /** React view of this device's sound choices. */
 export function useDeviceSound(): DeviceSound {
   return useSyncExternalStore(
@@ -201,8 +212,11 @@ const levels = new WeakMap<HTMLMediaElement, number>();
  */
 export const FADE_IN_S = 0.005;
 export const FADE_OUT_S = 0.12;
-/** A background track goes out slower: it is a bed, not an event. */
-export const TRACK_FADE_S = 0.8;
+/**
+ * A background track fades long, in and out: it is a bed under the game, not a
+ * playback with an attack — it makes way for a question's sound and comes back.
+ */
+export const TRACK_FADE_S = 1.5;
 
 /**
  * Fades a routed element in (to its level) or out (to silence); resolves when
@@ -298,7 +312,7 @@ export function playBuffer(
 export function loopTrack(
   buffer: AudioBuffer,
   bus: Bus,
-  fadeOutS = FADE_OUT_S,
+  { fadeInS = FADE_IN_S, fadeOutS = FADE_OUT_S }: { fadeInS?: number; fadeOutS?: number } = {},
 ): { play: () => void; hold: () => void } {
   let source: AudioBufferSourceNode | null = null;
   let own: GainNode | null = null;
@@ -325,7 +339,7 @@ export function loopTrack(
     own = m.ctx.createGain();
     const now = m.ctx.currentTime;
     own.gain.setValueAtTime(0, now);
-    own.gain.linearRampToValueAtTime(1, now + FADE_IN_S);
+    own.gain.linearRampToValueAtTime(1, now + fadeInS);
     source.connect(own).connect(m.strips[bus].level);
     source.start(now, offset);
     startedAt = now;

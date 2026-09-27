@@ -7,6 +7,7 @@ import {
   BUSES,
   setDeviceMuted,
   setDeviceVolume,
+  setLocalMute,
   setLocalTrim,
   useDeviceSound,
 } from './audio-mixer';
@@ -114,7 +115,36 @@ export function SoundButton({
         <p className="text-muted-foreground text-sm">{t('sound.mixerHint')}</p>
         {BUSES.map((bus) => (
           <label key={bus} className="flex items-center gap-3 text-sm">
-            <span className="w-24 shrink-0">{t(`sound.bus.${bus}`)}</span>
+            {/* Each channel's own mute: the fader keeps its place for when it is back. */}
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-8 shrink-0"
+              aria-pressed={sound.mutes[bus]}
+              aria-label={t(sound.mutes[bus] ? 'sound.unmuteBus' : 'sound.muteBus', {
+                bus: t(`sound.bus.${bus}`),
+              })}
+              title={t(sound.mutes[bus] ? 'sound.unmuteBus' : 'sound.muteBus', {
+                bus: t(`sound.bus.${bus}`),
+              })}
+              onClick={() => setLocalMute(bus, !sound.mutes[bus])}
+            >
+              {sound.mutes[bus] ? (
+                <VolumeX className="text-destructive size-4" />
+              ) : (
+                <Volume2 className="size-4" />
+              )}
+            </Button>
+            <span
+              className={
+                sound.mutes[bus]
+                  ? 'text-muted-foreground w-24 shrink-0 line-through'
+                  : 'w-24 shrink-0'
+              }
+            >
+              {t(`sound.bus.${bus}`)}
+            </span>
             <input
               type="range"
               min={0}

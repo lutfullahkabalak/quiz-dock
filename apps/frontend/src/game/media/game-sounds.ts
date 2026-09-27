@@ -1,4 +1,10 @@
-import type { LiveQuestionMedia, RoomSoundsPayload } from '@quiz-dock/contracts';
+import {
+  type LiveQuestionMedia,
+  type MediaAnchor,
+  type RoomSoundsPayload,
+  mediaDurationMs,
+} from '@quiz-dock/contracts';
+import { serverNow } from '../clock';
 import { useEffect, useRef, useState } from 'react';
 import {
   TRACK_FADE_S,
@@ -105,6 +111,26 @@ export interface GameSoundsState {
   answered: number;
   paused: boolean;
   media: LiveQuestionMedia | null | undefined;
+  /** When the question's media starts, on the server's clock (`question:start`). */
+  mediaStartAt?: number | null;
+  /** Where the host put it from the console, for this question. */
+  anchor?: MediaAnchor | null;
+}
+
+/**
+ * When the question's own sound or video is over, on the server's clock: from
+ * its common start, or from the host's last command on it. `null` while it
+ * cannot be said to end — held by the host, or of unknown length.
+ */
+export function mediaEndsAt(
+  media: LiveQuestionMedia | null | undefined,
+  mediaStartAt: number | null | undefined,
+  anchor: MediaAnchor | null | undefined,
+): number | null {
+  const durationMs = mediaDurationMs(media);
+  if (!durationMs) return null;
+  if (anchor) return anchor.playing ? anchor.at + durationMs - anchor.t * 1000 : null;
+  return mediaStartAt != null ? mediaStartAt + durationMs : null;
 }
 
 /**
@@ -155,13 +181,28 @@ export function useGameSounds(
     }
   }, [on, sounds, game.state, game.questionIndex, game.answered]);
 
-  // The track: looped while players answer a question without a sound of its own —
-  // two sounds are never laid over each other. Anywhere else (between questions, a
-  // pause, a question that plays its own sound or video) it fades out and keeps
-  // its place, then comes back where it was: never from the top at each question.
+  // The track: looped while players answer, never under a question's own sound or
+  // video — two sounds are never laid over each other: it fades out as that media
+  // starts and comes back once it is over (from its start, or where the host put it).
+  // Between questions and during a pause it fades out and keeps its place: never
+  // from the top at each question. Its fades are long: a bed, not an event.
   const trackUrl = on ? (sounds?.musicUrl ?? null) : null;
+  const ownSound = questionHasOwnSound(game.media);
+  const endsAt = ownSound ? mediaEndsAt(game.media, game.mediaStartAt, game.anchor) : null;
+  const [mediaOver, setMediaOver] = useState(false);
+  useEffect(() => {
+    setMediaOver(false);
+    if (endsAt === null) return;
+    const left = endsAt - serverNow();
+    if (left <= 0) {
+      setMediaOver(true);
+      return;
+    }
+    const timer = setTimeout(() => setMediaOver(true), left);
+    return () => clearTimeout(timer);
+  }, [endsAt]);
   const plays =
-    !!trackUrl && game.state === 'ANSWERING' && !game.paused && !questionHasOwnSound(game.media);
+    !!trackUrl && game.state === 'ANSWERING' && !game.paused && (!ownSound || mediaOver);
   const [track, setTrack] = useState<ReturnType<typeof loopTrack> | null>(null);
   useEffect(() => {
     if (!trackUrl) return;
@@ -169,7 +210,7 @@ export function useGameSounds(
     let loaded: ReturnType<typeof loopTrack> | null = null;
     void loadSound(trackUrl).then((buffer) => {
       if (cancelled || !buffer) return;
-      loaded = loopTrack(buffer, 'music', TRACK_FADE_S);
+      loaded = loopTrack(buffer, 'music', { fadeInS: TRACK_FADE_S, fadeOutS: TRACK_FADE_S });
       setTrack(loaded);
     });
     return () => {

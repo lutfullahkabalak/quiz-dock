@@ -188,6 +188,16 @@ describe('this device’s sound (SPECIFICATIONS-MEDIA §9.2)', () => {
     expect(JSON.parse(localStorage.getItem('live.sound')!).trims.music).toBe(0.4);
   });
 
+  it('mutes one channel on this device, its fader kept for when it is back', () => {
+    const music = mod.getMixer()!.strips.music.level as unknown as FakeGain;
+    mod.setLocalTrim('music', 0.5);
+    mod.setLocalMute('music', true);
+    expect(music.gain.targets.at(-1)).toBe(0);
+    expect(JSON.parse(localStorage.getItem('live.sound')!).mutes.music).toBe(true);
+    mod.setLocalMute('music', false);
+    expect(music.gain.targets.at(-1)).toBeCloseTo(0.125);
+  });
+
   it('mutes and sets the volume on the master; a new page starts from what was chosen', async () => {
     mod.setDeviceVolume(0.6);
     mod.setDeviceMuted(true);

@@ -200,10 +200,11 @@ interface sounds (to come) ───────────────► UI  
 - **A bus is two gains in a row**: its *level* (a host's volume) and its *duck* (automatic), so a volume change never
   fights a duck. **MASTER** carries the participant's own mute; a **limiter** after it keeps simultaneous sources from
   clipping.
-- **Two sounds are never laid over each other**: a question that plays its own sound or video has no background track
-  at all (it fades out and keeps its place). A sidechain that only lowered the track was tried and left: a lowered
-  track still covers a sound to recognise, and a video's silences would make it pump. SFX is never ducked (the effects
-  are short).
+- **Two sounds are never laid over each other**: the background track fades out as a question's own sound or video
+  starts, and comes back once it is over — from its common start and length, or from the host's last command on it
+  (a media the host holds, or of unknown length, keeps the track out for the question). A sidechain that only lowered
+  the track was tried and left: a lowered track still covers a sound to recognise (a blind test), and a video's
+  silences would make it pump. SFX is never ducked (the effects are short).
 - **Faders are tapered**: a position (0–100 %) becomes its cube as a gain, close to how loudness is heard — half-way
   is about −18 dB, not the −6 dB a straight line gives. Positions are what is kept (the room's levels, a device's
   volume and trims).
@@ -222,8 +223,9 @@ interface sounds (to come) ───────────────► UI  
   their media library. The background track is always a sound of the library. Nothing is bundled.
 - **Settings**: the MUSIC and SFX levels are the room's (the lobby); QUIZ stays at its normalised level.
 - **Fades**: no source starts or stops on a cut. Every start (a question's media, its resume, a sample, the
-  background track) comes in over ~5 ms — just the click off the attack; a pause or a stop fades out over ~120 ms
-  (the background track ~0.8 s); a host's seek fades out, jumps, comes back in.
+  background track aside) comes in over ~5 ms — just the click off the attack; a pause or a stop fades out over
+  ~120 ms; a host's seek fades out, jumps, comes back in. The background track is a bed, not a playback: it fades in
+  and out over ~1.5 s.
 
 ### 9.1 The game's sounds (#93)
 
@@ -231,8 +233,8 @@ interface sounds (to come) ───────────────► UI  
   to its reveal — no event of their own. Both are on in a new room; each can take a sound of the library instead of
   the synthesised one.
 - **The background track** loops while players answer only. Between questions and while the game is paused it fades
-  out and **keeps its place**, then comes back where it was — never from the top at each question. A question with its
-  own sound or video has none.
+  out and **keeps its place**, then comes back where it was — never from the top at each question. It makes way for a
+  question's own sound or video while that plays (§9).
 - **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
   (`host:sounds`), sent to every screen as URLs and levels (`room:sounds`). A sample or a track must be a sound of the
   host's or of the instance's; the hourly media sweep keeps what an open room plays.
@@ -245,9 +247,9 @@ interface sounds (to come) ───────────────► UI  
 - **A sound button** on every screen that plays something — the projection, a copy that plays the sound, a remote
   participant's phone (it replaces the phone's old mute): the device's **volume** and **mute**, on MASTER. With a
   mouse, a click mutes or unmutes and hovering shows the volume and *Mixer*; on a phone, a tap opens them (one tap more).
-- **Mixer**: this device's own **trim** per bus (questions, music, effects, interface). A bus plays at the room's
-  level (the host's, for MUSIC and SFX) times the device's trim. Kept on the device (`localStorage`), from one visit to
-  the next.
+- **Mixer**: this device's own **trim** per bus (questions, music, effects, interface), each with its own **mute**
+  (the fader keeps its place for when the channel is back). A bus plays at the room's level (the host's, for MUSIC and
+  SFX) times the device's trim. Kept on the device (`localStorage`), from one visit to the next.
 - **The room's mixer** is the host's: *Game sounds* in the console's control bar, at any moment of a quiz, besides the
   folded panel of the lobby (§9.1).
 - **Declining the sound**: the *Turn sound on* overlay (and the phone's prompt) also offers *Without sound*. That click
