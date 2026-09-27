@@ -184,6 +184,12 @@ export class GameEngine {
   private readonly log = new Logger(GameEngine.name);
   private server!: GameServer;
   private readonly timers = new RoomTimers(this.log);
+  /**
+   * Per room, the host's clock commands (pause, resume, time added or taken) one
+   * after the other: each reads the clock the last one wrote. Sent back to back,
+   * a resume would otherwise write over the time just added. One process only.
+   */
+  private readonly clockCommands = new Map<string, Promise<unknown>>();
 
   constructor(
     private readonly game: GameService,
@@ -1757,6 +1763,19 @@ export class GameEngine {
     await this.reanchor(pin, meta, 'thaw', step);
   }
 
+  /** Runs `command` once the room's previous clock command is done (see `clockCommands`). */
+  private oneClockCommandAtATime(pin: string, command: () => Promise<void>): Promise<void> {
+    const previous = this.clockCommands.get(pin) ?? Promise.resolve();
+    // A command that failed (refused, say) does not hold back the next one.
+    const run = previous.catch(() => undefined).then(command);
+    const settled = run.catch(() => undefined);
+    this.clockCommands.set(pin, settled);
+    void settled.then(() => {
+      if (this.clockCommands.get(pin) === settled) this.clockCommands.delete(pin);
+    });
+    return run;
+  }
+
   /**
    * `host:pause` : suspend/reprend l'auto-progression. En ANSWERING, gèle aussi
    * le chrono (primitive partagée avec le `HOST_DISCONNECTED`), sur une slide qui
@@ -1764,7 +1783,11 @@ export class GameEngine {
    * l'enchaînement auto si besoin. Idempotent : re-pauser/re-reprendre est sans
    * effet (hors diffusion d'état).
    */
-  async setPaused(pin: string, hostUserId: string, paused: boolean): Promise<void> {
+  setPaused(pin: string, hostUserId: string, paused: boolean): Promise<void> {
+    return this.oneClockCommandAtATime(pin, () => this.pauseOrResume(pin, hostUserId, paused));
+  }
+
+  private async pauseOrResume(pin: string, hostUserId: string, paused: boolean): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
     await this.redis.hset(gameKeys.game(meta.id), gameHash({ paused }));
     meta.paused = paused;
@@ -1804,7 +1827,11 @@ export class GameEngine {
    * courante (boutons ±). Retirer au-delà du restant révèle immédiatement (pas de
    * timer mort). Si le chrono est gelé (pause), on ajuste le restant figé.
    */
-  async adjustTime(pin: string, hostUserId: string, deltaS: number): Promise<void> {
+  adjustTime(pin: string, hostUserId: string, deltaS: number): Promise<void> {
+    return this.oneClockCommandAtATime(pin, () => this.moveEnd(pin, hostUserId, deltaS));
+  }
+
+  private async moveEnd(pin: string, hostUserId: string, deltaS: number): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
     if (meta.state !== GameState.Answering) {
       throw new BadRequestException('session.timer_not_adjustable');
