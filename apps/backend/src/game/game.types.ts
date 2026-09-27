@@ -191,12 +191,15 @@ export interface RoomSounds {
   sfxMuted: boolean;
 }
 
-/** A new room's sounds: the tick, the countdown and the gong on, no track (SPECIFICATIONS-MEDIA §9). */
+/**
+ * A new room's sounds: none. The host turns on the ones they want (in a large room a
+ * tick per answer is noise, and a silent room asks the projection for no sound unlock).
+ */
 export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
-  tick: true,
-  gong: true,
-  countdown: true,
-  ding: true,
+  tick: false,
+  gong: false,
+  countdown: false,
+  ding: false,
   tickId: '',
   gongId: '',
   dingId: '',

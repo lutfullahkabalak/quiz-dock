@@ -286,7 +286,7 @@ export function roomTests(ctx: GameContext): void {
     void ivy;
   });
 
-  it('keeps the room’s game sounds: tick and gong on, a track of the host’s, never someone else’s (#93)', async () => {
+  it('keeps the room’s game sounds: off in a new room, a track of the host’s, never someone else’s (#93)', async () => {
     const prisma = ctx.h.prisma;
     const other = await prisma.user.upsert({
       where: { oidcSubject: 'local:sound-stranger' },
@@ -316,10 +316,10 @@ export function roomTests(ctx: GameContext): void {
       const first = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
       await screen.emitWithAck('spectator:join', { pin });
       expect(await first).toEqual({
-        tick: true,
-        gong: true,
-        countdown: true,
-        ding: true,
+        tick: false,
+        gong: false,
+        countdown: false,
+        ding: false,
         tickUrl: null,
         gongUrl: null,
         dingUrl: null,
@@ -332,9 +332,9 @@ export function roomTests(ctx: GameContext): void {
       });
 
       const changed = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
-      host.emit('host:sounds', { pin, tick: false, musicId: mine.id, musicLevel: 2 });
+      host.emit('host:sounds', { pin, tick: true, musicId: mine.id, musicLevel: 2 });
       expect(await changed).toMatchObject({
-        tick: false,
+        tick: true,
         musicUrl: '/api/v1/media/room-track',
         musicLevel: 1, // clamped
       });
