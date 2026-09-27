@@ -34,6 +34,8 @@ reference, the others follow its sense, not its words.
 | question                 | Question                       | Question                              | Pregunta                         | 题目                 | 題目                 |
 | slide                    | Slide                          | Slide                                 | Diapositiva                      | 幻灯片               | 簡報                 |
 | option (answer choice)   | Option                         | Option                                | Opción                           | 选项                 | 選項                 |
+| image choice             | Image choice                   | Choix en images                       | Elección con imágenes            | 图片选择             | 圖片選擇             |
+| alternative text         | Alternative text               | Texte alternatif                      | Texto alternativo                | 替代文字             | 替代文字             |
 | explanation              | Explanation                    | Explication                           | Explicación                      | 解析                 | 解析                 |
 | background               | Background                     | Fond                                  | Fondo                            | 背景                 | 背景                 |
 | outline (text halo)      | Outline (halo, like subtitles) | Contour (halo, comme des sous-titres) | Contorno (halo, como subtítulos) | 描边（光晕，如字幕） | 描邊（光暈，如字幕） |
@@ -115,8 +117,8 @@ reference, the others follow its sense, not its words.
 - **Taiwan usage in zh-TW**: 資料 (data), 檔案 (file), 清單 (list), 拖曳
   (drag), 送出 (submit), 儲存 (save), 自訂 (custom), 置中 (centre), 連線
   (connect — 連接 only in 連接埠, port), 簡報 (slide), 匿稱 (nickname), 回饋
-  (feedback), 登出 (log out), 是非題 / 單選題 / 多選題 / 排序題 / 投票題
-  (question types), 畫面 for an app screen vs 螢幕 for the physical one,
+  (feedback), 登出 (log out), 是非題 / 單選題 / 多選題 / 排序題 / 投票題 /
+  圖片選擇 (question types), 畫面 for an app screen vs 螢幕 for the physical one,
   「」 quotes, 破折號 ——. zh-TW is resolved straight to `en`, never through
   `zh`. The locale was contributed and reviewed by [@noeFly](https://github.com/noeFly) (#1, #16); later keys
   are machine-assisted and follow their choices — native review welcome.

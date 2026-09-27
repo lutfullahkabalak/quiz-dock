@@ -8,7 +8,8 @@
     "text_input": "Saisie texte",
     "numeric": "Numérique",
     "ordering": "Remise en ordre",
-    "poll": "Sondage"
+    "poll": "Sondage",
+    "image_choice": "Choix en images"
   },
   "header": {
     "title": "Éditeur de quiz",
@@ -292,13 +293,18 @@
       "numeric": {
         "standard": "Dans la tolérance",
         "closest": "Le plus proche gagne"
+      },
+      "image_choice": {
+        "standard": "Tout ou rien",
+        "partial": "Crédit partiel"
       }
     },
     "scoringHelp": {
       "multiple_choice": "Crédit partiel : chaque bonne case rapporte sa part, chaque mauvaise en annule une.",
       "ordering": "Crédit partiel : part des éléments à la bonne position.",
       "text_input": "Tolérant aux fautes : 1 lettre jusqu’à 5 lettres, 2 au-delà (après normalisation casse/accents).",
-      "numeric": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse."
+      "numeric": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse.",
+      "image_choice": "Crédit partiel (plusieurs bonnes images) : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
     },
     "removeOptionConfirm": {
       "title": "Supprimer cette option ?",
@@ -312,7 +318,24 @@
     "listenFirstHint": "Écouter d’abord, répondre ensuite : personne ne peut répondre pendant le son ou la vidéo, et tout le monde a ensuite le même temps de réflexion.",
     "listenFirstTime": "Le média joue {{media}} s, puis les {{time}} s de réponse commencent.",
     "promptImageNotice": "Cette image de l’énoncé serait mieux dans les médias de la question : cadrée sur tous les écrans, agrandissable sur les téléphones, chargée à l’avance.",
-    "promptImageMove": "Déplacer dans les médias"
+    "promptImageMove": "Déplacer dans les médias",
+    "imagesLegend": "Images",
+    "imageCountLabel": "Images",
+    "multiSelectLabel": "Plusieurs bonnes réponses",
+    "multiSelectHint": "Les participants cochent toutes les bonnes images puis valident — noté comme un QCM multi-réponses.",
+    "imageCropNote": "Chaque image est recadrée pour remplir sa tuile, comme la projection l’affiche.",
+    "imageAdd": "Ajouter une image",
+    "imageRequired": "Choisissez une image pour cette réponse.",
+    "imageAltLabel": "Texte alternatif",
+    "imageAltAria": "Texte alternatif de l’image {{index}}",
+    "imageAltPlaceholder": "Ce que montre l’image, pour qui ne la voit pas",
+    "imageAltRequired": "Décrivez l’image : c’est la réponse pour qui ne la voit pas.",
+    "imagesIncomplete": "Chaque réponse demande une image et son texte alternatif.",
+    "imageCountConfirm": {
+      "title": "Garder seulement 2 images ?",
+      "description": "Les deux dernières réponses et leurs images seront retirées.",
+      "confirmLabel": "Retirer"
+    }
   },
   "preview": {
     "view": "Aperçu (vue participant)",
@@ -426,7 +449,8 @@
     "text_input": "Le participant tape sa réponse. Comparée aux réponses acceptées sans tenir compte de la casse, des accents ni des espaces en trop.",
     "numeric": "Le participant saisit un nombre ; bon s’il est à ± tolérance de la valeur cible.",
     "ordering": "Le participant remet les options dans l’ordre défini par les positions (#). Tout ou rien.",
-    "poll": "Recueil d’opinion : aucune bonne réponse, aucun point ; la répartition est affichée à la révélation."
+    "poll": "Recueil d’opinion : aucune bonne réponse, aucun point ; la répartition est affichée à la révélation.",
+    "image_choice": "Les réponses sont des images, 2 ou 4, chacune avec sa couleur et sa forme. Une seule bonne image, ou plusieurs si réglé ; noté comme un QCM à réponse unique ou multiple."
   },
   "sessions": {
     "running_one": "{{count}} salon le joue",

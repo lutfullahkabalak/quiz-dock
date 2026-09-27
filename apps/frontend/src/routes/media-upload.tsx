@@ -55,6 +55,8 @@ export function MediaUpload({
   kind = 'image',
   label,
   withDetails = true,
+  preview = true,
+  assetAlt = true,
 }: {
   value: string | null;
   onChange: (mediaId: string | null, uploaded?: UploadedMedia) => void;
@@ -63,6 +65,10 @@ export function MediaUpload({
   label?: string;
   /** The media's credit (and an image's alt) to edit under it; not for a room's sound. */
   withDetails?: boolean;
+  /** Its own thumbnail; off where the parent draws the media itself (an answer's tile). */
+  preview?: boolean;
+  /** The image's alt on the media; off where the use carries its own (an answer's, per language). */
+  assetAlt?: boolean;
 }) {
   const { t } = useTranslation('editor');
   const upload = useMediaControllerUpload();
@@ -141,7 +147,7 @@ export function MediaUpload({
     <div className="flex flex-col gap-1.5">
       {src ? (
         <div className="flex flex-wrap items-center gap-3">
-          {kind === 'image' ? (
+          {!preview ? null : kind === 'image' ? (
             <img src={src} alt={t('media.alt')} className="max-h-20 rounded-md border" />
           ) : kind === 'video' ? (
             <video src={src} controls preload="metadata" className="max-h-32 rounded-md border" />
@@ -196,7 +202,7 @@ export function MediaUpload({
         </div>
       )}
       {value && withDetails ? (
-        <MediaDetailsFields mediaId={value} withAlt={kind === 'image'} />
+        <MediaDetailsFields mediaId={value} withAlt={kind === 'image' && assetAlt} />
       ) : null}
       <MediaLibraryDialog
         open={libraryOpen}

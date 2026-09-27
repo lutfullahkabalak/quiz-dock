@@ -8,7 +8,8 @@
     "text_input": "文字輸入",
     "numeric": "數字輸入",
     "ordering": "排序題",
-    "poll": "投票題"
+    "poll": "投票題",
+    "image_choice": "圖片選擇"
   },
   "header": {
     "title": "測驗編輯器",
@@ -292,13 +293,18 @@
       "numeric": {
         "standard": "在誤差範圍內",
         "closest": "最接近者勝"
+      },
+      "image_choice": {
+        "standard": "全對才得分",
+        "partial": "部分得分"
       }
     },
     "scoringHelp": {
       "multiple_choice": "部分得分：每個正確勾選得其份額，每個錯誤勾選抵消一個。",
       "ordering": "部分得分：位置正確的元素所占比例。",
       "text_input": "容忍拼字錯誤：5 個字母內允許 1 處，之外允許 2 處（大小寫/重音正規化後）。",
-      "numeric": "最接近者勝：揭曉時計分——精確（在誤差內）= 滿分，其後 75 / 50 / 30 %，再往後 10 %；無速度加分。"
+      "numeric": "最接近者勝：揭曉時計分——精確（在誤差內）= 滿分，其後 75 / 50 / 30 %，再往後 10 %；無速度加分。",
+      "image_choice": "部分得分（多張正確圖片）：每勾對一項得相應分數，每勾錯一項抵銷一項。"
     },
     "removeOptionConfirm": {
       "title": "刪除此選項？",
@@ -312,7 +318,24 @@
     "listenFirstHint": "先聽後答：播放聲音或影片期間無法作答，之後每個人都有相同的思考時間。",
     "listenFirstTime": "媒體播放 {{media}} 秒，然後開始 {{time}} 秒的作答時間。",
     "promptImageNotice": "題幹中的這張圖片放在題目媒體中會更好：在所有螢幕上都有合適的框，可在手機上放大，並會預先載入。",
-    "promptImageMove": "移到媒體"
+    "promptImageMove": "移到媒體",
+    "imagesLegend": "圖片",
+    "imageCountLabel": "圖片",
+    "multiSelectLabel": "多個正確答案",
+    "multiSelectHint": "參與者勾選所有正確圖片後送出——依多選題計分。",
+    "imageCropNote": "每張圖片會裁切以填滿其方塊，與投影顯示一致。",
+    "imageAdd": "新增圖片",
+    "imageRequired": "請為此答案選擇一張圖片。",
+    "imageAltLabel": "替代文字",
+    "imageAltAria": "圖片 {{index}} 的替代文字",
+    "imageAltPlaceholder": "圖片內容，供看不到圖片的人使用",
+    "imageAltRequired": "請描述圖片：對看不到它的人來說，這就是答案。",
+    "imagesIncomplete": "每個答案都需要一張圖片及其替代文字。",
+    "imageCountConfirm": {
+      "title": "只保留 2 張圖片？",
+      "description": "最後兩個答案及其圖片將被移除。",
+      "confirmLabel": "移除"
+    }
   },
   "preview": {
     "view": "預覽（玩家視角）",
@@ -426,7 +449,8 @@
     "text_input": "參與者輸入答案。與可接受答案比對時忽略大小寫、重音符號和多餘空格。",
     "numeric": "參與者輸入數字；在目標值 ± 誤差範圍內即為正確。",
     "ordering": "參與者按位置 (#) 定義的順序排列選項。全對才得分。",
-    "poll": "僅收集意見：沒有正確答案，不計分；揭曉時顯示分布。"
+    "poll": "僅收集意見：沒有正確答案，不計分；揭曉時顯示分布。",
+    "image_choice": "答案是圖片，2 張或 4 張，每張有自己的顏色和形狀。一張正確圖片，或設定後多張；依單選或多選計分。"
   },
   "sessions": {
     "running_one": "{{count}} 個房間正在進行",
