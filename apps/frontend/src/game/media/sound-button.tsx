@@ -1,5 +1,5 @@
 import { SlidersHorizontal, Volume1, Volume2, VolumeX, X } from 'lucide-react';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -11,6 +11,7 @@ import {
   setLocalTrim,
   useDeviceSound,
 } from './audio-mixer';
+import { Modal } from '@/components/ui/modal';
 
 /** Whether this screen hovers (a mouse); a phone taps instead. */
 const canHover = () =>
@@ -178,34 +179,8 @@ export function SimpleDialog({
   children: ReactNode;
 }) {
   const { t } = useTranslation('common');
-  const ref = useRef<HTMLDialogElement>(null);
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open) {
-      try {
-        if (!d.open) d.showModal();
-      } catch {
-        d.setAttribute('open', ''); // jsdom
-      }
-    } else if (d.open) {
-      if (typeof d.close === 'function') d.close();
-      else d.removeAttribute('open');
-    }
-  }, [open]);
   return (
-    <dialog
-      ref={ref}
-      onCancel={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
-      }}
-      className="bg-background text-foreground m-auto w-[90vw] max-w-md rounded-lg border p-0 shadow-lg backdrop:bg-black/50"
-    >
+    <Modal open={open} onClose={onClose} className="max-w-md">
       <div className="flex flex-col gap-4 p-6">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-lg font-semibold">{title}</h2>
@@ -221,6 +196,6 @@ export function SimpleDialog({
         </div>
         {children}
       </div>
-    </dialog>
+    </Modal>
   );
 }
