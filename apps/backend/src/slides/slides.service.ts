@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ReorderItemsDto } from './dto/reorder-items.dto';
 import type { SlideContent } from './dto/slide-content.schema';
+import { checkSlideMedia, slideMediaIds } from './slide-media';
 
 /** Temporary shift so questions can be renumbered without hitting @@unique([quizId, orderIndex]). */
 const REORDER_OFFSET = 1000;
@@ -19,6 +20,7 @@ export class SlidesService {
   /** Appends a slide at the very end of the quiz (after the last question). */
   async add(ownerId: string, quizId: string, dto: SlideContent) {
     await this.assertQuizOwned(ownerId, quizId);
+    await checkSlideMedia(this.prisma, ownerId, dto);
     const agg = await this.prisma.slide.aggregate({
       where: { quizId, beforeQuestionId: null },
       _max: { orderIndex: true },
@@ -34,7 +36,8 @@ export class SlidesService {
   }
 
   async update(ownerId: string, slideId: string, dto: SlideContent) {
-    await this.assertSlideOwned(ownerId, slideId);
+    const slide = await this.assertSlideOwned(ownerId, slideId);
+    await checkSlideMedia(this.prisma, ownerId, dto, slideMediaIds(slide));
     return this.prisma.slide.update({ where: { id: slideId }, data: this.contentData(dto) });
   }
 
@@ -113,6 +116,12 @@ export class SlidesService {
       blocks: dto.blocks,
       mediaId: dto.mediaId || null,
       gradient: dto.gradient ?? Prisma.JsonNull,
+      videoMediaId: dto.videoMediaId || null,
+      videoLoop: dto.videoLoop,
+      videoSound: dto.videoSound,
+      audioMediaId: dto.audioMediaId || null,
+      waveformSize: dto.waveformSize,
+      audioTarget: dto.audioTarget ?? null,
       textTone: dto.textTone,
       textOutline: dto.textOutline,
       displayDelayS: dto.displayDelayS ?? null,
@@ -132,7 +141,14 @@ export class SlidesService {
   private async assertSlideOwned(ownerId: string, slideId: string) {
     const slide = await this.prisma.slide.findFirst({
       where: { id: slideId, quiz: { ownerId } },
-      select: { id: true, quizId: true },
+      select: {
+        id: true,
+        quizId: true,
+        blocks: true,
+        mediaId: true,
+        videoMediaId: true,
+        audioMediaId: true,
+      },
     });
     if (!slide) {
       throw new NotFoundException('slide.not_found');

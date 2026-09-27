@@ -201,7 +201,8 @@
       "countdownWhen": "En los 5 últimos segundos: tic en el segundo, tac en el medio; el último tac se omite y el gong cae en cero. Se detiene si todos han respondido.",
       "gongWhen": "Al terminar la pregunta: en cero, o en cuanto todos han respondido.",
       "musicWhen": "Suena en bucle mientras se responde, desde que se abren las respuestas. Se retira durante el sonido o el vídeo de una pregunta, y entre preguntas, y luego vuelve donde estaba."
-    }
+    },
+    "slideVideoMuted": "El vídeo de la diapositiva se reproduce sin sonido."
   },
   "screen": {
     "sessionUnavailable": "Sala no disponible.",

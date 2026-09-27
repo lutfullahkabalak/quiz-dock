@@ -109,5 +109,8 @@
     "language": "The quiz language is not valid.",
     "tags": "Add at least one tag before exporting for publication.",
     "too_large": "The quiz is too large for the community store."
+  },
+  "slide": {
+    "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound."
   }
 }

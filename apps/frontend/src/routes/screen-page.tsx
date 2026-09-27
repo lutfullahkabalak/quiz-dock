@@ -27,8 +27,9 @@ import { SoundButton } from '../game/media/sound-button';
 import { useGameSounds } from '../game/media/game-sounds';
 import { preloadMedia, waitedFor } from '../game/media/media-pool';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
+import { SlidePlaybackContext } from '../game/media/slide-media';
 import { ReadinessMeter } from '../game/media/readiness-meter';
-import { followed } from '../game/media/followed';
+import { anchorOf, followed } from '../game/media/followed';
 import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
 import { Surface } from '../game/surface';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
@@ -122,12 +123,23 @@ export function ScreenSurface({
 }) {
   const { t } = useTranslation('live');
   const playMedia = role === 'lead';
-  // The projection tells the room where it is in the sound (the playheads elsewhere follow).
-  const questionIndex = view.question?.questionIndex ?? -1;
+  // The projection tells the room where it is in the sound (the playheads elsewhere follow):
+  // a question's, or the slide's on screen (#125).
+  const onSlide = view.state === 'SLIDE_SHOW' && !!view.slide;
+  const questionIndex = onSlide
+    ? (view.slide?.questionIndex ?? -1)
+    : (view.question?.questionIndex ?? -1);
+  const slideIndex = onSlide ? view.slide?.slideIndex : undefined;
   const sayPosition = useCallback(
     (t: number, playing: boolean) =>
-      socket?.emit('media:position', { pin, questionIndex, t, playing }),
-    [socket, pin, questionIndex],
+      socket?.emit('media:position', {
+        pin,
+        questionIndex,
+        ...(slideIndex !== undefined ? { slideIndex } : {}),
+        t,
+        playing,
+      }),
+    [socket, pin, questionIndex, slideIndex],
   );
   const soundUnlocked = useAudioUnlocked();
   const deviceSound = useDeviceSound();
@@ -151,10 +163,7 @@ export function ScreenSurface({
       mediaStartAt: view.question?.mediaStartAt ?? null,
       endsAt: view.question?.endsAt ?? null,
       startedAt: view.question?.startedAt ?? null,
-      anchor:
-        view.question && view.mediaControl?.questionIndex === view.question.questionIndex
-          ? view.mediaControl
-          : null,
+      anchor: view.question && anchorOf(view, { questionIndex: view.question.questionIndex }),
     },
     role === 'lead' || (role === 'follow' && sound && view.gameAudioTarget !== 'projection'),
   );
@@ -165,10 +174,14 @@ export function ScreenSurface({
     const next = view.preload;
     if (role === 'preview' || !next) return;
     let cancelled = false;
-    void preloadMedia(next.media, next.images).then(() => {
+    void preloadMedia(next.media, next.images, next.videos).then((loaded) => {
       // A copy fetches ahead too, but is never waited for: it says nothing.
-      if (!cancelled && playMedia && waitedFor(next.media)) {
-        socket?.emit('media:ready', { pin, questionIndex: next.questionIndex });
+      if (!cancelled && loaded && playMedia && waitedFor(next.media, next.videos)) {
+        socket?.emit('media:ready', {
+          pin,
+          questionIndex: next.questionIndex,
+          ...(next.slideIndex !== undefined ? { slideIndex: next.slideIndex } : {}),
+        });
       }
     });
     return () => {
@@ -264,9 +277,28 @@ export function ScreenSurface({
       <p className="text-[2em] font-semibold">{t('screen.thanks')}</p>
     );
   } else if (view.state === 'SLIDE_SHOW' && view.slide) {
+    const slide = view.slide;
+    const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
+    // A copy hears the slide only when asked to, and when its sound reaches remote devices.
+    const copyHears =
+      role === 'follow' && sound && !!slide.audioTarget && playsSound(slide.audioTarget, 'remote');
     body = (
       <div className="flex min-h-dvh w-full flex-1">
-        <SlideView slide={view.slide} />
+        {/* Its videos and sound play as a question's do (#125): here, on the common start. */}
+        <SlidePlaybackContext.Provider
+          value={{
+            mode: role === 'preview' || view.nav?.review ? 'still' : view.paused ? 'pause' : 'play',
+            audible: role !== 'follow' || copyHears,
+            startAt: slide.mediaStartAt ?? null,
+            anchor: anchorOf(view, step),
+            resumeKey: playMedia ? `${pin}:s${slide.slideIndex}` : null,
+            follow: playMedia || copyHears ? undefined : followed(view, step),
+            catchUp: role === 'follow' ? followed(view, step) : undefined,
+            onPosition: playMedia ? sayPosition : undefined,
+          }}
+        >
+          <SlideView key={slide.slideIndex} slide={slide} />
+        </SlidePlaybackContext.Provider>
       </div>
     );
   } else if (view.state === 'PODIUM' && view.podium) {
@@ -363,16 +395,18 @@ export function ScreenSurface({
             // that plays the sound starts on the common instant and catches up with it,
             // as a remote participant's phone does.
             follow={
-              playMedia || copyHears ? undefined : followed(view, view.question.questionIndex)
+              playMedia || copyHears
+                ? undefined
+                : followed(view, { questionIndex: view.question.questionIndex })
             }
-            catchUp={role === 'follow' ? followed(view, view.question.questionIndex) : undefined}
+            catchUp={
+              role === 'follow'
+                ? followed(view, { questionIndex: view.question.questionIndex })
+                : undefined
+            }
             onPosition={playMedia ? sayPosition : undefined}
             startAt={view.question.mediaStartAt ?? null}
-            anchor={
-              view.mediaControl?.questionIndex === view.question.questionIndex
-                ? view.mediaControl
-                : null
-            }
+            anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
           />
           <AnswerRules question={view.question} className="shrink-0" />
           {view.question.options?.length ? (

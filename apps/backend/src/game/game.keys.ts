@@ -100,15 +100,17 @@ export const gameKeys = {
   answers: (id: GameId, questionIndex: number) => `game:${id}:answers:${questionIndex}`,
   /** Set of the players who said they are ready in this game's lobby (#104). */
   pressed: (id: GameId) => `game:${id}:pressed`,
-  /** Set of the devices (playerId, or `screen:<socket id>`) that loaded a question's sound or video. */
-  ready: (id: GameId, questionIndex: number) => `game:${id}:ready:${questionIndex}`,
-  /** One way out of the media wait of a question (all ready, cap, host, resumed). */
-  mediaWaitLock: (id: GameId, questionIndex: number) =>
-    `game:${id}:media-wait-lock:${questionIndex}`,
+  /**
+   * Set of the devices (playerId, or `screen:<socket id>`) that loaded a step's
+   * sound or video. Step = question index, or `s<slideIndex>` for a slide (#125).
+   */
+  ready: (id: GameId, step: number | string) => `game:${id}:ready:${step}`,
+  /** One way out of the media wait of a step (all ready, cap, host, resumed). */
+  mediaWaitLock: (id: GameId, step: number | string) => `game:${id}:media-wait-lock:${step}`,
   /** Atomic lock of the move to REVEAL (one winner, no double reveal). */
   revealLock: (id: GameId, questionIndex: number) => `game:${id}:reveal-lock:${questionIndex}`,
-  /** Where the host put a question's media (`MediaAnchor` JSON), replayed to late screens. */
-  mediaAnchor: (id: GameId, questionIndex: number) => `game:${id}:media-anchor:${questionIndex}`,
+  /** Where the host put a step's media (`MediaAnchor` JSON), replayed to late screens. */
+  mediaAnchor: (id: GameId, step: number | string) => `game:${id}:media-anchor:${step}`,
   /** Atomic lock of the move to the next step (no double click). */
   /** Step = question index, or `s<slideIndex>` for a content slide (#7). */
   advanceLock: (id: GameId, step: number | string) => `game:${id}:advance-lock:${step}`,

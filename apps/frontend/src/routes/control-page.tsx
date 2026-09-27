@@ -7,6 +7,7 @@ import {
   type GameStep,
   type MediaReadinessPayload,
   type OutlineQuestion,
+  slideSoundMedia,
 } from '@quiz-dock/contracts';
 import { Link, useParams } from '@tanstack/react-router';
 import {
@@ -31,6 +32,7 @@ import {
   Smartphone,
   Square,
   UserCheck,
+  VolumeX,
   Users,
   Wifi,
   X,
@@ -44,7 +46,8 @@ import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
 import { ConsoleTransport } from '../game/media/console-transport';
-import { followed } from '../game/media/followed';
+import { SlidePlaybackContext } from '../game/media/slide-media';
+import { anchorOf, followed } from '../game/media/followed';
 import { serverNow } from '../game/clock';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -517,6 +520,12 @@ export function ControlPage() {
 
   // ── SLIDE_SHOW (#7) ────────────────────────────────────────────────────────
   if (view.state === 'SLIDE_SHOW' && view.slide) {
+    const slide = view.slide;
+    const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
+    // The slide's one sound (#125): the host steers it as a question's; a muted
+    // video alone has nothing to steer, only its mute to say.
+    const soundMedia = view.nav?.review ? null : slideSoundMedia(slide);
+    const mutedVideo = !!slide.video && !slide.video.sound;
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-5')}>
         {controlBar}
@@ -527,8 +536,38 @@ export function ControlPage() {
         />
         {/* Reduced base: the slide is a preview in a card, not the projection. */}
         <div className="bg-card flex rounded-xl border p-5 text-[0.8rem] sm:p-6">
-          <SlideView slide={view.slide} />
+          {/* Shown still, as projected: the projection plays; the transport below draws the sound. */}
+          <SlidePlaybackContext.Provider
+            value={{
+              mode: 'still',
+              audible: false,
+              startAt: null,
+              anchor: null,
+              resumeKey: null,
+              follow: followed(view, step),
+            }}
+          >
+            <SlideView key={slide.slideIndex} slide={slide} />
+          </SlidePlaybackContext.Provider>
         </div>
+        {soundMedia ? (
+          <ConsoleTransport
+            key={`s${slide.slideIndex}`}
+            media={soundMedia}
+            follow={followed(view, step)}
+            anchor={anchorOf(view, step)}
+            listening={false}
+            gamePaused={view.paused}
+            onCommand={(command) => socket?.emit('host:media', { pin, ...command })}
+            onGamePause={setPaused}
+          />
+        ) : null}
+        {mutedVideo && !slide.audio ? (
+          <p className="text-muted-foreground flex items-center gap-2 self-center text-sm">
+            <VolumeX className="size-4" />
+            {t('control.slideVideoMuted')}
+          </p>
+        ) : null}
         <ActionBar
           status={
             view.paused && view.slide.displayDelayS ? (
@@ -665,7 +704,9 @@ export function ControlPage() {
               : view.question?.media
           }
           mode="still"
-          follow={view.question ? followed(view, view.question.questionIndex) : null}
+          follow={
+            view.question ? followed(view, { questionIndex: view.question.questionIndex }) : null
+          }
           showHiddenWaveform
           boxClassName="h-56"
         />
@@ -673,12 +714,8 @@ export function ControlPage() {
           <ConsoleTransport
             key={view.question.questionIndex}
             media={view.question.media}
-            follow={followed(view, view.question.questionIndex)}
-            anchor={
-              view.mediaControl?.questionIndex === view.question.questionIndex
-                ? view.mediaControl
-                : null
-            }
+            follow={followed(view, { questionIndex: view.question.questionIndex })}
+            anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
             listening={listening}
             gamePaused={view.paused}
             onCommand={(command) => socket?.emit('host:media', { pin, ...command })}

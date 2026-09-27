@@ -95,8 +95,12 @@ describe('GameEngine.recoverTimers (bindServer)', () => {
       .mockImplementation(() => undefined);
     engine.bindServer({ to: () => ({ emit: () => undefined }) } as never);
     await new Promise((r) => setTimeout(r, 10));
-    const [ref, index, delay] = arm.mock.calls[0] as unknown as [{ pin: string }, number, number];
-    expect([ref.pin, index]).toEqual(['7', 1]);
+    const [ref, step, delay] = arm.mock.calls[0] as unknown as [
+      { pin: string },
+      { questionIndex: number; slideIndex?: number },
+      number,
+    ];
+    expect([ref.pin, step]).toEqual(['7', { questionIndex: 1 }]);
     expect(delay).toBeGreaterThan(2_500);
   });
 });

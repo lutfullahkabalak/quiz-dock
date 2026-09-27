@@ -6,7 +6,7 @@ is what a Quiz Store repository holds.
 
 **JSON Schema.** The manifest is published as a JSON Schema (draft 2020-12),
 one file per manifest version, in [`schema/`](../schema/) — currently
-[`quiz-bundle.v4.json`](../schema/quiz-bundle.v4.json). It is generated from the
+[`quiz-bundle.v5.json`](../schema/quiz-bundle.v5.json). It is generated from the
 importer's own schema and a test keeps the two in step, so a tool outside
 QuizDock (a community store, a CI check) validates exactly what an import
 accepts. A published version is never rewritten: a change to the format comes
@@ -138,6 +138,12 @@ Contributors changing the bundle schema or a content schema run
 - `waveformSize` (version 3): how thick its sound's waveform is drawn — `S`,
   `M` (default) or `L`; `hidden` (version 4): not drawn on the projection nor
   the phones, only on the host's console (the sound still plays).
+- Slides with media (version 5), set like a question's: `video` (an MP4 filling
+  the slide behind its content) with `videoLoop` and `videoSound` (both `true`
+  when omitted), `audio` (a sound) with its `waveformSize` (`hidden` when
+  omitted), and the slide's own `audioTarget`. A slide plays **one sound at
+  most**: a video with its sound and an `audio` together are refused
+  (`slide.two_sounds`).
 - Questions and slides follow the API content rules (question types and their
   fields, block types, colour/shape names, limits). Defaults apply when a
   field is omitted: `timeLimitS` 20, `pointsMode` standard, `textTone` light,
@@ -159,7 +165,7 @@ at `null`. An imported bundle keeps whatever it carried, except its identity
 
 | Field | Type | Meaning |
 |---|---|---|
-| `version` (top level) | integer | Manifest schema version, up to `4`. An export stamps the **lowest version it needs** — `3`, or `4` once a waveform is `hidden` — so an instance whose importer stops at an older version still takes a quiz that uses nothing newer. Absent in the earliest bundles: read as `0`, same layout. A bundle from a newer schema is refused. |
+| `version` (top level) | integer | Manifest schema version, up to `5`. An export stamps the **lowest version it needs** — `3`, `4` once a waveform is `hidden`, `5` once a slide carries a video or a sound — so an instance whose importer stops at an older version still takes a quiz that uses nothing newer. Absent in the earliest bundles: read as `0`, same layout. A bundle from a newer schema is refused. |
 | `media` (top level) | object | What each media file carries beyond its bytes, keyed by the same path the items reference: an `alt`, the description read aloud by screen readers (version 2); for a sound or a video, what the editor measured (version 3) — `durationMs`, `peaks` (200 values in 0–1, the waveform the screens draw), `origin` (`upload` or `recording`), `loudnessLufs` and `peakDbfs` (the playback gain). A sound needs `durationMs` and `peaks`. Absent in a version 1 bundle, and an image with no alternative text simply has no entry. |
 | `slug` | `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 60 | The identity that travels — never an internal id. Fixed by the owner's first export (derived from the title); the zip is named after it. Ignored on import: a copy carries nothing of its origin and gets its own slug at its first export. |
 | `namespace` | string or `null` | Reserved for a Store submission (`<username>/<slug>`); `null` on a local export. Ignored on import. |

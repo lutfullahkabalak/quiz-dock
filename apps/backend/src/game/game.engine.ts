@@ -5,6 +5,8 @@ import {
   type AnswerRefusal,
   GameState,
   mediaDurationMs,
+  slideHasPlayback,
+  slideSoundMedia,
 } from '@quiz-dock/contracts';
 import type {
   AnswerValue,
@@ -14,6 +16,7 @@ import type {
   GameStatePayload,
   GameStep,
   HostMediaCommand,
+  LiveQuestionMedia,
   LeaderboardPayload,
   LeaderboardRow,
   MediaAnchor,
@@ -60,19 +63,16 @@ import { SessionArchiveService } from './session-archive.service';
 import { resumeQuestionWindow } from './chrono';
 import {
   type PreloadDevice,
+  type PreloadStep,
+  firstStepOf,
   hasSoundOrVideo,
-  mediaForDevice,
   preloadFor,
   snapshotHasMedia,
+  stepAfterSlide,
+  stepHasPlayback,
+  stepMediaForDevice,
 } from './preload';
-import {
-  buildQuestionStart,
-  buildSlideShow,
-  gameAudioTarget,
-  questionAudioTarget,
-  questionHasSound,
-  snapshotHasSound,
-} from './snapshot';
+import { buildQuestionStart, buildSlideShow, gameAudioTarget, snapshotHasSound } from './snapshot';
 
 type GameServer = Server<Record<string, never>, ServerToClientEvents>;
 
@@ -90,6 +90,25 @@ function mediaStartOf(
   startedAt: number,
 ): { mediaStartAt?: number } {
   return mediaLeadMs == null ? {} : { mediaStartAt: startedAt - mediaLeadMs };
+}
+
+/** The Redis key part of a step: a question's index, or `s<i>` for a slide (#125). */
+function mediaStepKey(step: PreloadStep): number | string {
+  return step.slideIndex === undefined ? step.questionIndex : `s${step.slideIndex}`;
+}
+
+/** A step's reference in a payload: the question index, and the slide's when it is one. */
+function stepRef(step: PreloadStep): { questionIndex: number; slideIndex?: number } {
+  return step.slideIndex === undefined
+    ? { questionIndex: step.questionIndex }
+    : { questionIndex: step.questionIndex, slideIndex: step.slideIndex };
+}
+
+/** The step a media wait holds back: the slide it precedes when set, else the question. */
+function waitedStep(meta: GameMeta): PreloadStep {
+  return (meta.slideIndex ?? -1) >= 0
+    ? { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex }
+    : { questionIndex: meta.currentIndex };
 }
 
 interface Emitter {
@@ -166,7 +185,7 @@ export class GameEngine {
         this.scheduleReveal(ref, meta.currentIndex, meta.questionEndsAt + GRACE_MS - Date.now());
         armed++;
       } else if (meta.state === GameState.MediaLoading) {
-        this.armMediaWait(ref, meta.currentIndex, (meta.mediaWaitUntil ?? 0) - Date.now());
+        this.armMediaWait(ref, waitedStep(meta), (meta.mediaWaitUntil ?? 0) - Date.now());
         armed++;
       } else if (meta.state === GameState.Reveal || meta.state === GameState.SlideShow) {
         if (meta.mode === 'auto' && !meta.paused && !meta.reviewStep) {
@@ -274,21 +293,22 @@ export class GameEngine {
     // Every device: a phone that never enabled sound asks for it when the quiz has some.
     this.server.to(pin).emit('game:media', payload);
     // Who needs what may have changed (the phones in the room, for every device).
-    await this.emitPreload(ref, snapshot, 0);
+    await this.emitPreload(ref, snapshot, firstStepOf(snapshot, 0));
     await this.broadcastReadiness(pin);
   }
 
   /**
-   * Tells each device (or `only` one) what to fetch ahead of question `index`:
-   * only what it will show or play (see `preloadFor`), never the question itself.
+   * Tells each device (or `only` one) what to fetch ahead of a step — a question
+   * or a slide: only what it will show or play (see `preloadFor`), never the
+   * question itself.
    */
   private async emitPreload(
     ref: GameRef,
     snapshot: QuizSnapshot,
-    index: number,
+    step: PreloadStep | null,
     only?: Emitter,
   ): Promise<void> {
-    if (index > snapshot.questions.length) return;
+    if (!step) return;
     const { pin } = ref;
     const gameTarget = await this.gameTarget(ref.id, snapshot);
     const players = await this.redis.hgetall(gameKeys.players(pin));
@@ -301,48 +321,55 @@ export class GameEngine {
         ? 'screen'
         : ((record ? (JSON.parse(record) as PlayerRecord).presence : undefined) ?? 'room');
       if (!payloads.has(device)) {
-        payloads.set(device, preloadFor(snapshot, index, gameTarget, device));
+        payloads.set(device, preloadFor(snapshot, step, gameTarget, device));
       }
       const payload = payloads.get(device);
       if (payload) socket.emit('media:preload', payload);
     }
   }
 
-  /** The question the room gets ready for: the first in the lobby, the next at a reveal. */
-  private upcomingIndex(meta: GameMeta): number {
-    if (meta.state === GameState.Lobby) return 0;
+  /**
+   * The step the room gets ready for: the first in the lobby, the next at a reveal
+   * or on a slide, the one waited for during a media wait.
+   */
+  private upcomingStep(meta: GameMeta, snapshot: QuizSnapshot): PreloadStep | null {
+    if (meta.state === GameState.Lobby) return firstStepOf(snapshot, 0);
     if (meta.state === GameState.Reveal || meta.state === GameState.Leaderboard) {
-      return meta.currentIndex + 1;
+      return firstStepOf(snapshot, meta.currentIndex + 1);
     }
-    return Math.max(0, meta.currentIndex);
+    if (meta.state === GameState.SlideShow) return stepAfterSlide(snapshot, meta.slideIndex ?? -1);
+    if (meta.state === GameState.MediaLoading) return waitedStep(meta);
+    return { questionIndex: Math.max(0, meta.currentIndex) };
   }
 
   /**
-   * `media:ready`: a device has loaded what it fetched ahead of a question; the
-   * screens see the count move.
+   * `media:ready`: a device has loaded what it fetched ahead of a step (a
+   * question, or the slide `slideIndex`); the screens see the count move.
    */
   async markMediaReady(
     pin: string,
     socket: { id: string; data: { playerId?: string } },
     questionIndex: number,
+    slideIndex?: number,
   ): Promise<void> {
     if (!Number.isInteger(questionIndex) || questionIndex < 0) return;
+    const slide = Number.isInteger(slideIndex) && slideIndex! >= 0 ? slideIndex : undefined;
     const meta = await this.game.getMeta(pin);
     if (!meta) return;
     const device = socket.data.playerId ?? `screen:${socket.id}`;
-    const key = gameKeys.ready(meta.id, questionIndex);
+    const key = gameKeys.ready(meta.id, mediaStepKey({ questionIndex, slideIndex: slide }));
     await this.redis.multi().sadd(key, device).expire(key, GAME_TTL_S).exec();
     await this.broadcastReadiness(pin);
   }
 
   /**
-   * Who is waited for, and who is ready, ahead of question `index`: the
-   * projection windows when it has a sound or a video, and the connected
-   * participants whose device will play one. Null past the last question.
+   * Who is waited for, and who is ready, ahead of a step: the projection windows
+   * when it has a sound or a video, and the connected participants whose device
+   * will play one. Null past the last question.
    */
   async readiness(
     ref: GameRef,
-    index: number,
+    step: PreloadStep | null,
     /**
      * The lobby's count (#104): every participant of the game, ready once they
      * said so **and** their device has loaded what it plays; the screens apart.
@@ -352,14 +379,13 @@ export class GameEngine {
   ): Promise<MediaReadinessPayload | null> {
     const { pin } = ref;
     const snapshot = await this.game.getSnapshot(ref.id);
-    const question = snapshot?.questions[index];
-    if (!snapshot || !question) return null;
-    const target = questionHasSound(question)
-      ? questionAudioTarget(question, await this.gameTarget(ref.id, snapshot))
-      : undefined;
-    const ready = new Set(await this.redis.smembers(gameKeys.ready(ref.id, index)));
+    if (!snapshot || !step || !stepMediaForDevice(snapshot, step, 'projection', 'screen')) {
+      return null;
+    }
+    const gameTarget = await this.gameTarget(ref.id, snapshot);
+    const ready = new Set(await this.redis.smembers(gameKeys.ready(ref.id, mediaStepKey(step))));
     const sockets = await this.server.in(pin).fetchSockets();
-    const screens = hasSoundOrVideo(question.media)
+    const screens = stepHasPlayback(snapshot, step)
       ? sockets.filter((s) => {
           const d = s.data as { playerId?: string; isHostControl?: boolean; follower?: boolean };
           // The projection windows; not a console, not a participant's copy (#104).
@@ -376,7 +402,8 @@ export class GameEngine {
     )) {
       const rec = JSON.parse(json) as PlayerRecord;
       if (!inGame.has(playerId) || !rec.connected) continue;
-      const plays = hasSoundOrVideo(mediaForDevice(question.media, target, rec.presence ?? 'room'));
+      const own = stepMediaForDevice(snapshot, step, gameTarget, rec.presence ?? 'room');
+      const plays = !!own && (hasSoundOrVideo(own.media) || own.videos.length > 0);
       if (pressed) {
         const said = pressed.has(playerId);
         players.push({ playerId, ready: said && (!plays || ready.has(playerId)), pressed: said });
@@ -387,7 +414,7 @@ export class GameEngine {
     if (pressed) {
       // One count for the host: the participants; the projection says its own state.
       return {
-        questionIndex: index,
+        ...stepRef(step),
         ready: players.filter((p) => p.ready).length,
         total: players.length,
         players,
@@ -396,7 +423,7 @@ export class GameEngine {
       };
     }
     return {
-      questionIndex: index,
+      ...stepRef(step),
       ready: screensReady + players.filter((p) => p.ready).length,
       total: screens.length + players.length,
       players,
@@ -409,9 +436,11 @@ export class GameEngine {
     const meta = await this.game.getMeta(pin);
     if (!meta || meta.state === GameState.Ended) return;
     const ref = refOf(pin, meta);
+    const snapshot = await this.game.getSnapshot(meta.id);
+    if (!snapshot) return;
     const payload = await this.readiness(
       ref,
-      this.upcomingIndex(meta),
+      this.upcomingStep(meta, snapshot),
       meta.state === GameState.Lobby,
     );
     if (!payload) return;
@@ -425,7 +454,7 @@ export class GameEngine {
     }
     // The last device waited for is ready (or the last one not ready left): go.
     if (meta.state === GameState.MediaLoading && payload.ready >= payload.total) {
-      await this.endMediaWait(ref, meta.currentIndex);
+      await this.endMediaWait(ref, waitedStep(meta));
     }
   }
 
@@ -452,15 +481,36 @@ export class GameEngine {
   }
 
   /**
-   * Shows content slide `slideIndex` (state `SLIDE_SHOW`, #7). `currentIndex`
-   * points at the question that follows, so `game:state.questionIndex` stays
-   * meaningful for progress displays. Arms the display timer when the slide has one.
+   * Shows content slide `slideIndex` (state `SLIDE_SHOW`, #7) — unless a device
+   * that plays its sound or video has not loaded it (#125): the room then waits
+   * first, as before a question.
    */
   private async showSlide(ref: GameRef, snapshot: QuizSnapshot, slideIndex: number): Promise<void> {
+    const slide = snapshot.slides[slideIndex];
+    const step = { questionIndex: slide.beforeQuestionIndex, slideIndex };
+    if (slideHasPlayback(slide) && (await this.waitForMedia(ref, snapshot, step))) return;
+    await this.startSlide(ref, snapshot, slideIndex);
+  }
+
+  /**
+   * The slide on screen. `currentIndex` points at the question that follows, so
+   * `game:state.questionIndex` stays meaningful for progress displays. Its media
+   * start on one instant of the server's clock; the display timer is armed when
+   * the slide has one; what comes next is fetched while it shows.
+   */
+  private async startSlide(
+    ref: GameRef,
+    snapshot: QuizSnapshot,
+    slideIndex: number,
+  ): Promise<void> {
     const { pin } = ref;
     const slide = snapshot.slides[slideIndex];
     this.clearTimer(pin);
     this.cancelTimer(this.autoNextTimers, pin);
+    this.cancelTimer(this.mediaWaitTimers, pin);
+    const now = Date.now();
+    const plays = slideHasPlayback(slide);
+    const before = await this.currentMeta(ref);
     await this.redis.hset(gameKeys.game(ref.id), {
       state: GameState.SlideShow,
       slideIndex: String(slideIndex),
@@ -468,6 +518,10 @@ export class GameEngine {
       clockFrozen: '0',
       pausedRemainingMs: '',
       autoNextAt: '0',
+      mediaWaitUntil: '0',
+      slideMediaStartAt: plays ? String(now + MEDIA_LEAD_MS) : '0',
+      // Shown while the game is paused: its media hold until the game resumes.
+      slidePausedAt: plays && before?.paused ? String(now) : '0',
     });
     const meta = await this.currentMeta(ref);
     this.server.to(pin).emit('game:state', {
@@ -476,15 +530,47 @@ export class GameEngine {
       totalQuestions: snapshot.questions.length,
       nav: meta ? this.navFor(meta, snapshot) : undefined,
     });
-    this.server.to(pin).emit('slide:show', buildSlideShow(slide, slideIndex));
+    this.server
+      .to(pin)
+      .emit(
+        'slide:show',
+        buildSlideShow(
+          slide,
+          slideIndex,
+          await this.gameTarget(ref.id, snapshot),
+          plays ? now + MEDIA_LEAD_MS : 0,
+        ),
+      );
     if (meta) await this.scheduleAutoNextIfNeeded(ref, meta);
     this.server.to(pin).emit('game:mode', await this.readMode(pin));
+    // One step ahead: what comes after the slide loads while it shows.
+    await this.emitPreload(ref, snapshot, stepAfterSlide(snapshot, slideIndex));
+    await this.broadcastReadiness(pin);
+  }
+
+  /** The `slide:show` of the slide on screen, as a screen (re)attaching gets it. */
+  private async slideShowNow(ref: GameRef, meta: GameMeta, snapshot: QuizSnapshot) {
+    const slide = snapshot.slides[meta.slideIndex ?? -1];
+    if (!slide) return null;
+    return buildSlideShow(
+      slide,
+      meta.slideIndex ?? 0,
+      gameAudioTarget(snapshot, meta.audioTarget),
+      this.slideStartShown(meta),
+    );
   }
 
   /**
-   * Ouvre la question `index` : fixe les timings serveur autoritatifs, diffuse
-   * `game:state` (ANSWERING) + `question:start` (allowlist), arme le timer de fin.
+   * The slide's media start as the screens should take it: while the game is
+   * paused, moved by the pause so far — a screen arriving then starts where the
+   * room stands, not where the clock would have taken it.
    */
+  private slideStartShown(meta: GameMeta): number {
+    const start = meta.slideMediaStartAt ?? 0;
+    if (!start || !meta.slidePausedAt) return start;
+    return start + Math.max(0, Date.now() - meta.slidePausedAt);
+  }
+
   /**
    * Opens question `index` — unless a device that plays its sound or video has
    * not loaded it: the room then waits (`MEDIA_LOADING`) until every such device
@@ -492,33 +578,47 @@ export class GameEngine {
    * a room already ready, starts at once.
    */
   private async beginQuestion(ref: GameRef, snapshot: QuizSnapshot, index: number): Promise<void> {
+    if (await this.waitForMedia(ref, snapshot, { questionIndex: index })) return;
+    await this.startQuestion(ref, snapshot, index);
+  }
+
+  /**
+   * Holds the room in `MEDIA_LOADING` before a step when a device that plays its
+   * sound or video has not loaded it; false (nothing held) when every device is
+   * ready or the wait is off.
+   */
+  private async waitForMedia(
+    ref: GameRef,
+    snapshot: QuizSnapshot,
+    step: PreloadStep,
+  ): Promise<boolean> {
     const { pin } = ref;
     const waitS = Number(process.env.GAME_MEDIA_WAIT_S ?? MEDIA_WAIT_S);
-    const readiness = waitS > 0 ? await this.readiness(ref, index) : null;
-    if (!readiness || readiness.ready >= readiness.total) {
-      await this.startQuestion(ref, snapshot, index);
-      return;
-    }
+    const readiness = waitS > 0 ? await this.readiness(ref, step) : null;
+    if (!readiness || readiness.ready >= readiness.total) return false;
     const until = Date.now() + waitS * 1000;
     this.cancelTimer(this.autoNextTimers, pin);
     await this.redis.hset(gameKeys.game(ref.id), {
       state: GameState.MediaLoading,
-      currentIndex: String(index),
-      slideIndex: '-1',
+      currentIndex: String(step.questionIndex),
+      slideIndex: String(step.slideIndex ?? -1),
       mediaWaitUntil: String(until),
       autoNextAt: '0',
     });
     this.server.to(pin).emit('game:state', {
       state: GameState.MediaLoading,
-      questionIndex: index,
+      questionIndex: step.questionIndex,
       totalQuestions: snapshot.questions.length,
     });
-    this.server.to(pin).emit('media:wait', { questionIndex: index, until });
-    this.armMediaWait(ref, index, until - Date.now());
+    this.server.to(pin).emit('media:wait', { ...stepRef(step), until });
+    this.armMediaWait(ref, step, until - Date.now());
+    // Asked again: a phone whose own element was busy with the step before loads it now.
+    await this.emitPreload(ref, snapshot, step);
     await this.broadcastReadiness(pin);
+    return true;
   }
 
-  private armMediaWait(ref: GameRef, index: number, delayMs: number): void {
+  private armMediaWait(ref: GameRef, step: PreloadStep, delayMs: number): void {
     const { pin } = ref;
     this.cancelTimer(this.mediaWaitTimers, pin);
     this.mediaWaitTimers.set(
@@ -526,7 +626,7 @@ export class GameEngine {
       setTimeout(
         () => {
           this.mediaWaitTimers.delete(pin);
-          this.endMediaWait(ref, index).catch((err: Error) =>
+          this.endMediaWait(ref, step).catch((err: Error) =>
             this.log.error(`endMediaWait ${pin}: ${err.message}`),
           );
         },
@@ -536,15 +636,19 @@ export class GameEngine {
   }
 
   /**
-   * Leaves the media wait of question `index` and opens it — once, whoever gets
-   * there first: every device ready, the cap, the host, the host coming back.
+   * Leaves the media wait of a step and opens it — once, whoever gets there
+   * first: every device ready, the cap, the host, the host coming back.
    */
-  private async endMediaWait(ref: GameRef, index: number): Promise<void> {
+  private async endMediaWait(ref: GameRef, step: PreloadStep): Promise<void> {
     const { pin } = ref;
     const meta = await this.currentMeta(ref);
-    if (!meta || meta.state !== GameState.MediaLoading || meta.currentIndex !== index) return;
+    if (!meta || meta.state !== GameState.MediaLoading) return;
+    const waited = waitedStep(meta);
+    if (waited.questionIndex !== step.questionIndex || waited.slideIndex !== step.slideIndex) {
+      return;
+    }
     const won = await this.redis.set(
-      gameKeys.mediaWaitLock(ref.id, index),
+      gameKeys.mediaWaitLock(ref.id, mediaStepKey(step)),
       '1',
       'EX',
       GAME_TTL_S,
@@ -553,7 +657,9 @@ export class GameEngine {
     if (won !== 'OK') return;
     this.cancelTimer(this.mediaWaitTimers, pin);
     const snapshot = await this.game.getSnapshot(ref.id);
-    if (snapshot) await this.startQuestion(ref, snapshot, index);
+    if (!snapshot) return;
+    if (step.slideIndex !== undefined) await this.startSlide(ref, snapshot, step.slideIndex);
+    else await this.startQuestion(ref, snapshot, step.questionIndex);
   }
 
   private async startQuestion(ref: GameRef, snapshot: QuizSnapshot, index: number): Promise<void> {
@@ -716,7 +822,7 @@ export class GameEngine {
       socket.emit('leaderboard', this.personalLeaderboard(top, ranked, rankOf, playerId));
     }
     // What comes next, fetched by every device while the leaderboard is up.
-    await this.emitPreload(ref, snapshot, index + 1);
+    await this.emitPreload(ref, snapshot, firstStepOf(snapshot, index + 1));
     await this.broadcastReadiness(pin);
   }
 
@@ -849,7 +955,7 @@ export class GameEngine {
     }
     // Waiting for media: the host starts the question anyway.
     if (meta.state === GameState.MediaLoading) {
-      await this.endMediaWait(ref, meta.currentIndex);
+      await this.endMediaWait(ref, waitedStep(meta));
       return;
     }
     if (meta.state !== GameState.Reveal && meta.state !== GameState.SlideShow) {
@@ -948,7 +1054,10 @@ export class GameEngine {
         totalQuestions: meta.totalQuestions,
         nav,
       });
-      socket.emit('slide:show', buildSlideShow(slide, step.slideIndex));
+      socket.emit(
+        'slide:show',
+        buildSlideShow(slide, step.slideIndex, gameAudioTarget(snapshot, meta.audioTarget)),
+      );
       return;
     }
     const index = step.questionIndex;
@@ -1171,13 +1280,17 @@ export class GameEngine {
     // In the lobby, every device fetches what the first question needs while people wait;
     // arriving during a wait for media, what the coming question needs, and how long.
     if (meta.state === GameState.Lobby && snapshotForNav) {
-      await this.emitPreload(ref, snapshotForNav, 0, socket);
+      await this.emitPreload(ref, snapshotForNav, firstStepOf(snapshotForNav, 0), socket);
     } else if (meta.state === GameState.MediaLoading && snapshotForNav) {
       socket.emit('media:wait', {
-        questionIndex: meta.currentIndex,
+        ...stepRef(waitedStep(meta)),
         until: meta.mediaWaitUntil ?? 0,
       });
-      await this.emitPreload(ref, snapshotForNav, meta.currentIndex, socket);
+      await this.emitPreload(ref, snapshotForNav, waitedStep(meta), socket);
+    } else if (meta.state === GameState.SlideShow && snapshotForNav && !meta.reviewStep) {
+      // On a slide, what comes after it (a device arriving now fetches it too).
+      const next = stepAfterSlide(snapshotForNav, meta.slideIndex ?? -1);
+      await this.emitPreload(ref, snapshotForNav, next, socket);
     }
 
     const snapshot = snapshotForNav;
@@ -1189,8 +1302,13 @@ export class GameEngine {
       return;
     }
     if (meta.state === GameState.SlideShow) {
-      const slide = snapshot.slides[meta.slideIndex ?? -1];
-      if (slide) socket.emit('slide:show', buildSlideShow(slide, meta.slideIndex ?? 0));
+      const show = await this.slideShowNow(ref, meta, snapshot);
+      if (!show) return;
+      socket.emit('slide:show', show);
+      // Where the host put the slide's media (#125): it wins over the common start.
+      const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+      const anchor = await this.readAnchor(meta.id, mediaStepKey(step));
+      if (anchor) socket.emit('media:control', { ...stepRef(step), ...anchor });
       return;
     }
     if (meta.state === GameState.Answering) {
@@ -1491,8 +1609,8 @@ export class GameEngine {
     });
 
     if (prev === GameState.MediaLoading) {
-      // Back after a wait for media: no more waiting, the question starts.
-      await this.endMediaWait(ref, meta.currentIndex);
+      // Back after a wait for media: no more waiting, the step starts.
+      await this.endMediaWait(ref, waitedStep(meta));
     } else if (prev === GameState.Answering) {
       const snapshot = await this.game.getSnapshot(meta.id);
       // Toujours en pause à la reprise : on garde le chrono gelé (pas de ré-arme),
@@ -1519,10 +1637,11 @@ export class GameEngine {
       }
     } else {
       if (prev === GameState.SlideShow) {
+        // Its media held while the host was away: they go on from there, unless paused.
+        if (!meta.paused) await this.thawSlide(pin, meta);
         const snapshot = await this.game.getSnapshot(meta.id);
-        const slide = snapshot?.slides[meta.slideIndex ?? -1];
-        if (slide)
-          this.server.to(pin).emit('slide:show', buildSlideShow(slide, meta.slideIndex ?? 0));
+        const show = snapshot ? await this.slideShowNow(ref, meta, snapshot) : null;
+        if (show) this.server.to(pin).emit('slide:show', show);
       }
       // Reprise en REVEAL en mode auto (ou sur une slide minutée) : ré-arme l'enchaînement.
       await this.scheduleAutoNextIfNeeded(ref, meta);
@@ -1719,23 +1838,16 @@ export class GameEngine {
    */
   async mediaControl(pin: string, hostUserId: string, command: HostMediaCommand): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
-    if (meta.state !== GameState.Answering) return;
-    const snapshot = await this.game.getSnapshot(meta.id);
-    const question = snapshot?.questions[meta.currentIndex];
-    // A sound, or a video played from its file (an embed is its provider's to steer).
-    const media = question?.media;
-    if (
-      !media ||
-      !(media.audio || (media.visual?.kind === 'video' && media.visual.source === 'upload'))
-    )
-      return;
+    const target = await this.steerable(meta);
+    if (!target) return;
+    const { step, media, listenFirst } = target;
     const now = Date.now();
     let anchor: MediaAnchor;
     if (command.action === 'restart') {
       anchor = { t: 0, at: now, playing: true };
     } else {
-      if (question.timerAfterMedia && this.listening(meta, now)) return;
-      const durationS = (mediaDurationMs(question.media) ?? 0) / 1000;
+      if (listenFirst && this.listening(meta, now)) return;
+      const durationS = (mediaDurationMs(media) ?? 0) / 1000;
       const t = command.t;
       if (typeof t !== 'number' || !Number.isFinite(t) || t < 0) return;
       if (durationS > 0 && t > durationS) return;
@@ -1743,8 +1855,44 @@ export class GameEngine {
         command.action === 'play' || (command.action === 'seek' && command.playing !== false);
       anchor = { t, at: now, playing };
     }
-    await this.saveAnchor(meta.id, meta.currentIndex, anchor);
-    this.server.to(pin).emit('media:control', { questionIndex: meta.currentIndex, ...anchor });
+    await this.saveAnchor(meta.id, mediaStepKey(step), anchor);
+    this.server.to(pin).emit('media:control', { ...stepRef(step), ...anchor });
+  }
+
+  /**
+   * The media the host can steer now: the running question's sound or video
+   * played from its file (an embed is its provider's to steer), or the sound of
+   * the slide on screen (#125) — a muted video has nothing to steer.
+   */
+  private async steerable(meta: GameMeta): Promise<{
+    step: PreloadStep;
+    media: LiveQuestionMedia;
+    listenFirst: boolean;
+  } | null> {
+    if (meta.reviewStep) return null;
+    const snapshot = await this.game.getSnapshot(meta.id);
+    if (!snapshot) return null;
+    if (meta.state === GameState.SlideShow) {
+      const slide = snapshot.slides[meta.slideIndex ?? -1];
+      const media = slide ? slideSoundMedia(slide) : null;
+      if (!media) return null;
+      const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+      return { step, media, listenFirst: false };
+    }
+    if (meta.state !== GameState.Answering) return null;
+    const question = snapshot.questions[meta.currentIndex];
+    const media = question?.media;
+    if (
+      !media ||
+      !(media.audio || (media.visual?.kind === 'video' && media.visual.source === 'upload'))
+    ) {
+      return null;
+    }
+    return {
+      step: { questionIndex: meta.currentIndex },
+      media,
+      listenFirst: !!question.timerAfterMedia,
+    };
   }
 
   /**
@@ -1758,37 +1906,76 @@ export class GameEngine {
     return now < meta.questionStartedAt;
   }
 
-  private async saveAnchor(gameId: GameId, index: number, anchor: MediaAnchor): Promise<void> {
+  private async saveAnchor(
+    gameId: GameId,
+    step: number | string,
+    anchor: MediaAnchor,
+  ): Promise<void> {
     await this.redis.set(
-      gameKeys.mediaAnchor(gameId, index),
+      gameKeys.mediaAnchor(gameId, step),
       JSON.stringify(anchor),
       'EX',
       GAME_TTL_S,
     );
   }
 
-  private async readAnchor(gameId: GameId, index: number): Promise<MediaAnchor | null> {
-    const raw = await this.redis.get(gameKeys.mediaAnchor(gameId, index));
+  private async readAnchor(gameId: GameId, step: number | string): Promise<MediaAnchor | null> {
+    const raw = await this.redis.get(gameKeys.mediaAnchor(gameId, step));
     return raw ? (JSON.parse(raw) as MediaAnchor) : null;
   }
 
   /**
    * The clock freezes or thaws (the game's pause, the host gone): a media the host
    * anchored playing is re-anchored where it stands, so a screen that joins after
-   * the pause does not count the pause as played.
+   * the pause does not count the pause as played. `step`: a slide's (#125), else
+   * the current question's.
    */
-  private async reanchor(pin: string, meta: GameMeta, phase: 'freeze' | 'thaw'): Promise<void> {
-    const anchor = await this.readAnchor(meta.id, meta.currentIndex);
+  private async reanchor(
+    pin: string,
+    meta: GameMeta,
+    phase: 'freeze' | 'thaw',
+    step: PreloadStep = { questionIndex: meta.currentIndex },
+  ): Promise<void> {
+    const anchor = await this.readAnchor(meta.id, mediaStepKey(step));
     if (!anchor?.playing) return;
     const now = Date.now();
     const next =
       phase === 'freeze'
         ? { ...anchor, t: anchor.t + (now - anchor.at) / 1000, at: now }
         : { ...anchor, at: now };
-    await this.saveAnchor(meta.id, meta.currentIndex, next);
+    await this.saveAnchor(meta.id, mediaStepKey(step), next);
     if (phase === 'thaw') {
-      this.server.to(pin).emit('media:control', { questionIndex: meta.currentIndex, ...next });
+      this.server.to(pin).emit('media:control', { ...stepRef(step), ...next });
     }
+  }
+
+  /**
+   * A slide that plays holds (#125) — the game's pause, the host gone: when it
+   * stopped is kept, so the start moves by the pause at the thaw. Idempotent,
+   * like the question's clock: the two causes may nest.
+   */
+  private async freezeSlide(pin: string, meta: GameMeta): Promise<void> {
+    if (meta.state !== GameState.SlideShow || !meta.slideMediaStartAt || meta.slidePausedAt) return;
+    const now = Date.now();
+    await this.redis.hset(gameKeys.game(meta.id), { slidePausedAt: String(now) });
+    meta.slidePausedAt = now;
+    const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+    await this.reanchor(pin, meta, 'freeze', step);
+  }
+
+  /** The slide's media go on (#125): their common start moves by the pause, every screen is told. */
+  private async thawSlide(pin: string, meta: GameMeta): Promise<void> {
+    if (!meta.slidePausedAt || !meta.slideMediaStartAt) return;
+    const now = Date.now();
+    const start = meta.slideMediaStartAt + Math.max(0, now - meta.slidePausedAt);
+    await this.redis.hset(gameKeys.game(meta.id), {
+      slideMediaStartAt: String(start),
+      slidePausedAt: '0',
+    });
+    meta.slideMediaStartAt = start;
+    meta.slidePausedAt = 0;
+    const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+    await this.reanchor(pin, meta, 'thaw', step);
   }
 
   async setPaused(pin: string, hostUserId: string, paused: boolean): Promise<void> {
@@ -1798,6 +1985,17 @@ export class GameEngine {
     if (paused) {
       this.cancelTimer(this.autoNextTimers, pin);
       await this.freezeClock(pin, meta);
+    } else if (meta.state === GameState.SlideShow && meta.slidePausedAt) {
+      // A slide's media go on from where they stood (#125); a screen looking back
+      // at another step gets the slide again only when it comes back to it.
+      await this.thawSlide(pin, meta);
+      const snapshot = await this.game.getSnapshot(meta.id);
+      const show =
+        snapshot && !meta.reviewStep
+          ? await this.slideShowNow(refOf(pin, meta), meta, snapshot)
+          : null;
+      if (show) this.server.to(pin).emit('slide:show', show);
+      await this.scheduleAutoNextIfNeeded(refOf(pin, meta), meta);
     } else {
       if (meta.state === GameState.Answering && meta.clockFrozen) {
         const t = await this.thawClock(pin, meta);
@@ -1884,6 +2082,7 @@ export class GameEngine {
    * restant est préservé. No-op hors ANSWERING (les autres états n'ont pas d'horloge).
    */
   private async freezeClock(pin: string, meta: GameMeta): Promise<void> {
+    if (meta.state === GameState.SlideShow) await this.freezeSlide(pin, meta);
     if (meta.clockFrozen || meta.state !== GameState.Answering) return;
     const remaining = Math.max(0, meta.questionEndsAt - Date.now());
     this.clearTimer(pin);
@@ -1941,9 +2140,14 @@ export class GameEngine {
     let delay: number;
     if (m.state === GameState.SlideShow) {
       // Slide (#7): null = engine default, N = N seconds, 0 = the host clicks (manual override).
-      const slideDelay = snapshot?.slides[m.slideIndex ?? -1]?.displayDelayS ?? null;
+      const slide = snapshot?.slides[m.slideIndex ?? -1];
+      const slideDelay = slide?.displayDelayS ?? null;
       if (slideDelay === 0) return;
       delay = slideDelay ? slideDelay * 1000 : defaultAutoAdvanceMs();
+      // Stretched until its timed media has played, and the quiz's pause after it (#125).
+      if (slide?.mediaHoldMs && m.slideMediaStartAt) {
+        delay = Math.max(delay, m.slideMediaStartAt + slide.mediaHoldMs - Date.now());
+      }
     } else if (m.state === GameState.Reveal) {
       // Per-question override (#6), else the engine default.
       const perQuestion = snapshot?.questions[m.currentIndex]?.revealDelayS;

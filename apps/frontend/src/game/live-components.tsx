@@ -11,7 +11,7 @@ import type {
   SlideTextAlign,
   SlideTextSize,
 } from '@quiz-dock/contracts';
-import { type ReactNode, useEffect, useRef, useState } from 'react';
+import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
@@ -25,6 +25,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar } from './avatar';
 import { Surface } from './surface';
+import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -624,9 +625,14 @@ export function AnswerExplanation({
  * full-cover background with light/dark text and a subtitle-like outline.
  */
 export function SlideView({ slide }: { slide: SlideShowPayload }) {
+  const playback = useContext(SlidePlaybackContext);
+  // A phone in the room shows the slide's background, not its video (the big screen does).
+  const video = slide.video && showsVideo(slide.video, playback) ? slide.video : null;
   return (
     <Surface
       background={slide.background}
+      // A video behind the content (#125), played as the screen's playback says.
+      backdrop={video ? <SlideVideoLayer video={video} /> : null}
       textTone={slide.textTone}
       textOutline={slide.textOutline}
       // No explicit height: a flex parent stretches it (`h-full` would opt out of stretching).
@@ -652,6 +658,8 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
             <SlideBlockView key={b.id} block={b} />
           ),
         )}
+        {/* Its sound (#125), under the content: drawn at its size, hidden by default. */}
+        {slide.audio ? <SlideSound audio={slide.audio} /> : null}
       </article>
     </Surface>
   );

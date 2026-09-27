@@ -1,4 +1,4 @@
-import { Prisma } from '@prisma/client';
+import { type MediaAsset, Prisma } from '@prisma/client';
 import type {
   OptionColor,
   OptionShape,
@@ -10,9 +10,14 @@ import type {
 } from '@quiz-dock/contracts';
 import {
   type AudioTarget,
+  LOUDNESS_TARGET_LUFS,
   effectiveTimeLimitS,
   mediaDurationMs,
+  playbackGainDb,
   resolveAudioTarget,
+  slideHasPlayback,
+  slideSoundMedia,
+  slideTimedMs,
 } from '@quiz-dock/contracts';
 import { QUESTION_MEDIA_INCLUDE, liveMediaOf } from '../questions/question-media';
 import { READ_DELAY_MS, MEDIA_LEAD_MS } from './game.keys';
@@ -38,7 +43,10 @@ const quizWithContent = Prisma.validator<Prisma.QuizDefaultArgs>()({
         acceptedAnswers: true,
       },
     },
-    slides: { orderBy: { orderIndex: 'asc' }, include: { media: true } },
+    slides: {
+      orderBy: { orderIndex: 'asc' },
+      include: { media: true, videoMedia: true, audioMedia: true },
+    },
   },
 });
 /** Whether a question plays a sound: an MP3, or a video's own track. */
@@ -46,9 +54,22 @@ export function questionHasSound(q: SnapshotQuestion): boolean {
   return !!q.media?.audio || q.media?.visual?.kind === 'video';
 }
 
-/** Whether any question plays a sound or a video: the screens ask for sound, players pick a presence. */
+/** Whether a slide plays a sound: its own, or its video's (#125). */
+export function slideHasSound(slide: SnapshotSlide): boolean {
+  return slideSoundMedia(slide) !== null;
+}
+
+/**
+ * Whether any question or slide plays a sound or a video: the screens ask for
+ * sound, players pick a presence.
+ */
 export function snapshotHasSound(snapshot: QuizSnapshot): boolean {
-  return snapshot.questions.some(questionHasSound);
+  return snapshot.questions.some(questionHasSound) || snapshot.slides.some(slideHasPlayback);
+}
+
+/** Which devices play this slide's sound: its own target, else the game's (#125). */
+export function slideAudioTarget(slide: SnapshotSlide, gameTarget: AudioTarget): AudioTarget {
+  return resolveAudioTarget(slide.audioTarget ?? null, gameTarget, null);
 }
 
 /** The game's default audio target: the host's lobby choice, else the quiz's. */
@@ -151,17 +172,56 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
  */
 function buildSnapshotSlides(quiz: QuizWithContent): SnapshotSlide[] {
   const indexById = new Map(quiz.questions.map((q, i) => [q.id, i]));
-  const end = quiz.questions.length;
-  return quiz.slides
-    .map((s) => ({
-      slide: s,
-      anchor: s.beforeQuestionId === null ? end : (indexById.get(s.beforeQuestionId) ?? end),
-    }))
-    .sort((a, b) => a.anchor - b.anchor || a.slide.orderIndex - b.slide.orderIndex)
-    .map(({ slide, anchor }) => snapshotSlide(slide, anchor));
+  return orderSlides(quiz.slides, indexById, quiz.questions.length).map(({ slide, anchor }) =>
+    snapshotSlide(slide, anchor, quiz.loudnessTargetLufs, quiz.mediaTailS),
+  );
 }
 
-function snapshotSlide(slide: QuizWithContent['slides'][number], anchor: number): SnapshotSlide {
+/** Slides anchored on question indexes (the end when unanchored), sorted by (anchor, order). */
+function orderSlides(
+  slides: QuizWithContent['slides'],
+  indexById: Map<string, number>,
+  end: number,
+) {
+  return slides
+    .map((slide) => ({
+      slide,
+      anchor:
+        slide.beforeQuestionId === null ? end : (indexById.get(slide.beforeQuestionId) ?? end),
+    }))
+    .sort((a, b) => a.anchor - b.anchor || a.slide.orderIndex - b.slide.orderIndex);
+}
+
+function snapshotSlide(
+  slide: QuizWithContent['slides'][number],
+  anchor: number,
+  targetLufs: number = LOUDNESS_TARGET_LUFS,
+  mediaTailS = 0,
+): SnapshotSlide {
+  const gain = (m: MediaAsset) => playbackGainDb(m.loudnessLufs, m.peakDbfs, targetLufs);
+  // Media (#125): a video of the right kind, and a sound only beside a muted one.
+  const v = slide.videoMedia?.kind === 'video' ? slide.videoMedia : null;
+  const a =
+    slide.audioMedia?.kind === 'audio' && !(v && slide.videoSound) ? slide.audioMedia : null;
+  const video = v
+    ? {
+        url: v.url,
+        loop: slide.videoLoop,
+        sound: slide.videoSound,
+        gainDb: gain(v),
+        ...(v.durationMs ? { durationMs: v.durationMs } : {}),
+      }
+    : null;
+  const audio = a
+    ? {
+        url: a.url,
+        durationMs: a.durationMs ?? 0,
+        peaks: a.peaks,
+        gainDb: gain(a),
+        size: slide.waveformSize,
+      }
+    : null;
+  const timedMs = slideTimedMs({ video, audio });
   return {
     id: slide.id,
     beforeQuestionIndex: anchor,
@@ -171,6 +231,10 @@ function snapshotSlide(slide: QuizWithContent['slides'][number], anchor: number)
       : slide.gradient
         ? { gradient: slide.gradient as unknown as SlideGradient }
         : null,
+    video,
+    audio,
+    audioTarget: slide.audioTarget ?? null,
+    mediaHoldMs: timedMs === null ? null : timedMs + mediaTailS * 1000,
     textTone: slide.textTone as SlideTextTone,
     textOutline: slide.textOutline,
     displayDelayS: slide.displayDelayS,
@@ -186,13 +250,29 @@ function resolveBlocks(blocks: SlideBlock[]): SlideBlock[] {
   );
 }
 
-/** Public `slide:show` payload (#7): everything in a slide is meant to be shown. */
-export function buildSlideShow(slide: SnapshotSlide, slideIndex: number): SlideShowPayload {
+/**
+ * Public `slide:show` payload (#7): everything in a slide is meant to be shown.
+ * With media (#125): who hears its sound, and when every device starts them.
+ */
+export function buildSlideShow(
+  slide: SnapshotSlide,
+  slideIndex: number,
+  /** The game's default audio target (see {@link gameAudioTarget}). */
+  gameTarget?: AudioTarget,
+  /** When the slide's media start (server ms epoch), 0 or absent when it plays none. */
+  mediaStartAt?: number,
+): SlideShowPayload {
   return {
     slideIndex,
     questionIndex: slide.beforeQuestionIndex,
     blocks: slide.blocks,
     background: slide.background,
+    ...(slide.video ? { video: slide.video } : {}),
+    ...(slide.audio ? { audio: slide.audio } : {}),
+    ...(gameTarget && slideHasSound(slide)
+      ? { audioTarget: slideAudioTarget(slide, gameTarget) }
+      : {}),
+    ...(mediaStartAt ? { mediaStartAt } : {}),
     textTone: slide.textTone,
     textOutline: slide.textOutline,
     displayDelayS: slide.displayDelayS,
@@ -274,15 +354,10 @@ export function refreshSnapshotForm(frozen: QuizSnapshot, current: QuizWithConte
   });
   // Slides anchor on question ids in the editor; resolve them onto the frozen order.
   const indexById = new Map(frozen.questions.map((q, i) => [q.id, i]));
-  const end = frozen.questions.length;
-  const slides = current.slides
-    .map((slide) => ({
-      slide,
-      anchor:
-        slide.beforeQuestionId === null ? end : (indexById.get(slide.beforeQuestionId) ?? end),
-    }))
-    .sort((a, b) => a.anchor - b.anchor || a.slide.orderIndex - b.slide.orderIndex)
-    .map(({ slide, anchor }) => snapshotSlide(slide, anchor));
+  const slides = orderSlides(current.slides, indexById, frozen.questions.length).map(
+    ({ slide, anchor }) =>
+      snapshotSlide(slide, anchor, current.loudnessTargetLufs, current.mediaTailS),
+  );
   return {
     ...frozen,
     title: fresh.title,

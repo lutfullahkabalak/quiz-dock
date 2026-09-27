@@ -342,6 +342,18 @@ model Slide {
   blocks           Json          @default("[]")
   /// Optional full-cover background image (exclusive with `gradient`).
   mediaId          String?       @map("media_id") @db.Char(26)
+  /// A video filling the slide behind its content (#125), over its background.
+  videoMediaId     String?       @map("video_media_id") @db.Char(26)
+  /// The video runs as long as the slide shows; false = played once, held on its last frame.
+  videoLoop        Boolean       @default(true) @map("video_loop")
+  /// The video plays its own sound; false = muted. With its sound, no `audioMediaId` (checked by the API).
+  videoSound       Boolean       @default(true) @map("video_sound")
+  /// The slide's sound (#125), as a question's audio slot.
+  audioMediaId     String?       @map("audio_media_id") @db.Char(26)
+  /// How thick its waveform is drawn: hidden by default (the console still draws it).
+  waveformSize     WaveformSize  @default(hidden) @map("waveform_size")
+  /// Who hears the slide's sound; null = the game's target (as a question's).
+  audioTarget      AudioTarget?  @map("audio_target")
   /// Optional generated background: `{ angle, colors[] }` (exclusive with `mediaId`).
   gradient         Json?
   /// Auto-mode display time in seconds: null = engine default, 0 = the host clicks (manual override).
@@ -355,6 +367,8 @@ model Slide {
   quiz           Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade)
   beforeQuestion Question?   @relation(fields: [beforeQuestionId], references: [id], onDelete: SetNull)
   media          MediaAsset? @relation("SlideMedia", fields: [mediaId], references: [id])
+  videoMedia     MediaAsset? @relation("SlideVideo", fields: [videoMediaId], references: [id])
+  audioMedia     MediaAsset? @relation("SlideAudio", fields: [audioMediaId], references: [id])
 
   @@index([quizId])
   @@map("slide")
@@ -408,6 +422,8 @@ model MediaAsset {
   questionAudios      Question[]     @relation("QuestionAudio")
   questionBackgrounds Question[]     @relation("QuestionBackground")
   slides              Slide[]        @relation("SlideMedia")
+  slideVideos         Slide[]        @relation("SlideVideo")
+  slideAudios         Slide[]        @relation("SlideAudio")
   options             AnswerOption[] @relation("OptionMedia")
 
   @@index([ownerId])

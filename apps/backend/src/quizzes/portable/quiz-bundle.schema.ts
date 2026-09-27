@@ -29,8 +29,14 @@ export const BUNDLE_FORMAT = 'quizdock/quiz';
  * reads as version 0 (same layout, every Store field absent); the importer
  * accepts anything up to the current version and fills the defaults.
  * Version 4: a question's waveform may be `hidden`.
+ * Version 5: slides carry media (#125) — Video and Sound blocks, a video background.
  */
-export const BUNDLE_VERSION = 4;
+export const BUNDLE_VERSION = 5;
+
+/** Whether a slide item uses what version 5 brought: a video, a sound (#125). */
+function slideUsesMedia(it: SlideBundleItem): boolean {
+  return Boolean(it.video || it.audio);
+}
 
 /**
  * The lowest version a bundle needs: an export stamps it rather than the latest,
@@ -38,6 +44,7 @@ export const BUNDLE_VERSION = 4;
  * that uses nothing newer.
  */
 export function bundleVersionOf(items: QuizBundle['items']): number {
+  if (items.some((it) => it.kind === 'slide' && slideUsesMedia(it))) return 5;
   const hides = items.some((it) => it.kind === 'question' && it.waveformSize === 'hidden');
   return hides ? 4 : 3;
 }
@@ -138,6 +145,18 @@ export const slideBundleSchema = z.object({
   kind: z.literal('slide'),
   blocks: z.array(z.unknown()).optional(),
   ...backgroundBundleFields,
+  /** An MP4 filling the slide behind its content (version 5). */
+  video: mediaPathSchema.optional(),
+  /** The video loops (version 5); absent = yes. */
+  videoLoop: z.boolean().optional(),
+  /** The video plays its own sound (version 5); absent = yes. Then no `audio`. */
+  videoSound: z.boolean().optional(),
+  /** The slide's sound (version 5). */
+  audio: mediaPathSchema.optional(),
+  /** How thick its waveform is drawn (version 5); absent = hidden. */
+  waveformSize: z.enum(WAVEFORM_SIZES).optional(),
+  /** Which devices play the slide's sound (version 5); absent = the quiz's default. */
+  audioTarget: z.enum(AUDIO_TARGETS).optional(),
   displayDelayS: z.number().int().nullable().optional(),
 });
 

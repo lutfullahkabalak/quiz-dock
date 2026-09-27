@@ -223,7 +223,12 @@ export const TRACK_FADE_S = 1.5;
  * done. An element the mixer does not hold (no Web Audio, a context not running)
  * cannot fade: it resolves at once and plays or stops as it is.
  */
-export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<void> {
+export function fadeElement(
+  el: HTMLMediaElement,
+  to: 'in' | 'out',
+  /** How long it takes (s); the short attack or release when omitted. A bed passes TRACK_FADE_S. */
+  spanS?: number,
+): Promise<void> {
   const gain = routed.get(el);
   const m = mixer;
   if (!gain || !m) return Promise.resolve();
@@ -235,12 +240,36 @@ export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<voi
     gain.gain.value = target;
     return Promise.resolve();
   }
-  const span = to === 'in' ? FADE_IN_S : FADE_OUT_S;
+  const span = spanS ?? (to === 'in' ? FADE_IN_S : FADE_OUT_S);
   const t = m.ctx.currentTime;
   gain.gain.cancelScheduledValues(t);
   gain.gain.setValueAtTime(gain.gain.value, t);
   gain.gain.linearRampToValueAtTime(target, t + span);
   return new Promise((resolve) => setTimeout(resolve, span * 1000));
+}
+
+/**
+ * Where a playing element is **heard**, in seconds: its position less the time
+ * the sound takes to leave the speakers once through the mixer — the context's
+ * own buffer and the device's output (a Bluetooth headset adds a few hundred ms).
+ * What a waveform draws and a projection reports, so the playhead passes a beat
+ * when the room hears it, not when the decoder reads it.
+ */
+export function heardTime(el: HTMLMediaElement): number {
+  if (!routed.has(el) || el.paused) return el.currentTime;
+  return Math.max(0, el.currentTime - outputLatencyS());
+}
+
+/**
+ * How long a sound takes from the mixer to the ears on this device (s): the
+ * context's buffer and the output's, as the browser tells them. A device starts
+ * that much ahead, so every device is heard on the same instant (0 when the
+ * mixer does not run: nothing goes through it).
+ */
+export function outputLatencyS(): number {
+  const m = mixer;
+  if (!m || m.ctx.state !== 'running') return 0;
+  return (m.ctx.outputLatency || 0) + (m.ctx.baseLatency || 0);
 }
 
 /** Silences a routed element at once, before a play that fades it in. */

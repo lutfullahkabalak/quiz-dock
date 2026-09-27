@@ -130,6 +130,8 @@ export function collectMediaIds(quiz: ExportableQuiz): Set<string> {
   }
   for (const s of quiz.slides) {
     add(s.mediaId);
+    add(s.videoMediaId);
+    add(s.audioMediaId);
     walkBlocks(s.blocks, (b) => {
       if (b.type === 'image' && typeof b.mediaId === 'string') add(b.mediaId);
       if (b.type === 'text' && typeof b.md === 'string') scan(b.md);
@@ -186,8 +188,19 @@ function slideOut(s: ExportableQuiz['slides'][number], pathFor: PathFor): SlideB
     textOutline: s.textOutline,
   };
   if (s.mediaId) item.backgroundImage = pathFor(s.mediaId);
+  // Media (#125): looped with its sound, a waveform hidden, unless said otherwise.
+  if (s.videoMediaId) {
+    item.video = pathFor(s.videoMediaId);
+    if (!s.videoLoop) item.videoLoop = false;
+    if (!s.videoSound) item.videoSound = false;
+  }
+  if (s.audioMediaId) {
+    item.audio = pathFor(s.audioMediaId);
+    if (s.waveformSize !== 'hidden') item.waveformSize = s.waveformSize;
+  }
   if (s.gradient) item.backgroundGradient = s.gradient as SlideBundleItem['backgroundGradient'];
   if (s.displayDelayS !== null) item.displayDelayS = s.displayDelayS;
+  if (s.audioTarget) item.audioTarget = s.audioTarget;
   return item;
 }
 
@@ -311,6 +324,10 @@ export function collectMediaPaths(bundle: QuizBundle): Set<string> {
   scan(bundle.quiz.description);
   for (const it of bundle.items) {
     add(it.backgroundImage);
+    if (it.kind === 'slide') {
+      add(it.video);
+      add(it.audio);
+    }
     if (it.kind === 'question') {
       add(it.media);
       add(it.audio);
@@ -384,20 +401,32 @@ export function fromBundle(
   let pending: SlideContent[] = [];
   bundle.items.forEach((it, index) => {
     if (it.kind === 'slide') {
-      pending.push(
-        parseOrThrow(
-          () =>
-            slideContentSchema.parse({
-              blocks: blocksIn(it.blocks ?? [], idFor),
-              mediaId: it.backgroundImage ? idFor(it.backgroundImage) : null,
-              gradient: it.backgroundGradient ?? null,
-              textTone: it.textTone,
-              textOutline: it.textOutline,
-              displayDelayS: it.displayDelayS,
-            }),
-          index,
-        ),
+      // A video holds a video, a sound a sound (#125); the one-sound rule is the schema's.
+      if (
+        (it.video && kindFor(it.video) !== 'video') ||
+        (it.audio && kindFor(it.audio) !== 'audio')
+      ) {
+        throw new BundleContentError(index, [{ field: 'media', code: 'media.wrong_kind' }]);
+      }
+      const content = parseOrThrow(
+        () =>
+          slideContentSchema.parse({
+            blocks: blocksIn(it.blocks ?? [], idFor),
+            mediaId: it.backgroundImage ? idFor(it.backgroundImage) : null,
+            gradient: it.backgroundGradient ?? null,
+            videoMediaId: it.video ? idFor(it.video) : null,
+            videoLoop: it.videoLoop,
+            videoSound: it.videoSound,
+            audioMediaId: it.audio ? idFor(it.audio) : null,
+            waveformSize: it.waveformSize,
+            audioTarget: it.audioTarget ?? null,
+            textTone: it.textTone,
+            textOutline: it.textOutline,
+            displayDelayS: it.displayDelayS,
+          }),
+        index,
       );
+      pending.push(content);
       return;
     }
     const q = parseOrThrow(

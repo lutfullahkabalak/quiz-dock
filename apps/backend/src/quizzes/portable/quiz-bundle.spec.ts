@@ -215,6 +215,59 @@ describe('quiz bundle', () => {
     expect(fromBundle(bundle, idFor).questions[0]).toMatchObject({ waveformSize: 'hidden' });
   });
 
+  it('stamps version 5 once a slide carries media, and brings them back (#125)', () => {
+    const VID = '01ARZ3NDEKTSV4RRFFQ69G5FB0';
+    const SND = '01ARZ3NDEKTSV4RRFFQ69G5FB1';
+    const src = makeQuiz();
+    Object.assign(src.slides[1], {
+      videoMediaId: VID,
+      videoLoop: false,
+      videoSound: false,
+      audioMediaId: SND,
+      waveformSize: 'L',
+      audioTarget: 'everyone',
+    });
+    const kinds: Record<string, 'image' | 'video' | 'audio'> = { [VID]: 'video', [SND]: 'audio' };
+    const kindFor = (path: string) => kinds[idFor(path)] ?? 'image';
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(5);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    const slide = bundle.items[0];
+    if (slide.kind !== 'slide') throw new Error('expected a slide');
+    expect(slide).toMatchObject({
+      backgroundImage: pathFor(BG),
+      video: pathFor(VID),
+      videoLoop: false,
+      videoSound: false,
+      audio: pathFor(SND),
+      waveformSize: 'L',
+      audioTarget: 'everyone',
+    });
+    expect([...collectMediaPaths(bundle)]).toEqual(
+      expect.arrayContaining([pathFor(VID), pathFor(SND)]),
+    );
+
+    const back = fromBundle(bundle, idFor, kindFor).slides[0].content;
+    expect(back).toMatchObject({
+      mediaId: BG,
+      videoMediaId: VID,
+      videoLoop: false,
+      videoSound: false,
+      audioMediaId: SND,
+      waveformSize: 'L',
+      audioTarget: 'everyone',
+    });
+
+    // One sound at a time: the video's own sound next to the slide's is refused.
+    slide.videoSound = true;
+    expect(() => fromBundle(bundle, idFor, kindFor)).toThrow(BundleContentError);
+    slide.videoSound = false;
+    // A video holds a video: a sound in its place is refused.
+    expect(() =>
+      fromBundle(bundle, idFor, (p) => (idFor(p) === VID ? 'audio' : kindFor(p))),
+    ).toThrow(BundleContentError);
+  });
+
   it('round-trips through import with the API content rules applied', () => {
     const src = makeQuiz();
     const imported = fromBundle(toBundle(src, pathFor), idFor);

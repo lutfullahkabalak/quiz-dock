@@ -3,6 +3,7 @@ import type {
   AudioTarget,
   PlayerPresence,
   GameMode,
+  LiveAudio,
   LiveQuestionMedia,
   OptionColor,
   OptionShape,
@@ -12,6 +13,7 @@ import type {
   QuestionType,
   SessionNotice,
   SlideBackground,
+  SlideVideo,
   SlideBlock,
   SlideTextTone,
 } from '@quiz-dock/contracts';
@@ -80,6 +82,17 @@ export interface SnapshotSlide {
   /** Blocks with image URLs resolved (the client never needs a media id). */
   blocks: SlideBlock[];
   background: SlideBackground | null;
+  /** A video filling the slide behind its content (#125), over its background. */
+  video?: SlideVideo | null;
+  /** The slide's sound (#125); never with a video that plays its own. */
+  audio?: LiveAudio | null;
+  /** Who hears the slide's sound: its own target, null = the game's (#125). */
+  audioTarget?: AudioTarget | null;
+  /**
+   * How long the slide stays at least in auto mode from its media's start: its
+   * timed media, then the quiz's pause after it (#125); null when nothing is timed.
+   */
+  mediaHoldMs?: number | null;
   textTone: SlideTextTone;
   textOutline: boolean;
   displayDelayS: number | null;
@@ -273,8 +286,15 @@ export interface GameMeta {
   clockFrozen: boolean;
   /** Deadline (ms epoch) de l'enchaînement auto en cours sur un reveal (§8), 0 sinon. */
   autoNextAt?: number;
-  /** Index of the slide on screen while `state === SLIDE_SHOW` (#7), -1 otherwise. */
+  /**
+   * Index of the slide on screen while `state === SLIDE_SHOW` (#7), or waited for
+   * while `MEDIA_LOADING` precedes a slide (#125); -1 otherwise.
+   */
   slideIndex?: number;
+  /** When the slide's videos and sound start (server ms epoch; #125), 0 when it plays none. */
+  slideMediaStartAt?: number;
+  /** When the game was paused on a slide that plays (#125), 0 otherwise: the start moves by the pause. */
+  slidePausedAt?: number;
   /** Duration (ms) of the auto-next countdown armed at `autoNextAt` (#6). */
   autoNextMs?: number;
   /** État figé avant `HOST_DISCONNECTED` (pour la reprise §7.3). */

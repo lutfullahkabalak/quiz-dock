@@ -88,7 +88,19 @@ export const GUIDE_FIELDS = {
   },
   slide: {
     described: ['kind', 'blocks'],
-    left: ['backgroundImage', 'backgroundGradient', 'textTone', 'textOutline', 'displayDelayS'],
+    left: [
+      'backgroundImage',
+      'backgroundGradient',
+      'textTone',
+      'textOutline',
+      'video',
+      'videoLoop',
+      'videoSound',
+      'audio',
+      'waveformSize',
+      'audioTarget',
+      'displayDelayS',
+    ],
   },
   block: { described: ['heading', 'text'], left: ['image', 'columns'] },
 } as const;

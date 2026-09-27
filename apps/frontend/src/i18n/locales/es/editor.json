@@ -171,7 +171,15 @@
       "large": "L"
     },
     "titleEdit": "Editar la diapositiva",
-    "titleAdd": "Nueva diapositiva"
+    "titleAdd": "Nueva diapositiva",
+    "mediaLegend": "Medios de la diapositiva",
+    "videoCover": "Llena la diapositiva detrás de su contenido (recortado a la pantalla).",
+    "videoLoop": "Bucle",
+    "videoLoopHint": "Se repite mientras se muestra la diapositiva. Desactivado: se reproduce una vez y se queda en su último fotograma; en modo automático, la diapositiva espera a que termine.",
+    "videoSound": "Sonido",
+    "videoSoundHint": "Reproduce el sonido del vídeo. Desactivado: silenciado, y la diapositiva puede tener su propio sonido.",
+    "audioExcludesVideoSound": "La diapositiva ya tiene un sonido: un solo sonido a la vez. Quítalo para activar el del vídeo.",
+    "videoSoundExcludesAudio": "El vídeo reproduce su propio sonido: ningún sonido más. Silencia el vídeo para añadir uno."
   },
   "discardConfirm": {
     "title": "¿Descartar los cambios?",

@@ -219,6 +219,8 @@ describe('MediaService', () => {
         questionAudios: 0,
         questionBackgrounds: 0,
         slides: 0,
+        slideVideos: 0,
+        slideAudios: 0,
         options: 0,
       },
     };
@@ -310,6 +312,9 @@ describe('MediaService', () => {
         questionAudios: { none: {} },
         questionBackgrounds: { none: {} },
         slides: { none: {} },
+        // A slide's video and sound (#125) hold their media too.
+        slideVideos: { none: {} },
+        slideAudios: { none: {} },
         options: { none: {} },
       });
       expect(prisma.mediaAsset.delete).toHaveBeenCalledWith(

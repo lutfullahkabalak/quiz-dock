@@ -119,6 +119,19 @@ describe('audio mixer (SPECIFICATIONS-MEDIA §9)', () => {
     expect(own.gain.value).toBe(1);
   });
 
+  it('draws where a sound is heard: its position less the output latency', async () => {
+    const mixer = mod.getMixer()!;
+    Object.assign(mixer.ctx, { outputLatency: 0.4, baseLatency: 0.01 });
+    const el = { currentTime: 3, paused: false } as unknown as HTMLMediaElement;
+    // Not through the mixer: nothing to take off.
+    expect(mod.heardTime(el)).toBe(3);
+    await mod.routeElement(el, 0);
+    expect(mod.heardTime(el)).toBeCloseTo(2.59, 5);
+    // Held: what is heard is where it stopped.
+    Object.assign(el, { paused: true });
+    expect(mod.heardTime(el)).toBe(3);
+  });
+
   it('ducks the music apart from its level, so a volume never fights a duck', () => {
     const mixer = mod.getMixer()!;
     const strip = mixer.strips.music as unknown as { level: FakeGain; duck: FakeGain };

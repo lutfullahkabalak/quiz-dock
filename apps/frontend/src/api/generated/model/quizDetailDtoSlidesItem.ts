@@ -5,9 +5,11 @@
  * API REST du builder de quiz et des restitutions
  * OpenAPI spec version: 0.1.0
  */
+import type { QuizDetailDtoSlidesItemAudioTarget } from './quizDetailDtoSlidesItemAudioTarget';
 import type { QuizDetailDtoSlidesItemBlocksItem } from './quizDetailDtoSlidesItemBlocksItem';
 import type { QuizDetailDtoSlidesItemGradient } from './quizDetailDtoSlidesItemGradient';
 import type { QuizDetailDtoSlidesItemTextTone } from './quizDetailDtoSlidesItemTextTone';
+import type { QuizDetailDtoSlidesItemWaveformSize } from './quizDetailDtoSlidesItemWaveformSize';
 
 export type QuizDetailDtoSlidesItem = {
   id: string;
@@ -24,6 +26,15 @@ export type QuizDetailDtoSlidesItem = {
   mediaId: string | null;
   /** @nullable */
   gradient: QuizDetailDtoSlidesItemGradient;
+  /** @nullable */
+  videoMediaId: string | null;
+  videoLoop: boolean;
+  videoSound: boolean;
+  /** @nullable */
+  audioMediaId: string | null;
+  waveformSize: QuizDetailDtoSlidesItemWaveformSize;
+  /** @nullable */
+  audioTarget: QuizDetailDtoSlidesItemAudioTarget;
   textTone: QuizDetailDtoSlidesItemTextTone;
   textOutline: boolean;
   /**

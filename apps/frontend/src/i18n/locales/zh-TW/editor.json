@@ -171,7 +171,15 @@
       "large": "大"
     },
     "titleEdit": "編輯簡報",
-    "titleAdd": "新增簡報"
+    "titleAdd": "新增簡報",
+    "mediaLegend": "簡報媒體",
+    "videoCover": "鋪滿簡報內容的背後（依螢幕裁切）。",
+    "videoLoop": "循環",
+    "videoLoopHint": "簡報顯示期間持續播放。關閉：只播放一次並停在最後一格——自動模式下，簡報會等它播完。",
+    "videoSound": "聲音",
+    "videoSoundHint": "播放影片本身的聲音。關閉：靜音，簡報可以有自己的聲音。",
+    "audioExcludesVideoSound": "簡報已有聲音：一次只能有一個聲音。移除它才能開啟影片的聲音。",
+    "videoSoundExcludesAudio": "影片播放本身的聲音：不能再加聲音。將影片靜音後才能加入。"
   },
   "discardConfirm": {
     "title": "放棄修改？",

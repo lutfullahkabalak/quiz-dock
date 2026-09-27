@@ -13,8 +13,9 @@ export * from './media-sniff';
 export * from './preferences';
 export * from './question-media';
 export * from './quiz-terms';
+export * from './slide-media';
 import type { ParticipantAccess } from './preferences';
-import type { AudioTarget, LiveQuestionMedia } from './question-media';
+import type { AudioTarget, LiveAudio, LiveQuestionMedia } from './question-media';
 
 export const CONTRACTS_VERSION = '0.3.0' as const;
 
@@ -274,6 +275,20 @@ export interface SlideGradient {
 export type SlideBackground = { url: string } | { gradient: SlideGradient };
 
 /**
+ * A slide's video (#125), filling the slide behind its content (cover).
+ * `loop`: it runs as long as the slide shows (else it plays once and stays on
+ * its last frame); `sound`: it plays its own sound (else muted, and the slide
+ * may have a sound of its own).
+ */
+export interface SlideVideo {
+  url: string;
+  loop: boolean;
+  sound: boolean;
+  gainDb: number;
+  durationMs?: number;
+}
+
+/**
  * A content slide on screen (#7). `questionIndex` is the question that follows
  * the slide (`totalQuestions` when the slide closes the quiz). Sent to everyone:
  * participants see the full content on their device.
@@ -289,21 +304,33 @@ export interface SlideShowPayload {
   textOutline: boolean;
   /** Auto-mode display time: null = engine default, 0 = the host clicks, else seconds. */
   displayDelayS: number | null;
+  /** A video filling the slide behind its content (#125), over its background. */
+  video?: SlideVideo | null;
+  /** The slide's sound (#125); never with a video that plays its own. */
+  audio?: LiveAudio | null;
+  /** Which devices play the slide's sound, resolved for this game (present when it has one). */
+  audioTarget?: AudioTarget;
+  /** When every device starts the slide's videos and sound (server ms epoch; present when it has some). */
+  mediaStartAt?: number;
 }
 
-/** The media of question `questionIndex`, to fetch ahead of it. */
 /**
- * What a device fetches ahead: the next question's media — only those this
- * device will show or play — and the images of the slides before it. Never
- * the prompt nor the options: the question itself stays unknown.
+ * What a device fetches ahead of the next step — a question, or a slide when
+ * `slideIndex` is set: only what this device will show or play. For a question,
+ * never its prompt nor its options: the question itself stays unknown.
  */
 export interface MediaPreloadPayload {
   questionIndex: number;
+  /** The step is the slide `slideIndex` (shown before question `questionIndex`). */
+  slideIndex?: number;
+  /** A question's media; for a slide, its sound-bearing media (see `slideSoundMedia`). */
   media: LiveQuestionMedia;
   /** Which devices will play its sound (present when it has one). */
   audioTarget?: AudioTarget;
-  /** Images of the slides shown before that question. */
+  /** Images of the slides coming (a slide's background and image blocks). */
   images?: string[];
+  /** A slide's video this device shows muted (#125). */
+  videos?: string[];
 }
 
 /**
@@ -314,6 +341,8 @@ export interface MediaPreloadPayload {
  */
 export interface MediaReadinessPayload {
   questionIndex: number;
+  /** The step is the slide `slideIndex` (#125). */
+  slideIndex?: number;
   /** Counted devices ready, out of all of them (screens and participants). */
   ready: number;
   total: number;
@@ -336,6 +365,8 @@ export interface MediaReadinessPayload {
  */
 export interface MediaPositionPayload {
   questionIndex: number;
+  /** The sound of the slide `slideIndex`, not of the question (#125). */
+  slideIndex?: number;
   t: number;
   playing: boolean;
 }
@@ -612,7 +643,7 @@ export interface ClientToServerEvents {
   'host:mode': (p: { pin: string; mode: GameMode }) => void;
   /** Suspend (`paused:true`) ou reprend (`paused:false`) l'auto-progression. */
   'host:pause': (p: { pin: string; paused: boolean }) => void;
-  /** Steer the current question's sound or video on every device that plays it: restart, play, pause, seek. */
+  /** Steer the current step's sound or video (a question's, a slide's) on every device that plays it: restart, play, pause, seek. */
   'host:media': (p: HostMediaCommand) => void;
   /** Ajoute/retire `deltaS` secondes au chrono de la question courante. */
   'host:adjust-time': (p: { pin: string; deltaS: number }) => void;
@@ -664,7 +695,7 @@ export interface ClientToServerEvents {
     ack: (res: { ok: boolean }) => void,
   ) => void;
   /** A device has loaded the sound or video it fetched ahead of `questionIndex`. */
-  'media:ready': (p: { pin: string; questionIndex: number }) => void;
+  'media:ready': (p: { pin: string; questionIndex: number; slideIndex?: number }) => void;
   /** The projection's playback position of the current sound (relayed to the room). */
   'media:position': (p: { pin: string } & MediaPositionPayload) => void;
   ping: (p: { t0: number }) => void;
@@ -681,6 +712,13 @@ export interface SessionNotice {
   joinLocked: boolean;
 }
 
+/** The room waits for media before a step (a question, or the slide `slideIndex`), until `until`. */
+export interface MediaWaitPayload {
+  questionIndex: number;
+  slideIndex?: number;
+  until: number;
+}
+
 /** Map des events serveur → client. */
 
 /**
@@ -695,6 +733,8 @@ export interface MediaAnchor {
 }
 export interface MediaControlPayload extends MediaAnchor {
   questionIndex: number;
+  /** The media of the slide `slideIndex`, not of the question (#125). */
+  slideIndex?: number;
 }
 /** The host's command on the question's media: `t` for play, pause and seek (seconds). */
 export interface HostMediaCommand {
@@ -780,10 +820,10 @@ export interface ServerToClientEvents {
   /** Who has loaded the upcoming question's sound or video (screens only). */
   'media:readiness': (p: MediaReadinessPayload) => void;
   /** The room waits for media before question `questionIndex`, until `until` (server ms epoch). */
-  'media:wait': (p: { questionIndex: number; until: number }) => void;
+  'media:wait': (p: MediaWaitPayload) => void;
   /** Where the projection is in the current sound: the other screens draw their playhead there. */
   'media:position': (p: MediaPositionPayload) => void;
-  /** The host restarts the current question's media from the top. */
+  /** Where the host put the current step's media: restart, play, pause, seek. */
   'media:control': (p: MediaControlPayload) => void;
   /**
    * Whether the quiz plays any sound (an MP3, a video), sent on attach to every

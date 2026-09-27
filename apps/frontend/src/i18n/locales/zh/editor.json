@@ -171,7 +171,15 @@
       "large": "大"
     },
     "titleEdit": "编辑幻灯片",
-    "titleAdd": "新建幻灯片"
+    "titleAdd": "新建幻灯片",
+    "mediaLegend": "幻灯片媒体",
+    "videoCover": "铺满幻灯片内容的背后（按屏幕裁剪）。",
+    "videoLoop": "循环",
+    "videoLoopHint": "幻灯片显示期间一直播放。关闭：只播放一次并停在最后一帧——自动模式下，幻灯片会等它播完。",
+    "videoSound": "声音",
+    "videoSoundHint": "播放视频自带的声音。关闭：静音，幻灯片可以有自己的声音。",
+    "audioExcludesVideoSound": "幻灯片已有声音：一次只能有一个声音。移除它才能打开视频的声音。",
+    "videoSoundExcludesAudio": "视频播放自带的声音：不能再加声音。将视频静音后才能添加。"
   },
   "discardConfirm": {
     "title": "放弃修改？",

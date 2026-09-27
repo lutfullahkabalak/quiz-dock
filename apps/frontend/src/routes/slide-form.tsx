@@ -16,6 +16,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type {
+  AudioTarget,
+  WaveformSize,
   SlideBlock,
   SlideColumnsRatio,
   SlideGradient,
@@ -62,8 +64,9 @@ import { columnsTemplate } from '../game/live-components';
 import { SlideStage } from '../game/slide-stage';
 import { BackgroundField } from './background-field';
 import { MediaUpload } from './media-upload';
+import { SlideMediaField, type SlideMediaValue } from './slide-media-field';
 
-interface FormValues {
+interface FormValues extends SlideMediaValue {
   blocks: SlideBlock[];
   mediaId: string | null;
   gradient: SlideGradient | null;
@@ -82,6 +85,12 @@ function initialValues(s?: QuizDetailDtoSlidesItem): FormValues {
     ],
     mediaId: s?.mediaId ?? null,
     gradient: (s?.gradient as SlideGradient | null | undefined) ?? null,
+    videoMediaId: s?.videoMediaId ?? null,
+    videoLoop: s?.videoLoop ?? true,
+    videoSound: s?.videoSound ?? true,
+    audioMediaId: s?.audioMediaId ?? null,
+    waveformSize: (s?.waveformSize as WaveformSize | undefined) ?? 'hidden',
+    audioTarget: (s?.audioTarget as AudioTarget | null | undefined) ?? null,
     textTone: (s?.textTone as SlideTextTone | undefined) ?? 'light',
     textOutline: s?.textOutline ?? true,
     displayDelayS: s?.displayDelayS ?? null,
@@ -165,6 +174,8 @@ export function SlideForm({
     setValues(initial);
   };
   const patch = (p: Partial<FormValues>) => setValues((v) => ({ ...v, ...p }));
+  // The sound's waveform, known once a sound is picked here (the size preview draws it).
+  const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
 
   const dirty = JSON.stringify(values) !== JSON.stringify(initial);
   useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
@@ -177,6 +188,12 @@ export function SlideForm({
       blocks: complete(values.blocks),
       mediaId: values.mediaId,
       gradient: values.gradient,
+      videoMediaId: values.videoMediaId,
+      videoLoop: values.videoLoop,
+      videoSound: values.videoSound,
+      audioMediaId: values.videoMediaId && values.videoSound ? null : values.audioMediaId,
+      waveformSize: values.waveformSize,
+      audioTarget: values.audioTarget,
       textTone: values.textTone,
       textOutline: values.textOutline,
       displayDelayS: values.displayDelayS,
@@ -216,6 +233,25 @@ export function SlideForm({
       ? { url: `/api/v1/media/${values.mediaId}` }
       : values.gradient
         ? { gradient: values.gradient }
+        : null,
+    // Its media, shown still (#125): the video's first frame, the sound's waveform when known.
+    video: values.videoMediaId
+      ? {
+          url: `/api/v1/media/${values.videoMediaId}`,
+          loop: values.videoLoop,
+          sound: values.videoSound,
+          gainDb: 0,
+        }
+      : null,
+    audio:
+      values.audioMediaId && audioPeaks && !(values.videoMediaId && values.videoSound)
+        ? {
+            url: `/api/v1/media/${values.audioMediaId}`,
+            durationMs: 0,
+            peaks: audioPeaks,
+            gainDb: 0,
+            size: values.waveformSize,
+          }
         : null,
     textTone: values.textTone,
     textOutline: values.textOutline,
@@ -288,6 +324,13 @@ export function SlideForm({
         </DndContext>
         <AddBlockBar onAdd={addBlock} />
       </fieldset>
+
+      <SlideMediaField
+        value={values}
+        onChange={(p) => patch(p)}
+        peaks={audioPeaks}
+        onPeaks={setAudioPeaks}
+      />
 
       <BackgroundField
         value={{

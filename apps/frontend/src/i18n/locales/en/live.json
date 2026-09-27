@@ -201,7 +201,8 @@
       "countdownWhen": "Over the last five seconds of the time: tic on the second, tac on the half; the last tac is left out and the gong falls on zero. Stops if everyone has answered.",
       "gongWhen": "When the question ends: on zero, or as soon as everyone has answered.",
       "musicWhen": "Loops while players answer, from the moment the answers open. It steps out while a question plays its own sound or video, and between questions, then comes back where it was."
-    }
+    },
+    "slideVideoMuted": "The slide’s video plays muted."
   },
   "screen": {
     "sessionUnavailable": "Room unavailable.",
