@@ -256,10 +256,20 @@ export function fadeElement(
  * when the room hears it, not when the decoder reads it.
  */
 export function heardTime(el: HTMLMediaElement): number {
+  if (!routed.has(el) || el.paused) return el.currentTime;
+  return Math.max(0, el.currentTime - outputLatencyS());
+}
+
+/**
+ * How long a sound takes from the mixer to the ears on this device (s): the
+ * context's buffer and the output's, as the browser tells them. A device starts
+ * that much ahead, so every device is heard on the same instant (0 when the
+ * mixer does not run: nothing goes through it).
+ */
+export function outputLatencyS(): number {
   const m = mixer;
-  if (!m || !routed.has(el) || m.ctx.state !== 'running' || el.paused) return el.currentTime;
-  const latency = (m.ctx.outputLatency || 0) + (m.ctx.baseLatency || 0);
-  return Math.max(0, el.currentTime - latency);
+  if (!m || m.ctx.state !== 'running') return 0;
+  return (m.ctx.outputLatency || 0) + (m.ctx.baseLatency || 0);
 }
 
 /** Silences a routed element at once, before a play that fades it in. */

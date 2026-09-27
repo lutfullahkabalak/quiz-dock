@@ -9,6 +9,7 @@ import {
   fadeElement,
   heardTime,
   muteElementForFade,
+  outputLatencyS,
   routeElement,
 } from './audio-mixer';
 import { unlockAudio, useAudioUnlocked } from './audio-unlock';
@@ -150,7 +151,10 @@ function usePlayback(
     anchored.current = anchor.seq;
     if (positionKey) clearPosition(positionKey);
     const jump = () => {
-      const moved = anchor.playing ? Math.max(0, serverNow() - anchor.at) / 1000 : 0;
+      // Playing on: ahead by this device's output latency, heard where the host put it.
+      const moved = anchor.playing
+        ? Math.max(0, serverNow() - anchor.at) / 1000 + (silent ? 0 : outputLatencyS())
+        : 0;
       seekTo(el, anchor.t + moved);
     };
     if (el.paused || !anchor.playing) {
@@ -164,7 +168,7 @@ function usePlayback(
       jump();
       void fadeElement(el, 'in');
     });
-  }, [el, anchor, positionKey]);
+  }, [el, anchor, positionKey, silent]);
 
   useEffect(() => {
     if (!el) return;
@@ -197,7 +201,10 @@ function usePlayback(
     // (A position of a few tenths — written as the element loads — is not a resume.)
     const resumed = positionKey !== null && resumeAt(readPosition(positionKey)) !== null;
     if (startAt !== null && !resumed && !anchor) {
-      const ahead = startAt - serverNow();
+      // Started ahead by the time its sound takes to be heard here: every device is
+      // heard on the common instant, whatever its output (a Bluetooth headset, a phone).
+      // A silent one is only seen: it keeps the instant itself.
+      const ahead = startAt - serverNow() - (silent ? 0 : outputLatencyS() * 1000);
       if (ahead > 0) wait = ahead;
       else seekTo(el, -ahead / 1000);
     }
