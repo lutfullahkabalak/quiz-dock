@@ -232,14 +232,7 @@ function HostConsole({
     return <PageLoading label={t('control.connecting')} />;
   }
   if (view.status === 'error') {
-    return (
-      <section className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-muted-foreground">{view.error ?? t('control.sessionUnavailable')}</p>
-        <Link to="/quizzes" className="underline">
-          {t('control.backToQuizzes')}
-        </Link>
-      </section>
-    );
+    return <SessionOver message={view.error ?? t('control.sessionUnavailable')} muted />;
   }
 
   // One session, three views: the console, the projected screen, a participant's phone.
@@ -280,6 +273,22 @@ function HostConsole({
         }
       />
     </>
+  );
+
+  // While the quiz runs: open the room's next quiz, or end the session.
+  const closeActions = (
+    <>
+      <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+      <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+    </>
+  );
+  // The quiz's outline, a played question showing its reveal again when picked.
+  const reviewCarousel = (
+    <QuestionCarousel
+      outline={view.outline}
+      currentIndex={view.questionIndex}
+      onSelect={(i) => review({ questionIndex: i })}
+    />
   );
 
   // ── LOBBY ────────────────────────────────────────────────────────────────
@@ -521,12 +530,7 @@ function HostConsole({
           ) : null}
         </div>
         <ActionBar
-          end={
-            <>
-              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-            </>
-          }
+          end={closeActions}
           primary={
             <Button type="button" variant="main-action" onClick={() => emit('host:next')}>
               <Play className="size-4" />
@@ -540,14 +544,7 @@ function HostConsole({
 
   // ── ENDED ─────────────────────────────────────────────────────────────────
   if (view.state === 'ENDED') {
-    return (
-      <section className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-xl font-semibold">{t('control.sessionEnded')}</p>
-        <Link to="/quizzes" className="underline">
-          {t('control.backToQuizzes')}
-        </Link>
-      </section>
-    );
+    return <SessionOver message={t('control.sessionEnded')} />;
   }
 
   // ── SLIDE_SHOW (#7) ────────────────────────────────────────────────────────
@@ -561,11 +558,7 @@ function HostConsole({
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-5')}>
         {controlBar}
-        <QuestionCarousel
-          outline={view.outline}
-          currentIndex={view.questionIndex}
-          onSelect={(i) => review({ questionIndex: i })}
-        />
+        {reviewCarousel}
         {/* Reduced base: the slide is a preview in a card, not the projection. */}
         <div className="bg-card flex rounded-xl border p-5 text-[0.8rem] sm:p-6">
           {/* Shown still, as projected: the projection plays; the transport below draws the sound. */}
@@ -610,12 +603,7 @@ function HostConsole({
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={
-            <>
-              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-            </>
-          }
+          end={closeActions}
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -635,11 +623,7 @@ function HostConsole({
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-5')}>
         {controlBar}
-        <QuestionCarousel
-          outline={view.outline}
-          currentIndex={view.questionIndex}
-          onSelect={(i) => review({ questionIndex: i })}
-        />
+        {reviewCarousel}
         {view.question && view.reveal ? (
           <RevealAnswer question={view.question} reveal={view.reveal} />
         ) : null}
@@ -658,12 +642,7 @@ function HostConsole({
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={
-            <>
-              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-            </>
-          }
+          end={closeActions}
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -793,12 +772,7 @@ function HostConsole({
       <QuestionCarousel outline={view.outline} currentIndex={view.questionIndex} />
 
       <ActionBar
-        end={
-          <>
-            <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-            <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-          </>
-        }
+        end={closeActions}
         primary={
           <Button type="button" onClick={() => emit('host:reveal')}>
             <Eye className="size-4" />
@@ -865,6 +839,19 @@ function AutoAdvanceCountdown({ deadline, totalMs }: { deadline: number; totalMs
 }
 
 /** Barre de progression générique (piste neutre + remplissage coloré animé). */
+/** Where the console has nothing left to run: why, and the way back to the quizzes. */
+function SessionOver({ message, muted = false }: { message: string; muted?: boolean }) {
+  const { t } = useTranslation('live');
+  return (
+    <section className="flex flex-col items-center gap-4 py-16 text-center">
+      <p className={muted ? 'text-muted-foreground' : 'text-xl font-semibold'}>{message}</p>
+      <Link to="/quizzes" className="underline">
+        {t('control.backToQuizzes')}
+      </Link>
+    </section>
+  );
+}
+
 function ProgressBar({
   pct,
   barClassName,
