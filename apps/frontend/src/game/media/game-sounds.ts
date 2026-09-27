@@ -147,8 +147,9 @@ export function useGameSounds(
   // The levels of the two buses follow the room's settings.
   useEffect(() => {
     if (!on || !sounds) return;
-    setRoomLevel('music', sounds.musicLevel);
-    setRoomLevel('sfx', sounds.sfxLevel);
+    // A bus the host switched off plays at 0; its level comes back with it.
+    setRoomLevel('music', sounds.musicMuted ? 0 : sounds.musicLevel);
+    setRoomLevel('sfx', sounds.sfxMuted ? 0 : sounds.sfxLevel);
   }, [on, sounds]);
 
   const last = useRef<{ state: string | null; questionIndex: number; answered: number }>({

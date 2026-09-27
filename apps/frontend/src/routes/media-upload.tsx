@@ -54,12 +54,15 @@ export function MediaUpload({
   onChange,
   kind = 'image',
   label,
+  withDetails = true,
 }: {
   value: string | null;
   onChange: (mediaId: string | null, uploaded?: UploadedMedia) => void;
   kind?: MediaKind;
   /** Wording of the add button; the image one by default. */
   label?: string;
+  /** The media's credit (and an image's alt) to edit under it; not for a room's sound. */
+  withDetails?: boolean;
 }) {
   const { t } = useTranslation('editor');
   const upload = useMediaControllerUpload();
@@ -192,7 +195,9 @@ export function MediaUpload({
           </Button>
         </div>
       )}
-      {value ? <MediaDetailsFields mediaId={value} withAlt={kind === 'image'} /> : null}
+      {value && withDetails ? (
+        <MediaDetailsFields mediaId={value} withAlt={kind === 'image'} />
+      ) : null}
       <MediaLibraryDialog
         open={libraryOpen}
         kind={kind}

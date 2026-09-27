@@ -167,7 +167,7 @@
     "participantLoading": "Prêt, médias en chargement",
     "sounds": {
       "title": "Sons du jeu",
-      "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique se tait quand une question joue son propre son.",
+      "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique joue pendant les réponses ; elle se retire pendant le son d’une question, et revient après.",
       "tick": "Tic",
       "gong": "Gong",
       "music": "Musique",
@@ -176,11 +176,15 @@
       "gongLabel": "Un gong à la fin de la question",
       "sample": "Son",
       "synth": "Intégré (synthétisé)",
+      "fromLibrary": "Un son de la médiathèque…",
+      "addSound": "Ajouter un son",
       "musicLabel": "Musique de fond pendant les réponses",
       "noMusic": "Aucune",
       "musicLevel": "Musique",
       "sfxLevel": "Effets",
-      "instanceMedia": "{{name}} (instance)"
+      "instanceMedia": "{{name}} (instance)",
+      "muteChannel": "Couper {{bus}} pour le salon",
+      "unmuteChannel": "Rétablir {{bus}} pour le salon"
     }
   },
   "screen": {
