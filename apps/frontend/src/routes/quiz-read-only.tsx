@@ -1,16 +1,18 @@
 import { Link } from '@tanstack/react-router';
 import { CopyPlus, ExternalLink, Eye, History, LayoutTemplate } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
-import { quizItems, slideLabel } from '@/lib/quiz-items';
+import { type QuizItem, quizItems, slideLabel } from '@/lib/quiz-items';
 import { cn } from '@/lib/utils';
 import type { QuizDetailDto } from '../api/generated/model';
 import { useRole } from '../auth/use-role';
 import { useCopyQuiz } from './use-copy-quiz';
 import { ScaledStage, SlideStage } from '../game/slide-stage';
 import { QuestionPreview, slideQuizFieldsOf, slideShowOf } from './quiz-stage-preview';
+import { QuestionProperties, SlideProperties } from './step-properties';
 
 /**
  * A quiz the caller may read but not change: one another host shares with the
@@ -19,11 +21,16 @@ import { QuestionPreview, slideQuizFieldsOf, slideShowOf } from './quiz-stage-pr
  * the way to see it played (Preview); a manager also reads its history. A quiz
  * shared with the instance is copied to be made one's own ("Create from this").
  */
+/** A slide's display time when it sets none (the engine's default, as the editor says). */
+const DEFAULT_SLIDE_SECONDS = 5;
+
 export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
   const { t } = useTranslation(['editor', 'common']);
   const { isManager, isHost } = useRole();
   const { copy, copying } = useCopyQuiz();
+  const [selectedIndex, setSelectedIndex] = useState(0);
   const items = quizItems(quiz);
+  const selected = items[Math.min(selectedIndex, items.length - 1)] as QuizItem | undefined;
 
   let questionIndex = 0;
   return (
@@ -76,49 +83,90 @@ export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
         ) : null}
       </header>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="text-lg font-semibold">
-          {t('questions.title', { count: quiz.questionCount })}
-        </h2>
-        {/* Each step as it will show, still: the slides and the questions on their stage. */}
-        <ol className="grid gap-4 lg:grid-cols-2">
-          {items.map((item, index) => {
-            const isSlide = item.kind === 'slide';
-            if (!isSlide) questionIndex += 1;
-            return (
-              <li key={item.id} className="flex flex-col gap-2">
-                <span className="text-muted-foreground flex items-center gap-2 text-sm">
-                  <span
+      {/* The editor's layout: the sequence on the left, the selected step on the right. */}
+      <div className="grid grid-cols-1 items-start gap-8 lg:grid-cols-[22rem_minmax(0,1fr)] xl:grid-cols-[24rem_minmax(0,1fr)]">
+        <aside className="flex min-w-0 flex-col gap-3 lg:sticky lg:top-6 lg:max-h-[calc(100dvh-3rem)]">
+          <h2 className="text-lg font-semibold">
+            {t('questions.title', { count: quiz.questionCount })}
+          </h2>
+          {/* The list scrolls on its own: a long quiz never pushes the detail away. */}
+          <ul className="flex min-h-0 flex-col gap-0.5 lg:overflow-y-auto lg:pr-1">
+            {items.map((item, index) => {
+              const isSlide = item.kind === 'slide';
+              if (!isSlide) questionIndex += 1;
+              const active = item.id === selected?.id;
+              const meta = isSlide
+                ? `${t('slides.kind')} · ${
+                    item.slide.displayDelayS === 0
+                      ? t('slides.durationManual')
+                      : `${item.slide.displayDelayS ?? DEFAULT_SLIDE_SECONDS} s`
+                  }`
+                : `${t(`questionType.${item.question.type}`, { defaultValue: item.question.type })} · ${item.question.timeLimitS} s`;
+              return (
+                <li key={item.id}>
+                  <button
+                    type="button"
+                    aria-current={active ? 'true' : undefined}
+                    onClick={() => setSelectedIndex(index)}
                     className={cn(
-                      'flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums',
-                      isSlide ? '' : 'bg-muted',
+                      'flex w-full min-w-0 items-start gap-3 rounded-xl border border-transparent px-2 py-3 text-left transition-colors',
+                      active ? 'bg-primary/5 border-primary/30' : 'hover:bg-accent/60',
                     )}
-                    aria-label={isSlide ? t('slides.kind') : undefined}
                   >
-                    {isSlide ? <LayoutTemplate className="size-4" /> : questionIndex}
-                  </span>
-                  <Markdown profile="inline" className="line-clamp-1 block min-w-0">
-                    {isSlide ? slideLabel(item.slide) : item.question.prompt}
-                  </Markdown>
-                </span>
-                {isSlide ? (
+                    <span
+                      className={cn(
+                        'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums',
+                        isSlide ? 'text-muted-foreground' : 'bg-muted text-muted-foreground',
+                        active && !isSlide && 'bg-primary text-primary-foreground',
+                      )}
+                      aria-label={isSlide ? t('slides.kind') : undefined}
+                    >
+                      {isSlide ? <LayoutTemplate className="size-4" /> : questionIndex}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <Markdown profile="inline" className="line-clamp-2 block text-sm font-medium">
+                        {isSlide ? slideLabel(item.slide) : item.question.prompt}
+                      </Markdown>
+                      <span className="text-muted-foreground mt-0.5 block truncate text-xs">
+                        {meta}
+                      </span>
+                    </span>
+                  </button>
+                </li>
+              );
+            })}
+            {items.length === 0 ? (
+              <li className="text-muted-foreground rounded-xl border border-dashed py-10 text-center text-sm">
+                {t('questions.empty')}
+              </li>
+            ) : null}
+          </ul>
+        </aside>
+
+        <section className="min-h-[24rem] min-w-0">
+          {selected ? (
+            <div className="bg-muted/40 flex flex-col gap-4 rounded-2xl p-6">
+              {/* As it will show, still: on the projection's stage. */}
+              {selected.kind === 'slide' ? (
+                <>
                   <SlideStage
                     className="rounded-xl border"
-                    slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz))}
+                    slide={slideShowOf(selected.slide, selectedIndex, slideQuizFieldsOf(quiz))}
                   />
-                ) : (
+                  <SlideProperties slide={selected.slide} />
+                </>
+              ) : (
+                <>
                   <ScaledStage className="rounded-xl border">
-                    <QuestionPreview question={item.question} />
+                    <QuestionPreview question={selected.question} />
                   </ScaledStage>
-                )}
-              </li>
-            );
-          })}
-        </ol>
-        {items.length === 0 ? (
-          <p className="text-muted-foreground text-sm">{t('questions.empty')}</p>
-        ) : null}
-      </section>
+                  <QuestionProperties question={selected.question} />
+                </>
+              )}
+            </div>
+          ) : null}
+        </section>
+      </div>
     </div>
   );
 }

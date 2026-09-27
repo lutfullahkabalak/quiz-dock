@@ -470,6 +470,12 @@
   },
   "readOnly": {
     "notice": "{{owner}} 的測驗：你可以檢視，但不能修改。",
-    "createFrom": "以此測驗建立"
+    "createFrom": "以此測驗建立",
+    "props": {
+      "orderShown": "依正確順序列出。",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒",
+      "muted": "靜音"
+    }
   }
 }

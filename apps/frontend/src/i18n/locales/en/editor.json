@@ -470,6 +470,12 @@
   },
   "readOnly": {
     "notice": "{{owner}}'s quiz: you can read it, not change it.",
-    "createFrom": "Create from this quiz"
+    "createFrom": "Create from this quiz",
+    "props": {
+      "orderShown": "Listed in the right order.",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "muted": "muted"
+    }
   }
 }

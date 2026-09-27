@@ -470,6 +470,12 @@
   },
   "readOnly": {
     "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier.",
-    "createFrom": "Créer à partir de ce quiz"
+    "createFrom": "Créer à partir de ce quiz",
+    "props": {
+      "orderShown": "Listées dans le bon ordre.",
+      "seconds_one": "{{count}} seconde",
+      "seconds_other": "{{count}} secondes",
+      "muted": "sans le son"
+    }
   }
 }

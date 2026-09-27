@@ -470,6 +470,12 @@
   },
   "readOnly": {
     "notice": "Cuestionario de {{owner}}: puedes consultarlo, no modificarlo.",
-    "createFrom": "Crear a partir de este quiz"
+    "createFrom": "Crear a partir de este quiz",
+    "props": {
+      "orderShown": "Listadas en el orden correcto.",
+      "seconds_one": "{{count}} segundo",
+      "seconds_other": "{{count}} segundos",
+      "muted": "silenciado"
+    }
   }
 }
