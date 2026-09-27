@@ -5,9 +5,8 @@ import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { quizItems } from '@/lib/quiz-items';
 import { useFullscreen } from '@/lib/use-fullscreen';
-import { ScaledStage, SlideStage } from '../game/slide-stage';
 import type { QuizDetailDto } from '../api/generated/model';
-import { QuestionPreview, slideQuizFieldsOf, slideShowOf } from './quiz-stage-preview';
+import { StepStage } from './quiz-stage-preview';
 import { useQuizzesControllerGet } from '../api/generated/quizzes/quizzes';
 import { previewRoute } from '../router';
 import { useMediaControllerCredits } from '../api/generated/media/media';
@@ -92,16 +91,7 @@ function QuizPreview({ quiz }: { quiz: QuizDetailDto }) {
             className="mx-auto w-full"
             style={{ maxWidth: `calc((100dvh - ${isFullscreen ? 10 : 16}rem) * 16 / 9)` }}
           >
-            {item.kind === 'question' ? (
-              <ScaledStage className="rounded-xl border">
-                <QuestionPreview question={item.question} />
-              </ScaledStage>
-            ) : (
-              <SlideStage
-                className="rounded-xl border"
-                slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz))}
-              />
-            )}
+            <StepStage item={item} index={index} quiz={quiz} />
           </div>
         </>
       )}

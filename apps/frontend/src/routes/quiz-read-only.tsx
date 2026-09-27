@@ -10,8 +10,7 @@ import { cn } from '@/lib/utils';
 import type { QuizDetailDto } from '../api/generated/model';
 import { useRole } from '../auth/use-role';
 import { useCopyQuiz } from './use-copy-quiz';
-import { ScaledStage, SlideStage } from '../game/slide-stage';
-import { QuestionPreview, slideQuizFieldsOf, slideShowOf } from './quiz-stage-preview';
+import { StepStage } from './quiz-stage-preview';
 import { QuestionProperties, SlideProperties } from './step-properties';
 
 /**
@@ -147,21 +146,11 @@ export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
           {selected ? (
             <div className="bg-muted/40 flex flex-col gap-4 rounded-2xl p-6">
               {/* As it will show, still: on the projection's stage. */}
+              <StepStage item={selected} index={selectedIndex} quiz={quiz} />
               {selected.kind === 'slide' ? (
-                <>
-                  <SlideStage
-                    className="rounded-xl border"
-                    slide={slideShowOf(selected.slide, selectedIndex, slideQuizFieldsOf(quiz))}
-                  />
-                  <SlideProperties slide={selected.slide} />
-                </>
+                <SlideProperties slide={selected.slide} />
               ) : (
-                <>
-                  <ScaledStage className="rounded-xl border">
-                    <QuestionPreview question={selected.question} />
-                  </ScaledStage>
-                  <QuestionProperties question={selected.question} />
-                </>
+                <QuestionProperties question={selected.question} />
               )}
             </div>
           ) : null}

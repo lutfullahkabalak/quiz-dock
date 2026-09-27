@@ -15,6 +15,8 @@ import type {
   QuizDetailDtoQuestionsItem,
   QuizDetailDtoSlidesItem,
 } from '../api/generated/model';
+import type { QuizItem } from '@/lib/quiz-items';
+import { ScaledStage, SlideStage } from '../game/slide-stage';
 
 /**
  * A quiz's steps as they will show, still: what the preview walks through and
@@ -68,8 +70,9 @@ export function slideShowOf(
 export function QuestionPreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
   const { t } = useTranslation('editor');
   return (
-    <article className="flex h-full w-full flex-col justify-center gap-5 p-12">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
+    // Centred, as the projection shows a question.
+    <article className="flex h-full w-full flex-col items-center justify-center gap-5 p-12 text-center">
+      <div className="text-sm uppercase tracking-wide text-muted-foreground">
         {t(`questionType.${question.type}`, { defaultValue: question.type })}
       </div>
       {question.media?.visual?.kind === 'image' && (
@@ -101,7 +104,7 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
       <div className="text-muted-foreground text-xl">⏱ {question.timeLimitS} s</div>
 
       {question.options.length > 0 && (
-        <ul className="grid grid-cols-2 gap-4">
+        <ul className="grid w-full grid-cols-2 gap-4 text-left">
           {question.options.map((opt) => (
             <li
               key={opt.id}
@@ -144,5 +147,34 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
         </div>
       )}
     </article>
+  );
+}
+
+/**
+ * One step of a quiz as it will show, still, on the projection's 16:9 stage — a
+ * slide (its background, video and variables filled) or a question (its media,
+ * answers, the right ones marked). The one preview every page shows.
+ */
+export function StepStage({
+  item,
+  index,
+  quiz,
+  className,
+}: {
+  item: QuizItem;
+  /** Its place in the sequence. */
+  index: number;
+  quiz: QuizDetailDto;
+  className?: string;
+}) {
+  return item.kind === 'slide' ? (
+    <SlideStage
+      className={cn('rounded-xl border', className)}
+      slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz))}
+    />
+  ) : (
+    <ScaledStage className={cn('rounded-xl border', className)}>
+      <QuestionPreview question={item.question} />
+    </ScaledStage>
   );
 }
