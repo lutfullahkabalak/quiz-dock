@@ -15,8 +15,6 @@
     "italic": "Italic",
     "code": "Code",
     "codeBlock": "Code block",
-    "image": "Insert an image",
-    "uploading": "Uploading…",
     "bulletList": "Bulleted list",
     "orderedList": "Numbered list"
   },
@@ -36,12 +34,12 @@
     "preview": "Preview",
     "feedback": "Reviews",
     "sessions": "History",
-    "session": "Session",
+    "session": "Room",
     "player": "Participant",
     "control": "Console",
     "screen": "Projection",
     "join": "Join",
-    "live": "Live sessions",
+    "live": "Open rooms",
     "templates": "Templates",
     "profile": "My account",
     "template": "Template"

@@ -15,8 +15,6 @@
     "italic": "斜体",
     "code": "代码",
     "codeBlock": "代码块",
-    "image": "插入图片",
-    "uploading": "上传中…",
     "bulletList": "无序列表",
     "orderedList": "有序列表"
   },
@@ -36,12 +34,12 @@
     "preview": "预览",
     "feedback": "评价",
     "sessions": "历史",
-    "session": "会话",
+    "session": "房间",
     "player": "参与者",
     "control": "控制台",
     "screen": "投影",
     "join": "加入",
-    "live": "进行中的会话",
+    "live": "开放的房间",
     "templates": "模板",
     "profile": "我的账号",
     "template": "模板"

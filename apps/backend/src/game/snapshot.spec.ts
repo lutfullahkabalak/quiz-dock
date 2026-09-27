@@ -133,6 +133,38 @@ describe('buildSnapshot', () => {
     });
   });
 
+  it('image choice: several right pictures travel, each with its own alt before the asset’s', () => {
+    const picture = (id: string, alt: string | null, isCorrect: boolean) => ({
+      id,
+      text: null,
+      alt,
+      color: 'red',
+      shape: 'triangle',
+      media: { url: `/media/${id}`, kind: 'image', alt: 'Asset alt' },
+      isCorrect,
+      correctOrderIndex: null,
+    });
+    const snap = buildSnapshot(
+      quiz({
+        questions: [
+          {
+            ...baseQuestion,
+            type: 'image_choice',
+            pointsMode: 'standard',
+            multiSelect: true,
+            options: [picture('o1', 'Un chat', true), picture('o2', null, true)],
+          },
+        ] as never,
+      }),
+    );
+    expect(snap.questions[0].multiSelect).toBe(true);
+    const start = buildQuestionStart(snap.questions[0], 0, 0, 0, 'projection', null);
+    expect(start.multiSelect).toBe(true);
+    expect(start.options?.map((o) => o.media?.alt)).toEqual(['Un chat', 'Asset alt']);
+    // Never the answer key before the reveal.
+    expect(JSON.stringify(start)).not.toContain('isCorrect');
+  });
+
   it('carries an audio track with its waveform and the gain it plays at', () => {
     const peaks = new Array(200).fill(0.4);
     const audio = { url: '/media/a', kind: 'audio', durationMs: 8000, peaks };
@@ -176,8 +208,9 @@ describe('buildSnapshot', () => {
         ],
       } as never),
     );
-    // Starts 3 s before the answers open (read delay), 42 s long, +3 s → 42 s of answering.
-    expect(snap.questions[0].timeLimitS).toBe(42);
+    // The question shows, its sound starts 1.6 s later (MEDIA_LEAD_MS) — 1.4 s before the
+    // answers open (3 s read delay) —, 42 s long, +3 s → 43.6 s of answering, rounded up.
+    expect(snap.questions[0].timeLimitS).toBe(44);
     expect(snap.questions[1].timeLimitS).toBe(20);
   });
 
@@ -391,5 +424,47 @@ describe('buildSnapshot', () => {
     });
     expect(snap.slides[0].background).toEqual({ url: '/api/v1/media/BG' });
     expect(snap.slides[0]).toMatchObject({ textTone: 'dark', textOutline: true });
+  });
+
+  it('slides: the quiz’s variables are filled, the room’s left to the screens', () => {
+    const snap = buildSnapshot(
+      quiz({
+        title: 'Capitales',
+        description: 'Tour d’Europe',
+        tags: ['europe'],
+        license: 'CC-BY-4.0',
+        owner: { displayName: 'Billy' },
+        questions: [baseQuestion] as never,
+        slides: [
+          {
+            id: 's',
+            beforeQuestionId: null,
+            orderIndex: 0,
+            blocks: [
+              { type: 'heading', id: 'h', text: '{title} — {questions} questions', level: 1 },
+              {
+                type: 'columns',
+                id: 'c',
+                columns: [
+                  [{ type: 'text', id: 't', md: '{description} par {author} ({tags}, {license})' }],
+                  [{ type: 'text', id: 'u', md: 'PIN {pin}, {unknown}' }],
+                ],
+              },
+            ],
+            media: null,
+            displayDelayS: null,
+            textTone: 'light',
+            textOutline: true,
+          },
+        ] as never,
+      } as never),
+    );
+    const [heading, cols] = snap.slides[0].blocks;
+    expect(heading).toMatchObject({ text: 'Capitales — 1 questions' });
+    if (cols.type !== 'columns') throw new Error('expected columns');
+    expect(cols.columns[0][0]).toMatchObject({
+      md: 'Tour d’Europe par Billy (europe, CC-BY-4.0)',
+    });
+    expect(cols.columns[1][0]).toMatchObject({ md: 'PIN {pin}, {unknown}' });
   });
 });

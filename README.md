@@ -54,10 +54,12 @@ your phone to play.
   in step; each player gets a generated [Multiavatar](https://multiavatar.com) avatar.
 - 🖥️ **Made for the big screen** — bright, high-contrast projection screens, with
   separate projection and control windows; manual or automatic pacing.
-- 🧩 **A real quiz builder** — seven question types (single/multi choice, true-false,
-  text, numeric, reorder, poll), images with alternative text, Markdown everywhere, content
-  slides between questions, backgrounds, answer explanations at the reveal.
-- 🎧 **Video & sound — _experimental_** — videos and sounds in questions,
+- 🧩 **A real quiz builder** — eight question types (single/multi choice, true-false,
+  text, numeric, reorder, poll, and image choice — pictures as the answers), images with
+  alternative text, Markdown everywhere, content
+  slides between questions, backgrounds, answer explanations at the reveal. A new quiz
+  starts from a draft: an intro slide and a first question to complete.
+- 🎧 **Video & sound** — videos and sounds in questions and slides,
   loudness-matched, drawn as a waveform with a playhead; played on the projection and on
   the devices of **remote participants** (who hears what is set per quiz, per question and
   per session), started on the same instant everywhere, fetched ahead from the lobby, and
@@ -73,6 +75,9 @@ your phone to play.
 - 🏆 **Scoring that rewards speed** — time-weighted points, streak bonuses, leaderboard
   between questions, final podium; per-question rules (*closest answer wins*, partial
   credit, typo-tolerant text, double or fixed points).
+- 🔁 **Several quizzes in one room** — players join once and stay: the host picks the
+  next quiz at the podium, everyone meets again in its lobby, and the room keeps its
+  own standings across the quizzes, shown live and kept in *History* with the results.
 - 🏠 **Self-hosted and private** — one Docker image (`amd64` / `arm64`), no SaaS, no
   tracking, no ads; interface in English, French, Spanish, Simplified and Traditional
   Chinese; rebrand name, logo and CSS without a rebuild.
@@ -131,7 +136,7 @@ docker compose -f docker-compose.prod.yml up -d
 # open http://localhost:18080
 ```
 
-Pin a version with `QUIZDOCK_TAG=0.8.0 docker compose -f docker-compose.prod.yml up -d`.
+Pin a version with `QUIZDOCK_TAG=0.9.0 docker compose -f docker-compose.prod.yml up -d`.
 From source: `git clone https://github.com/quizdock/quiz-dock.git`, then the same command
 with `--build`.
 
@@ -139,7 +144,7 @@ with `--build`.
 
 Migrations run **automatically** on every start: pull the new tag and `up` again.
 **Back up PostgreSQL first**, and **don't roll back** an image once its migrations ran —
-restore the backup instead. With the script: `./quizdock upgrade 0.8.0` (backup → pull →
+restore the backup instead. With the script: `./quizdock upgrade 0.9.0` (backup → pull →
 restart → doctor). Full procedure:
 [self-hosting → Upgrading](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/upgrading.md).
 
@@ -178,8 +183,8 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/templates.png" alt="Shared templates" /><br /><sub><b>Templates</b> — quizzes shared on the instance; take an independent copy</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/editor.png" alt="Quiz builder" /><br /><sub><b>Quiz builder</b> — 7 question types, video &amp; sound, slides, backgrounds, scoring rules</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — lobby: PIN, QR code, players in the room or remote, who hears the sound</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/editor.png" alt="Quiz builder" /><br /><sub><b>Quiz builder</b> — 8 question types, video &amp; sound, slides, backgrounds, scoring rules</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — the room's lobby: PIN, QR code, players in the room or remote and who is ready, the game's sounds</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/media-library.png" alt="My media" /><br /><sub><b>My media</b> — reuse what you uploaded, sizes and usages; global media one tab away</sub></td>
@@ -187,7 +192,7 @@ hosted elsewhere).
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/participant-access.png" alt="Participant access at launch" /><br /><sub><b>Who can join</b> — with an account, or with the PIN and a nickname alone</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — open access and lock" /><br /><sub><b>Close the game</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — closed room" /><br /><sub><b>Close the room</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/join.png" alt="Join by PIN, nickname and avatar" /><br /><sub><b>Join</b> — PIN or QR code, nickname &amp; avatar, in the room or remote, no account</sub></td>
@@ -197,11 +202,19 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-play.png" alt="Player — question and reveal" /><br /><sub><b>Player</b> — colour tiles to tap, then own result</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-reveal.png" alt="Projection — reveal" /><br /><sub><b>Reveal</b> — distribution, explanation, live leaderboard</sub></td>
   </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/image-choice.png" alt="Projection — image choice" /><br /><sub><b>Image choice</b> — pictures as the answers, each with its colour and shape</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-big-screen.png" alt="Remote player — the question, or the big screen" /><br /><sub><b>Remote player</b> — the whole question on their phone, or the big screen itself</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-room-next.png" alt="Host console — the next quiz in the room" /><br /><sub><b>The next quiz</b> — same room, same players, the standings carried over</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-background-sound.png" alt="Slide with a background and a sound" /><br /><sub><b>Slides</b> — pictures, columns, backgrounds, a video or a sound</sub></td>
+  </tr>
 </table>
 
-More — content slides, the console during a question and at the reveal,
-the podium, the player's ordering and feedback screens, the global media, the preview
-of a sound on its waveform, the account preferences:
+More — every question type and slide on the big screen, the builder of an image choice and
+of a slide, the console during a question, a slide and the reveal, the podium, the player's
+ordering and feedback screens, the global media, the account preferences:
 [full gallery](https://github.com/quizdock/quiz-dock/blob/main/docs/screenshots/README.md).
 
 ## 📋 More features
@@ -209,15 +222,21 @@ of a sound on its waveform, the account preferences:
 <details>
 <summary>Everything else QuizDock does</summary>
 
-- 📝 **Rich text** — prompts, options and descriptions in Markdown with a visual editor (bold, lists, code, inline images).
-- 🎞️ **Content slides** — headings, text, images, 2–3 columns between questions; image or gradient backgrounds for slides and questions, with a faithful 16:9 preview.
+- 📝 **Rich text** — prompts, options and descriptions in Markdown with a visual editor (bold, lists, code).
+- 🎞️ **Content slides** — headings, text, images, 2–3 columns between questions; image or gradient backgrounds for slides and questions, with a faithful 16:9 preview. A slide can play a video behind its content (looped or once, with its sound or muted) and a sound, set like a question's; in automatic mode it waits for them to play. Its text can name the quiz and the room — `{title}`, `{pin}`, `{players}`, `{question}` and more, filled wherever the slide shows.
 - 💡 **Answer explanations** — shown at the reveal, with a per-question reveal delay in automatic mode.
 - 👁️ **Preview** — rehearse your quiz exactly as it will look on the big screen, answers shown.
+- 🤝 **Share with the other hosts** — one switch in a quiz's settings: the other hosts of the instance find it in their quizzes, marked with a lock, read it step by step (as it will show, and how each question is scored) and create their own copy from it. Off by default: a quiz stays yours alone.
 - 🧾 **Credits** — author, licence and source on every media, carried with a quiz when it is exported or shared; listed on the preview page and in small print under the podium, as a CC-BY licence asks.
 - 🗄️ **Instance media** _(administrators)_ — disk used by kind and by owner, the clean-up (unused media, stray files, run it now), every file with its size in pixels, owners and usages, as a list or a grid with a preview (sound on its waveform); global media uploaded or added from any file; a file deleted even when used (moderation), once its usages are listed.
 - 🧹 **Media housekeeping** — each file stored once (SHA-256), unused media and stray files cleaned up hourly, older formats kept playing.
-- 🎛️ **Host in control** — Console / Projection / Participant views, look back over played questions without replaying anything, layout edits reach a running session at its next step, sessions survive a server restart.
+- 🎛️ **Host in control** — Console / Projection / Participant views, the space bar pauses and resumes the game, look back over played questions without replaying anything, layout edits reach a running session at its next step, sessions survive a server restart.
+- 🎚️ **The sound in the host's hands** — from the console, play / pause the question's sound or video on every device at once, click or drag its waveform to a point, or take it back to the top; a waveform can be hidden from the screens and still show on the console; every start and stop fades, no clicks. The background track never plays over a question's own sound: it steps out and comes back; every mixer has a mute per channel. The game's own sounds, synthesised in the browser: a ding as a question appears, a tick per answer, a tick-tock on the last five seconds and a gong on zero — each can be switched off, previewed on the console, or replaced by a sound of the library.
+- 🗂️ **Your bank at a glance** — My quizzes and the templates as a list or a grid (each quiz showing its first slide), filtered by status, owner, language and tags, each quiz with its size, language, date, licence and tags; archived quizzes kept out of the way.
 - 🌐 **Remote participants** _(experimental)_ — a participant following from home says so when joining and gets the whole question on their device, sound and video included; the console shows who is remote and whose media are loaded.
+- 📺 **The projection on your own device** — a participant shares the big screen to a tablet or a computer (a link or a QR code, never their seat): it follows the projection, muted in the room, with sound for someone following from home. On the same phone, one tap switches between the answers and the big screen.
+- ✋ **Ready!** — participants say they are ready in the lobby; the host sees one count, including whose media are still loading, and still starts when they choose.
+- 🔔 **Game sounds** — a tick at each answer, a gong at the reveal, a background track from your library while players answer (never over a question's own sound); set for the room from the lobby, kept from one quiz to the next. A sound button on every screen that plays something, a mixer for the room on the console, and one per device; *Without sound* for whoever prefers silence.
 - 🔓 **Players without an account** — where everyone signs in, a host can still open a game to the PIN and a nickname alone, for visitors or trainees who have no account; chosen at each launch, or once and for all in *My account*.
 - 🛡️ **Keep the room to itself** — close the game to newcomers once everyone is in (or during play), remove a player, and guessing PINs is slowed down.
 - 📡 **Invitation address** — the QR code and join link point where participants can actually reach the instance (public URL, LAN IP, or any address), chosen from the console.
@@ -226,7 +245,7 @@ of a sound on its waveform, the account preferences:
 - 🔎 **History & exploration** — browse archived sessions: per-question success rates, average times, per-player answer sheets.
 - 📤 **CSV export** — overall results and per-player answer sheets.
 - 🏷️ **Licence, tags and language of a quiz** — set in the quiz settings and carried with it, so whoever receives a copy knows what they may do with it and what it is about.
-- 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI.
+- 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot or another tool? A [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import.
 - 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the five.
 - 🎨 **White-label** — name, logo and CSS via env + a mounted folder, no rebuild.
 - 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
@@ -250,6 +269,10 @@ pnpm install
 docker compose up -d
 # Front: http://localhost:15173   ·   API: http://localhost:13000   ·   API docs: http://localhost:13000/api/docs
 ```
+
+A hundred ready quizzes to stress the lists (`[stress]` titles, given to the host-seat holder;
+`--count N`, `--owner <subject>`, `--clean` to remove them):
+`pnpm --filter @quiz-dock/backend db:seed-stress`.
 
 Design references live in [`specifications/`](https://github.com/quizdock/quiz-dock/blob/main/specifications/README.md);
 ongoing notes and decisions in [`docs/`](https://github.com/quizdock/quiz-dock/blob/main/docs/README.md)

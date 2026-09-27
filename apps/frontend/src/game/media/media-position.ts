@@ -41,6 +41,23 @@ export function clearPosition(key: string): void {
   }
 }
 
+/**
+ * Forgets every position of a room: its PIN stays from one quiz to the next (#89),
+ * and a quiz played again would read its last run's "played to the end" and never
+ * start. Called as a lobby opens — every game starts from one.
+ */
+export function clearRoomPositions(pin: string): void {
+  try {
+    const mine = `${PREFIX}${pin}:`;
+    for (let i = sessionStorage.length - 1; i >= 0; i--) {
+      const key = sessionStorage.key(i);
+      if (key?.startsWith(mine)) sessionStorage.removeItem(key);
+    }
+  } catch {
+    /* nothing to clear */
+  }
+}
+
 /** Where to start a media that was interrupted: a second before its point, or null to start over. */
 export function resumeAt(position: MediaPosition | null): number | null {
   if (!position || position.ended || position.t <= RESUME_REWIND_S) return null;

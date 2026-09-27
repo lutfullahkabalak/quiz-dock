@@ -9,12 +9,14 @@
  * (maps `ClientToServerEvents`/`ServerToClientEvents`) du contrat temps réel.
  */
 
+export * from './image-choice';
 export * from './media-sniff';
 export * from './preferences';
 export * from './question-media';
 export * from './quiz-terms';
+export * from './slide-media';
 import type { ParticipantAccess } from './preferences';
-import type { AudioTarget, LiveQuestionMedia } from './question-media';
+import type { AudioTarget, LiveAudio, LiveQuestionMedia } from './question-media';
 
 export const CONTRACTS_VERSION = '0.3.0' as const;
 
@@ -47,6 +49,8 @@ export enum QuestionType {
   Numeric = 'numeric',
   Ordering = 'ordering',
   Poll = 'poll',
+  /** Answers that are pictures (see image-choice.ts). */
+  ImageChoice = 'image_choice',
 }
 
 /** Mode de points d'une question (technique §5). */
@@ -104,6 +108,14 @@ export const ClientEvents = {
   HostReveal: 'host:reveal',
   HostKick: 'host:kick',
   HostEnd: 'host:end',
+  /** The participant is ready, or not yet, in the lobby (#104). */
+  PlayerReady: 'player:ready',
+  /** The room's game sounds (#93). */
+  HostSounds: 'host:sounds',
+  /** Names the room (from its lobby); every screen shows it. */
+  HostRoomName: 'host:room-name',
+  /** Opens the next quiz in the room (from its lobby or its podium); the players stay. */
+  HostNextQuiz: 'host:next-quiz',
   /** Bannit un joueur pour une durée donnée (exclusion immédiate, RG-12). */
   HostBan: 'host:ban',
   /** (Dé)active la capture intégrale depuis le lobby, avant le démarrage (RG-13). */
@@ -199,6 +211,8 @@ export interface QuestionStartPayload {
   /** Which devices play its sound, resolved for this game (present when it has one). */
   audioTarget?: AudioTarget;
   options?: PublicOption[];
+  /** image_choice: several pictures may be picked (absent = one). */
+  multiSelect?: boolean;
   timeLimitS: number;
   basePoints: number;
   /** Scoring rule of the question (so the rules line and the reveal can explain it). */
@@ -266,6 +280,20 @@ export interface SlideGradient {
 export type SlideBackground = { url: string } | { gradient: SlideGradient };
 
 /**
+ * A slide's video (#125), filling the slide behind its content (cover).
+ * `loop`: it runs as long as the slide shows (else it plays once and stays on
+ * its last frame); `sound`: it plays its own sound (else muted, and the slide
+ * may have a sound of its own).
+ */
+export interface SlideVideo {
+  url: string;
+  loop: boolean;
+  sound: boolean;
+  gainDb: number;
+  durationMs?: number;
+}
+
+/**
  * A content slide on screen (#7). `questionIndex` is the question that follows
  * the slide (`totalQuestions` when the slide closes the quiz). Sent to everyone:
  * participants see the full content on their device.
@@ -281,21 +309,33 @@ export interface SlideShowPayload {
   textOutline: boolean;
   /** Auto-mode display time: null = engine default, 0 = the host clicks, else seconds. */
   displayDelayS: number | null;
+  /** A video filling the slide behind its content (#125), over its background. */
+  video?: SlideVideo | null;
+  /** The slide's sound (#125); never with a video that plays its own. */
+  audio?: LiveAudio | null;
+  /** Which devices play the slide's sound, resolved for this game (present when it has one). */
+  audioTarget?: AudioTarget;
+  /** When every device starts the slide's videos and sound (server ms epoch; present when it has some). */
+  mediaStartAt?: number;
 }
 
-/** The media of question `questionIndex`, to fetch ahead of it. */
 /**
- * What a device fetches ahead: the next question's media — only those this
- * device will show or play — and the images of the slides before it. Never
- * the prompt nor the options: the question itself stays unknown.
+ * What a device fetches ahead of the next step — a question, or a slide when
+ * `slideIndex` is set: only what this device will show or play. For a question,
+ * never its prompt nor its options: the question itself stays unknown.
  */
 export interface MediaPreloadPayload {
   questionIndex: number;
+  /** The step is the slide `slideIndex` (shown before question `questionIndex`). */
+  slideIndex?: number;
+  /** A question's media; for a slide, its sound-bearing media (see `slideSoundMedia`). */
   media: LiveQuestionMedia;
   /** Which devices will play its sound (present when it has one). */
   audioTarget?: AudioTarget;
-  /** Images of the slides shown before that question. */
+  /** Images of the slides coming (a slide's background and image blocks). */
   images?: string[];
+  /** A slide's video this device shows muted (#125). */
+  videos?: string[];
 }
 
 /**
@@ -306,13 +346,21 @@ export interface MediaPreloadPayload {
  */
 export interface MediaReadinessPayload {
   questionIndex: number;
+  /** The step is the slide `slideIndex` (#125). */
+  slideIndex?: number;
   /** Counted devices ready, out of all of them (screens and participants). */
   ready: number;
   total: number;
-  /** The participants counted, ready or not (the console lists them). */
-  players: { playerId: string; ready: boolean }[];
+  /**
+   * The participants counted, ready or not (the console lists them). In the lobby
+   * (#104), every participant: `pressed` when they said they are ready, `ready`
+   * once their device has also loaded what it plays.
+   */
+  players: { playerId: string; ready: boolean; pressed?: boolean }[];
   /** The projection windows counted. */
   screens: { ready: number; total: number };
+  /** The lobby's count (#104): `ready`/`total` are the participants; the screens say their own. */
+  lobby?: boolean;
 }
 
 /**
@@ -322,6 +370,8 @@ export interface MediaReadinessPayload {
  */
 export interface MediaPositionPayload {
   questionIndex: number;
+  /** The sound of the slide `slideIndex`, not of the question (#125). */
+  slideIndex?: number;
   t: number;
   playing: boolean;
 }
@@ -435,8 +485,79 @@ export interface LeaderboardPayload {
   you?: { score: number; rank: number };
 }
 
+/**
+ * The room's standings across the quizzes played so far (#89): the scores add up,
+ * a player who left stays ranked. `you` is the player's own, on their socket only.
+ */
+/**
+ * The room's game sounds (#93, SPECIFICATIONS-MEDIA §9): a tick at each answer,
+ * a gong when a question ends, a background track while players answer. The
+ * effects are synthesised unless a sample replaces them; the levels are the
+ * MUSIC and SFX buses'. Played by the projection and remote participants only.
+ */
+export interface RoomSoundsPayload {
+  tick: boolean;
+  gong: boolean;
+  /** Tic… tac… on the last five seconds of a question, the gong on zero. */
+  countdown: boolean;
+  /** A bright ding as a question starts (not over a question with its own sound). */
+  ding: boolean;
+  /** A sample replacing a synthesised effect (a sound of the library), null = synthesised. */
+  tickUrl: string | null;
+  gongUrl: string | null;
+  dingUrl: string | null;
+  /** The countdown's sample: its tic, and its tac played lower. */
+  countdownUrl: string | null;
+  /** The background track, looped while players answer; null = none. */
+  musicUrl: string | null;
+  /** Levels of the MUSIC and SFX buses, 0..1. */
+  musicLevel: number;
+  sfxLevel: number;
+  /** A bus the host switched off for the room, its level kept for when it is back. */
+  musicMuted: boolean;
+  sfxMuted: boolean;
+}
+
+/** What the host sets (media ids, not URLs); every field optional. */
+export interface RoomSoundsSettings {
+  tick?: boolean;
+  gong?: boolean;
+  countdown?: boolean;
+  ding?: boolean;
+  /** A media id of the library ('' = back to the synthesised effect / no track). */
+  tickId?: string;
+  gongId?: string;
+  dingId?: string;
+  countdownId?: string;
+  musicId?: string;
+  musicLevel?: number;
+  sfxLevel?: number;
+  musicMuted?: boolean;
+  sfxMuted?: boolean;
+}
+
+export interface RoomStandingsPayload {
+  quizzesPlayed: number;
+  /** Top 10, by total score then arrival in the room. */
+  top: LeaderboardRow[];
+  you?: {
+    score: number;
+    rank: number;
+    correct: number;
+    answered: number;
+    /** Average answer time over the series (ms); null before any answer. */
+    avgResponseMs: number | null;
+    /** Longest run of right answers in any one quiz. */
+    maxStreak: number;
+    /** Quizzes of the room they took part in. */
+    quizzes: number;
+  };
+}
+
 export interface PodiumPayload {
   podium: LeaderboardRow[];
+  /** The quiz of this podium: a rating goes to it (several quizzes share a room's PIN). */
+  quizId?: string;
   you?: { score: number; rank: number };
   /** Whether the end-of-session rating panel is offered (§2.11); absent = yes. */
   feedbackEnabled?: boolean;
@@ -485,6 +606,22 @@ export interface ClientToServerEvents {
   /** Termine la partie. `archive:true` → persiste les résultats avant destruction. */
   'host:end': (p: { pin: string; archive?: boolean }) => void;
   /**
+   * Opens `quizId` as the room's next quiz, in its lobby: from the lobby (the
+   * quiz picked is replaced) or from the podium (`archive:true` keeps the results
+   * of the quiz just played, as `host:end` does). The players stay in, at 0; the
+   * host's choices (capture, tracking, lock, pace, audio target) carry over.
+   */
+  /** The room's game sounds (#93), at any time (a volume may move mid-quiz). */
+  'host:sounds': (p: { pin: string } & RoomSoundsSettings) => void;
+  /** The participant is ready (or not yet) in the lobby (#104); never blocks the start. */
+  'player:ready': (p: { pin: string; ready: boolean }, ack: (res: { ok: boolean }) => void) => void;
+  /** The room's own name (≤ 60 characters), from its lobby; blank = the default. */
+  'host:room-name': (p: { pin: string; name: string }) => void;
+  'host:next-quiz': (
+    p: { pin: string; quizId: string; archive?: boolean },
+    ack: (res: { ok: boolean }) => void,
+  ) => void;
+  /**
    * (Dé)active la capture intégrale des réponses depuis le lobby, **avant** le
    * démarrage (RG-13). Refusé une fois la partie lancée. Les joueurs connectés en
    * sont informés en direct via `notice`.
@@ -511,12 +648,20 @@ export interface ClientToServerEvents {
   'host:mode': (p: { pin: string; mode: GameMode }) => void;
   /** Suspend (`paused:true`) ou reprend (`paused:false`) l'auto-progression. */
   'host:pause': (p: { pin: string; paused: boolean }) => void;
-  /** Restart the current question's sound or video from the top, on the projection. */
-  'host:media': (p: { pin: string; action: 'restart' }) => void;
+  /** Steer the current step's sound or video (a question's, a slide's) on every device that plays it: restart, play, pause, seek. */
+  'host:media': (p: HostMediaCommand) => void;
   /** Ajoute/retire `deltaS` secondes au chrono de la question courante. */
   'host:adjust-time': (p: { pin: string; deltaS: number }) => void;
   /** Rejoint la room en lecture seule (fenêtre projetée) — aucune auth, le PIN suffit. */
-  'spectator:join': (p: { pin: string }, ack: (res: { ok: boolean }) => void) => void;
+  /**
+   * A projection window joins read-only. `follow`: a participant's copy of it on
+   * another device (#104) — it follows the projection's position, is never waited
+   * for, and never speaks for the sound.
+   */
+  'spectator:join': (
+    p: { pin: string; follow?: boolean },
+    ack: (res: { ok: boolean }) => void,
+  ) => void;
   /**
    * Before joining: whether the quiz plays sound, so the join form offers the
    * presence choice, and whether an account is needed to get in.
@@ -555,7 +700,7 @@ export interface ClientToServerEvents {
     ack: (res: { ok: boolean }) => void,
   ) => void;
   /** A device has loaded the sound or video it fetched ahead of `questionIndex`. */
-  'media:ready': (p: { pin: string; questionIndex: number }) => void;
+  'media:ready': (p: { pin: string; questionIndex: number; slideIndex?: number }) => void;
   /** The projection's playback position of the current sound (relayed to the room). */
   'media:position': (p: { pin: string } & MediaPositionPayload) => void;
   ping: (p: { t0: number }) => void;
@@ -572,7 +717,52 @@ export interface SessionNotice {
   joinLocked: boolean;
 }
 
+/** The room waits for media before a step (a question, or the slide `slideIndex`), until `until`. */
+export interface MediaWaitPayload {
+  questionIndex: number;
+  slideIndex?: number;
+  until: number;
+}
+
 /** Map des events serveur → client. */
+
+/**
+ * Where the host put the current question's media, from the console: at `t`
+ * seconds when the server's clock read `at`, playing on from there or held.
+ * Every device that plays it lands on the same point, late ones included.
+ */
+export interface MediaAnchor {
+  t: number;
+  at: number;
+  playing: boolean;
+}
+export interface MediaControlPayload extends MediaAnchor {
+  questionIndex: number;
+  /** The media of the slide `slideIndex`, not of the question (#125). */
+  slideIndex?: number;
+}
+/** The host's command on the question's media: `t` for play, pause and seek (seconds). */
+export interface HostMediaCommand {
+  pin: string;
+  action: 'restart' | 'play' | 'pause' | 'seek';
+  t?: number;
+  /** For a seek: whether it plays on from there (a held media stays held). */
+  playing?: boolean;
+}
+
+/**
+ * Why an answer was not counted: `closed` (the question is over, or another
+ * one runs), `early` (the answers are not open yet), `late` (past the time),
+ * `unknown` (not a player of this quiz), `duplicate` (an earlier answer counts).
+ */
+export type AnswerRefusal = 'closed' | 'early' | 'late' | 'unknown' | 'duplicate';
+export interface AnswerAck {
+  accepted: boolean;
+  receivedAt: number;
+  /** Set when `accepted` is false. */
+  reason?: AnswerRefusal;
+}
+
 export interface ServerToClientEvents {
   'game:created': (p: { pin: string }) => void;
   /**
@@ -598,12 +788,26 @@ export interface ServerToClientEvents {
   'question:start': (p: QuestionStartPayload) => void;
   /** A content slide is shown (state `SLIDE_SHOW`, #7); re-sent on (re)attach. */
   'slide:show': (p: SlideShowPayload) => void;
-  'answer:ack': (p: { accepted: boolean; receivedAt: number }) => void;
+  'answer:ack': (p: AnswerAck) => void;
   'answer:count': (p: { answered: number; total: number }) => void;
   'question:reveal': (p: QuestionRevealPayload) => void;
   leaderboard: (p: LeaderboardPayload) => void;
   'game:podium': (p: PodiumPayload) => void;
-  'game:ended': (p: { feedbackEnabled?: boolean }) => void;
+  /**
+   * The room's own name (null = the default the screens show, "<host>'s room")
+   * and its host's name: on attach, and when the host renames it in the lobby.
+   */
+  'room:info': (p: { name: string | null; hostName: string }) => void;
+  /** The room's game sounds (#93): on attach, and when the host changes them. */
+  'room:sounds': (p: RoomSoundsPayload) => void;
+  /** To a participant back in a lobby: whether they already said they are ready (#104). */
+  'lobby:you': (p: { ready: boolean }) => void;
+  /** To the participants in a lobby (#104): how many said they are ready, out of how many. */
+  'lobby:count': (p: { ready: number; total: number }) => void;
+  /** The room's standings: at a podium, in the lobby of the next quiz, and when the room closes. */
+  'room:standings': (p: RoomStandingsPayload) => void;
+  /** `quizId`: the quiz that ended, which a rating goes to (several share a room's PIN). */
+  'game:ended': (p: { feedbackEnabled?: boolean; quizId?: string }) => void;
   /** Mode/pause courants (à chaque changement et au (ré)attache). */
   'game:mode': (p: GameModePayload) => void;
   /** Base URL of the invitations chosen by the host (null = the page's own origin). */
@@ -621,17 +825,20 @@ export interface ServerToClientEvents {
   /** Who has loaded the upcoming question's sound or video (screens only). */
   'media:readiness': (p: MediaReadinessPayload) => void;
   /** The room waits for media before question `questionIndex`, until `until` (server ms epoch). */
-  'media:wait': (p: { questionIndex: number; until: number }) => void;
+  'media:wait': (p: MediaWaitPayload) => void;
   /** Where the projection is in the current sound: the other screens draw their playhead there. */
   'media:position': (p: MediaPositionPayload) => void;
-  /** The host restarts the current question's media from the top. */
-  'media:control': (p: { questionIndex: number; action: 'restart' }) => void;
+  /** Where the host put the current step's media: restart, play, pause, seek. */
+  'media:control': (p: MediaControlPayload) => void;
   /**
-   * Whether the quiz plays any sound (an MP3, a video), sent on attach to the
-   * screens that are not players: the projection then asks for the click that
-   * unlocks sound as soon as it opens, whatever the moment of the session.
+   * Whether the quiz plays any sound (an MP3, a video), sent on attach to every
+   * device: the projection (and a phone that never enabled it) then asks for the
+   * click that unlocks sound, whatever the moment of the session — the room's
+   * next quiz may play sound where the first did not (#89).
    */
   'game:media': (p: {
+    /** The quiz's title: the room's projection shows the quiz coming next. */
+    title?: string;
     hasSound: boolean;
     /** Whether any question or slide carries a media (the lobby then says they are sent ahead). */
     hasMedia: boolean;

@@ -25,8 +25,8 @@ Why it will get worse: every game feature adds tests to this file, each with its
 1. **Sleeps instead of events.** A test waits a fixed time and then checks a state, instead of awaiting the event
    that proves it. Too short, it flakes under load; long enough, it wastes time on every run.
 2. **Question timers of 5 s.** Two tests let a question run out (`timeLimitS: 5`, the minimum the API accepts) and
-   sleep 6 s. The engine does not clamp the limit (`endsAt = startedAt + timeLimitS × 1000`): a quiz seeded
-   directly in the database may use 1 s.
+   sleep 6 s. A shorter limit cannot be seeded: the database itself checks 5..120 (`question_time_limit_s_check`).
+   The host's `host:adjust-time` can shorten a live question instead, down to a 1 s floor.
 3. **An assertion on the client clock.** The flaky test measures, on the client, that the podium came at least
    1,000 ms after the answer. The server schedules the next step from its own instant, and Node timers may fire a
    millisecond early: the margin is zero.
@@ -36,7 +36,9 @@ Why it will get worse: every game feature adds tests to this file, each with its
 
 ## 3. The changes
 
-### 3.1 A harness (`src/game/testing/game-harness.ts`)
+### 3.1 A harness (`test/game-harness.ts`)
+
+Outside `src/`, so the production build (`tsconfig.json` includes `src/**/*`) never ships it.
 
 - `bootGameApp()`: sets the `GAME_*` test variables, starts the app on a free port, seeds the host and its seat,
   returns `{ app, prisma, url, close }` (the seat is given back on close, as today).
@@ -50,9 +52,16 @@ Why it will get worse: every game feature adds tests to this file, each with its
 ### 3.2 Events instead of sleeps
 
 - Each fixed sleep becomes `nextEvent(...)` on the event that proves the state.
-- "Exactly once" checks: await the first event, then `settle()`, then count. The two 6 s waits become ~1.3 s.
-- Question timers that must expire: `seedQuiz({ timeLimitS: 1 })`, directly in the database (the API's 5..120 bounds
-  are bypassed on purpose; say so in a comment).
+- "Exactly once" checks: await the first event, then `settle()`, then count.
+- Question timers that must expire: `host:adjust-time` with `deltaS: -4`, the host's own control, which re-arms the
+  same reveal timer. A question opens at least `MEDIA_LEAD_MS` (600 ms) after the start, so about 1.6 s remain,
+  above the 1 s floor under which the engine reveals at once. The three 6 s tests take ~2.1 s.
+
+**The floor found on the way:** every question opens at least 600 ms after the start, media or not
+(`startedAt = max(now + readDelay, now + MEDIA_LEAD_MS + listenMs)`), and `MEDIA_LEAD_MS` is a constant, not a
+setting. Lowering `GAME_READ_DELAY_MS` below it saves nothing. Step 2 brings the file from 41 s to ~27 s; going
+under 20 s needs a production decision (the lead only for questions with sound or video, or a setting), out of
+this plan's scope.
 
 ### 3.3 The flaky test
 
@@ -62,34 +71,41 @@ Why it will get worse: every game feature adds tests to this file, each with its
 
 ### 3.4 One file per domain
 
-| File | Tests (current names) |
+| Module (`apps/backend/test/game/`) | Tests (current names) |
 |---|---|
-| `game.lobby.spec.ts` | ping, create + join, duplicate nickname, join URL, attach outline, access and lobby lock (#57) |
-| `game.question-loop.spec.ts` | start (allowlist), submit and single reveal, full loop to the podium, all-wrong early reveal, review, live form refresh |
-| `game.timing.spec.ts` | adjust time, pause, auto mode, per-question reveal delay, slides |
-| `game.media.spec.ts` | sound flag on attach, media restart, credits, file names, per-device sound, remote play, audio target, readiness, position relay, waiting for devices, synchronised start, listen first, media admin (#54) |
-| `game.resilience.spec.ts` | late join, spectator, host attach, player reconnect, host disconnected, host window expiry, convergence on departures (×2), live-games index |
-| `game.archive.spec.ts` | full capture archive, end-of-game rating |
+| `lobby.ts` | ping, create + join, duplicate nickname, join URL, attach outline, access and lobby lock (#57) |
+| `question-loop.ts` | start (allowlist), submit and single reveal, full loop to the podium, all-wrong early reveal, review, live form refresh |
+| `timing.ts` | adjust time, pause, auto mode, per-question reveal delay, slides |
+| `media.ts` | sound flag on attach, media restart, credits, file names, per-device sound, remote play, audio target, readiness, position relay, waiting for devices, synchronised start, listen first, media admin (#54) |
+| `resilience.ts` | late join, spectator, host attach, player reconnect, host disconnected, host window expiry, convergence on departures (×2), live-games index |
+| `archive.ts` | full capture archive, end-of-game rating |
 
-**Constraint:** the files share one host seat (a single row) and Redis database 1. Run them **serially** (one Jest
-worker for `src/game/*.spec.ts` that need services, e.g. a dedicated Jest project with `maxWorkers: 1`), or they
-will take each other's seat. The time saved comes from removing sleeps, not from parallelism.
+**Constraint:** the domains share one host seat (a single row) and Redis database 1, so they run **serially**.
+Jest's `maxWorkers` applies to a whole run, not to one project: six spec files would have meant running the whole
+backend suite in band, or changing the test script, CI and the pre-push hook. Instead, one entry spec
+(`src/game/game.gateway.spec.ts`) boots the app once and calls each module inside its own `describe`: serial by
+construction, whatever the number of workers. The modules are not `*.spec.ts` (Jest would run each alone) and stay
+outside `src/` (the production build compiles it). One domain runs alone with
+`npx jest src/game/game.gateway.spec.ts -t lobby`.
 
 ## 4. Acceptance
 
-- [ ] Every assertion of the current file exists in the new files: a table maps each old test name to its new place
-  (in the PR description).
-- [ ] The game integration tests take **under 20 s** locally (41 s today).
-- [ ] No fixed wait over 300 ms remains, except `settle()`.
-- [ ] The formerly flaky test passes 50 times in a row.
-- [ ] No quiz is left in the test database after the suite.
-- [ ] No production file changes. CI green.
+- [x] Every assertion of the current file exists in the new files: a table maps each old test name to its new place
+  (in the PR description). Checked by script: each of the 41 blocks once, 160 `expect(` before and after.
+- [ ] The game integration tests take **under 20 s** locally. ~27 s after step 2 (41 s before): the floor is the
+  600 ms media lead of every question (§3.2). **Accepted as is** (2026-09-26); the lead is to be revisited with the
+  multi-quiz lobby (#89), not before.
+- [x] No fixed wait over 300 ms remains, except `settle()`.
+- [x] The formerly flaky test passes 50 times in a row.
+- [x] No quiz is left in the test database after the suite.
+- [x] No production file changes. CI green.
 
 ## 5. Order of work
 
 1. **Harness + flaky fix**, in the current file: small, and it removes the instability at once.
 2. **Events instead of sleeps, short timers**: the speed gain.
-3. **Split by domain**, with the serial Jest project: readability, and room for #89 and #93.
+3. **Split by domain**, one entry spec running the domain modules serially: readability, and room for #89 and
+   #93.
 
 Each step is its own PR, with the full suite green before the next.
 

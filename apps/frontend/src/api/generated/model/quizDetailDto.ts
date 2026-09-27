@@ -40,12 +40,13 @@ export interface QuizDetailDto {
   /** @nullable */
   license: string | null;
   tags: string[];
+  shared: boolean;
+  editable: boolean;
   ownerName?: string;
   createdAt: string;
   updatedAt: string;
   /** @nullable */
   archivedAt: string | null;
-  editable: boolean;
   questions: QuizDetailDtoQuestionsItem[];
   slides: QuizDetailDtoSlidesItem[];
 }

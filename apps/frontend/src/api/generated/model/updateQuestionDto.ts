@@ -59,6 +59,7 @@ export interface UpdateQuestionDto {
   numericValue?: number;
   /** @minimum 0 */
   numericTolerance?: number;
+  multiSelect?: boolean;
   /** @maxItems 8 */
   options?: UpdateQuestionDtoOptionsItem[];
   /** @maxItems 20 */

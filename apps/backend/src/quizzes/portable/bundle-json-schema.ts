@@ -11,8 +11,12 @@ import { BUNDLE_FORMAT, BUNDLE_VERSION, quizBundleSchema } from './quiz-bundle.s
  * Structural, like the first step of an import: the per-type rules of a
  * question or a slide are checked by the API content schemas afterwards.
  */
-export const BUNDLE_SCHEMA_FILE = `schema/quiz-bundle.v${BUNDLE_VERSION}.json`;
-export const BUNDLE_SCHEMA_ID = `https://raw.githubusercontent.com/quizdock/quiz-dock/main/${BUNDLE_SCHEMA_FILE}`;
+/** The published schema of a manifest version, in the repository and at its public address. */
+export const bundleSchemaFile = (version: number) => `schema/quiz-bundle.v${version}.json`;
+export const bundleSchemaId = (version: number) =>
+  `https://raw.githubusercontent.com/quizdock/quiz-dock/main/${bundleSchemaFile(version)}`;
+export const BUNDLE_SCHEMA_FILE = bundleSchemaFile(BUNDLE_VERSION);
+export const BUNDLE_SCHEMA_ID = bundleSchemaId(BUNDLE_VERSION);
 
 export function bundleJsonSchema(): Record<string, unknown> {
   const { $schema, ...body } = z.toJSONSchema(quizBundleSchema, {

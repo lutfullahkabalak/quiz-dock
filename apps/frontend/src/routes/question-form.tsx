@@ -33,7 +33,7 @@ import { useForm, useStore } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { GripVertical, Plus, Trash2 } from 'lucide-react';
+import { GripVertical, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -41,10 +41,12 @@ import { useUnsavedGuard } from '@/lib/use-unsaved-guard';
 import { clearDraft, loadDraft, saveDraft } from '@/lib/draft-store';
 import { DraftNotice } from '@/components/draft-notice';
 import { MarkdownEditor } from '@/components/markdown-editor';
+import { promptImage } from '@/lib/prompt-image';
+import { mediaControllerDescribe, mediaControllerSetAlt } from '../api/generated/media/media';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { COLOR_BG, OPTION_BG_FALLBACK, SHAPE_GLYPH } from '@/lib/option-style';
+import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import { errorText } from '../api/error-text';
 import { apiErrorText } from '../api/http';
@@ -57,6 +59,8 @@ import {
   useQuestionsControllerUpdate,
 } from '../api/generated/questions/questions';
 import { getQuizzesControllerGetQueryKey } from '../api/generated/quizzes/quizzes';
+import { ShapeIcon } from '@/components/shape-icon';
+import { ImageChoiceOptions, imageOptionComplete } from './image-choice-options';
 
 type QType =
   | 'single_choice'
@@ -65,7 +69,8 @@ type QType =
   | 'text_input'
   | 'numeric'
   | 'ordering'
-  | 'poll';
+  | 'poll'
+  | 'image_choice';
 
 type Scoring = 'standard' | 'closest' | 'partial' | 'lenient';
 /** Scoring variants each type offers besides the standard rule (mirrors the API schema). */
@@ -77,7 +82,11 @@ const SCORING_BY_TYPE: Record<string, Scoring[]> = {
   numeric: ['closest'],
   ordering: ['partial'],
   poll: [],
+  image_choice: ['partial'],
 };
+/** The variants a question offers: an image choice gives partial credit only with several right pictures. */
+const scoringsFor = (type: QType, multiSelect: boolean): Scoring[] =>
+  type === 'image_choice' && !multiSelect ? [] : SCORING_BY_TYPE[type];
 const TYPES: QType[] = [
   'single_choice',
   'multiple_choice',
@@ -86,6 +95,7 @@ const TYPES: QType[] = [
   'numeric',
   'ordering',
   'poll',
+  'image_choice',
 ];
 
 // Eight distinct colour+shape pairs, one per position: no two options ever look alike (max 8).
@@ -106,6 +116,7 @@ const OPTION_TYPES: QType[] = [
   'true_false',
   'ordering',
   'poll',
+  'image_choice',
 ];
 const SINGLE_CORRECT: QType[] = ['single_choice', 'true_false'];
 
@@ -117,6 +128,10 @@ interface OptionValue {
   shape: string;
   isCorrect: boolean;
   correctOrderIndex: number;
+  /** An answer's picture: an image choice's, or one kept from an import. */
+  mediaId: string | null;
+  /** Its alternative text, in the quiz's language (image choice). */
+  alt: string;
 }
 interface FormValues {
   type: QType;
@@ -137,6 +152,8 @@ interface FormValues {
   scoring: Scoring;
   numericValue: number;
   numericTolerance: number;
+  /** Image choice: several pictures may be right. */
+  multiSelect: boolean;
   options: OptionValue[];
   acceptedAnswers: { text: string }[];
 }
@@ -152,6 +169,8 @@ function newOption(i: number, text = ''): OptionValue {
     shape: SHAPES[i % SHAPES.length],
     isCorrect: false,
     correctOrderIndex: i,
+    mediaId: null,
+    alt: '',
   };
 }
 
@@ -172,6 +191,7 @@ function initialValues(q?: QuizDetailDtoQuestionsItem): FormValues {
       scoring: 'standard',
       numericValue: 0,
       numericTolerance: 0,
+      multiSelect: false,
       options: [newOption(0), newOption(1)],
       acceptedAnswers: [],
     };
@@ -196,6 +216,7 @@ function initialValues(q?: QuizDetailDtoQuestionsItem): FormValues {
     scoring: (q.scoring ?? 'standard') as Scoring,
     numericValue: q.numericValue ? Number(q.numericValue) : 0,
     numericTolerance: q.numericTolerance ? Number(q.numericTolerance) : 0,
+    multiSelect: q.multiSelect ?? false,
     options: q.options.map((o, i) => ({
       key: o.id,
       text: o.text ?? '',
@@ -203,6 +224,8 @@ function initialValues(q?: QuizDetailDtoQuestionsItem): FormValues {
       shape: o.shape,
       isCorrect: o.isCorrect,
       correctOrderIndex: o.correctOrderIndex ?? i,
+      mediaId: o.mediaId ?? null,
+      alt: o.alt ?? '',
     })),
     acceptedAnswers: q.acceptedAnswers.map((a) => ({ text: a.text })),
   };
@@ -229,6 +252,7 @@ export function QuestionForm({
   const update = useQuestionsControllerUpdate();
   const [error, setError] = useState<string | null>(null);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [showImageErrors, setShowImageErrors] = useState(false);
   // Computed once: option keys are generated, so a fresh copy per render would reset the form.
   const [initial] = useState(() => initialValues(question));
   // Draft kept in localStorage until saved or discarded (survives reload / closed tab).
@@ -236,7 +260,7 @@ export function QuestionForm({
   // A draft saved before the media slots existed has no `media`: it is not restored.
   const [restored, setRestored] = useState(() => {
     const draft = loadDraft<FormValues>(draftKey);
-    return draft && 'media' in draft ? draft : null;
+    return draft && 'media' in draft ? withDefaults(draft) : null;
   });
 
   const form = useForm({
@@ -248,6 +272,12 @@ export function QuestionForm({
       if (!media.success) {
         const coded = media.error.issues.find((i) => i.message.startsWith('media.'));
         setError(errorText(coded?.message ?? 'media.invalid'));
+        return;
+      }
+      // An image choice answer needs its picture and its text: pointed out, not sent.
+      if (value.type === 'image_choice' && !value.options.every(imageOptionComplete)) {
+        setShowImageErrors(true);
+        setError(t('questionForm.imagesIncomplete'));
         return;
       }
       const data = buildPayload(value);
@@ -294,6 +324,8 @@ export function QuestionForm({
   const waveformSize = useStore(form.store, (s) => s.values.waveformSize);
   const pointsMode = useStore(form.store, (s) => s.values.pointsMode);
   const scoring = useStore(form.store, (s) => s.values.scoring);
+  const multiSelect = useStore(form.store, (s) => s.values.multiSelect);
+  const scorings = scoringsFor(type, multiSelect);
   const canListenFirst = mediaHasSound(media) && mediaMs !== null;
   const stretchedS =
     canListenFirst && listenFirst
@@ -326,11 +358,30 @@ export function QuestionForm({
     if (from >= 0 && to >= 0) setOptions(arrayMove(options, from, to));
   };
 
-  const onTypeChange = (t: QType) => {
-    form.setFieldValue('type', t);
-    if (t === 'true_false') {
-      setOptions([newOption(0, 'Vrai'), newOption(1, 'Faux')]);
-    } else if (OPTION_TYPES.includes(t) && options.length < 2) {
+  const onTypeChange = (next: QType) => {
+    const wasImages = type === 'image_choice';
+    form.setFieldValue('type', next);
+    if (next === 'image_choice' || wasImages) {
+      // Text answers make no pictures, and pictures no text: both start afresh.
+      if (next !== 'image_choice') form.setFieldValue('multiSelect', false);
+      else form.setFieldValue('media', { visual: null, audio: media.audio } as QuestionMedia);
+      setShowImageErrors(false);
+      setOptions(
+        next === 'true_false'
+          ? [
+              newOption(0, t('questionForm.trueOption')),
+              newOption(1, t('questionForm.falseOption')),
+            ]
+          : OPTION_TYPES.includes(next)
+            ? [newOption(0), newOption(1)]
+            : options,
+      );
+    } else if (next === 'true_false') {
+      setOptions([
+        newOption(0, t('questionForm.trueOption')),
+        newOption(1, t('questionForm.falseOption')),
+      ]);
+    } else if (OPTION_TYPES.includes(next) && options.length < 2) {
       setOptions([newOption(0), newOption(1)]);
     }
   };
@@ -339,11 +390,12 @@ export function QuestionForm({
     setOptions(
       options.map((o, i) => ({
         ...o,
-        isCorrect: SINGLE_CORRECT.includes(type)
-          ? i === index
-          : i === index
-            ? checked
-            : o.isCorrect,
+        isCorrect:
+          SINGLE_CORRECT.includes(type) || (type === 'image_choice' && !multiSelect)
+            ? i === index
+            : i === index
+              ? checked
+              : o.isCorrect,
       })),
     );
   };
@@ -400,13 +452,27 @@ export function QuestionForm({
               onChange={field.handleChange}
               placeholder={t('questionForm.promptPlaceholder')}
             />
+            {type === 'image_choice' ? null : (
+              <PromptImageNotice
+                prompt={field.state.value}
+                media={media}
+                onMove={(rest, next) => {
+                  field.handleChange(rest);
+                  form.setFieldValue('media', next);
+                }}
+              />
+            )}
           </div>
         )}
       </form.Field>
 
       {/* Les médias, repliés en un seul bloc ; écouter d'abord et la lecture ferment le
           groupe du son. */}
-      <QuestionMediaField value={media} onChange={(m) => form.setFieldValue('media', m)}>
+      <QuestionMediaField
+        value={media}
+        onChange={(m) => form.setFieldValue('media', m)}
+        withVisual={type !== 'image_choice'}
+      >
         {canListenFirst ? (
           <form.Field name="timerAfterMedia">
             {(field) => (
@@ -481,12 +547,18 @@ export function QuestionForm({
                         ))}
                       </Select>
                     </Label>
-                    {/* As the screens will draw it, at their type size. */}
+                    {/* As the screens will draw it, at their type size — or, hidden,
+                        the one place it still shows (faded, with why). */}
+                    {field.state.value === 'hidden' ? (
+                      <p className="text-muted-foreground text-xs">
+                        {t('questionForm.waveformHiddenNote')}
+                      </p>
+                    ) : null}
                     <Waveform
                       peaks={media.audio?.peaks ?? []}
                       progress={0}
                       size={field.state.value}
-                      className="text-base"
+                      className={cn('text-base', field.state.value === 'hidden' && 'opacity-40')}
                       label={t('questionForm.waveformPreview')}
                     />
                   </div>
@@ -552,7 +624,31 @@ export function QuestionForm({
         ) : null}
       </fieldset>
 
-      {OPTION_TYPES.includes(type) && (
+      {type === 'image_choice' && (
+        <fieldset className="flex flex-col gap-2">
+          <legend className={LEGEND}>{t('questionForm.imagesLegend')}</legend>
+          <ImageChoiceOptions
+            options={options}
+            currentOptions={() => form.getFieldValue('options')}
+            multiSelect={multiSelect}
+            showErrors={showImageErrors}
+            sensors={sensors}
+            setOptions={setOptions}
+            newOption={newOption}
+            onCorrect={setCorrect}
+            onMultiSelect={(multi) => {
+              form.setFieldValue('multiSelect', multi);
+              // Back to one right picture: the first one ticked stays.
+              if (!multi) {
+                const first = options.findIndex((o) => o.isCorrect);
+                setOptions(options.map((o, i) => ({ ...o, isCorrect: i === first })));
+              }
+            }}
+          />
+        </fieldset>
+      )}
+
+      {OPTION_TYPES.includes(type) && type !== 'image_choice' && (
         <fieldset className="flex flex-col gap-2">
           <legend className={LEGEND}>{t('questionForm.optionsLegend')}</legend>
           <DndContext
@@ -573,7 +669,7 @@ export function QuestionForm({
                       COLOR_BG[opt.color] ?? OPTION_BG_FALLBACK,
                     )}
                   >
-                    {SHAPE_GLYPH[opt.shape] ?? '●'}
+                    <ShapeIcon shape={opt.shape} />
                   </span>
                   <MarkdownEditor
                     profile="inline"
@@ -732,9 +828,9 @@ export function QuestionForm({
           title={t('questionForm.pointsLegend')}
           value={[
             t(`questionForm.pointsMode.${pointsMode}`, { defaultValue: pointsMode }),
-            SCORING_BY_TYPE[type].length > 0
+            scorings.length > 0
               ? t(
-                  `questionForm.scoring.${type}.${SCORING_BY_TYPE[type].includes(scoring) ? scoring : 'standard'}`,
+                  `questionForm.scoring.${type}.${scorings.includes(scoring) ? scoring : 'standard'}`,
                 )
               : null,
           ]
@@ -757,7 +853,7 @@ export function QuestionForm({
                 </Label>
               )}
             </form.Field>
-            {SCORING_BY_TYPE[type].length > 0 && (
+            {scorings.length > 0 && (
               <form.Field name="scoring">
                 {(field) => (
                   <Label title={t(`questionForm.scoringHelp.${type}`)}>
@@ -767,7 +863,7 @@ export function QuestionForm({
                       onChange={(e) => field.handleChange(e.target.value as Scoring)}
                     >
                       <option value="standard">{t(`questionForm.scoring.${type}.standard`)}</option>
-                      {SCORING_BY_TYPE[type].map((v) => (
+                      {scorings.map((v) => (
                         <option key={v} value={v}>
                           {t(`questionForm.scoring.${type}.${v}`)}
                         </option>
@@ -837,6 +933,15 @@ export function QuestionForm({
   );
 }
 
+/** A draft saved before the image choice: its answers get no picture, it gets one right answer. */
+function withDefaults(draft: FormValues): FormValues {
+  return {
+    ...draft,
+    multiSelect: draft.multiSelect ?? false,
+    options: draft.options.map((o) => ({ ...o, mediaId: o.mediaId ?? null, alt: o.alt ?? '' })),
+  };
+}
+
 /** Legend of a primary section of the form; secondary groups fold in a `Disclosure`. */
 const LEGEND = 'text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase';
 
@@ -861,7 +966,9 @@ function buildPayload(v: FormValues) {
     // Only with a media to wait for; the server also falls back when its length is unknown.
     timerAfterMedia: mediaHasSound(v.media) && v.timerAfterMedia,
     pointsMode: v.type === 'poll' ? ('none' as const) : v.pointsMode,
-    scoring: SCORING_BY_TYPE[v.type].includes(v.scoring) ? v.scoring : ('standard' as const),
+    scoring: scoringsFor(v.type, v.multiSelect).includes(v.scoring)
+      ? v.scoring
+      : ('standard' as const),
     media: v.media,
     answerExplanation: v.answerExplanation.trim() || null,
     backgroundMediaId: v.background.mediaId,
@@ -869,11 +976,28 @@ function buildPayload(v: FormValues) {
     textTone: v.background.textTone,
     textOutline: v.background.textOutline,
   };
+  if (v.type === 'image_choice') {
+    return {
+      ...base,
+      // The answers are the pictures: no visual of the question's own.
+      media: { visual: null, audio: v.media.audio } as QuestionMedia,
+      multiSelect: v.multiSelect,
+      options: v.options.map((o) => ({
+        mediaId: o.mediaId ?? undefined,
+        alt: o.alt.trim(),
+        color: o.color as (typeof COLORS)[number],
+        shape: o.shape as (typeof SHAPES)[number],
+        isCorrect: o.isCorrect,
+      })),
+    };
+  }
   if (OPTION_TYPES.includes(v.type)) {
     return {
       ...base,
       options: v.options.map((o) => ({
         text: o.text || undefined,
+        // A picture an answer already holds (an imported quiz) is kept, not lost on save.
+        mediaId: o.mediaId ?? undefined,
         color: o.color as (typeof COLORS)[number],
         shape: o.shape as (typeof SHAPES)[number],
         isCorrect: o.isCorrect,
@@ -931,6 +1055,52 @@ function SortableOption({ id, children }: { id: string; children: ReactNode }) {
         <GripVertical className="size-4" />
       </button>
       {children}
+    </div>
+  );
+}
+
+/**
+ * An image written in the prompt (images are no longer added there, one already
+ * there still shows): while the question has no visual, the editor offers to move
+ * it to the question's media — framed on every screen, zoomable on the phones and
+ * fetched ahead. The author decides, sees the result, and can cancel before saving.
+ */
+function PromptImageNotice({
+  prompt,
+  media,
+  onMove,
+}: {
+  prompt: string;
+  media: QuestionMedia;
+  onMove: (rest: string, media: QuestionMedia) => void;
+}) {
+  const { t } = useTranslation('editor');
+  const found = media.visual ? null : promptImage(prompt);
+  if (!found) return null;
+  const move = () => {
+    onMove(found.rest, {
+      visual: { kind: 'image', assetId: found.mediaId },
+      audio: media.audio,
+    } as QuestionMedia);
+    // Its description travels with it, when the media has none yet.
+    if (found.alt.trim()) {
+      void mediaControllerDescribe(found.mediaId)
+        .then((res) =>
+          res.data.alt ? null : mediaControllerSetAlt(found.mediaId, { alt: found.alt.trim() }),
+        )
+        .catch(() => undefined);
+    }
+  };
+  return (
+    <div
+      role="note"
+      className="bg-muted/50 flex flex-wrap items-center gap-2 rounded-md border px-3 py-2 text-sm"
+    >
+      <ImageIcon className="text-muted-foreground size-4 shrink-0" aria-hidden />
+      <span className="min-w-0 flex-1">{t('questionForm.promptImageNotice')}</span>
+      <Button type="button" size="sm" variant="outline" onClick={move}>
+        {t('questionForm.promptImageMove')}
+      </Button>
     </div>
   );
 }

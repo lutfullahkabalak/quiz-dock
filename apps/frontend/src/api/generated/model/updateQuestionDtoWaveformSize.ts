@@ -13,4 +13,5 @@ export const UpdateQuestionDtoWaveformSize = {
   S: 'S',
   M: 'M',
   L: 'L',
+  hidden: 'hidden',
 } as const;

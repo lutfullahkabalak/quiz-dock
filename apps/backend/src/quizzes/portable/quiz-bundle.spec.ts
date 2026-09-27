@@ -1,3 +1,7 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
+import Ajv2020 from 'ajv/dist/2020';
+import addFormats from 'ajv-formats';
 import { Prisma } from '@prisma/client';
 import {
   BundleContentError,
@@ -7,7 +11,7 @@ import {
   fromBundle,
   toBundle,
 } from './quiz-bundle';
-import { quizBundleSchema } from './quiz-bundle.schema';
+import { BUNDLE_VERSION, quizBundleSchema } from './quiz-bundle.schema';
 
 const IMG = '01ARZ3NDEKTSV4RRFFQ69G5FAV';
 const BG = '01ARZ3NDEKTSV4RRFFQ69G5FAW';
@@ -188,6 +192,140 @@ describe('quiz bundle', () => {
     );
   });
 
+  it('stamps the lowest version a bundle needs: 3, or 4 once a waveform is hidden', () => {
+    const src = makeQuiz();
+    const plain = toBundle(src, pathFor);
+    expect(plain.version).toBe(3);
+    // What makes it true: the published v3 schema, the one a 0.8 instance's importer matches, takes it.
+    const v3 = JSON.parse(
+      readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'schema', 'quiz-bundle.v3.json'),
+        'utf8',
+      ),
+    ) as object;
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    const validate = ajv.compile(v3);
+    expect(validate(JSON.parse(JSON.stringify(plain)))).toBe(true);
+    src.questions[0].waveformSize = 'hidden';
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(4);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    // A hidden waveform comes back hidden: the screens draw nothing, the console still does.
+    expect(fromBundle(bundle, idFor).questions[0]).toMatchObject({ waveformSize: 'hidden' });
+  });
+
+  it('stamps version 5 once a slide carries media, and brings them back (#125)', () => {
+    const VID = '01ARZ3NDEKTSV4RRFFQ69G5FB0';
+    const SND = '01ARZ3NDEKTSV4RRFFQ69G5FB1';
+    const src = makeQuiz();
+    Object.assign(src.slides[1], {
+      videoMediaId: VID,
+      videoLoop: false,
+      videoSound: false,
+      audioMediaId: SND,
+      waveformSize: 'L',
+      audioTarget: 'everyone',
+    });
+    const kinds: Record<string, 'image' | 'video' | 'audio'> = { [VID]: 'video', [SND]: 'audio' };
+    const kindFor = (path: string) => kinds[idFor(path)] ?? 'image';
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(5);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    const slide = bundle.items[0];
+    if (slide.kind !== 'slide') throw new Error('expected a slide');
+    expect(slide).toMatchObject({
+      backgroundImage: pathFor(BG),
+      video: pathFor(VID),
+      videoLoop: false,
+      videoSound: false,
+      audio: pathFor(SND),
+      waveformSize: 'L',
+      audioTarget: 'everyone',
+    });
+    expect([...collectMediaPaths(bundle)]).toEqual(
+      expect.arrayContaining([pathFor(VID), pathFor(SND)]),
+    );
+
+    const back = fromBundle(bundle, idFor, kindFor).slides[0].content;
+    expect(back).toMatchObject({
+      mediaId: BG,
+      videoMediaId: VID,
+      videoLoop: false,
+      videoSound: false,
+      audioMediaId: SND,
+      waveformSize: 'L',
+      audioTarget: 'everyone',
+    });
+
+    // One sound at a time: the video's own sound next to the slide's is refused.
+    slide.videoSound = true;
+    expect(() => fromBundle(bundle, idFor, kindFor)).toThrow(BundleContentError);
+    slide.videoSound = false;
+    // A video holds a video: a sound in its place is refused.
+    expect(() =>
+      fromBundle(bundle, idFor, (p) => (idFor(p) === VID ? 'audio' : kindFor(p))),
+    ).toThrow(BundleContentError);
+  });
+
+  it('stamps version 6 for an image choice, pictures and their alt coming back', () => {
+    const CAT = '01ARZ3NDEKTSV4RRFFQ69G5FB2';
+    const DOG = '01ARZ3NDEKTSV4RRFFQ69G5FB3';
+    const src = makeQuiz();
+    Object.assign(src.questions[0], {
+      type: 'image_choice',
+      visualMediaId: null,
+      multiSelect: true,
+      scoring: 'partial',
+    });
+    src.questions[0].options = src.questions[0].options.map((o, i) => ({
+      ...o,
+      text: null,
+      mediaId: [CAT, DOG][i],
+      alt: ['A cat', 'Un chien'][i],
+      isCorrect: true,
+    }));
+    const bundle = toBundle(src, pathFor);
+    expect(bundle.version).toBe(6);
+    expect(quizBundleSchema.safeParse(bundle).success).toBe(true);
+    const item = bundle.items.find((it) => it.kind === 'question');
+    expect(item).toMatchObject({
+      type: 'image_choice',
+      multiSelect: true,
+      options: [
+        { media: pathFor(CAT), alt: 'A cat' },
+        { media: pathFor(DOG), alt: 'Un chien' },
+      ],
+    });
+
+    const back = fromBundle(bundle, idFor).questions[0];
+    expect(back).toMatchObject({
+      type: 'image_choice',
+      multiSelect: true,
+      scoring: 'partial',
+      options: [
+        { mediaId: CAT, alt: 'A cat', isCorrect: true },
+        { mediaId: DOG, alt: 'Un chien', isCorrect: true },
+      ],
+    });
+    // An answer's media is a picture: a sound in its place is refused.
+    expect(() => fromBundle(bundle, idFor, (p) => (idFor(p) === DOG ? 'audio' : 'image'))).toThrow(
+      BundleContentError,
+    );
+    // A bundle from a newer schema is refused, as an older importer refuses this one.
+    expect(quizBundleSchema.safeParse({ ...bundle, version: 7 }).success).toBe(false);
+    // What makes it true: the published v5 schema, the one a 0.8 / 0.9 importer matches, refuses it.
+    const v5 = JSON.parse(
+      readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'schema', 'quiz-bundle.v5.json'),
+        'utf8',
+      ),
+    ) as object;
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    expect(ajv.compile(v5)(JSON.parse(JSON.stringify(bundle)))).toBe(false);
+  });
+
   it('round-trips through import with the API content rules applied', () => {
     const src = makeQuiz();
     const imported = fromBundle(toBundle(src, pathFor), idFor);
@@ -295,7 +433,9 @@ describe('quiz bundle', () => {
       audioTarget: 'projection_remote', // the default
     });
     // But never a bundle from a schema newer than this build.
-    expect(quizBundleSchema.safeParse({ ...rest, version: 4 }).success).toBe(false);
+    expect(quizBundleSchema.safeParse({ ...rest, version: BUNDLE_VERSION + 1 }).success).toBe(
+      false,
+    );
   });
 
   it('validates the Store fields: kebab-case slug and tags, five tags at most, SPDX-like license', () => {

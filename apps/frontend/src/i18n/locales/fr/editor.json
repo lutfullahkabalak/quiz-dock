@@ -8,7 +8,8 @@
     "text_input": "Saisie texte",
     "numeric": "Numérique",
     "ordering": "Remise en ordre",
-    "poll": "Sondage"
+    "poll": "Sondage",
+    "image_choice": "Choix en images"
   },
   "header": {
     "title": "Éditeur de quiz",
@@ -60,7 +61,11 @@
     "tagsPlaceholder": "Ajouter un tag…",
     "tagsHelp": "Jusqu’à 5 mots-clés pour retrouver le quiz parmi les modèles. Entrée pour en ajouter un.",
     "removeTag": "Retirer le tag {{tag}}",
-    "saveError": "Impossible d’enregistrer la modification."
+    "saveError": "Impossible d’enregistrer la modification.",
+    "sharedLabel": "Partager avec les autres animateurs de l’instance",
+    "sharedHelp": "Ils le voient dans leurs quiz, en lecture seule, et peuvent en créer leur propre copie. Décoché, il reste à vous seul.",
+    "sharedOn": "Partagé",
+    "sharedOff": "Privé"
   },
   "broadcast": {
     "title": "Diffusion",
@@ -73,11 +78,11 @@
     "restore": "Restaurer",
     "archiveTitle": "Archivage",
     "archiveHelp": "Un quiz archivé disparaît de la liste principale ; il reste restaurable.",
-    "fullCaptureNext": "Capture intégrale des réponses pour la prochaine session"
+    "fullCaptureNext": "Capture intégrale des réponses la prochaine fois qu’il est joué"
   },
   "feedback": {
     "enableLabel": "Autoriser les avis des participants",
-    "enableHelp": "Un panneau de notation est proposé à la fin de chaque session.",
+    "enableHelp": "Un panneau de notation est proposé à la fin du quiz, chaque fois qu’il est joué.",
     "title": "Avis des participants",
     "empty": "Aucun avis pour l’instant.",
     "starsAriaLabel": "{{value}} sur 5",
@@ -171,7 +176,35 @@
       "large": "L"
     },
     "titleEdit": "Modifier la slide",
-    "titleAdd": "Nouvelle slide"
+    "titleAdd": "Nouvelle slide",
+    "mediaLegend": "Médias de la slide",
+    "videoCover": "Remplit la slide derrière son contenu (recadrée à l’écran).",
+    "videoLoop": "Boucle",
+    "videoLoopHint": "Tourne tant que la slide est affichée. Désactivée : joue une fois et reste sur sa dernière image — en mode auto, la slide attend sa fin.",
+    "videoSound": "Son",
+    "videoSoundHint": "Joue le son de la vidéo. Désactivé : muette, et la slide peut avoir son propre son.",
+    "audioExcludesVideoSound": "La slide a déjà un son : un seul son à la fois. Retirez-le pour activer celui de la vidéo.",
+    "videoSoundExcludesAudio": "La vidéo joue son propre son : pas de son en plus. Coupez le son de la vidéo pour en ajouter un.",
+    "variablesLegend": "Variables",
+    "variablesHint": "À écrire dans un titre ou un texte : elle est remplacée partout où la slide s’affiche. Celles du quiz apparaissent dans l’aperçu, celles du salon quand le quiz est joué.",
+    "variables": {
+      "title": "Le titre du quiz",
+      "description": "La description du quiz",
+      "questions": "Son nombre de questions",
+      "author": "Son auteur",
+      "tags": "Ses mots-clés",
+      "license": "Sa licence",
+      "room": "Le nom du salon",
+      "host": "Le nom de l’animateur",
+      "pin": "Le PIN du salon",
+      "join": "L’adresse pour rejoindre (hôte/join)",
+      "players": "Le nombre de participants connectés",
+      "question": "Le numéro de la question qui suit la slide",
+      "total": "Le nombre de questions du quiz",
+      "remaining": "Le nombre de questions restantes, la suivante comprise",
+      "date": "La date du jour",
+      "time": "L’heure"
+    }
   },
   "discardConfirm": {
     "title": "Abandonner les modifications ?",
@@ -206,14 +239,16 @@
     "revealDelayHint": "En mode automatique : temps laissé sur la réponse avant la question suivante. Vide = réglage par défaut.",
     "audioTargetLabel": "Qui entend ce son",
     "audioTargetHint": "Quels appareils jouent le son ou la vidéo de cette question. « Tous les appareils » inclut les téléphones dans la salle, qui font écho s’ils la partagent.",
-    "audioTargetDefault": "Réglage de la session",
+    "audioTargetDefault": "Réglage du quiz dans le salon",
     "waveformSizeLabel": "Taille de la forme d’onde",
     "waveformSizeHint": "Épaisseur de la forme d’onde du son sur la projection et les téléphones.",
     "waveformPreview": "Aperçu de la forme d’onde",
+    "waveformHiddenNote": "Masquée sur la projection et les téléphones — le son est joué quand même, et votre console l’affiche toujours.",
     "waveformSize": {
       "S": "Petite",
       "M": "Moyenne",
-      "L": "Grande"
+      "L": "Grande",
+      "hidden": "Masquée"
     },
     "pointsLabel": "Points",
     "pointsMode": {
@@ -258,13 +293,18 @@
       "numeric": {
         "standard": "Dans la tolérance",
         "closest": "Le plus proche gagne"
+      },
+      "image_choice": {
+        "standard": "Tout ou rien",
+        "partial": "Crédit partiel"
       }
     },
     "scoringHelp": {
       "multiple_choice": "Crédit partiel : chaque bonne case rapporte sa part, chaque mauvaise en annule une.",
       "ordering": "Crédit partiel : part des éléments à la bonne position.",
       "text_input": "Tolérant aux fautes : 1 lettre jusqu’à 5 lettres, 2 au-delà (après normalisation casse/accents).",
-      "numeric": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse."
+      "numeric": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse.",
+      "image_choice": "Crédit partiel (plusieurs bonnes images) : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
     },
     "removeOptionConfirm": {
       "title": "Supprimer cette option ?",
@@ -276,7 +316,28 @@
     "stretchedTime": "Le média dure {{media}} s : la question durera {{total}} s (fin du média + pause de {{tail}} s réglée sur le quiz).",
     "listenFirstLabel": "Lancer le chrono à la fin du média",
     "listenFirstHint": "Écouter d’abord, répondre ensuite : personne ne peut répondre pendant le son ou la vidéo, et tout le monde a ensuite le même temps de réflexion.",
-    "listenFirstTime": "Le média joue {{media}} s, puis les {{time}} s de réponse commencent."
+    "listenFirstTime": "Le média joue {{media}} s, puis les {{time}} s de réponse commencent.",
+    "promptImageNotice": "Cette image de l’énoncé serait mieux dans les médias de la question : cadrée sur tous les écrans, agrandissable sur les téléphones, chargée à l’avance.",
+    "promptImageMove": "Déplacer dans les médias",
+    "imagesLegend": "Images",
+    "imageCountLabel": "Nombre",
+    "multiSelectLabel": "Plusieurs bonnes réponses",
+    "multiSelectHint": "Les participants cochent toutes les bonnes images puis valident — noté comme un QCM multi-réponses.",
+    "imageCropNote": "Chaque image est recadrée pour remplir sa tuile, comme la projection l’affiche.",
+    "imageAdd": "Ajouter une image",
+    "imageRequired": "Choisissez une image pour cette réponse.",
+    "imageAltLabel": "Texte alternatif",
+    "imageAltAria": "Texte alternatif de l’image {{index}}",
+    "imageAltPlaceholder": "Ce que montre l’image, pour qui ne la voit pas",
+    "imageAltRequired": "Décrivez l’image : c’est la réponse pour qui ne la voit pas.",
+    "imagesIncomplete": "Chaque réponse demande une image et son texte alternatif.",
+    "imageCountConfirm": {
+      "title": "Garder seulement 2 images ?",
+      "description": "Les deux dernières réponses et leurs images seront retirées.",
+      "confirmLabel": "Retirer"
+    },
+    "trueOption": "Vrai",
+    "falseOption": "Faux"
   },
   "preview": {
     "view": "Aperçu (vue participant)",
@@ -290,7 +351,9 @@
     "optionFallback": "Option {{index}}",
     "acceptedAnswers": "Réponses acceptées : {{answers}}",
     "numericTarget": "Cible : {{value}} (± {{tolerance}})",
-    "credits": "Crédits"
+    "credits": "Crédits",
+    "video": "Vidéo de la question",
+    "sound": "Son · {{seconds}} s"
   },
   "media": {
     "alt": "média de la question",
@@ -356,7 +419,7 @@
     },
     "creditLabel": "Crédit",
     "creditPlaceholder": "ex. Photo : Lin Wei, CC BY 4.0, openverse.org",
-    "creditHelp": "Auteur, licence et source. Affiché dans l’aperçu et en fin de partie — une licence CC-BY le demande."
+    "creditHelp": "Auteur, licence et source. Affiché dans l’aperçu et en fin de quiz — une licence CC-BY le demande."
   },
   "background": {
     "legend": "Fond",
@@ -388,14 +451,15 @@
     "text_input": "Le participant tape sa réponse. Comparée aux réponses acceptées sans tenir compte de la casse, des accents ni des espaces en trop.",
     "numeric": "Le participant saisit un nombre ; bon s’il est à ± tolérance de la valeur cible.",
     "ordering": "Le participant remet les options dans l’ordre défini par les positions (#). Tout ou rien.",
-    "poll": "Recueil d’opinion : aucune bonne réponse, aucun point ; la répartition est affichée à la révélation."
+    "poll": "Recueil d’opinion : aucune bonne réponse, aucun point ; la répartition est affichée à la révélation.",
+    "image_choice": "Les réponses sont des images, 2 ou 4, chacune avec sa couleur et sa forme. Une seule bonne image, ou plusieurs si réglé ; noté comme un QCM à réponse unique ou multiple."
   },
   "sessions": {
-    "running_one": "{{count}} session en cours",
-    "running_other": "{{count}} sessions en cours",
+    "running_one": "{{count}} salon le joue",
+    "running_other": "{{count}} salons le jouent",
     "players_one": "{{count}} joueur",
     "players_other": "{{count}} joueurs",
-    "liveEditsHint": "Les modifications de forme (fonds, contraste, explications, slides) s’appliquent aux sessions en cours dès l’étape suivante ; questions et réponses restent telles que lancées."
+    "liveEditsHint": "Les modifications de forme (fonds, contraste, explications, slides) s’appliquent aux salons qui le jouent dès l’étape suivante ; questions et réponses restent telles que lancées."
   },
   "publication": {
     "open": "Exporter pour publication",
@@ -433,6 +497,13 @@
     "slugChanged": "Le changer (auparavant « {{previous}} ») crée un nouveau quiz pour le catalogue : supprimez l’ancien fichier de votre dépôt."
   },
   "readOnly": {
-    "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier."
+    "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier.",
+    "createFrom": "Créer à partir de ce quiz",
+    "props": {
+      "orderShown": "Listées dans le bon ordre.",
+      "seconds_one": "{{count}} seconde",
+      "seconds_other": "{{count}} secondes",
+      "muted": "sans le son"
+    }
   }
 }

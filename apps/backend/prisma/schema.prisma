@@ -49,6 +49,8 @@ enum QuestionType {
   numeric
   ordering
   poll
+  /// Answers are pictures (2 or 4), each with its colour and shape; one or several right.
+  image_choice
 
   @@map("question_type")
 }
@@ -122,6 +124,7 @@ enum WaveformSize {
   S
   M
   L
+  hidden
 }
 
 /// Which devices play a question's sound (see AudioTarget in @quiz-dock/contracts).
@@ -198,6 +201,9 @@ model Quiz {
   coverMediaId       String?        @map("cover_media_id") @db.Char(26)
   status             QuizStatus     @default(draft)
   visibility         QuizVisibility @default(private)
+  /// Shared with the instance's other hosts: listed in their bank, read-only, to copy from
+  /// ("Create from this"). Off by default: a private quiz is the owner's alone.
+  shared             Boolean        @default(false)
   language           String         @default("fr")
   questionCount      Int            @default(0) @map("question_count")
   /// Quiz Store identity (docs/quiz-bundle.md): kebab-case, taken from an imported bundle or set at first export.
@@ -219,7 +225,7 @@ model Quiz {
   feedbackEnabled    Boolean        @default(true) @map("feedback_enabled")
   /// Pause kept after a question's sound or video before its time can run out (s, 0–30):
   /// a question whose media outlasts its timer is stretched, never cut mid-play.
-  mediaTailS         Int            @default(3) @map("media_tail_s")
+  mediaTailS         Int            @default(1) @map("media_tail_s")
   /// Level every sound and video is brought to at playback (LUFS): -14 loud, -16 balanced, -23 calm.
   loudnessTargetLufs Int            @default(-16) @map("loudness_target_lufs")
   /// Which devices play the sounds, unless a question or the game says otherwise.
@@ -270,6 +276,8 @@ model Question {
   scoring            QuestionScoring @default(standard)
   numericValue       Decimal?        @map("numeric_value")
   numericTolerance   Decimal?        @map("numeric_tolerance")
+  /// image_choice: several pictures may be right (scored like a multiple choice).
+  multiSelect        Boolean         @default(false) @map("multi_select")
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -295,6 +303,9 @@ model AnswerOption {
   orderIndex        Int         @map("order_index")
   text              String?
   mediaId           String?     @map("media_id") @db.Char(26)
+  /// Alternative text of the option's picture, in the quiz's language: the same
+  /// image serves quizzes in other languages, so it is not the asset's.
+  alt               String?
   color             OptionColor
   shape             OptionShape
   isCorrect         Boolean     @default(false) @map("is_correct")
@@ -341,6 +352,18 @@ model Slide {
   blocks           Json          @default("[]")
   /// Optional full-cover background image (exclusive with `gradient`).
   mediaId          String?       @map("media_id") @db.Char(26)
+  /// A video filling the slide behind its content (#125), over its background.
+  videoMediaId     String?       @map("video_media_id") @db.Char(26)
+  /// The video runs as long as the slide shows; false = played once, held on its last frame.
+  videoLoop        Boolean       @default(true) @map("video_loop")
+  /// The video plays its own sound; false = muted. With its sound, no `audioMediaId` (checked by the API).
+  videoSound       Boolean       @default(true) @map("video_sound")
+  /// The slide's sound (#125), as a question's audio slot.
+  audioMediaId     String?       @map("audio_media_id") @db.Char(26)
+  /// How thick its waveform is drawn: hidden by default (the console still draws it).
+  waveformSize     WaveformSize  @default(hidden) @map("waveform_size")
+  /// Who hears the slide's sound; null = the game's target (as a question's).
+  audioTarget      AudioTarget?  @map("audio_target")
   /// Optional generated background: `{ angle, colors[] }` (exclusive with `mediaId`).
   gradient         Json?
   /// Auto-mode display time in seconds: null = engine default, 0 = the host clicks (manual override).
@@ -354,6 +377,8 @@ model Slide {
   quiz           Quiz        @relation(fields: [quizId], references: [id], onDelete: Cascade)
   beforeQuestion Question?   @relation(fields: [beforeQuestionId], references: [id], onDelete: SetNull)
   media          MediaAsset? @relation("SlideMedia", fields: [mediaId], references: [id])
+  videoMedia     MediaAsset? @relation("SlideVideo", fields: [videoMediaId], references: [id])
+  audioMedia     MediaAsset? @relation("SlideAudio", fields: [audioMediaId], references: [id])
 
   @@index([quizId])
   @@map("slide")
@@ -407,6 +432,8 @@ model MediaAsset {
   questionAudios      Question[]     @relation("QuestionAudio")
   questionBackgrounds Question[]     @relation("QuestionBackground")
   slides              Slide[]        @relation("SlideMedia")
+  slideVideos         Slide[]        @relation("SlideVideo")
+  slideAudios         Slide[]        @relation("SlideAudio")
   options             AnswerOption[] @relation("OptionMedia")
 
   @@index([ownerId])
@@ -434,6 +461,10 @@ model GameSessionLog {
   quizId           String        @map("quiz_id") @db.Char(26)
   hostId           String        @map("host_id") @db.Char(26)
   pin              String        @db.Char(6)
+  /// The room it was played in (#89): its sessions are read together. Null before rooms.
+  roomId           String?       @map("room_id") @db.Char(32)
+  /// The room's own name when the session was archived (a copy: no room table). Null = the default.
+  roomName         String?       @map("room_name") @db.VarChar(60)
   status           SessionStatus @default(ended)
   language         String
   playerCount      Int           @default(0) @map("player_count")
@@ -457,6 +488,7 @@ model GameSessionLog {
   @@index([quizId])
   @@index([hostId, startedAt])
   @@index([retainUntil])
+  @@index([roomId])
   @@map("game_session_log")
 }
 
@@ -538,7 +570,8 @@ model QuizFeedback {
 
   quiz Quiz @relation(fields: [quizId], references: [id], onDelete: Cascade)
 
-  @@unique([pin, playerId])
+  /// One rating per player and per quiz of a room (several quizzes share a PIN).
+  @@unique([pin, playerId, quizId])
   @@index([quizId, createdAt])
   @@map("quiz_feedback")
 }

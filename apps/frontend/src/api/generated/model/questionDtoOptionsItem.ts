@@ -19,6 +19,8 @@ export type QuestionDtoOptionsItem = {
   text: string | null;
   /** @nullable */
   mediaId: string | null;
+  /** @nullable */
+  alt: string | null;
   color: QuestionDtoOptionsItemColor;
   shape: QuestionDtoOptionsItemShape;
   isCorrect: boolean;

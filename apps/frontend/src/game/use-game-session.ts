@@ -1,4 +1,6 @@
 import type {
+  AnswerAck,
+  AnswerRefusal,
   AudioTarget,
   GameMode,
   GameModePayload,
@@ -7,6 +9,7 @@ import type {
   GameStatePayload,
   GameStep,
   LeaderboardPayload,
+  MediaControlPayload,
   MediaPositionPayload,
   MediaPreloadPayload,
   MediaReadinessPayload,
@@ -18,6 +21,8 @@ import type {
   QuestionRevealPayload,
   QuestionStartPayload,
   QuestionTimePayload,
+  RoomSoundsPayload,
+  RoomStandingsPayload,
   SessionNotice,
   SlideShowPayload,
 } from '@quiz-dock/contracts';
@@ -68,6 +73,10 @@ export interface GameView {
   feedbackEnabled: boolean;
   players: RosterPlayer[];
   answerAccepted: boolean | null;
+  /** Why the last answer was not counted (with `answerAccepted` false). */
+  answerRefusal: AnswerRefusal | null;
+  /** Server time of the last acknowledgement: a new one, even with the same verdict. */
+  answerAckAt: number | null;
   fullCapture: boolean;
   /** Suivi individuel (RG-16) : faux = seuls les résultats du groupe sont archivés. */
   personalTracking: boolean;
@@ -101,7 +110,8 @@ export interface GameView {
   /** Media of the next question, to fetch ahead (projection and console only). */
   preload: MediaPreloadPayload | null;
   /** Last host command on the current media; `seq` changes with each one. */
-  mediaControl: { questionIndex: number; action: 'restart'; seq: number } | null;
+  /** Where the host put the current question's media (numbered: a new anchor each time). */
+  mediaControl: (MediaControlPayload & { seq: number; receivedAt: number }) | null;
   /** Whether the quiz plays any sound (projection and console only; null until told). */
   quizHasSound: boolean | null;
   /** The room waits for media before `questionIndex`, until `until` (state `MEDIA_LOADING`). */
@@ -116,6 +126,23 @@ export interface GameView {
   gameAudioTarget: AudioTarget | null;
   /** Host navigation over played steps (`game:state.nav`); `review` = a past step is on screen. */
   nav: { prev: GameStep | null; next: GameStep | null; review: boolean } | null;
+  /** The room's game sounds (#93); null until told. */
+  sounds: RoomSoundsPayload | null;
+  /** Whether this participant said they are ready in the lobby (#104). */
+  youReady: boolean;
+  /** The lobby's count, as a participant sees it: ready, out of how many (#104). */
+  lobbyCount: { ready: number; total: number } | null;
+  /** The room's own name (null = the default, "<host>'s room") and its host's name. */
+  roomName: string | null;
+  hostName: string | null;
+  /** The room's standings over its quizzes so far (#89); null before the first is over. */
+  standings: RoomStandingsPayload | null;
+  /**
+   * The quiz this participant can still rate: the last one they played, kept into
+   * the next lobby (the host may move on while they rate). Null when they did not
+   * play it (joined at its podium) or once the next quiz starts.
+   */
+  rateable: { quizId: string | null; feedbackEnabled: boolean } | null;
 }
 
 const INITIAL: GameView = {
@@ -134,6 +161,8 @@ const INITIAL: GameView = {
   feedbackEnabled: true,
   players: [],
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -159,6 +188,37 @@ const INITIAL: GameView = {
   mediaPosition: null,
   mediaWait: null,
   nav: null,
+  youReady: false,
+  lobbyCount: null,
+  sounds: null,
+  roomName: null,
+  hostName: null,
+  standings: null,
+  rateable: null,
+};
+
+/**
+ * What belongs to one quiz of the room and never to a lobby: cleared when a lobby
+ * arrives, so the next quiz starts clean. What arrives just before the lobby state
+ * (`game:media`, `notice`) or is not sent again with it (outline, standings) stays.
+ */
+const PER_QUIZ: Partial<GameView> = {
+  question: null,
+  slide: null,
+  answerCount: null,
+  reveal: null,
+  result: null,
+  leaderboard: null,
+  podium: null,
+  answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
+  mediaWait: null,
+  mediaPosition: null,
+  mediaControl: null,
+  nav: null,
+  youReady: false,
+  lobbyCount: null,
 };
 
 /**
@@ -171,7 +231,8 @@ const INITIAL: GameView = {
  * Le rôle `player` n'émet rien tant qu'aucune session locale n'existe (`no-session`
  * → écran Rejoindre) ; `markJoined` est appelé par le formulaire après un join réussi.
  */
-export function useGameSession(pin: string, role: LiveRole) {
+export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boolean } = {}) {
+  const follow = opts.follow === true;
   const { t } = useTranslation('live');
   const [view, setView] = useState<GameView>(INITIAL);
   const socketRef = useRef<GameSocket | null>(null);
@@ -191,7 +252,18 @@ export function useGameSession(pin: string, role: LiveRole) {
         totalQuestions: p.totalQuestions,
         nav: p.nav ?? null,
         // Nouvelle question : on purge le résultat/accusé précédent.
-        ...(p.state === 'ANSWERING' ? { reveal: null, result: null, answerAccepted: null } : {}),
+        ...(p.state === 'ANSWERING'
+          ? {
+              reveal: null,
+              result: null,
+              answerAccepted: null,
+              answerRefusal: null,
+              answerAckAt: null,
+              rateable: null,
+            }
+          : {}),
+        // Back to a lobby (the room's next quiz): nothing of the last one shows.
+        ...(p.state === 'LOBBY' ? { ...PER_QUIZ, nav: p.nav ?? null } : {}),
       });
     const onRoster = (p: { players: RosterPlayer[] }) => patch({ players: p.players });
     const onJoined = (p: RosterPlayer) =>
@@ -216,7 +288,18 @@ export function useGameSession(pin: string, role: LiveRole) {
         ...prev,
         players: prev.players.filter((x) => x.playerId !== p.playerId),
       }));
-    const onQuestion = (p: QuestionStartPayload) => patch({ question: p });
+    // A new question starts at 0 answers: the last one's count would otherwise stand until
+    // the first answer (the console shows it; the tick reads its rise). A screen attaching
+    // mid-question is sent the true count right after.
+    const onQuestion = (p: QuestionStartPayload) =>
+      setView((prev) => ({
+        ...prev,
+        question: p,
+        answerCount:
+          prev.question?.questionIndex === p.questionIndex
+            ? prev.answerCount
+            : { answered: 0, total: prev.answerCount?.total ?? prev.players.length },
+      }));
     const onJoinUrl = (p: { baseUrl: string | null }) => patch({ joinBaseUrl: p.baseUrl });
     const onMode = (p: GameModePayload) =>
       patch({
@@ -250,7 +333,12 @@ export function useGameSession(pin: string, role: LiveRole) {
           : prev,
       );
     const onCount = (p: { answered: number; total: number }) => patch({ answerCount: p });
-    const onAck = (p: { accepted: boolean }) => patch({ answerAccepted: p.accepted });
+    const onAck = (p: AnswerAck) =>
+      patch({
+        answerAccepted: p.accepted,
+        answerRefusal: p.accepted ? null : (p.reason ?? 'closed'),
+        answerAckAt: p.receivedAt,
+      });
     const onSlide = (p: SlideShowPayload) => patch({ slide: p });
     const onReveal = (p: QuestionRevealPayload) =>
       patch({ reveal: p, result: p.yourResult ?? null });
@@ -260,21 +348,54 @@ export function useGameSession(pin: string, role: LiveRole) {
     const onMediaWait = (p: { questionIndex: number; until: number }) => patch({ mediaWait: p });
     const onPosition = (p: MediaPositionPayload) =>
       patch({ mediaPosition: { ...p, receivedAt: performance.now() } });
-    const onGameMedia = (p: { hasSound: boolean; hasMedia: boolean; audioTarget: AudioTarget }) =>
-      patch({ quizHasSound: p.hasSound, quizHasMedia: p.hasMedia, gameAudioTarget: p.audioTarget });
-    const onMediaControl = (p: { questionIndex: number; action: 'restart' }) =>
+    const onGameMedia = (p: {
+      title?: string;
+      hasSound: boolean;
+      hasMedia: boolean;
+      audioTarget: AudioTarget;
+    }) =>
+      patch({
+        quizHasSound: p.hasSound,
+        quizHasMedia: p.hasMedia,
+        gameAudioTarget: p.audioTarget,
+        ...(p.title !== undefined ? { quizTitle: p.title } : {}),
+      });
+    const onStandings = (p: RoomStandingsPayload) => patch({ standings: p });
+    const onLobbyYou = (p: { ready: boolean }) => patch({ youReady: p.ready });
+    const onLobbyCount = (p: { ready: number; total: number }) => patch({ lobbyCount: p });
+    const onSounds = (p: RoomSoundsPayload) => patch({ sounds: p });
+    const onRoomInfo = (p: { name: string | null; hostName: string }) =>
+      patch({ roomName: p.name, hostName: p.hostName });
+    const onMediaControl = (p: MediaControlPayload) =>
       setView((prev) => ({
         ...prev,
-        mediaControl: { ...p, seq: (prev.mediaControl?.seq ?? 0) + 1 },
+        mediaControl: {
+          ...p,
+          seq: (prev.mediaControl?.seq ?? 0) + 1,
+          receivedAt: performance.now(),
+        },
       }));
     const onPodium = (p: PodiumPayload) =>
       patch({
         podium: p,
         state: 'PODIUM' as GameState,
         feedbackEnabled: p.feedbackEnabled ?? true,
+        // Only a quiz they played: someone who joined at its podium has no line in it.
+        rateable: p.you
+          ? { quizId: p.quizId ?? null, feedbackEnabled: p.feedbackEnabled ?? true }
+          : null,
       });
-    const onEnded = (p: { feedbackEnabled?: boolean }) =>
-      patch({ state: 'ENDED' as GameState, feedbackEnabled: p?.feedbackEnabled ?? true });
+    const onEnded = (p: { feedbackEnabled?: boolean; quizId?: string }) =>
+      setView((prev) => ({
+        ...prev,
+        state: 'ENDED' as GameState,
+        feedbackEnabled: p?.feedbackEnabled ?? true,
+        // Ended mid-quiz: that quiz. Closed at a podium or in a lobby: the one played before.
+        rateable:
+          prev.state === 'PODIUM' || prev.state === 'LOBBY'
+            ? prev.rateable
+            : { quizId: p?.quizId ?? null, feedbackEnabled: p?.feedbackEnabled ?? true },
+      }));
     const onNotice = (p: SessionNotice) =>
       patch({
         fullCapture: p.fullCapture,
@@ -316,6 +437,11 @@ export function useGameSession(pin: string, role: LiveRole) {
       sock.on('media:control', onMediaControl);
       sock.on('game:media', onGameMedia);
       sock.on('game:podium', onPodium);
+      sock.on('room:standings', onStandings);
+      sock.on('room:info', onRoomInfo);
+      sock.on('lobby:you', onLobbyYou);
+      sock.on('lobby:count', onLobbyCount);
+      sock.on('room:sounds', onSounds);
       sock.on('game:ended', onEnded);
       sock.on('notice', onNotice);
       sock.on('kicked', onKicked);
@@ -330,7 +456,7 @@ export function useGameSession(pin: string, role: LiveRole) {
             if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
           });
         } else if (role === 'spectator') {
-          sock.emit('spectator:join', { pin }, (res: { ok: boolean }) => {
+          sock.emit('spectator:join', { pin, follow }, (res: { ok: boolean }) => {
             if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
           });
         } else {
@@ -383,14 +509,21 @@ export function useGameSession(pin: string, role: LiveRole) {
       s.off('media:control', onMediaControl);
       s.off('game:media', onGameMedia);
       s.off('game:podium', onPodium);
+      s.off('room:standings', onStandings);
+      s.off('room:info', onRoomInfo);
+      s.off('lobby:you', onLobbyYou);
+      s.off('lobby:count', onLobbyCount);
+      s.off('room:sounds', onSounds);
       s.off('game:ended', onEnded);
       s.off('notice', onNotice);
       s.off('kicked', onKicked);
     };
-  }, [pin, role, t]);
+  }, [pin, role, follow, t]);
 
   /** Joueur : à appeler après un `player:join` réussi pour quitter `no-session`. */
   const markJoined = () => setView((prev) => ({ ...prev, status: 'ready' }));
+  /** The participant said (or took back) that they are ready (#104), once the server took it. */
+  const markReady = (ready: boolean) => setView((prev) => ({ ...prev, youReady: ready }));
 
-  return { view, socket: socketRef.current, markJoined };
+  return { view, socket: socketRef.current, markJoined, markReady };
 }

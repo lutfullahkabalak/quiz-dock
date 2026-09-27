@@ -3,14 +3,11 @@ import Image from '@tiptap/extension-image';
 import { Markdown as MarkdownExt } from '@tiptap/markdown';
 import { EditorContent, useEditor, useEditorState, type Editor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
-import { Bold, Code, ImagePlus, Italic, List, ListOrdered, SquareCode } from 'lucide-react';
-import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { useMediaControllerReuse, useMediaControllerUpload } from '../api/generated/media/media';
+import { Bold, Code, Italic, List, ListOrdered, SquareCode } from 'lucide-react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
-import { readyForUpload } from '@/lib/media-pipeline';
-import { getDemo } from '../config';
 import type { MarkdownProfile } from './markdown';
 
 /**
@@ -64,7 +61,8 @@ export function extensionsFor(profile: MarkdownProfile) {
           hardBreak: false,
         })
       : StarterKit.configure(common);
-  // Block fields accept images (uploaded media, inserted as Markdown `![](url)`).
+  // Images are not added from the editor (a question's goes in its Media section, a
+  // slide's in an image block); one already in a text still shows and round-trips.
   return profile === 'inline'
     ? [InlineDocument, kit, MarkdownExt]
     : [kit, Image.configure({ inline: false, allowBase64: false }), MarkdownExt];
@@ -217,8 +215,6 @@ function Toolbar({ editor, profile }: { editor: Editor; profile: MarkdownProfile
           >
             <SquareCode className="size-4" />
           </ToolButton>
-          {/* No uploads on a demo instance. */}
-          {getDemo() ? null : <ImageButton editor={editor} />}
         </>
       ) : null}
     </>
@@ -251,50 +247,5 @@ function ToolButton({
     >
       {children}
     </button>
-  );
-}
-
-/** Uploads a picture (same endpoint as question media) and inserts it as a block image. */
-function ImageButton({ editor }: { editor: Editor }) {
-  const { t } = useTranslation('common');
-  const upload = useMediaControllerUpload();
-  const reuse = useMediaControllerReuse();
-  const input = useRef<HTMLInputElement>(null);
-  const onFile = async (file: File | undefined) => {
-    if (!file) return;
-    try {
-      // Converted like any image (WebP, 1920 px at most) before it goes up — or, the same
-      // original uploaded before, reused as it is.
-      const ready = await readyForUpload(file, 'image');
-      const res =
-        'reuse' in ready
-          ? await reuse.mutateAsync({ id: ready.reuse.id })
-          : await upload.mutateAsync({
-              data: { file: ready.file, sourceSha256: ready.sourceSha256 },
-            });
-      editor.chain().focus().setImage({ src: res.data.url }).run();
-    } catch {
-      // The upload endpoint reports its own error; nothing is inserted.
-    }
-    if (input.current) input.current.value = '';
-  };
-  return (
-    <>
-      <ToolButton
-        label={upload.isPending ? t('markdownEditor.uploading') : t('markdownEditor.image')}
-        active={false}
-        onClick={() => input.current?.click()}
-      >
-        <ImagePlus className="size-4" />
-      </ToolButton>
-      <input
-        ref={input}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        aria-label={t('markdownEditor.image')}
-        onChange={(e) => void onFile(e.target.files?.[0])}
-      />
-    </>
   );
 }

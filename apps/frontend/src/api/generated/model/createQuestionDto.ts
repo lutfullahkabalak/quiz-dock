@@ -59,6 +59,7 @@ export interface CreateQuestionDto {
   numericValue?: number;
   /** @minimum 0 */
   numericTolerance?: number;
+  multiSelect?: boolean;
   /** @maxItems 8 */
   options?: CreateQuestionDtoOptionsItem[];
   /** @maxItems 20 */

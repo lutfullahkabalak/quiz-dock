@@ -124,6 +124,7 @@ source, never a required one.
 | `points_mode` | enum `points_mode` | NN, DEF `standard` | `standard` \| `double` \| `none` (a poll) |
 | `numeric_value` | numeric | nullable | The target (`numeric` questions) |
 | `numeric_tolerance` | numeric | nullable, CHECK ≥ 0 | The ± tolerance (`numeric` questions) |
+| `multi_select` | boolean | NN, DEF false | Several right pictures (`image_choice` only) |
 | `created_at` | timestamptz | NN, DEF now() | |
 | `updated_at` | timestamptz | NN | |
 
@@ -132,6 +133,7 @@ CHECKs, in SQL or in the application, depending on the type:
 - `text_input` → ≥ 1 `accepted_answer`.
 - `numeric` → `numeric_value` NN + `numeric_tolerance` NN.
 - `poll` → `points_mode=none`, no right answer.
+- `image_choice` → exactly 2 or 4 `answer_option`, each with a `media_id` (an image the author owns) and an `alt`, no `text`; one right answer, or at least one with `multi_select`; no visual of the question's own (a sound is allowed).
 
 ### 2.4 `answer_option` — options (choice, true/false, ordering)
 
@@ -142,6 +144,7 @@ CHECKs, in SQL or in the application, depending on the type:
 | `order_index` | int | NN | Display position; UQ `(question_id, order_index)` |
 | `text` | text | nullable | The label (nullable when the option is media only) |
 | `media_id` | char(26) | FK→`media_asset.id`, nullable | The option's media |
+| `alt` | text | nullable | The picture's alternative text, in the quiz's language (`image_choice`): the asset is shared by quizzes in other languages |
 | `color` | enum `option_color` | NN | `red`\|`blue`\|`yellow`\|`green` (+ more) |
 | `shape` | enum `option_shape` | NN | `triangle`\|`diamond`\|`circle`\|`square` (accessibility) |
 | `is_correct` | boolean | NN, DEF false | A right answer (choice, true/false). **Never exposed before the reveal** (technique §7) |
@@ -194,6 +197,8 @@ CHECKs, in SQL or in the application, depending on the type:
 | `quiz_id` | char(26) | FK→`quiz.id`, NN, IDX | The quiz that was played (a snapshot is advised, see the note) |
 | `host_id` | char(26) | FK→`user.id`, NN, IDX | The host who ran it |
 | `pin` | char(6) | NN | The PIN used (historical; not unique over time) |
+| `room_name` | varchar(60) | nullable | The room's own name when the session was archived — a copy on each session, as there is no room table. Null = the default ("<host>'s room") |
+| `room_id` | char(32) | nullable, IDX | The room it was played in (SPECIFICATIONS-ROOM): the archived sessions of one room are read together — its quizzes, and standings summed from their `player_result_log` (nothing stored twice). Null for sessions archived before rooms |
 | `status` | enum `session_status` | NN, DEF `ended` | `ended` \| `archived` (the live `lobby`/`in_progress` states live in Redis) |
 | `language` | text | NN | The session's language |
 | `player_count` | int | NN, DEF 0 | How many participants played |
@@ -269,7 +274,7 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 | `user_role` | `host`, `player`, `admin` | Held as a **set** on the account; `player` is the floor, never stored |
 | `quiz_status` | `draft`, `ready`, `archived` | The quiz lifecycle |
 | `quiz_visibility` | `private`, `unlisted` | Unused: see `quiz.visibility` |
-| `question_type` | `single_choice`, `multiple_choice`, `true_false`, `text_input`, `numeric`, `ordering`, `poll` | see technique §4 |
+| `question_type` | `single_choice`, `multiple_choice`, `true_false`, `text_input`, `numeric`, `ordering`, `poll`, `image_choice` | see technique §4 |
 | `points_mode` | `standard`, `double`, `none` | `none` = a poll (0 points) |
 | `option_color` | `red`, `blue`, `yellow`, `green` | Extensible beyond 4 options |
 | `option_shape` | `triangle`, `diamond`, `circle`, `square` | Accessibility (colour + shape) |
@@ -280,59 +285,35 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 
 ## 4. Real-time structures (Redis)
 
-> The **living** state of a game. TTL ≈ the length of a game plus a margin (DEF 4 h); abandoned games are cleaned up automatically. It is the source of truth while the game runs, and is consolidated into the database at the end (§2.7–2.9).
+> The **living** state of a session. TTL ≈ the length of a session plus a margin (DEF 4 h); abandoned sessions are cleaned up automatically. It is the source of truth while a game runs, and is consolidated into the database at its end (§2.7–2.9). The keys are defined in `apps/backend/src/game/game.keys.ts`.
+>
+> Every session is a **room** (SPECIFICATIONS-ROOM §1): the room lives under its **PIN**, each **game** (one quiz played in it) under its own **game id** (32 hex characters). Nothing a game leaves behind (a lock, an answer, a score) is ever read by the next game of the room.
 
-### 4.1 `game:{pin}` — a Hash (the game state)
+### 4.1 The room (keyed by the PIN)
 
-| Field | Type | Description |
-|-------|------|-------------|
-| `state` | string | `LOBBY`\|`QUESTION_SHOW`\|`ANSWERING`\|`REVEAL`\|`LEADERBOARD`\|`PODIUM`\|`ENDED`\|`HOST_DISCONNECTED` |
-| `quizId` | string | The quiz being played |
-| `hostId` | string | The host |
-| `hostSocketId` | string | The host's current socket |
-| `currentQuestionIndex` | int | 0-based index |
-| `questionStartedAt` | int (ms epoch) | The **server** clock (fairness, technique §6) |
-| `questionEndsAt` | int (ms epoch) | The theoretical end |
-| `fullCapture` | bool | Full-capture mode is on → `answer_log` is written at the end (§2.10) |
-| `createdAt` | int (ms epoch) | When the game was created |
+| Key | Type | Contents |
+|-----|------|----------|
+| `pin:{pin}` | String | The room id; atomic allocation (`SET NX`), guarantees the PIN's **uniqueness** *(RG-04)*. Deleted when the room closes. |
+| `room:{pin}` | Hash | `roomId`, `hostUserId`, `gameId` (the game it plays), `name` (its own name, '' = "<host>'s room"), `hostName`, `sounds` (JSON: the game's sounds, #93), `fullCapture`, `personalTracking`, `pickOwnName`, `participantAccess`, `joinLocked`, `joinBaseUrl`, `openedAt` — what the players were told when they came in. |
+| `room:{pin}:players` | Hash `playerId → JSON` | Who each player is: `nickname`, `avatar`, `userId` (null = a guest), `connected`, `joinedAt`, `latencyMs`, `presence`. No score: it belongs to each game. |
+| `room:{pin}:nicknames` | Set | The normalized nicknames (atomic deduplication). |
+| `room:{pin}:ban:{nickname}` | String | A banned normalized nickname; the key's TTL is the ban's length *(RG-12)*. |
+| `session:{token}` | String | The token handed out on joining → `{ pin, playerId }`; makes **reconnecting** possible (technique §11). |
+| `room:{pin}:tokens` | Hash `playerId → token` | The players' session tokens, so the room keeps them alive while it lives. |
+| `room:{pin}:played` | Hash `gameId → JSON` | Once a game that started is over (podium, end, host gone): what each of its players did in it — `{ playerId: { score, correct, answered, totalMs, maxStreak } }`. The standings are its sum; recording a game twice changes nothing. |
+| `host:{userId}:games` | Set | The host's open rooms, by PIN (resumed from the dashboard). |
 
-### 4.2 `game:{pin}:players` — a Hash of `playerId → JSON`
+### 4.2 A game (keyed by its id)
 
-```jsonc
-{
-  "nickname": "marc",
-  "userId": "uuid|null",      // null = a guest
-  "connected": true,
-  "score": 8120,
-  "streak": 3,
-  "joinedAt": 1733740800000
-}
-```
-
-### 4.3 `game:{pin}:answers:{qIdx}` — a Hash of `playerId → JSON`
-
-```jsonc
-{
-  "value": "optionId | [optionIds] | text | a number | [order]",
-  "receivedAt": 1733740812345,  // the server timestamp
-  "latencyMs": 42,              // compensation (technique §6)
-  "isCorrect": true,
-  "pointsAwarded": 850
-}
-```
-> One entry per `playerId` (one answer per question, RG-06). Later submissions are ignored.
-
-### 4.4 `game:{pin}:leaderboard` — a Sorted Set
-
-- The member is the `playerId`, the score is `score`. Reading the top N and a rank is O(log n).
-
-### 4.5 `session:{token}` — a String
-
-- The `token` (handed out on joining) → the `playerId`. It makes **reconnecting** possible (technique §11). TTL = the length of the game.
-
-### 4.6 `pin:index` — a Set
-
-- The active PINs, guaranteeing **uniqueness** at generation time *(RG-04)*. The PIN is removed when the game ends.
+| Key | Type | Contents |
+|-----|------|----------|
+| `game:{id}` | Hash | The state machine: `state`, `quizId`, `title`, `language`, `currentIndex`, `slideIndex`, `totalQuestions`, `createdAt`, the **server** timings `questionStartedAt` / `questionEndsAt` (technique §6), `mode`, `paused`, `clockFrozen`, `pausedRemainingMs`, `autoNextAt`, `mediaWaitUntil`, `mediaLeadMs`, `audioTarget`, `reviewStep`, `prevState`. |
+| `game:{id}:snapshot` | String (JSON) | The frozen quiz, right answers included — server side only. |
+| `game:{id}:scores` | Hash `playerId → JSON` | `{ score, streak }` in this game. Its keys are **who plays this game** (a player joining at the podium waits for the next one); the ranking is read from it (by score, then arrival). |
+| `game:{id}:answers:{qIdx}` | Hash `playerId → JSON` | The graded answer: `answer`, `isCorrect`, `pointsAwarded`, `credit`, `tMs`, `receivedAt` (and `closestRank` / `distance` for a numeric `closest`). One entry per player (`HSETNX`, RG-06); later submissions are ignored. |
+| `game:{id}:pressed` | Set | The participants who said they are ready in this game's lobby (#104); a new quiz of the room asks again. |
+| `game:{id}:ready:{qIdx}` | Set | The devices that loaded a question's sound or video. |
+| `game:{id}:reveal-lock:{qIdx}`, `…:advance-lock:{step}`, `…:media-wait-lock:{qIdx}` | String (`SET NX`) | One winner per transition (no double reveal, no skipped step). |
 
 ---
 
@@ -342,7 +323,7 @@ Indexes: `(session_log_id, order_index)`; `(player_result_log_id)`.
 
 ```ts
 type QuestionType = 'single_choice' | 'multiple_choice' | 'true_false'
-  | 'text_input' | 'numeric' | 'ordering' | 'poll';
+  | 'text_input' | 'numeric' | 'ordering' | 'poll' | 'image_choice';
 
 interface QuestionStartPayload {            // server → client (WITHOUT the right answer)
   questionIndex: number;
@@ -350,6 +331,7 @@ interface QuestionStartPayload {            // server → client (WITHOUT the ri
   prompt: string;
   media?: { url: string; kind: 'image' | 'audio' };
   options?: { id: string; text?: string; color: string; shape: string }[];
+  multiSelect?: boolean;                    // image_choice: several pictures may be picked
   timeLimitS: number;
   basePoints: number;
   startedAt: number;   // server epoch ms

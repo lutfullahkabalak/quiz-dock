@@ -12,6 +12,8 @@ export const answerOptionSchema = z.object({
   orderIndex: z.number().int(),
   text: z.string().nullable(),
   mediaId: z.string().nullable(),
+  /** The picture's alternative text, in the quiz's language (image_choice). */
+  alt: z.string().nullable(),
   color: z.enum(['red', 'blue', 'yellow', 'green', 'purple', 'orange', 'pink', 'teal']),
   shape: z.enum(['triangle', 'diamond', 'circle', 'square', 'star', 'hexagon', 'heart', 'cross']),
   isCorrect: z.boolean(),
@@ -36,6 +38,7 @@ export const questionSchema = z.object({
     'numeric',
     'ordering',
     'poll',
+    'image_choice',
   ]),
   prompt: z.string(),
   media: questionMediaSchema,
@@ -53,6 +56,8 @@ export const questionSchema = z.object({
   scoring: z.enum(['standard', 'closest', 'partial', 'lenient']),
   numericValue: z.string().nullable(),
   numericTolerance: z.string().nullable(),
+  /** image_choice: several pictures may be right. */
+  multiSelect: z.boolean(),
   options: z.array(answerOptionSchema),
   acceptedAnswers: z.array(acceptedAnswerSchema),
 });

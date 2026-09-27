@@ -16,6 +16,8 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import type {
+  AudioTarget,
+  WaveformSize,
   SlideBlock,
   SlideColumnsRatio,
   SlideGradient,
@@ -24,6 +26,7 @@ import type {
   SlideTextSize,
   SlideTextTone,
 } from '@quiz-dock/contracts';
+import { SLIDE_VARIABLES, fillSlideBlocks, quizVariables } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlignCenter,
@@ -62,8 +65,9 @@ import { columnsTemplate } from '../game/live-components';
 import { SlideStage } from '../game/slide-stage';
 import { BackgroundField } from './background-field';
 import { MediaUpload } from './media-upload';
+import { SlideMediaField, type SlideMediaValue } from './slide-media-field';
 
-interface FormValues {
+interface FormValues extends SlideMediaValue {
   blocks: SlideBlock[];
   mediaId: string | null;
   gradient: SlideGradient | null;
@@ -82,6 +86,12 @@ function initialValues(s?: QuizDetailDtoSlidesItem): FormValues {
     ],
     mediaId: s?.mediaId ?? null,
     gradient: (s?.gradient as SlideGradient | null | undefined) ?? null,
+    videoMediaId: s?.videoMediaId ?? null,
+    videoLoop: s?.videoLoop ?? true,
+    videoSound: s?.videoSound ?? true,
+    audioMediaId: s?.audioMediaId ?? null,
+    waveformSize: (s?.waveformSize as WaveformSize | undefined) ?? 'hidden',
+    audioTarget: (s?.audioTarget as AudioTarget | null | undefined) ?? null,
     textTone: (s?.textTone as SlideTextTone | undefined) ?? 'light',
     textOutline: s?.textOutline ?? true,
     displayDelayS: s?.displayDelayS ?? null,
@@ -120,11 +130,14 @@ function complete(blocks: SlideBlock[]): SlideBlock[] {
 export function SlideForm({
   quizId,
   slide,
+  quizFields,
   onClose,
   onDirtyChange,
 }: {
   quizId: string;
   slide?: QuizDetailDtoSlidesItem;
+  /** The quiz's fields its variables read in the preview; the room's stay as written. */
+  quizFields?: Parameters<typeof quizVariables>[0];
   onClose: () => void;
   onDirtyChange?: (dirty: boolean) => void;
 }) {
@@ -165,6 +178,8 @@ export function SlideForm({
     setValues(initial);
   };
   const patch = (p: Partial<FormValues>) => setValues((v) => ({ ...v, ...p }));
+  // The sound's waveform, known once a sound is picked here (the size preview draws it).
+  const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
 
   const dirty = JSON.stringify(values) !== JSON.stringify(initial);
   useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
@@ -177,6 +192,12 @@ export function SlideForm({
       blocks: complete(values.blocks),
       mediaId: values.mediaId,
       gradient: values.gradient,
+      videoMediaId: values.videoMediaId,
+      videoLoop: values.videoLoop,
+      videoSound: values.videoSound,
+      audioMediaId: values.videoMediaId && values.videoSound ? null : values.audioMediaId,
+      waveformSize: values.waveformSize,
+      audioTarget: values.audioTarget,
       textTone: values.textTone,
       textOutline: values.textOutline,
       displayDelayS: values.displayDelayS,
@@ -211,11 +232,30 @@ export function SlideForm({
   const stage = {
     slideIndex: 0,
     questionIndex: 0,
-    blocks: values.blocks,
+    blocks: quizFields ? fillSlideBlocks(values.blocks, quizVariables(quizFields)) : values.blocks,
     background: values.mediaId
       ? { url: `/api/v1/media/${values.mediaId}` }
       : values.gradient
         ? { gradient: values.gradient }
+        : null,
+    // Its media, shown still (#125): the video's first frame, the sound's waveform when known.
+    video: values.videoMediaId
+      ? {
+          url: `/api/v1/media/${values.videoMediaId}`,
+          loop: values.videoLoop,
+          sound: values.videoSound,
+          gainDb: 0,
+        }
+      : null,
+    audio:
+      values.audioMediaId && audioPeaks && !(values.videoMediaId && values.videoSound)
+        ? {
+            url: `/api/v1/media/${values.audioMediaId}`,
+            durationMs: 0,
+            peaks: audioPeaks,
+            gainDb: 0,
+            size: values.waveformSize,
+          }
         : null,
     textTone: values.textTone,
     textOutline: values.textOutline,
@@ -287,7 +327,15 @@ export function SlideForm({
           </SortableContext>
         </DndContext>
         <AddBlockBar onAdd={addBlock} />
+        <VariablesHelp />
       </fieldset>
+
+      <SlideMediaField
+        value={values}
+        onChange={(p) => patch(p)}
+        peaks={audioPeaks}
+        onPeaks={setAudioPeaks}
+      />
 
       <BackgroundField
         value={{
@@ -318,6 +366,29 @@ export function SlideForm({
         }}
       />
     </form>
+  );
+}
+
+/**
+ * The variables a heading or a text may hold, each with what it becomes: the
+ * quiz's are shown filled in the preview, the room's once the quiz is played.
+ */
+function VariablesHelp() {
+  const { t } = useTranslation('editor');
+  return (
+    <Disclosure title={t('slideForm.variablesLegend')} value={`{${SLIDE_VARIABLES[0]}} …`}>
+      <p className="text-muted-foreground text-xs">{t('slideForm.variablesHint')}</p>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-3 gap-y-1 text-sm">
+        {SLIDE_VARIABLES.map((name) => (
+          <div key={name} className="contents">
+            <dt>
+              <code className="bg-muted rounded px-1">{`{${name}}`}</code>
+            </dt>
+            <dd className="text-muted-foreground">{t(`slideForm.variables.${name}`)}</dd>
+          </div>
+        ))}
+      </dl>
+    </Disclosure>
   );
 }
 

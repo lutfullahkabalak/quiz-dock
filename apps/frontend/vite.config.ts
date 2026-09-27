@@ -40,5 +40,8 @@ export default defineConfig({
     globals: true,
     environment: 'jsdom',
     setupFiles: ['./src/test/setup.ts'],
+    // Whole pages (the editor) take ~0.4 s alone, but more than 5 s when the pre-push
+    // hook runs the backend's suite alongside: a slow machine is not a failing test.
+    testTimeout: 15_000,
   },
 });

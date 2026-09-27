@@ -17,4 +17,5 @@ export const QuizDetailDtoQuestionsItemType = {
   numeric: 'numeric',
   ordering: 'ordering',
   poll: 'poll',
+  image_choice: 'image_choice',
 } as const;

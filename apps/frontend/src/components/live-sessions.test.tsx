@@ -40,7 +40,7 @@ describe('LiveSessions (barre du haut)', () => {
     renderApp('/quizzes');
 
     fireEvent.click(await screen.findByRole('button', { name: /2 en direct/ }));
-    expect(screen.getByText('Sessions en cours')).toBeInTheDocument();
+    expect(screen.getByText('Salons ouverts')).toBeInTheDocument();
     expect(screen.getByText('222222')).toBeInTheDocument();
     expect(screen.getByText('3 participants')).toBeInTheDocument();
   });
@@ -68,7 +68,7 @@ describe('LiveSessions (barre du haut)', () => {
     fireEvent.click(await screen.findByRole('button', { name: /1 en direct/ }));
     // Le menu dit que la portée change ; le détail « animée par qui » est sur la
     // page dédiée, où une ligne a la place de le porter.
-    expect(screen.getByText('Toutes les sessions de l’instance')).toBeInTheDocument();
+    expect(screen.getByText('Tous les salons de l’instance')).toBeInTheDocument();
   });
 
   it('reste dans la barre, pas dans le burger : une partie en cours se voit', async () => {
@@ -84,7 +84,7 @@ describe('LiveSessions (barre du haut)', () => {
 
     // L'indicateur est accessible sans ouvrir quoi que ce soit, à toute taille.
     fireEvent.click(await screen.findByRole('button', { name: /1 en direct/ }));
-    expect(screen.getByText('Sessions en cours')).toBeInTheDocument();
+    expect(screen.getByText('Salons ouverts')).toBeInTheDocument();
     expect(screen.getByText('111111')).toBeInTheDocument();
   });
 
@@ -106,7 +106,7 @@ describe('LiveSessions (barre du haut)', () => {
     // Cinq aperçus, pas douze : le menu est une porte d'entrée.
     expect(screen.getByText('Partie 0')).toBeInTheDocument();
     expect(screen.queryByText('Partie 11')).toBeNull();
-    expect(screen.getByRole('link', { name: /Voir toutes les sessions \(12\)/ })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: /Voir tous les salons \(12\)/ })).toHaveAttribute(
       'href',
       '/live',
     );

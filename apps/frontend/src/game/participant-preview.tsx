@@ -5,13 +5,15 @@ import { cn } from '@/lib/utils';
 import {
   AnswerExplanation,
   AnswerRules,
-  OptionGrid,
+  OptionTiles,
   Podium,
   RevealAnswer,
   SlideView,
   TYPE_BASE,
 } from './live-components';
+import { RoomVariables } from './slide-variables';
 import { Surface } from './surface';
+import { ImageChoiceGrid } from './image-choice';
 import { useGameRemaining } from './use-countdown';
 import type { GameView } from './use-game-session';
 
@@ -20,7 +22,7 @@ import type { GameView } from './use-game-session';
  * game: a phone-sized column with the same components as the player page,
  * minus the personal parts (no answer, no personal score).
  */
-export function ParticipantPreview({ view }: { view: GameView }) {
+export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string }) {
   const { t } = useTranslation('live');
   const remaining = useGameRemaining(view);
   const q = view.question;
@@ -28,7 +30,13 @@ export function ParticipantPreview({ view }: { view: GameView }) {
   if (view.state === 'SLIDE_SHOW' && view.slide) {
     body = (
       <div className="flex min-h-[32em] w-full">
-        <SlideView slide={view.slide} />
+        {pin ? (
+          <RoomVariables view={view} pin={pin}>
+            <SlideView slide={view.slide} />
+          </RoomVariables>
+        ) : (
+          <SlideView slide={view.slide} />
+        )}
       </div>
     );
   } else if ((view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && q) {
@@ -41,8 +49,10 @@ export function ParticipantPreview({ view }: { view: GameView }) {
           <Markdown className="text-[1.5em] font-semibold text-balance">{q.prompt}</Markdown>
         </div>
         <AnswerRules question={q} />
-        {q.options?.length ? (
-          <OptionGrid options={q.options} disabled layout="split" />
+        {q.type === 'image_choice' ? (
+          <ImageChoiceGrid options={q.options ?? []} disabled />
+        ) : q.options?.length ? (
+          <OptionTiles options={q.options} disabled />
         ) : (
           <Input disabled placeholder={t('player.answerPlaceholder')} className="text-center" />
         )}

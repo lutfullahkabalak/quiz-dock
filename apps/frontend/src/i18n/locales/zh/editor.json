@@ -8,7 +8,8 @@
     "text_input": "文本输入",
     "numeric": "数字",
     "ordering": "排序",
-    "poll": "投票"
+    "poll": "投票",
+    "image_choice": "图片选择"
   },
   "header": {
     "title": "测验编辑器",
@@ -60,7 +61,11 @@
     "tagsPlaceholder": "添加标签…",
     "tagsHelp": "最多 5 个关键词，便于在模板中找到该测验。按回车添加。",
     "removeTag": "移除标签 {{tag}}",
-    "saveError": "无法保存更改。"
+    "saveError": "无法保存更改。",
+    "sharedLabel": "与本实例的其他主持人共享",
+    "sharedHelp": "他们会在自己的测验中看到它（只读），并可创建自己的副本。不勾选则只有你能看到。",
+    "sharedOn": "已共享",
+    "sharedOff": "私有"
   },
   "broadcast": {
     "title": "广播",
@@ -73,11 +78,11 @@
     "restore": "恢复",
     "archiveTitle": "归档",
     "archiveHelp": "归档的测验会从主列表中隐藏，可以随时恢复。",
-    "fullCaptureNext": "下一场次完整记录回答"
+    "fullCaptureNext": "下次进行时完整记录回答"
   },
   "feedback": {
     "enableLabel": "允许参与者评价",
-    "enableHelp": "每场结束时向参与者提供评分面板。",
+    "enableHelp": "每次测验结束时向参与者提供评分面板。",
     "title": "玩家评价",
     "empty": "暂无评价。",
     "starsAriaLabel": "5 星中的 {{value}} 星",
@@ -171,7 +176,35 @@
       "large": "大"
     },
     "titleEdit": "编辑幻灯片",
-    "titleAdd": "新建幻灯片"
+    "titleAdd": "新建幻灯片",
+    "mediaLegend": "幻灯片媒体",
+    "videoCover": "铺满幻灯片内容的背后（按屏幕裁剪）。",
+    "videoLoop": "循环",
+    "videoLoopHint": "幻灯片显示期间一直播放。关闭：只播放一次并停在最后一帧——自动模式下，幻灯片会等它播完。",
+    "videoSound": "声音",
+    "videoSoundHint": "播放视频自带的声音。关闭：静音，幻灯片可以有自己的声音。",
+    "audioExcludesVideoSound": "幻灯片已有声音：一次只能有一个声音。移除它才能打开视频的声音。",
+    "videoSoundExcludesAudio": "视频播放自带的声音：不能再加声音。将视频静音后才能添加。",
+    "variablesLegend": "变量",
+    "variablesHint": "写在标题或文本中：幻灯片显示时会被替换。测验的变量在预览中显示，房间的变量在进行测验时显示。",
+    "variables": {
+      "title": "测验标题",
+      "description": "测验说明",
+      "questions": "题目数量",
+      "author": "作者",
+      "tags": "标签",
+      "license": "许可协议",
+      "room": "房间名称",
+      "host": "主持人名称",
+      "pin": "房间 PIN",
+      "join": "加入地址（主机/join）",
+      "players": "已连接的参与者人数",
+      "question": "幻灯片之后的题号",
+      "total": "测验的题目总数",
+      "remaining": "剩余题目数（含下一题）",
+      "date": "今天的日期",
+      "time": "时间"
+    }
   },
   "discardConfirm": {
     "title": "放弃修改？",
@@ -206,14 +239,16 @@
     "revealDelayHint": "自动模式下：进入下一题前在答案上停留的时间。留空 = 默认设置。",
     "audioTargetLabel": "谁能听到这个声音",
     "audioTargetHint": "哪些设备播放本题的声音或视频。“所有设备”包括现场的手机，若共处一室会产生回声。",
-    "audioTargetDefault": "本次会话的设置",
+    "audioTargetDefault": "房间中本测验的设置",
     "waveformSizeLabel": "波形大小",
     "waveformSizeHint": "声音波形在投影和手机上显示的粗细。",
     "waveformPreview": "波形预览",
+    "waveformHiddenNote": "在投影和手机上隐藏——声音照常播放，你的控制台仍会显示波形。",
     "waveformSize": {
       "S": "小",
       "M": "中",
-      "L": "大"
+      "L": "大",
+      "hidden": "隐藏"
     },
     "pointsLabel": "分数",
     "pointsMode": {
@@ -258,13 +293,18 @@
       "numeric": {
         "standard": "在误差范围内",
         "closest": "最接近者胜"
+      },
+      "image_choice": {
+        "standard": "全对才得分",
+        "partial": "部分得分"
       }
     },
     "scoringHelp": {
       "multiple_choice": "部分得分：每个正确勾选得其份额，每个错误勾选抵消一个。",
       "ordering": "部分得分：位置正确的元素所占比例。",
       "text_input": "容忍拼写错误：5 个字母内允许 1 处，之外允许 2 处（大小写/重音归一后）。",
-      "numeric": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。"
+      "numeric": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。",
+      "image_choice": "部分得分（多张正确图片）：每勾对一项得相应分数，每勾错一项抵消一项。"
     },
     "removeOptionConfirm": {
       "title": "删除此选项？",
@@ -276,7 +316,28 @@
     "stretchedTime": "媒体时长 {{media}} 秒：此题将持续 {{total}} 秒（媒体结束 + 测验设置的 {{tail}} 秒停顿）。",
     "listenFirstLabel": "媒体结束后再开始计时",
     "listenFirstHint": "先听后答：播放声音或视频期间无法作答，之后每个人都有相同的思考时间。",
-    "listenFirstTime": "媒体播放 {{media}} 秒，然后开始 {{time}} 秒的作答时间。"
+    "listenFirstTime": "媒体播放 {{media}} 秒，然后开始 {{time}} 秒的作答时间。",
+    "promptImageNotice": "题干中的这张图片放在题目媒体中会更好：在所有屏幕上都有合适的框，可在手机上放大，并会提前加载。",
+    "promptImageMove": "移到媒体",
+    "imagesLegend": "图片",
+    "imageCountLabel": "数量",
+    "multiSelectLabel": "多个正确答案",
+    "multiSelectHint": "参与者勾选所有正确图片后提交——按多选题计分。",
+    "imageCropNote": "每张图片会被裁剪以填满其方块，与投影显示一致。",
+    "imageAdd": "添加图片",
+    "imageRequired": "请为此答案选择一张图片。",
+    "imageAltLabel": "替代文字",
+    "imageAltAria": "图片 {{index}} 的替代文字",
+    "imageAltPlaceholder": "图片内容，供看不到图片的人使用",
+    "imageAltRequired": "请描述图片：对看不到它的人来说，这就是答案。",
+    "imagesIncomplete": "每个答案都需要一张图片及其替代文字。",
+    "imageCountConfirm": {
+      "title": "只保留 2 张图片？",
+      "description": "最后两个答案及其图片将被移除。",
+      "confirmLabel": "移除"
+    },
+    "trueOption": "正确",
+    "falseOption": "错误"
   },
   "preview": {
     "view": "预览（玩家视图）",
@@ -290,7 +351,9 @@
     "optionFallback": "选项 {{index}}",
     "acceptedAnswers": "可接受的答案：{{answers}}",
     "numericTarget": "目标：{{value}}（± {{tolerance}}）",
-    "credits": "署名"
+    "credits": "署名",
+    "video": "题目视频",
+    "sound": "声音 · {{seconds}} 秒"
   },
   "media": {
     "alt": "题目媒体",
@@ -356,7 +419,7 @@
     },
     "creditLabel": "署名",
     "creditPlaceholder": "例如 照片：林伟，CC BY 4.0，openverse.org",
-    "creditHelp": "作者、许可和来源。显示在预览和游戏结束时——CC-BY 许可要求这样做。"
+    "creditHelp": "作者、许可和来源。显示在预览和测验结束时——CC-BY 许可要求这样做。"
   },
   "background": {
     "legend": "背景",
@@ -388,14 +451,15 @@
     "text_input": "参与者输入答案。与可接受答案比较，忽略大小写、重音和多余空格。",
     "numeric": "参与者输入数字；在目标值 ± 容差范围内即正确。",
     "ordering": "参与者按位置 (#) 定义的顺序排列选项。全对才得分。",
-    "poll": "仅收集意见：没有正确答案，不计分；揭晓时显示分布。"
+    "poll": "仅收集意见：没有正确答案，不计分；揭晓时显示分布。",
+    "image_choice": "答案是图片，2 张或 4 张，每张有自己的颜色和形状。一张正确图片，或设置后多张；按单选或多选计分。"
   },
   "sessions": {
-    "running_one": "{{count}} 场进行中",
-    "running_other": "{{count}} 场进行中",
+    "running_one": "{{count}} 个房间正在进行",
+    "running_other": "{{count}} 个房间正在进行",
     "players_one": "{{count}} 名玩家",
     "players_other": "{{count}} 名玩家",
-    "liveEditsHint": "版式修改（背景、对比度、解析、幻灯片）会在进行中的场次下一步生效；题目和答案保持启动时的版本。"
+    "liveEditsHint": "版式修改（背景、对比度、解析、幻灯片）会在正在进行它的房间的下一步生效；题目和答案保持启动时的版本。"
   },
   "publication": {
     "open": "导出以发布",
@@ -433,6 +497,13 @@
     "slugChanged": "更改它（原为“{{previous}}”）会在目录中产生一个新测验：请从仓库中删除旧文件。"
   },
   "readOnly": {
-    "notice": "{{owner}} 的测验：你可以查看，但不能修改。"
+    "notice": "{{owner}} 的测验：你可以查看，但不能修改。",
+    "createFrom": "基于此测验创建",
+    "props": {
+      "orderShown": "按正确顺序列出。",
+      "seconds_one": "{{count}} 秒",
+      "seconds_other": "{{count}} 秒",
+      "muted": "静音"
+    }
   }
 }

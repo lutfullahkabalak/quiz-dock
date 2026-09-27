@@ -32,23 +32,23 @@ describe('LivePage', () => {
     mockApi([{ method: 'GET', path: '/games/mine', body: many }]);
     renderApp('/live');
 
-    expect(await screen.findByText('22 sessions')).toBeInTheDocument();
+    expect(await screen.findByText('22 salons')).toBeInTheDocument();
     expect(screen.getByText('Page 1 sur 2')).toBeInTheDocument();
 
     // Le PIN se cherche : c'est souvent tout ce qu'on a sous les yeux.
-    fireEvent.change(screen.getByPlaceholderText(/Rechercher une session/), {
+    fireEvent.change(screen.getByPlaceholderText(/Chercher un salon/), {
       target: { value: '999999' },
     });
-    await waitFor(() => expect(screen.getByText('1 session')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('1 salon')).toBeInTheDocument());
     expect(screen.getByText('Géographie')).toBeInTheDocument();
     expect(screen.getByText(/animée par Carol/)).toBeInTheDocument();
 
     // Et l'état : salle d'attente ou en jeu.
-    fireEvent.change(screen.getByPlaceholderText(/Rechercher une session/), {
+    fireEvent.change(screen.getByPlaceholderText(/Chercher un salon/), {
       target: { value: '' },
     });
     fireEvent.change(screen.getByLabelText('État'), { target: { value: 'playing' } });
-    await waitFor(() => expect(screen.getByText('1 session')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByText('1 salon')).toBeInTheDocument());
   });
 
   it('arrête une session après confirmation', async () => {
@@ -59,7 +59,7 @@ describe('LivePage', () => {
     renderApp('/live');
 
     fireEvent.click(await screen.findByRole('button', { name: 'Arrêter' }));
-    fireEvent.click(await screen.findByRole('button', { name: 'Arrêter la session' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Fermer le salon' }));
 
     await waitFor(() =>
       expect(
@@ -75,6 +75,6 @@ describe('LivePage', () => {
   it('le dit quand rien ne tourne', async () => {
     mockApi([{ method: 'GET', path: '/games/mine', body: [] }]);
     renderApp('/live');
-    expect(await screen.findByText('Aucune session en cours.')).toBeInTheDocument();
+    expect(await screen.findByText('Aucun salon ouvert.')).toBeInTheDocument();
   });
 });

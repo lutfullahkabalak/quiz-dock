@@ -15,6 +15,7 @@ import {
 import type { MediaLibraryItemDto } from '../api/generated/model';
 import { formatDimensions } from '@/lib/dimensions';
 import { Waveform } from '../game/media/waveform';
+import { Spinner } from '@/components/ui/loading';
 
 const SEARCH_DELAY_MS = 250;
 
@@ -161,7 +162,7 @@ export function MediaLibraryDialog({
 
         <div className="min-h-24 overflow-y-auto">
           {list.isLoading ? (
-            <p className="text-muted-foreground text-sm">{t('media.library.loading')}</p>
+            <Spinner label={t('media.library.loading')} showLabel className="text-sm" />
           ) : items.length === 0 ? (
             <p className="text-muted-foreground text-sm">
               {q

@@ -8,7 +8,8 @@
     "text_input": "Text input",
     "numeric": "Numeric",
     "ordering": "Reorder",
-    "poll": "Poll"
+    "poll": "Poll",
+    "image_choice": "Image choice"
   },
   "header": {
     "title": "Quiz editor",
@@ -60,7 +61,11 @@
     "tagsPlaceholder": "Add a tag…",
     "tagsHelp": "Up to 5 keywords to find the quiz among templates. Press Enter to add one.",
     "removeTag": "Remove tag {{tag}}",
-    "saveError": "Could not save the change."
+    "saveError": "Could not save the change.",
+    "sharedLabel": "Share with the instance’s other hosts",
+    "sharedHelp": "They see it in their quizzes, read-only, and can create their own copy from it. Unchecked, it stays yours alone.",
+    "sharedOn": "Shared",
+    "sharedOff": "Private"
   },
   "broadcast": {
     "title": "Broadcast",
@@ -73,11 +78,11 @@
     "restore": "Restore",
     "archiveTitle": "Archiving",
     "archiveHelp": "An archived quiz leaves the main list; it can be restored.",
-    "fullCaptureNext": "Full answer capture for the next session"
+    "fullCaptureNext": "Full answer capture the next time it is played"
   },
   "feedback": {
     "enableLabel": "Allow player feedback",
-    "enableHelp": "A rating panel is offered at the end of every session.",
+    "enableHelp": "A rating panel is offered at the end of the quiz, every time it is played.",
     "title": "Player feedback",
     "empty": "No feedback yet.",
     "starsAriaLabel": "{{value}} out of 5",
@@ -171,7 +176,35 @@
       "large": "L"
     },
     "titleEdit": "Edit slide",
-    "titleAdd": "New slide"
+    "titleAdd": "New slide",
+    "mediaLegend": "Slide media",
+    "videoCover": "Fills the slide behind its content (cropped to the screen).",
+    "videoLoop": "Loop",
+    "videoLoopHint": "Runs as long as the slide shows. Off: plays once and stays on its last frame — the slide waits for its end in auto mode.",
+    "videoSound": "Sound",
+    "videoSoundHint": "Plays the video’s own sound. Off: muted, and the slide can have a sound of its own.",
+    "audioExcludesVideoSound": "The slide already has a sound: one sound at a time. Remove it to turn the video’s on.",
+    "videoSoundExcludesAudio": "The video plays its own sound: no extra sound. Mute the video to add one.",
+    "variablesLegend": "Variables",
+    "variablesHint": "Write one in a heading or a text: it is replaced wherever the slide shows. The quiz’s appear filled in the preview, the room’s once the quiz is played.",
+    "variables": {
+      "title": "The quiz’s title",
+      "description": "The quiz’s description",
+      "questions": "How many questions it has",
+      "author": "Its author",
+      "tags": "Its tags",
+      "license": "Its licence",
+      "room": "The room’s name",
+      "host": "The host’s name",
+      "pin": "The room’s PIN",
+      "join": "The address to join (host/join)",
+      "players": "How many participants are connected",
+      "question": "The number of the question that follows the slide",
+      "total": "How many questions the quiz has",
+      "remaining": "How many questions are left, the next one included",
+      "date": "Today’s date",
+      "time": "The time"
+    }
   },
   "discardConfirm": {
     "title": "Discard changes?",
@@ -206,14 +239,16 @@
     "revealDelayHint": "In automatic mode: time spent on the answer before the next question. Empty = default setting.",
     "audioTargetLabel": "Who hears this sound",
     "audioTargetHint": "Which devices play this question's sound or video. \"Every device\" includes the phones in the room, which echo if they share it.",
-    "audioTargetDefault": "The session's setting",
+    "audioTargetDefault": "The quiz's setting in the room",
     "waveformSizeLabel": "Waveform size",
     "waveformSizeHint": "How thick the sound's waveform is drawn on the projection and the phones.",
     "waveformPreview": "Waveform preview",
+    "waveformHiddenNote": "Hidden on the projection and the phones — the sound still plays, and your console still shows it.",
     "waveformSize": {
       "S": "Small",
       "M": "Medium",
-      "L": "Large"
+      "L": "Large",
+      "hidden": "Hidden"
     },
     "pointsLabel": "Points",
     "pointsMode": {
@@ -258,13 +293,18 @@
       "numeric": {
         "standard": "Within tolerance",
         "closest": "Closest answer wins"
+      },
+      "image_choice": {
+        "standard": "All or nothing",
+        "partial": "Partial credit"
       }
     },
     "scoringHelp": {
       "multiple_choice": "Partial credit: each right tick earns its share, each wrong tick cancels one.",
       "ordering": "Partial credit: share of the elements at the right position.",
       "text_input": "Tolerate typos: one edit up to 5 letters, two beyond (after case/accent normalisation).",
-      "numeric": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus."
+      "numeric": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus.",
+      "image_choice": "Partial credit (several right pictures): each right tick earns its share, each wrong tick cancels one."
     },
     "removeOptionConfirm": {
       "title": "Remove this option?",
@@ -276,7 +316,28 @@
     "stretchedTime": "The media lasts {{media}} s: the question will last {{total}} s (end of the media + the quiz’s {{tail}} s pause).",
     "listenFirstLabel": "Start the timer when the media ends",
     "listenFirstHint": "Listen first, then answer: nobody can answer while the sound or video plays, and everyone gets the full time to think afterwards.",
-    "listenFirstTime": "The media plays {{media}} s, then the {{time}} s of answering start."
+    "listenFirstTime": "The media plays {{media}} s, then the {{time}} s of answering start.",
+    "promptImageNotice": "This image in the prompt would be better in the question’s media: framed on every screen, zoomable on phones, loaded ahead.",
+    "promptImageMove": "Move to the media",
+    "imagesLegend": "Pictures",
+    "imageCountLabel": "How many",
+    "multiSelectLabel": "Several right answers",
+    "multiSelectHint": "Participants tick every right picture, then submit — scored like a multiple choice.",
+    "imageCropNote": "Each picture is cropped to fill its tile, as the projection shows it.",
+    "imageAdd": "Add a picture",
+    "imageRequired": "Choose a picture for this answer.",
+    "imageAltLabel": "Alternative text",
+    "imageAltAria": "Alternative text of picture {{index}}",
+    "imageAltPlaceholder": "What the picture shows, for whoever cannot see it",
+    "imageAltRequired": "Describe the picture: it is the answer for whoever cannot see it.",
+    "imagesIncomplete": "Every answer needs a picture and its alternative text.",
+    "imageCountConfirm": {
+      "title": "Keep only 2 pictures?",
+      "description": "The last two answers and their pictures will be removed.",
+      "confirmLabel": "Remove"
+    },
+    "trueOption": "True",
+    "falseOption": "False"
   },
   "preview": {
     "view": "Preview (player view)",
@@ -290,7 +351,9 @@
     "optionFallback": "Option {{index}}",
     "acceptedAnswers": "Accepted answers: {{answers}}",
     "numericTarget": "Target: {{value}} (± {{tolerance}})",
-    "credits": "Credits"
+    "credits": "Credits",
+    "video": "Question video",
+    "sound": "Sound · {{seconds}} s"
   },
   "media": {
     "alt": "question media",
@@ -356,7 +419,7 @@
     },
     "creditLabel": "Credit",
     "creditPlaceholder": "e.g. Photo: Lin Wei, CC BY 4.0, openverse.org",
-    "creditHelp": "Author, licence and source. Shown in the preview and at the end of a session — a CC-BY licence asks for it."
+    "creditHelp": "Author, licence and source. Shown in the preview and at the end of the quiz — a CC-BY licence asks for it."
   },
   "background": {
     "legend": "Background",
@@ -388,14 +451,15 @@
     "text_input": "The participant types the answer. Matched against the accepted answers ignoring case, accents and extra spaces.",
     "numeric": "The participant enters a number; correct when within ± tolerance of the target.",
     "ordering": "The participant sorts the options into the order set by the positions (#). All or nothing.",
-    "poll": "Opinion only: no correct answer, no points; the distribution is shown at the reveal."
+    "poll": "Opinion only: no correct answer, no points; the distribution is shown at the reveal.",
+    "image_choice": "The answers are pictures, 2 or 4, each with its colour and shape. One right picture, or several when set; scored like a single or multiple choice."
   },
   "sessions": {
-    "running_one": "{{count}} session running",
-    "running_other": "{{count}} sessions running",
+    "running_one": "{{count}} room is playing it",
+    "running_other": "{{count}} rooms are playing it",
     "players_one": "{{count}} player",
     "players_other": "{{count}} players",
-    "liveEditsHint": "Layout and presentation edits (backgrounds, contrast, explanations, slides) reach running sessions at their next step; questions and answers stay as launched."
+    "liveEditsHint": "Layout and presentation edits (backgrounds, contrast, explanations, slides) reach the rooms playing it at their next step; questions and answers stay as launched."
   },
   "publication": {
     "open": "Export for publication",
@@ -433,6 +497,13 @@
     "slugChanged": "Changing it from “{{previous}}” makes a new quiz for the store: delete the old file from your repository."
   },
   "readOnly": {
-    "notice": "{{owner}}'s quiz: you can read it, not change it."
+    "notice": "{{owner}}'s quiz: you can read it, not change it.",
+    "createFrom": "Create from this quiz",
+    "props": {
+      "orderShown": "Listed in the right order.",
+      "seconds_one": "{{count}} second",
+      "seconds_other": "{{count}} seconds",
+      "muted": "muted"
+    }
   }
 }

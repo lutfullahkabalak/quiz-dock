@@ -1,3 +1,6 @@
+import { GameSoundsPanel, RoomSoundsButton } from '../game/game-sounds-panel';
+import { ImageChoiceGrid } from '../game/image-choice';
+import { NextQuizButton, RoomStandingsPanel, roomLabel } from '../game/room-components';
 import {
   AUDIO_TARGETS,
   type AudioTarget,
@@ -5,10 +8,10 @@ import {
   type GameStep,
   type MediaReadinessPayload,
   type OutlineQuestion,
+  slideSoundMedia,
 } from '@quiz-dock/contracts';
 import { Link, useParams } from '@tanstack/react-router';
 import {
-  Ban,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -22,24 +25,31 @@ import {
   Hand,
   MonitorPlay,
   Pause,
+  Pencil,
   Play,
   Radio,
-  RotateCcw,
   Share2,
   SkipForward,
   Smartphone,
   Square,
   UserCheck,
+  VolumeX,
   Users,
   Wifi,
+  Trash2,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
+import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
+import { ConsoleTransport } from '../game/media/console-transport';
+import { SlidePlaybackContext } from '../game/media/slide-media';
+import { RoomVariables } from '../game/slide-variables';
+import { anchorOf, followed } from '../game/media/followed';
 import { serverNow } from '../game/clock';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -55,8 +65,9 @@ import {
   Podium,
   RevealAnswer,
   SlideView,
+  timeTone,
 } from '../game/live-components';
-import { useGameRemaining } from '../game/use-countdown';
+import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { ChromiumNotice } from '@/components/chromium-notice';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { ParticipantPreview } from '../game/participant-preview';
@@ -64,6 +75,7 @@ import { joinBase, joinHostLabel, joinUrlFor } from '../game/join-url';
 import { JoinAddressPicker } from '../game/join-address-picker';
 import { type GameView, type RosterPlayer, useGameSession } from '../game/use-game-session';
 import { ScreenView } from './screen-page';
+import { PageLoading } from '@/components/ui/loading';
 
 /** Boutons d'ajustement du chrono (§8) : retire/ajoute des secondes en direct. */
 const CHRONO_STEPS = [-5, -1, 1, 5] as const;
@@ -134,6 +146,47 @@ export function ControlPage() {
   const banPlayer = (playerId: string, minutes: number) =>
     socket?.emit('host:ban', { pin, playerId, minutes });
   const setPaused = (paused: boolean) => socket?.emit('host:pause', { pin, paused });
+  // The space bar pauses the game or resumes it, as its button does — once the quiz
+  // runs, and never while the host types, holds a control or reads a dialog.
+  const pauseToggle = useRef<(() => void) | null>(null);
+  pauseToggle.current =
+    view.state && !['LOBBY', 'PODIUM', 'ENDED'].includes(view.state)
+      ? () => setPaused(!view.paused)
+      : null;
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.code !== 'Space' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
+      const el = e.target as HTMLElement | null;
+      if (
+        el?.closest(
+          'input, textarea, select, button, a, [role="slider"], [role="switch"], [contenteditable="true"], dialog',
+        )
+      ) {
+        return;
+      }
+      if (!pauseToggle.current) return;
+      e.preventDefault();
+      pauseToggle.current();
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  // The question's sound or video, steered from here while it runs.
+  const steerable =
+    view.state === 'ANSWERING' &&
+    !!(
+      view.question?.media?.audio ||
+      (view.question?.media?.visual?.kind === 'video' &&
+        view.question.media.visual.source === 'upload')
+    );
+  // A listen-first question before its answers open: the point cannot move. Paused,
+  // the countdown stands still on the server: what is left of the clock says it.
+  const listenLeft = useCountdown(view.question?.listenFirst ? view.question.startedAt : null);
+  const listening =
+    !!view.question?.listenFirst &&
+    (view.paused && view.pausedRemainingMs !== null
+      ? view.pausedRemainingMs > view.question.endsAt - view.question.startedAt
+      : (listenLeft ?? 0) > 0);
   const adjustTime = (deltaS: number) => socket?.emit('host:adjust-time', { pin, deltaS });
 
   const remaining = useGameRemaining(view);
@@ -173,7 +226,7 @@ export function ControlPage() {
   };
 
   if (view.status === 'connecting') {
-    return <p className="text-muted-foreground py-16 text-center">{t('control.connecting')}</p>;
+    return <PageLoading label={t('control.connecting')} />;
   }
   if (view.status === 'error') {
     return (
@@ -197,7 +250,7 @@ export function ControlPage() {
             <ScreenView pin={pin} />
           </div>
         ) : (
-          <ParticipantPreview view={view} />
+          <ParticipantPreview view={view} pin={pin} />
         )}
       </section>
     );
@@ -215,6 +268,12 @@ export function ControlPage() {
         onBan={banPlayer}
         onLock={setJoinLocked}
         screenButton={screenButton}
+        soundsButton={
+          <RoomSoundsButton
+            sounds={view.sounds}
+            onChange={(patch) => socket?.emit('host:sounds', { pin, ...patch })}
+          />
+        }
       />
     </>
   );
@@ -223,7 +282,11 @@ export function ControlPage() {
   if (view.state === 'LOBBY' || view.state === null) {
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-6')}>
-        <RecapHeader view={view} pin={pin} />
+        <RecapHeader
+          view={view}
+          pin={pin}
+          onRename={(name) => socket?.emit('host:room-name', { pin, name })}
+        />
 
         {/* Invitation discrète : simple info, pas le grand écran de projection. */}
         <div className="flex flex-col gap-3 rounded-lg border p-4">
@@ -268,6 +331,9 @@ export function ControlPage() {
           <ParticipantsList players={view.players} readiness={view.readiness} onBan={banPlayer} />
         </div>
 
+        {/* A room's next quiz (#89): where the room stands before it starts. */}
+        {view.standings ? <RoomStandingsPanel standings={view.standings} max={5} /> : null}
+
         {/* Who hears the sound, for this game: replaces the quiz's default; a question
             with its own setting keeps it. Only when the quiz has something to hear. */}
         {view.quizHasSound && view.gameAudioTarget ? (
@@ -288,6 +354,12 @@ export function ControlPage() {
             <span className="text-muted-foreground">{t('control.audioTargetHint')}</span>
           </label>
         ) : null}
+
+        {/* The room's game sounds (#93): kept from one quiz to the next. */}
+        <GameSoundsPanel
+          sounds={view.sounds}
+          onChange={(patch) => socket?.emit('host:sounds', { pin, ...patch })}
+        />
 
         {/* Capture intégrale (§3.1 / RG-13) : choix avant le démarrage, verrouillé une
             fois la partie lancée (cette vue lobby disparaît au start). Les joueurs déjà
@@ -395,7 +467,12 @@ export function ControlPage() {
         <ActionBar
           status={<ModeToggle mode={view.mode} onChange={setMode} />}
           end={<EndGameButton label={t('control.stopSession')} onConfirm={endGame} />}
-          nav={screenButton}
+          nav={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="lobby" currentQuizId={view.quizId} />
+              {screenButton}
+            </>
+          }
           primary={
             <Tooltip label={t('control.startTooltip')}>
               <Button
@@ -440,7 +517,12 @@ export function ControlPage() {
           ) : null}
         </div>
         <ActionBar
-          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+          end={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            </>
+          }
           primary={
             <Button type="button" variant="main-action" onClick={() => emit('host:next')}>
               <Play className="size-4" />
@@ -466,6 +548,12 @@ export function ControlPage() {
 
   // ── SLIDE_SHOW (#7) ────────────────────────────────────────────────────────
   if (view.state === 'SLIDE_SHOW' && view.slide) {
+    const slide = view.slide;
+    const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
+    // The slide's one sound (#125): the host steers it as a question's; a muted
+    // video alone has nothing to steer, only its mute to say.
+    const soundMedia = view.nav?.review ? null : slideSoundMedia(slide);
+    const mutedVideo = !!slide.video && !slide.video.sound;
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-5')}>
         {controlBar}
@@ -476,8 +564,40 @@ export function ControlPage() {
         />
         {/* Reduced base: the slide is a preview in a card, not the projection. */}
         <div className="bg-card flex rounded-xl border p-5 text-[0.8rem] sm:p-6">
-          <SlideView slide={view.slide} />
+          {/* Shown still, as projected: the projection plays; the transport below draws the sound. */}
+          <SlidePlaybackContext.Provider
+            value={{
+              mode: 'still',
+              audible: false,
+              startAt: null,
+              anchor: null,
+              resumeKey: null,
+              follow: followed(view, step),
+            }}
+          >
+            <RoomVariables view={view} pin={pin}>
+              <SlideView key={slide.slideIndex} slide={slide} />
+            </RoomVariables>
+          </SlidePlaybackContext.Provider>
         </div>
+        {soundMedia ? (
+          <ConsoleTransport
+            key={`s${slide.slideIndex}`}
+            media={soundMedia}
+            follow={followed(view, step)}
+            anchor={anchorOf(view, step)}
+            listening={false}
+            gamePaused={view.paused}
+            onCommand={(command) => socket?.emit('host:media', { pin, ...command })}
+            onGamePause={setPaused}
+          />
+        ) : null}
+        {mutedVideo && !slide.audio ? (
+          <p className="text-muted-foreground flex items-center gap-2 self-center text-sm">
+            <VolumeX className="size-4" />
+            {t('control.slideVideoMuted')}
+          </p>
+        ) : null}
         <ActionBar
           status={
             view.paused && view.slide.displayDelayS ? (
@@ -486,7 +606,12 @@ export function ControlPage() {
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+          end={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            </>
+          }
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -529,7 +654,12 @@ export function ControlPage() {
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+          end={
+            <>
+              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            </>
+          }
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -550,10 +680,15 @@ export function ControlPage() {
       <section className={cn(CONSOLE_SECTION, 'items-center gap-6')}>
         <h2 className="text-2xl font-bold">{t('control.podium')}</h2>
         {view.podium ? <Podium rows={view.podium.podium} /> : null}
+        {/* The quiz's podium first, then the room's (#89) once it has played more than one. */}
+        {view.standings && view.standings.quizzesPlayed > 1 ? (
+          <RoomStandingsPanel standings={view.standings} />
+        ) : null}
         <ActionBar
+          end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
           nav={navBar}
           primary={
-            <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+            <NextQuizButton pin={pin} socket={socket} mode="podium" currentQuizId={view.quizId} />
           }
         />
       </section>
@@ -565,13 +700,7 @@ export function ControlPage() {
   const answered = view.answerCount?.answered ?? 0;
   const totalPlayers = view.answerCount?.total ?? view.players.length;
   const timePct = remaining != null && timeLimit > 0 ? (remaining / timeLimit) * 100 : 0;
-  const timeTone = view.paused
-    ? 'bg-muted-foreground'
-    : timePct <= 20
-      ? 'bg-destructive'
-      : timePct <= 50
-        ? 'bg-amber-500'
-        : 'bg-success';
+  const tone = timeTone(timePct / 100, view.paused);
   const answeredPct = totalPlayers > 0 ? (answered / totalPlayers) * 100 : 0;
   // Bonne réponse mise en avant pour l'animateur (clé de correction du sommaire hôte).
   const correctIds = view.outline.find((q) => q.index === view.questionIndex)?.correctOptionIds;
@@ -592,27 +721,36 @@ export function ControlPage() {
           <ChronoControls remaining={remaining} paused={view.paused} onAdjust={adjustTime} />
         </div>
 
-        <ProgressBar pct={timePct} barClassName={timeTone} />
+        <ProgressBar pct={timePct} barClassName={tone} />
 
-        {/* Shown still: the projection is the one place that plays the sound. */}
+        {/* Shown still: the projection is the one place that plays the sound; its
+            waveform follows where the projection is in it. While the question runs,
+            the sound is the transport's to draw, with the host's hand on it. */}
         <QuestionMediaStage
           key={view.question?.questionIndex}
-          media={view.question?.media}
+          media={
+            steerable && view.question?.media
+              ? { ...view.question.media, audio: null }
+              : view.question?.media
+          }
           mode="still"
+          follow={
+            view.question ? followed(view, { questionIndex: view.question.questionIndex }) : null
+          }
+          showHiddenWaveform
           boxClassName="h-56"
         />
-        {view.state === 'ANSWERING' &&
-        (view.question?.media?.audio || view.question?.media?.visual?.kind === 'video') ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="self-center"
-            onClick={() => socket?.emit('host:media', { pin, action: 'restart' })}
-          >
-            <RotateCcw className="size-4" />
-            {t('control.restartMedia')}
-          </Button>
+        {steerable && view.question?.media ? (
+          <ConsoleTransport
+            key={view.question.questionIndex}
+            media={view.question.media}
+            follow={followed(view, { questionIndex: view.question.questionIndex })}
+            anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
+            listening={listening}
+            gamePaused={view.paused}
+            onCommand={(command) => socket?.emit('host:media', { pin, ...command })}
+            onGamePause={setPaused}
+          />
         ) : null}
 
         <Markdown
@@ -623,7 +761,13 @@ export function ControlPage() {
           {view.question?.prompt}
         </Markdown>
 
-        {view.question?.options?.length ? (
+        {view.question?.type === 'image_choice' ? (
+          <ImageChoiceGrid
+            options={view.question.options ?? []}
+            highlightIds={correctIds}
+            className="max-w-xl"
+          />
+        ) : view.question?.options?.length ? (
           <OptionGrid options={view.question.options} highlightIds={correctIds} />
         ) : (
           <p className="text-muted-foreground text-sm">{t('control.freeAnswer')}</p>
@@ -644,7 +788,12 @@ export function ControlPage() {
       <QuestionCarousel outline={view.outline} currentIndex={view.questionIndex} />
 
       <ActionBar
-        end={<EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />}
+        end={
+          <>
+            <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+            <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+          </>
+        }
         primary={
           <Button type="button" onClick={() => emit('host:reveal')}>
             <Eye className="size-4" />
@@ -740,12 +889,82 @@ function PlayersBadge({ count }: { count: number }) {
   );
 }
 
-/** Récap compact du quiz (titre + PIN) — en-tête du tableau de bord. */
-function RecapHeader({ view, pin }: { view: GameView; pin: string }) {
+/**
+ * The console's header: the room's name (renamed from its lobby, `onRename`),
+ * then the quiz being played in it, its description and the PIN.
+ */
+function RecapHeader({
+  view,
+  pin,
+  onRename,
+}: {
+  view: GameView;
+  pin: string;
+  onRename?: (name: string) => void;
+}) {
   const { t } = useTranslation('live');
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState('');
+  const label = roomLabel(t, view.roomName, view.hostName);
+  const fallback = roomLabel(t, null, view.hostName);
+  const save = () => {
+    setEditing(false);
+    if (draft.trim() !== (view.roomName ?? '')) onRename?.(draft);
+  };
   return (
     <div className="flex flex-col gap-0.5">
-      <h1 className="text-xl font-bold">{view.quizTitle ?? t('control.sessionInProgress')}</h1>
+      {editing ? (
+        <form
+          className="flex flex-col gap-1"
+          onSubmit={(e) => {
+            e.preventDefault();
+            save();
+          }}
+        >
+          <Input
+            autoFocus
+            value={draft}
+            maxLength={60}
+            placeholder={fallback}
+            aria-label={t('control.roomNameLabel')}
+            onChange={(e) => setDraft(e.target.value)}
+            onBlur={save}
+            onKeyDown={(e) => {
+              if (e.key === 'Escape') setEditing(false);
+            }}
+            className="max-w-md text-xl font-bold"
+          />
+          <span className="text-muted-foreground text-xs">
+            {t('control.roomNameHint', { default: fallback })}
+          </span>
+        </form>
+      ) : (
+        <div className="flex items-center gap-1">
+          <h1 className="text-xl font-bold">{label}</h1>
+          {onRename ? (
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label={t('control.renameRoom')}
+              title={t('control.renameRoom')}
+              onClick={() => {
+                setDraft(view.roomName ?? '');
+                setEditing(true);
+              }}
+            >
+              <Pencil className="size-4" />
+            </Button>
+          ) : null}
+        </div>
+      )}
+      {view.quizTitle ? (
+        <p className="font-medium">
+          <span className="text-muted-foreground font-normal">{t('control.quizLabel')}</span>{' '}
+          {view.quizTitle}
+        </p>
+      ) : null}
       {view.quizDescription ? (
         <Markdown profile="inline" className="text-muted-foreground block max-w-prose text-sm">
           {view.quizDescription}
@@ -770,6 +989,7 @@ function ControlBar({
   onBan,
   onLock,
   screenButton,
+  soundsButton,
 }: {
   view: GameView;
   pin: string;
@@ -778,6 +998,8 @@ function ControlBar({
   onBan: (playerId: string, minutes: number) => void;
   onLock: (locked: boolean) => void;
   screenButton: React.ReactNode;
+  /** The room's mixer (#93), at any moment of a quiz. */
+  soundsButton?: React.ReactNode;
 }) {
   return (
     <header className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
@@ -793,6 +1015,7 @@ function ControlBar({
           // A wait for media has its own way out (Start anyway); a pause would not hold it.
           <PauseButton paused={view.paused} onToggle={onPause} />
         ) : null}
+        {soundsButton}
         {screenButton}
       </div>
     </header>
@@ -860,6 +1083,21 @@ function ReadinessLine({ readiness }: { readiness: MediaReadinessPayload | null 
   const { t } = useTranslation('live');
   if (!readiness || readiness.total === 0) return null;
   const { screens } = readiness;
+  // The lobby (#104): one count, the participants; the projection only when it loads something.
+  if (readiness.lobby) {
+    return (
+      <p className="text-muted-foreground text-sm" data-testid="readiness">
+        {t('control.readyCount', { ready: readiness.ready, count: readiness.total })}
+        {screens.total > 0
+          ? ` · ${
+              screens.ready === screens.total
+                ? t('control.readinessProjectionReady')
+                : t('control.readinessProjectionLoading')
+            }`
+          : null}
+      </p>
+    );
+  }
   return (
     <p className="text-muted-foreground text-sm" data-testid="readiness">
       {t('control.readiness', { ready: readiness.ready, total: readiness.total })}
@@ -884,6 +1122,10 @@ function ParticipantsList({
   onBan: (playerId: string, minutes: number) => void;
 }) {
   const waited = new Map(readiness?.players.map((p) => [p.playerId, p.ready]));
+  // The lobby (#104): who said they are ready; a spinner while their media still load.
+  const said = new Map(
+    readiness?.lobby ? readiness.players.map((p) => [p.playerId, p.pressed]) : [],
+  );
   const { t } = useTranslation('live');
   if (players.length === 0) {
     return <p className="text-muted-foreground text-sm">{t('control.noParticipants')}</p>;
@@ -897,7 +1139,19 @@ function ParticipantsList({
         >
           <Avatar name={p.avatar || p.nickname} size={24} />
           <span className="max-w-[8rem] truncate">{p.nickname}</span>
-          {waited.has(p.playerId) ? (
+          {readiness?.lobby ? (
+            waited.get(p.playerId) ? (
+              <Check
+                className="size-3.5 text-green-600"
+                aria-label={t('control.participantReady')}
+              />
+            ) : said.get(p.playerId) ? (
+              <Loader2
+                className="text-muted-foreground size-3.5 animate-spin"
+                aria-label={t('control.participantLoading')}
+              />
+            ) : null
+          ) : waited.has(p.playerId) ? (
             waited.get(p.playerId) ? (
               <Check className="size-3.5 text-green-600" aria-label={t('control.mediaReady')} />
             ) : (
@@ -935,7 +1189,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
           onClick={() => setOpen(true)}
           className="size-6 rounded-full"
         >
-          <Ban className="text-destructive size-3.5" />
+          <Trash2 className="text-destructive size-3.5" />
         </Button>
       </Tooltip>
       <ConfirmDialog

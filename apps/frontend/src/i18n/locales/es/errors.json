@@ -9,30 +9,30 @@
   },
   "host": {
     "auth_required": "Se requiere autenticación del anfitrión.",
-    "forbidden": "No eres el anfitrión de esta sesión."
+    "forbidden": "No eres el anfitrión de esta sala."
   },
   "quiz": {
     "not_found": "Quiz no encontrado.",
-    "not_ready": "El quiz debe estar «listo» para iniciar una sesión (RG-02).",
+    "not_ready": "El quiz debe estar «listo» para jugarse (RG-02).",
     "empty": "El quiz no tiene preguntas.",
     "requires_question": "Un quiz debe tener al menos una pregunta para pasar a «listo» (RG-02).",
     "transition_forbidden": "Transición de estado no permitida: {{from}} → {{target}}.",
-    "in_use": "Este cuestionario se está jugando en una sesión: termina la sesión primero."
+    "in_use": "Este quiz se está jugando en una sala: cierra primero la sala."
   },
   "session": {
-    "not_found": "Sesión no encontrada o finalizada.",
-    "ended": "La sesión ha finalizado.",
-    "banned": "El anfitrión te ha expulsado de esta sesión.",
-    "join_required": "Únete a la sesión antes de responder.",
-    "already_started": "La sesión ya ha comenzado.",
+    "not_found": "Sala no encontrada o cerrada.",
+    "ended": "La sala está cerrada.",
+    "banned": "El anfitrión te ha expulsado de esta sala.",
+    "join_required": "Únete a la sala antes de responder.",
+    "already_started": "El quiz ya ha empezado.",
     "reveal_required": "Acción solo posible tras la revelación.",
     "timer_not_adjustable": "El temporizador solo se puede ajustar durante una pregunta.",
     "snapshot_not_found": "Instantánea de sesión no encontrada.",
-    "capture_locked": "La captura completa solo se puede cambiar antes de iniciar la sesión.",
-    "options_locked": "Las opciones de la sesión solo pueden cambiarse antes de que empiece.",
+    "capture_locked": "La captura completa solo puede cambiarse antes de que empiece el quiz.",
+    "options_locked": "Estas opciones solo pueden cambiarse antes de que empiece el quiz.",
     "join_url_invalid": "Dirección para unirse no válida (se espera http(s)://host[:puerto]).",
-    "archive_quiz_gone": "El cuestionario se eliminó durante la sesión: terminó sin archivo.",
-    "locked": "Esta partida ya no acepta nuevos participantes.",
+    "archive_quiz_gone": "El quiz se eliminó mientras se jugaba: terminó sin archivo.",
+    "locked": "Esta sala ya no acepta nuevos participantes.",
     "open_access_forbidden": "El acceso libre no está permitido en este servidor.",
     "open_access_guests_only": "En acceso libre los participantes no tienen cuenta: ni seguimiento individual ni nombre tomado de una cuenta."
   },
@@ -40,7 +40,7 @@
     "not_found": "Jugador no encontrado."
   },
   "nickname": {
-    "taken": "Este apodo ya está en uso en esta sesión.",
+    "taken": "Este apodo ya está en uso en esta sala.",
     "invalid_length": "El apodo debe tener entre {{min}} y {{max}} caracteres."
   },
   "pin": {
@@ -69,7 +69,7 @@
     "too_long": "Demasiado largo para caber en el límite de {{maxMb}} MB de este tipo de medio, incluso comprimido. Acórtalo antes.",
     "canceled": "Conversión cancelada.",
     "in_use": "Este medio aún lo usa un quiz o una partida: quítalo primero de ahí.",
-    "playing": "Una partida está reproduciendo este medio: vuelve a intentarlo cuando termine.",
+    "playing": "Una sala está reproduciendo este medio ahora mismo: vuelve a intentarlo cuando se cierre.",
     "not_adopted_yet": "Este archivo se está moviendo al almacenamiento compartido: vuelve a intentarlo en un momento."
   },
   "import": {
@@ -109,5 +109,8 @@
     "language": "El idioma del cuestionario no es válido.",
     "tags": "Añade al menos una etiqueta antes de exportar para publicar.",
     "too_large": "El cuestionario es demasiado grande para el catálogo comunitario."
+  },
+  "slide": {
+    "two_sounds": "Una diapositiva reproduce un solo sonido a la vez: silencia su vídeo o quita su sonido."
   }
 }

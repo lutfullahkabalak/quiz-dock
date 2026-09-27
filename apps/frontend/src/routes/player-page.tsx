@@ -1,6 +1,21 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { type PlayerPresence, playsSound } from '@quiz-dock/contracts';
-import { Check, LogIn, LogOut, Shuffle, Users, Volume2, VolumeX, Wifi } from 'lucide-react';
+import {
+  Check,
+  ListChecks,
+  LogIn,
+  LogOut,
+  MonitorPlay,
+  Share2,
+  Shuffle,
+  Users,
+  Volume2,
+  Wifi,
+  X,
+} from 'lucide-react';
+import { QRCodeSVG } from 'qrcode.react';
+import { APP_NAME } from '../config';
+import { ScreenSurface } from './screen-page';
 import { type FormEvent, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -10,6 +25,7 @@ import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { clearRoomPositions } from '../game/media/media-position';
 import { Avatar } from '../game/avatar';
 import {
   joinSession,
@@ -27,22 +43,35 @@ import {
   AnswerRules,
   QuestionMedia,
   OptionGrid,
-  OptionKey,
   OptionTiles,
+  TimerBar,
   RevealAnswer,
   SlideView,
   TYPE_BASE,
 } from '../game/live-components';
+import { ImageChoiceGrid } from '../game/image-choice';
 import { cn } from '@/lib/utils';
 import { Surface } from '../game/surface';
 import { unlockAudio } from '../game/media/audio-unlock';
-import { claimMediaElements, preloadMedia, waitedFor } from '../game/media/media-pool';
+import {
+  claimMediaElements,
+  mediaElementsClaimed,
+  preloadMedia,
+  waitedFor,
+} from '../game/media/media-pool';
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
-import { followed } from '../game/media/followed';
+import { SlidePlaybackContext } from '../game/media/slide-media';
+import { RoomVariables } from '../game/slide-variables';
+import { anchorOf, followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
+import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
+import { SoundButton } from '../game/media/sound-button';
+import { useGameSounds } from '../game/media/game-sounds';
+import { roomLabel } from '../game/room-components';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from '../auth/auth-context';
+import { Spinner } from '@/components/ui/loading';
 
 /**
  * Avis de transparence (§2.10, RG-16) : ce que la session enregistre de ce
@@ -69,17 +98,18 @@ function trackingNotice(
 export function PlayerPage() {
   const { t } = useTranslation('live');
   const { pin } = useParams({ from: '/join/$pin' });
-  const { view, socket, markJoined } = useGameSession(pin, 'player');
+  const { view, socket, markJoined, markReady } = useGameSession(pin, 'player');
   const [nickname, setNickname] = useState(() => loadPlayerSession()?.nickname ?? loadNickname());
   const [joining, setJoining] = useState(false);
   // Asked only when the quiz plays sound: a remote player then gets it on their device.
   const [hasSound, setHasSound] = useState(false);
   const [wantedPresence, setPresence] = useState<PlayerPresence>('room');
-  const [muted, setMuted] = useState(loadMuted);
-  const toggleMuted = () => {
-    setMuted(!muted);
-    saveMuted(!muted);
-  };
+  // This device's own sound (SPECIFICATIONS-MEDIA §9.2): its mute, kept on it.
+  const { muted } = useDeviceSound();
+  // The big screen on this phone (#104), in place of the answers, and back.
+  const [showScreen, setShowScreen] = useState(false);
+  // "Share the projection": the link once copied (and its QR code) when the phone cannot share.
+  const [sharedLink, setSharedLink] = useState<string | null>(null);
   // Leaving on purpose: the seat and the score are gone, so it is confirmed first.
   const [confirmLeave, setConfirmLeave] = useState(false);
   const navigate = useNavigate();
@@ -90,9 +120,20 @@ export function PlayerPage() {
   const [submitted, setSubmitted] = useState(false);
   // Graine d'avatar persistée localement (réinjectée d'une partie à l'autre).
   const [avatarSeed, setAvatarSeed] = useState(() => loadAvatarSeed() ?? '');
+  // Whether this phone's media elements were claimed in a gesture (at the join when
+  // the quiz had sound); read at each render, `claimSound` re-renders after the tap.
+  const [, setClaims] = useState(0);
+  const soundReady = mediaElementsClaimed();
+  const claimSound = () => {
+    claimMediaElements();
+    void unlockAudio();
+    setClaims((n) => n + 1);
+  };
 
   const question = view.question;
-  const isMulti = question?.type === 'multiple_choice';
+  const isMulti =
+    question?.type === 'multiple_choice' ||
+    (question?.type === 'image_choice' && !!question.multiSelect);
   const remaining = useGameRemaining(view);
   // Délai de lecture (§6/§8) : la fenêtre de réponse n'ouvre qu'à `startedAt`. Avant,
   // une réponse serait rejetée par le serveur (« trop tôt ») sans être comptée — on
@@ -104,30 +145,70 @@ export function PlayerPage() {
   // (la même que sur le podium, la projection et la console) — un rechargement
   // sans graine locale ou un choix non enregistré ne doivent pas diverger.
   const myId = loadPlayerSession()?.playerId;
+  const remoteHere = view.players.find((p) => p.playerId === myId)?.presence === 'remote';
+  // The game's sounds (#93) on a remote phone, when the room's sound reaches remote
+  // devices; on the big screen view (#104), the projection's surface plays them.
+  const gameSoundsHere =
+    remoteHere &&
+    view.gameAudioTarget !== 'projection' &&
+    !!view.sounds &&
+    (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
+  // A new lobby, a new game: the media positions of the room's last one are gone
+  // (its PIN stays; a quiz played again would read "played to the end" and stay silent).
+  useEffect(() => {
+    if (view.state === 'LOBBY') clearRoomPositions(pin);
+  }, [view.state, pin]);
+  useGameSounds(
+    view.sounds,
+    {
+      state: view.state,
+      questionIndex: view.questionIndex,
+      answered: view.answerCount?.answered ?? 0,
+      paused: view.paused,
+      media: view.question?.media,
+      mediaStartAt: view.question?.mediaStartAt ?? null,
+      endsAt: view.question?.endsAt ?? null,
+      startedAt: view.question?.startedAt ?? null,
+      anchor: view.question && anchorOf(view, { questionIndex: view.question.questionIndex }),
+    },
+    gameSoundsHere && !showScreen,
+  );
   const serverAvatar = view.players.find((p) => p.playerId === myId)?.avatar;
   const inLobby = view.state === null || view.state === 'LOBBY';
-  const avatarName =
-    (inLobby ? avatarSeed || serverAvatar : serverAvatar || avatarSeed) || nickname || '?';
-
   // Graine déjà synchronisée vers le serveur (pour n'émettre que sur changement réel).
   const [syncedSeed, setSyncedSeed] = useState(avatarSeed);
+  const joinedRoom = view.status !== 'no-session';
+  // The lobby card previews a new draw; everywhere else (the top bar, the podium)
+  // shows the avatar the room knows, until the player saves the new one.
+  const avatarOf = (seed: string) =>
+    (inLobby ? seed || serverAvatar : serverAvatar || seed) || nickname || '?';
+  const avatarPreview = avatarOf(avatarSeed);
+  const avatarName = avatarOf(syncedSeed);
 
   /**
-   * Randomise l'avatar **localement** uniquement (aperçu + mémorisation) : pas
-   * d'émission réseau ici, pour éviter d'inonder le serveur/animateur à chaque clic.
-   * La synchronisation se fait explicitement via « Enregistrer l'avatar ».
+   * Randomise l'avatar **localement** uniquement (aperçu) : pas d'émission réseau
+   * ici, pour éviter d'inonder le serveur/animateur à chaque clic. Once in the room
+   * the draw waits for « Enregistrer » (or « Annuler »); before joining, the join
+   * itself carries it.
    */
   const randomizeAvatar = () => {
     const seed = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
     setAvatarSeed(seed);
-    saveAvatarSeed(seed);
+    if (!joinedRoom) {
+      setSyncedSeed(seed);
+      saveAvatarSeed(seed);
+    }
   };
 
   /** Synchronise l'avatar choisi vers la room (refusé côté serveur après le démarrage). */
   const commitAvatar = () => {
-    socket?.emit('player:avatar', { pin, avatar: avatarName });
+    socket?.emit('player:avatar', { pin, avatar: avatarPreview });
     setSyncedSeed(avatarSeed);
+    saveAvatarSeed(avatarSeed);
   };
+
+  /** Back to the avatar the room knows. */
+  const cancelAvatar = () => setAvatarSeed(syncedSeed);
 
   // Nouvelle question → réinitialise la saisie locale.
   useEffect(() => {
@@ -135,6 +216,10 @@ export function PlayerPage() {
     setFreeValue('');
     setSubmitted(false);
   }, [view.questionIndex]);
+  // Refused as too early (the answers were not open yet): the answer box comes back.
+  useEffect(() => {
+    if (view.answerRefusal === 'early') setSubmitted(false);
+  }, [view.answerRefusal, view.answerAckAt]);
   // L'ordre de départ suit l'arrivée de la question (remise en ordre).
   useEffect(() => {
     setOrder(question?.options?.map((o) => o.id) ?? []);
@@ -146,9 +231,13 @@ export function PlayerPage() {
     const next = view.preload;
     if (!next) return;
     let cancelled = false;
-    void preloadMedia(next.media, next.images).then(() => {
-      if (!cancelled && waitedFor(next.media)) {
-        socket?.emit('media:ready', { pin, questionIndex: next.questionIndex });
+    void preloadMedia(next.media, next.images, next.videos).then((loaded) => {
+      if (!cancelled && loaded && waitedFor(next.media, next.videos)) {
+        socket?.emit('media:ready', {
+          pin,
+          questionIndex: next.questionIndex,
+          ...(next.slideIndex !== undefined ? { slideIndex: next.slideIndex } : {}),
+        });
       }
     });
     return () => {
@@ -194,7 +283,7 @@ export function PlayerPage() {
         pin,
         nickname.trim(),
         avatarSeed || undefined,
-        hasSound ? wantedPresence : undefined,
+        wantedPresence,
       );
       // Le serveur a pu retenir un autre nom (compte, homonyme) : l'écran suit.
       if (joined.nickname && joined.nickname !== nickname.trim()) setNickname(joined.nickname);
@@ -204,6 +293,32 @@ export function PlayerPage() {
     } finally {
       setJoining(false);
     }
+  };
+
+  /** "Ready!" or "Not yet" (#104), shown once the server took it. */
+  const sayReady = async (ready: boolean) => {
+    if (!socket) return;
+    const res = await socket.emitWithAck('player:ready', { pin, ready }).catch(() => null);
+    if (res?.ok) markReady(ready);
+  };
+
+  /** Shares the projection's copy: the share sheet where there is one, else the link copied and its QR code. */
+  const shareProjection = async () => {
+    const remoteHere = view.players.find((p) => p.playerId === myId)?.presence === 'remote';
+    const url = `${window.location.origin}/join/${pin}/screen${remoteHere ? '?sound=1' : ''}`;
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: t('player.shareProjectionTitle', { appName: APP_NAME }),
+          url,
+        });
+        return;
+      }
+      await navigator.clipboard?.writeText(url);
+    } catch {
+      /* cancelled or refused: the QR code below still carries it */
+    }
+    setSharedLink(url);
   };
 
   const submit = (answer: string | string[] | number) => {
@@ -244,7 +359,10 @@ export function PlayerPage() {
             submit(numeric ? Number(freeValue) : freeValue.trim());
           }}
         >
+          {/* Shown once the answers open (the reading shows a message instead): the
+              focus goes straight to it, the phone's keyboard with it. */}
           <Input
+            autoFocus
             value={freeValue}
             onChange={(e) => setFreeValue(e.target.value)}
             type={numeric ? 'number' : 'text'}
@@ -274,12 +392,21 @@ export function PlayerPage() {
       );
     }
 
-    // À options (QCM unique/multi, V-F, sondage) : the tiles only — their legend
-    // scrolls with the prompt, above.
+    // À options (QCM unique/multi, V-F, sondage) : the tiles, in the projection's grid.
     if (opts.length) {
       return (
         <>
-          <OptionTiles options={opts} onPick={onPick} selectedIds={selected} />
+          {/* In the room the text is read on the projection, at the same place in the
+              same grid; a remote participant has no projection, so it is in the tiles. */}
+          {question.type === 'image_choice' ? (
+            // The pictures themselves, in the projection's order, in the room as at a
+            // distance: a phone has the room for them, and they are the answers.
+            <ImageChoiceGrid options={opts} onPick={onPick} selectedIds={selected} />
+          ) : remote ? (
+            <OptionGrid options={opts} onPick={onPick} selectedIds={selected} />
+          ) : (
+            <OptionTiles options={opts} onPick={onPick} selectedIds={selected} />
+          )}
           {isMulti ? (
             <Button type="button" disabled={selected.length === 0} onClick={() => submit(selected)}>
               {t('player.submitAnswer')}
@@ -297,16 +424,21 @@ export function PlayerPage() {
   // Identity and the way out live in the topbar (same place on every screen), not in the page.
   // The slot exists once the layout is in the DOM (after the first commit), hence the effect.
   const [topbarSlot, setTopbarSlot] = useState<HTMLElement | null>(null);
-  useEffect(() => setTopbarSlot(document.getElementById('participant-topbar')), []);
+  const [topbarStart, setTopbarStart] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    setTopbarSlot(document.getElementById('participant-topbar'));
+    setTopbarStart(document.getElementById('participant-topbar-start'));
+  }, []);
   // Where this device follows from, and whether the current question sounds here.
   const presence = view.players.find((p) => p.playerId === myId)?.presence ?? 'room';
   const device = presence === 'remote' ? 'remote' : 'room';
   const hears = !!question?.audioTarget && playsSound(question.audioTarget, device);
   // A remote participant gets the whole question (a muted video when the sound is not
   // theirs); in the room, the phone shows the image unless the sound is meant for it too.
-  const playsHere = presence === 'remote' || hears;
+  const remote = presence === 'remote';
+  const playsHere = remote || hears;
 
-  const participantBar =
+  const participantTop =
     topbarSlot && view.status === 'ready' && view.state !== 'ENDED' && !view.kicked
       ? createPortal(
           <>
@@ -320,19 +452,8 @@ export function PlayerPage() {
               <LogOut className="size-4" />
               {t('player.leave')}
             </Button>
-            {hears ? (
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="size-8"
-                aria-pressed={muted}
-                aria-label={muted ? t('player.unmute') : t('player.mute')}
-                onClick={() => toggleMuted()}
-              >
-                {muted ? <VolumeX className="size-4" /> : <Volume2 className="size-4" />}
-              </Button>
-            ) : null}
+            {/* This device's sound: when it plays something (the question here, or the game's). */}
+            {hears || gameSoundsHere || remoteHere ? <SoundButton onUnmute={claimSound} /> : null}
             <span className="hidden max-w-[10rem] truncate text-sm font-medium sm:inline">
               {nickname}
             </span>
@@ -355,6 +476,49 @@ export function PlayerPage() {
           topbarSlot,
         )
       : null;
+
+  // The answers or the big screen, next to the logo: a switch, both sides always in sight.
+  const screenSwitch =
+    topbarStart && view.status === 'ready' && view.state !== 'ENDED' && !view.kicked
+      ? createPortal(
+          <div
+            role="group"
+            aria-label={t('player.viewSwitch')}
+            className="bg-muted flex items-center rounded-full p-0.5"
+          >
+            {(
+              [
+                [false, ListChecks, t('player.showAnswers')],
+                [true, MonitorPlay, t('player.showScreen')],
+              ] as const
+            ).map(([screenSide, Icon, label]) => (
+              <button
+                key={label}
+                type="button"
+                aria-pressed={showScreen === screenSide}
+                aria-label={label}
+                title={label}
+                onClick={() => setShowScreen(screenSide)}
+                className={cn(
+                  'flex h-7 w-9 items-center justify-center rounded-full transition-colors',
+                  showScreen === screenSide
+                    ? 'bg-background text-foreground shadow-sm'
+                    : 'text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon className="size-4" />
+              </button>
+            ))}
+          </div>,
+          topbarStart,
+        )
+      : null;
+  const participantBar = (
+    <>
+      {participantTop}
+      {screenSwitch}
+    </>
+  );
 
   const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) => (
     <Surface
@@ -384,6 +548,17 @@ export function PlayerPage() {
     </Surface>
   );
 
+  // Where this participant stands in the room (#89), once it has played more than one quiz.
+  const roomYou = view.standings && view.standings.quizzesPlayed > 1 ? view.standings.you : null;
+  const roomLine = roomYou ? (
+    <p className="text-muted-foreground">
+      {t('player.roomRank', {
+        rank: roomYou.rank,
+        score: roomYou.score,
+      })}
+    </p>
+  ) : null;
+
   // ── Écran « Rejoindre » (pas de session locale valide) ─────────────────────
   if (view.status === 'no-session') {
     return wrap(
@@ -394,7 +569,7 @@ export function PlayerPage() {
         <CardContent>
           <form className="flex flex-col gap-4 text-left" onSubmit={(e) => void onJoin(e)}>
             <div className="flex flex-col items-center gap-2">
-              <Avatar name={avatarName} size={88} />
+              <Avatar name={avatarPreview} size={88} />
               <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
                 <Shuffle className="size-4" />
                 {t('player.randomAvatar')}
@@ -410,7 +585,7 @@ export function PlayerPage() {
                 required
               />
             </Label>
-            {hasSound ? <PresenceChoice value={wantedPresence} onChange={setPresence} /> : null}
+            <PresenceChoice value={wantedPresence} onChange={setPresence} />
             {error ? <p className="text-destructive text-sm">{error}</p> : null}
             <Button type="submit" disabled={joining || !nickname.trim()}>
               <LogIn className="size-4" />
@@ -423,7 +598,7 @@ export function PlayerPage() {
   }
 
   if (view.status === 'connecting') {
-    return wrap(<p className="text-muted-foreground">{t('player.connectingToSession')}</p>);
+    return wrap(<Spinner label={t('player.connectingToSession')} showLabel />);
   }
 
   // Exclu par l'hôte : écran terminal (la session locale a été purgée, pas de reprise).
@@ -441,16 +616,55 @@ export function PlayerPage() {
     );
   }
 
+  // The big screen on this phone (#104): the projection as it is, from this
+  // participant's own session — the sound only where it would play here anyway.
+  if (showScreen && view.state && view.state !== 'ENDED') {
+    return (
+      <div className="-mx-4 -my-4 min-h-[calc(100dvh-4rem)]">
+        {participantBar}
+        <ScreenSurface
+          pin={pin}
+          view={view}
+          socket={socket}
+          role="follow"
+          sound={presence === 'remote' && !muted}
+          embedded
+        />
+      </div>
+    );
+  }
+
   // ── États de jeu ───────────────────────────────────────────────────────────
   // A slide is projected, not read: it breaks out of the phone column to the whole
   // viewport (width and height under the header), content centred.
   if (view.state === 'SLIDE_SHOW' && view.slide) {
+    const slide = view.slide;
+    const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
+    // Its media as a question's (#125): a remote participant sees the videos and hears
+    // the sound meant for them; a phone in the room plays only a sound meant for everyone.
+    const slideHears = !!slide.audioTarget && playsSound(slide.audioTarget, device);
     return (
       <div
         className={cn('-my-4 mx-[calc(50%-50vw)] flex min-h-[calc(100dvh-4rem)]', TYPE_BASE.phone)}
       >
         {participantBar}
-        <SlideView slide={view.slide} />
+        <SlidePlaybackContext.Provider
+          value={{
+            mode: view.nav?.review ? 'still' : view.paused ? 'pause' : 'play',
+            audible: slideHears,
+            muted,
+            startAt: slide.mediaStartAt ?? null,
+            anchor: anchorOf(view, step),
+            resumeKey: `${pin}:s${slide.slideIndex}`,
+            follow: slideHears ? undefined : followed(view, step),
+            catchUp: followed(view, step),
+            videos: remote,
+          }}
+        >
+          <RoomVariables view={view} pin={pin}>
+            <SlideView key={slide.slideIndex} slide={slide} />
+          </RoomVariables>
+        </SlidePlaybackContext.Provider>
       </div>
     );
   }
@@ -482,6 +696,7 @@ export function PlayerPage() {
                 {t('player.podiumScore', { score: view.podium.you.score })}
               </p>
             ) : null}
+            {roomLine}
           </>
         ) : (
           <>
@@ -491,10 +706,17 @@ export function PlayerPage() {
             <p className="text-xl font-semibold">{t('player.thanks')}</p>
           </>
         )}
-        {view.feedbackEnabled ? <RatingPanel pin={pin} socket={socket} /> : null}
-        <Link to="/join" className="text-muted-foreground text-sm underline underline-offset-2">
-          {t('player.joinAnother')}
-        </Link>
+        {/* Only a quiz they played, keyed by it: a room plays several under one PIN. */}
+        {view.rateable?.feedbackEnabled ? (
+          <RatingPanel pin={pin} quizId={view.rateable.quizId} socket={socket} />
+        ) : null}
+        {/* Only once the room is closed: at a podium the participant is still in it (the host
+            may open the next quiz), and leaving goes through "Leave", which really leaves. */}
+        {view.state === 'ENDED' ? (
+          <Link to="/join" className="text-muted-foreground text-sm underline underline-offset-2">
+            {t('player.joinAnother')}
+          </Link>
+        ) : null}
       </>,
     );
   }
@@ -583,9 +805,13 @@ export function PlayerPage() {
   }
 
   if ((view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && question) {
-    const done = submitted || view.answerAccepted === true;
-    // Tap tiles (QCM, V-F, poll): pinned to the bottom of the screen, their legend
-    // above. Typed answers and ordering stay in the flow (the keyboard would fight a pin).
+    // A refused answer is never shown as saved: too early, the box is back; an
+    // earlier answer that counts is the saved one; otherwise it did not count.
+    const refusal = view.answerAccepted === false ? view.answerRefusal : null;
+    const lost = refusal === 'closed' || refusal === 'late' || refusal === 'unknown';
+    const done = !lost && refusal !== 'early' && (submitted || view.answerAccepted === true);
+    // Tap tiles (QCM, V-F, poll): pinned to the bottom of the screen. Typed answers
+    // and ordering stay in the flow (the keyboard would fight a pin).
     const tiled =
       !!question.options?.length &&
       question.type !== 'ordering' &&
@@ -605,48 +831,25 @@ export function PlayerPage() {
       >
         {participantBar}
         {remaining !== null ? (
-          <span
-            className="shrink-0 pt-[0.5em] text-[2.5em] font-bold tabular-nums"
-            aria-label={
+          // Pinned on top while the rest scrolls; above an opened picture too.
+          <TimerBar
+            remaining={reading && question.listenFirst ? (readingLeft ?? 0) : remaining}
+            totalS={
+              reading && question.listenFirst
+                ? (question.startedAt - (question.mediaStartAt ?? question.startedAt)) / 1000
+                : (question.endsAt - question.startedAt) / 1000
+            }
+            icon={reading && question.listenFirst ? '🎧' : view.paused ? '⏸' : '⏱'}
+            label={
               reading && question.listenFirst ? t('player.listening') : t('player.timeRemaining')
             }
-          >
-            {reading && question.listenFirst ? `🎧 ${readingLeft}` : `⏱ ${remaining}`}
-          </span>
+            paused={view.paused}
+            className="bg-background sticky top-0 z-50 shrink-0 py-[0.5em] text-[1.25em]"
+          />
         ) : null}
-        <div className="flex min-h-0 flex-1 flex-col justify-center gap-[0.75em] overflow-y-auto py-[1em]">
-          {/* #41: capped at ~a third of the viewport so the answer zone below
-              stays where the thumb expects it, whatever the image's ratio. */}
-          {playsHere ? (
-            <QuestionMediaStage
-              key={question.questionIndex}
-              media={question.media}
-              mode={view.paused ? 'pause' : 'play'}
-              audible={hears}
-              muted={muted}
-              follow={hears ? undefined : followed(view, question.questionIndex)}
-              catchUp={followed(view, question.questionIndex)}
-              startAt={question.mediaStartAt ?? null}
-              boxClassName="w-full max-h-[35dvh]"
-              resumeKey={`${pin}:${question.questionIndex}`}
-              restartSignal={
-                view.mediaControl?.questionIndex === question.questionIndex
-                  ? view.mediaControl.seq
-                  : 0
-              }
-            />
-          ) : (
-            <>
-              <QuestionMedia media={question.media} className="max-h-[35dvh] w-auto" />
-              {/* In the room: the sound plays on the projection, its playhead moves here too. */}
-              {question.media?.audio ? (
-                <FollowedWaveform
-                  audio={question.media.audio}
-                  follow={followed(view, question.questionIndex)}
-                />
-              ) : null}
-            </>
-          )}
+        <div className="flex min-h-0 flex-1 flex-col justify-center gap-[0.75em] overflow-y-auto py-[0.5em]">
+          {/* The prompt first, then the picture: a small one in the room (it is big on the
+              projection), a tap to open it over the screen (#92). */}
           <Markdown
             role="heading"
             aria-level={1}
@@ -654,9 +857,34 @@ export function PlayerPage() {
           >
             {question.prompt}
           </Markdown>
-          {tiled && !reading && !done ? (
-            <OptionKey options={question.options ?? []} selectedIds={selected} />
-          ) : null}
+          {playsHere ? (
+            <QuestionMediaStage
+              key={question.questionIndex}
+              media={question.media}
+              mode={view.paused ? 'pause' : 'play'}
+              audible={hears}
+              muted={muted}
+              follow={hears ? undefined : followed(view, { questionIndex: question.questionIndex })}
+              catchUp={followed(view, { questionIndex: question.questionIndex })}
+              startAt={question.mediaStartAt ?? null}
+              zoomable
+              boxClassName="w-full max-h-[30dvh]"
+              resumeKey={`${pin}:${question.questionIndex}`}
+              anchor={anchorOf(view, { questionIndex: question.questionIndex })}
+            />
+          ) : (
+            <>
+              <QuestionMedia media={question.media} zoomable className="max-h-[18dvh] w-auto" />
+              {/* In the room the sound plays on the projection; its playhead shows here only
+                  when the sound is the question (listen first), not a background (#92). */}
+              {question.media?.audio && question.listenFirst ? (
+                <FollowedWaveform
+                  audio={question.media.audio}
+                  follow={followed(view, { questionIndex: question.questionIndex })}
+                />
+              ) : null}
+            </>
+          )}
         </div>
         <div
           className={cn(
@@ -671,10 +899,21 @@ export function PlayerPage() {
               {question.listenFirst ? t('player.listenFirst') : t('player.readQuestion')}{' '}
               <span className="tabular-nums">{readingLeft}</span>
             </p>
+          ) : lost ? (
+            <p role="alert" className="text-destructive text-[1.1em] font-semibold">
+              {t(`player.answerRefused.${refusal}`)}
+            </p>
           ) : done ? (
             <p className="text-[1.25em] font-semibold">{t('player.answerSaved')}</p>
           ) : (
-            renderAnswerInput()
+            <>
+              {refusal === 'early' ? (
+                <p role="alert" className="text-muted-foreground">
+                  {t('player.answerRefused.early')}
+                </p>
+              ) : null}
+              {renderAnswerInput()}
+            </>
           )}
         </div>
       </section>
@@ -687,35 +926,161 @@ export function PlayerPage() {
 
   // ── LOBBY / attente ──────────────────────────────────────────────────────────
   return wrap(
-    <Card className="w-full">
-      <CardHeader>
-        <CardTitle>{t('player.inSession')}</CardTitle>
-      </CardHeader>
-      <CardContent className="flex flex-col items-center gap-2">
-        <Avatar name={avatarName} size={72} />
-        {nickname ? <p className="text-lg font-semibold">« {nickname} »</p> : null}
-        {/* Avatar modifiable tant que la partie n'a pas démarré : on randomise en local
+    <>
+      <Card className="w-full">
+        <CardHeader>
+          <CardTitle>{t('player.inSession')}</CardTitle>
+          <p className="text-lg font-semibold">{roomLabel(t, view.roomName, view.hostName)}</p>
+        </CardHeader>
+        <CardContent className="flex flex-col items-center gap-2">
+          <Avatar name={avatarPreview} size={72} />
+          {nickname ? <p className="text-lg font-semibold">« {nickname} »</p> : null}
+          {/* Avatar modifiable tant que la partie n'a pas démarré : on randomise en local
             puis on synchronise explicitement (évite d'inonder le serveur à chaque clic). */}
-        <div className="flex flex-wrap items-center justify-center gap-2">
-          <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
-            <Shuffle className="size-4" />
-            {t('player.randomAvatar')}
-          </Button>
-          <Button
-            type="button"
-            size="icon"
-            onClick={commitAvatar}
-            disabled={avatarSeed === syncedSeed}
-            aria-label={t('player.saveAvatar')}
-            title={t('player.saveAvatar')}
-          >
-            <Check className="size-4" />
-          </Button>
-        </div>
-        <p className="text-muted-foreground">{t('player.waitingHost')}</p>
-        <p className="text-muted-foreground border-t pt-2 text-sm">{trackingNotice(t, view)}</p>
-      </CardContent>
-    </Card>,
+          <div className="flex flex-wrap items-center justify-center gap-2">
+            <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
+              <Shuffle className="size-4" />
+              {t('player.randomAvatar')}
+            </Button>
+            {avatarSeed !== syncedSeed ? (
+              <>
+                <Button
+                  type="button"
+                  size="icon"
+                  onClick={commitAvatar}
+                  aria-label={t('player.saveAvatar')}
+                  title={t('player.saveAvatar')}
+                >
+                  <Check className="size-4" />
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  onClick={cancelAvatar}
+                  aria-label={t('player.cancelAvatar')}
+                  title={t('player.cancelAvatar')}
+                >
+                  <X className="size-4" />
+                </Button>
+              </>
+            ) : null}
+          </div>
+          {/* Between two quizzes of a room (#89): where they stand, then what comes. */}
+          {view.standings?.you ? (
+            <p className="text-muted-foreground">
+              {t('player.roomRank', {
+                rank: view.standings.you.rank,
+                score: view.standings.you.score,
+              })}
+            </p>
+          ) : null}
+          <p className="text-muted-foreground">
+            {view.standings ? t('player.waitingNextQuiz') : t('player.waitingHost')}
+          </p>
+          {/* The next quiz plays sound and this device never enabled it (it joined a
+            silent one): the tap is the only way a phone lets it play later. */}
+          {(view.quizHasSound || gameSoundsHere) && !soundReady && !muted ? (
+            <div className="flex flex-col items-center gap-1">
+              <Button type="button" variant="outline" size="sm" onClick={claimSound}>
+                <Volume2 className="size-4" />
+                {t('player.enableSound')}
+              </Button>
+              {/* The tap still readies the phone; its sound stays off until the sound button. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  claimSound();
+                  setDeviceMuted(true);
+                }}
+              >
+                {t('media.withoutSound')}
+              </Button>
+            </div>
+          ) : null}
+          <p className="text-muted-foreground border-t pt-2 text-sm">{trackingNotice(t, view)}</p>
+          {/* "Ready!" (#104): the host sees one count and still starts when they choose. */}
+          <div className="flex w-full flex-col items-center gap-1 border-t pt-3">
+            {view.youReady ? (
+              // What the wait is about, once ready: the quiz to come and the room filling up.
+              <div className="qd-pop bg-muted/40 flex w-full flex-col items-center gap-1.5 rounded-lg border p-3">
+                <p className="flex items-center gap-1.5 font-semibold text-green-700 dark:text-green-400">
+                  <Check className="size-4" />
+                  {t('player.readyDone')}
+                </p>
+                {view.quizTitle ? (
+                  <p className="text-sm font-medium">
+                    {t('player.upNext', { title: view.quizTitle })}
+                  </p>
+                ) : null}
+                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
+                  <Users className="size-4" />
+                  {t('player.lobbyPlayers', {
+                    count: view.lobbyCount?.total ?? view.players.length,
+                  })}
+                  {view.lobbyCount ? (
+                    <span>
+                      {' · '}
+                      {t('player.lobbyReady', view.lobbyCount)}
+                    </span>
+                  ) : null}
+                </p>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void sayReady(false)}
+                >
+                  {t('player.notYet')}
+                </Button>
+              </div>
+            ) : (
+              // Breathes until pressed: the one thing the room waits for from this phone.
+              <Button
+                type="button"
+                variant="main-action"
+                className="qd-breathe transition-transform active:scale-95"
+                onClick={() => void sayReady(true)}
+              >
+                {t('player.ready')}
+              </Button>
+            )}
+          </div>
+          {/* The whole question, big, on a tablet or a computer (#104). The link
+              carries the PIN, never this participant's seat. */}
+          <div className="flex w-full flex-col items-center gap-2 border-t pt-3">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void shareProjection()}
+            >
+              <Share2 className="size-4" />
+              {t('player.shareProjection')}
+            </Button>
+            <p className="text-muted-foreground text-xs">{t('player.shareProjectionHint')}</p>
+            {sharedLink ? (
+              <div className="flex flex-col items-center gap-1">
+                <div className="rounded-md bg-white p-2">
+                  <QRCodeSVG
+                    value={sharedLink}
+                    size={120}
+                    aria-label={t('player.shareProjection')}
+                  />
+                </div>
+                <p className="text-muted-foreground text-xs">{t('player.projectionLinkCopied')}</p>
+              </div>
+            ) : null}
+          </div>
+        </CardContent>
+      </Card>
+      {/* The host moved on while they were rating the quiz just played: it stays open. */}
+      {view.rateable?.feedbackEnabled ? (
+        <RatingPanel pin={pin} quizId={view.rateable.quizId} socket={socket} hideWhenDone />
+      ) : null}
+    </>,
   );
 }
 
@@ -770,21 +1135,4 @@ function PresenceChoice({
       ))}
     </fieldset>
   );
-}
-
-/** The participant's own mute, kept for the tab's life (a reload keeps it). */
-const MUTED_KEY = 'live.muted';
-function loadMuted(): boolean {
-  try {
-    return sessionStorage.getItem(MUTED_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-function saveMuted(muted: boolean): void {
-  try {
-    sessionStorage.setItem(MUTED_KEY, muted ? '1' : '0');
-  } catch {
-    /* storage unavailable: the choice lasts until the page closes */
-  }
 }

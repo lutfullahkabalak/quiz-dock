@@ -15,8 +15,6 @@
     "italic": "斜體",
     "code": "程式碼",
     "codeBlock": "程式碼區塊",
-    "image": "插入圖片",
-    "uploading": "上傳中…",
     "bulletList": "無序清單",
     "orderedList": "有序清單"
   },
@@ -36,12 +34,12 @@
     "preview": "預覽",
     "feedback": "回饋",
     "sessions": "歷史",
-    "session": "會話",
+    "session": "房間",
     "player": "參與者",
     "control": "控制台",
     "screen": "投影",
     "join": "加入",
-    "live": "進行中的會話",
+    "live": "開放的房間",
     "templates": "範本",
     "profile": "我的帳號",
     "template": "範本"

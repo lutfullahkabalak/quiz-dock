@@ -15,8 +15,6 @@
     "italic": "Cursiva",
     "code": "Código",
     "codeBlock": "Bloque de código",
-    "image": "Insertar una imagen",
-    "uploading": "Subiendo…",
     "bulletList": "Lista con viñetas",
     "orderedList": "Lista numerada"
   },
@@ -36,12 +34,12 @@
     "preview": "Vista previa",
     "feedback": "Opiniones",
     "sessions": "Historial",
-    "session": "Sesión",
+    "session": "Sala",
     "player": "Participante",
     "control": "Consola",
     "screen": "Proyección",
     "join": "Unirse",
-    "live": "Sesiones en directo",
+    "live": "Salas abiertas",
     "templates": "Plantillas",
     "profile": "Mi cuenta",
     "template": "Plantilla"

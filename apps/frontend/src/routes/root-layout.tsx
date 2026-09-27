@@ -24,6 +24,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/session/$pin/projection': 'screen',
   '/join': 'join',
   '/join/$pin': 'join',
+  '/join/$pin/screen': 'screen',
 };
 
 export function RootLayout() {
@@ -42,11 +43,13 @@ export function RootLayout() {
   // Three shells: the projected screen has no chrome at all; participants (guests on a
   // phone) get the brand only; hosts and editors get the full app navigation.
   const routeId = matches[matches.length - 1]?.routeId ?? '';
-  const shell = routeId.startsWith('/session/$pin/projection')
-    ? 'bare'
-    : routeId.startsWith('/join')
-      ? 'participant'
-      : 'app';
+  // A participant's copy of the projection (#104) is a projected screen too.
+  const shell =
+    routeId.startsWith('/session/$pin/projection') || routeId === '/join/$pin/screen'
+      ? 'bare'
+      : routeId.startsWith('/join')
+        ? 'participant'
+        : 'app';
 
   if (shell === 'bare') {
     return (
@@ -71,9 +74,13 @@ export function RootLayout() {
           }
         >
           {shell === 'participant' ? (
-            <span className="flex items-center gap-2 text-lg font-bold">
-              <BrandLogo className="h-7 w-auto rounded-md" />
-              <span className="hidden sm:inline">{APP_NAME}</span>
+            <span className="flex items-center gap-3">
+              <span className="flex items-center gap-2 text-lg font-bold">
+                <BrandLogo className="h-7 w-auto rounded-md" />
+                <span className="hidden sm:inline">{APP_NAME}</span>
+              </span>
+              {/* Filled by the player page (the answers / big screen switch) through a portal. */}
+              <span id="participant-topbar-start" className="flex items-center" />
             </span>
           ) : (
             <Link

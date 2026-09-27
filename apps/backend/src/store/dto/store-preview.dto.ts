@@ -18,7 +18,15 @@ export const storePreviewItemSchema = z.object({
   mediaAlt: z.string().nullable(),
   /** Dégradé de fond d'une diapositive : sans lui, l'aperçu n'en est plus un. */
   gradient: z.object({ angle: z.number(), colors: z.array(z.string()) }).nullable(),
-  options: z.array(z.object({ text: z.string(), color: z.string(), shape: z.string() })),
+  options: z.array(
+    z.object({
+      text: z.string(),
+      color: z.string(),
+      shape: z.string(),
+      /** An answer's picture (image choice), served by the catalogue. */
+      mediaUrl: z.string().nullable(),
+    }),
+  ),
   /** Une diapositive telle que l'écran la dessine ; null pour une question. */
   slide: servedSlideSchema.nullable(),
 });

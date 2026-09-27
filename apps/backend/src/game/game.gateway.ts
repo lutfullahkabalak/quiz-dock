@@ -13,8 +13,10 @@ import type {
   AnswerValue,
   AudioTarget,
   ClientToServerEvents,
+  RoomSoundsSettings,
   GameMode,
   GameStep,
+  HostMediaCommand,
   ParticipantAccess,
   PlayerPresence,
   ServerToClientEvents,
@@ -40,6 +42,11 @@ export interface GameSocketData {
   pin?: string;
   /** Vrai pour une fenêtre de **contrôle** hôte (host:create / host:attach) — §7. */
   isHostControl?: boolean;
+  /**
+   * A copy of the projection a participant opened on a device of their own (#104):
+   * it follows the projection, is never waited for, never speaks for the sound.
+   */
+  follower?: boolean;
 }
 
 type GameServer = Server<ClientToServerEvents, ServerToClientEvents>;
@@ -201,8 +208,8 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   /** Émet le sommaire des questions (sans secret) à une fenêtre de contrôle hôte. */
-  private async emitOutline(socket: GameSocket, pin: string): Promise<void> {
-    const snapshot = await this.game.getSnapshot(pin);
+  private async emitOutline(socket: Pick<GameSocket, 'emit'>, pin: string): Promise<void> {
+    const snapshot = await this.game.currentSnapshot(pin);
     if (!snapshot) return;
     socket.emit('game:outline', {
       quizId: snapshot.quizId,
@@ -227,15 +234,16 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('spectator:join')
   async spectatorJoin(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string },
+    @MessageBody() payload: { pin: string; follow?: boolean },
   ): Promise<{ ok: boolean }> {
     await this.pins.guard(ipOf(socket), async () => {
       if (!(await this.game.getMeta(payload.pin))) throw new WsException('session.not_found');
     });
     socket.data.pin = payload.pin;
+    socket.data.follower = payload.follow === true;
     await socket.join(payload.pin);
     await this.engine.sendStateTo(socket, payload.pin);
-    // A projection counts among the devices waited for.
+    // A projection counts among the devices waited for (a participant's copy does not).
     await this.engine.broadcastReadiness(payload.pin);
     return { ok: true };
   }
@@ -374,6 +382,55 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     await this.engine.end(payload.pin, this.requireHostId(socket), payload.archive === true);
   }
 
+  /** `host:sounds` (#93): the room's game sounds. */
+  @SubscribeMessage('host:sounds')
+  async hostSounds(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string } & RoomSoundsSettings,
+  ): Promise<void> {
+    const { pin, ...patch } = payload;
+    await this.engine.setSounds(pin, this.requireHostId(socket), patch);
+  }
+
+  /** `player:ready` (#104): the participant is ready, or not yet, in the lobby. */
+  @SubscribeMessage('player:ready')
+  async playerReady(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string; ready: boolean },
+  ): Promise<{ ok: boolean }> {
+    const { pin, playerId } = socket.data;
+    if (!pin || pin !== payload.pin || !playerId) return { ok: false };
+    return { ok: await this.engine.setReady(pin, playerId, payload.ready === true) };
+  }
+
+  /** `host:room-name`: the room's own name, from its lobby. */
+  @SubscribeMessage('host:room-name')
+  async hostRoomName(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string; name: string },
+  ): Promise<void> {
+    await this.engine.setRoomName(payload.pin, this.requireHostId(socket), payload.name);
+  }
+
+  /** `host:next-quiz`: the room's next quiz, in its lobby; the consoles get its outline. */
+  @SubscribeMessage('host:next-quiz')
+  async hostNextQuiz(
+    @ConnectedSocket() socket: GameSocket,
+    @MessageBody() payload: { pin: string; quizId: string; archive?: boolean },
+  ): Promise<{ ok: boolean }> {
+    const { pin } = payload;
+    await this.engine.nextQuiz(
+      pin,
+      this.requireHostId(socket),
+      String(payload.quizId ?? ''),
+      payload.archive === true,
+    );
+    for (const control of await this.server.in(pin).fetchSockets()) {
+      if (control.data.isHostControl) await this.emitOutline(control, pin);
+    }
+    return { ok: true };
+  }
+
   /** `host:lock` : ferme la partie aux nouveaux participants (ou la rouvre), jusqu'à la fin. */
   @SubscribeMessage('host:lock')
   async hostLock(
@@ -438,14 +495,14 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   }
 
   /** `host:pause` : suspend/reprend l'auto-progression (gèle le chrono en ANSWERING). */
-  /** `host:media` : restart the current question's media on the screens. */
+  /** `host:media` : the host steers the current question's media on every device that plays it. */
   @SubscribeMessage('host:media')
   async hostMedia(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string; action: 'restart' },
+    @MessageBody() payload: HostMediaCommand,
   ): Promise<void> {
-    if (payload?.action !== 'restart') return;
-    await this.engine.mediaControl(payload.pin, this.requireHostId(socket), payload.action);
+    if (!payload || !MEDIA_ACTIONS.includes(payload.action)) return;
+    await this.engine.mediaControl(payload.pin, this.requireHostId(socket), payload);
   }
 
   @SubscribeMessage('host:pause')
@@ -481,14 +538,19 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.game.recordFeedback(payload.pin, playerId, payload.rating, payload.comment);
   }
 
-  /** A device has loaded what it fetched ahead of a question (its own room only). */
+  /** A device has loaded what it fetched ahead of a step, a question or a slide (its own room only). */
   @SubscribeMessage('media:ready')
   async mediaReady(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string; questionIndex: number },
+    @MessageBody() payload: { pin: string; questionIndex: number; slideIndex?: number },
   ): Promise<void> {
     if (!socket.data.pin || socket.data.pin !== payload.pin) return;
-    await this.engine.markMediaReady(payload.pin, socket, payload.questionIndex);
+    await this.engine.markMediaReady(
+      payload.pin,
+      socket,
+      payload.questionIndex,
+      payload.slideIndex,
+    );
   }
 
   /**
@@ -498,13 +560,24 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
   @SubscribeMessage('media:position')
   mediaPosition(
     @ConnectedSocket() socket: GameSocket,
-    @MessageBody() payload: { pin: string; questionIndex: number; t: number; playing: boolean },
+    @MessageBody()
+    payload: {
+      pin: string;
+      questionIndex: number;
+      slideIndex?: number;
+      t: number;
+      playing: boolean;
+    },
   ): void {
-    const { pin, playerId, isHostControl } = socket.data;
-    if (!pin || pin !== payload.pin || playerId || isHostControl) return;
-    const { questionIndex, t, playing } = payload;
+    const { pin, playerId, isHostControl, follower } = socket.data;
+    if (!pin || pin !== payload.pin || playerId || isHostControl || follower) return;
+    const { questionIndex, slideIndex, t, playing } = payload;
     if (!Number.isInteger(questionIndex) || !Number.isFinite(t) || t < 0) return;
-    socket.to(pin).emit('media:position', { questionIndex, t, playing: playing === true });
+    // A slide's sound (#125) is told apart from the question it precedes.
+    const slide = Number.isInteger(slideIndex) && slideIndex! >= 0 ? { slideIndex } : {};
+    socket
+      .to(pin)
+      .emit('media:position', { questionIndex, ...slide, t, playing: playing === true });
   }
 
   @SubscribeMessage('ping')
@@ -551,6 +624,9 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     return this.requireHost(socket).id;
   }
 }
+
+/** What the console may do to the question's media. */
+const MEDIA_ACTIONS: readonly HostMediaCommand['action'][] = ['restart', 'play', 'pause', 'seek'];
 
 /** Adapte le handshake Socket.IO en pseudo-`Request` pour `AuthProvider`. */
 function handshakeAsRequest(socket: GameSocket): Request {

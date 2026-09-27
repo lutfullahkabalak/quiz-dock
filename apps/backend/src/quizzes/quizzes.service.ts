@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common';
 import { Prisma, type Quiz, QuizStatus } from '@prisma/client';
 import { isManager, type RoleSet } from '../auth/roles';
-import { gameKeys } from '../game/game.keys';
+import { currentGameFields, gameKeys } from '../game/game.keys';
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { QUESTION_INCLUDE, toQuestionOutput } from '../questions/questions.service';
@@ -15,6 +15,7 @@ import type { CreateQuizDto } from './dto/create-quiz.dto';
 import type { QuizFeedbackQueryDto } from './dto/quiz-feedback.dto';
 import type { TransitionQuizDto } from './dto/transition-quiz.dto';
 import type { UpdateQuizDto } from './dto/update-quiz.dto';
+import { roomStandings } from './room-standings';
 import { instanceLanguage } from '../common/instance-language';
 
 type QuizFeedbackQuery = Pick<QuizFeedbackQueryDto, 'page' | 'pageSize' | 'rating'>;
@@ -35,22 +36,34 @@ export class QuizzesService {
   ) {}
 
   /**
-   * Banque de l'appelant, les plus récents d'abord — et **toute l'instance** pour
-   * un gestionnaire (`admin`), avec le nom du propriétaire de chaque quiz : il
-   * voit tout, il ne présente rien (RG-14).
+   * Banque de l'appelant, les plus récents d'abord, avec les quiz que les autres
+   * hôtes partagent avec l'instance — en lecture seule, à copier — et **toute
+   * l'instance** pour un gestionnaire (`admin`), avec le nom du propriétaire de
+   * chaque quiz : il voit tout, il ne présente rien (RG-14).
    */
-  async list(user: { id: string; roles: RoleSet }): Promise<(Quiz & { ownerName?: string })[]> {
+  async list(user: {
+    id: string;
+    roles: RoleSet;
+  }): Promise<(Quiz & { ownerName?: string; editable: boolean })[]> {
     const manager = isManager(user.roles);
     const rows = await this.prisma.quiz.findMany({
-      where: manager ? {} : { ownerId: user.id },
+      where: manager ? {} : this.readableBy(user.id),
       orderBy: { createdAt: 'desc' },
       include: { owner: { select: { displayName: true } } },
     });
-    // Le nom du propriétaire n'a de sens que dans la vue d'ensemble : un hôte qui
+    // Le nom du propriétaire n'a de sens que pour le quiz d'un autre : un hôte qui
     // lit sa banque n'a pas besoin qu'on lui rappelle que tout est à lui.
-    return rows.map(({ owner, ...quiz }) =>
-      manager ? { ...quiz, ownerName: owner.displayName } : quiz,
-    );
+    return rows.map(({ owner, ...quiz }) => {
+      const editable = quiz.ownerId === user.id;
+      return manager || !editable
+        ? { ...quiz, editable, ownerName: owner.displayName }
+        : { ...quiz, editable };
+    });
+  }
+
+  /** What a host reads: their quizzes, and those shared with the instance (not archived). */
+  private readableBy(userId: string): Prisma.QuizWhereInput {
+    return { OR: [{ ownerId: userId }, { shared: true, status: { not: QuizStatus.archived } }] };
   }
 
   /**
@@ -85,9 +98,9 @@ export class QuizzesService {
    * alors à qui il est.
    */
   async get(user: { id: string; roles: RoleSet }, id: string) {
-    const ownerId = this.scopeOf(user);
     const quiz = await this.prisma.quiz.findFirst({
-      where: { id, ownerId },
+      // A quiz another host shares is read too, never edited.
+      where: isManager(user.roles) ? { id } : { id, ...this.readableBy(user.id) },
       include: {
         questions: { orderBy: { orderIndex: 'asc' }, include: QUESTION_INCLUDE },
         slides: { orderBy: { orderIndex: 'asc' } },
@@ -169,7 +182,71 @@ export class QuizzesService {
       orderBy: { startedAt: 'desc' },
       select: SESSION_SUMMARY_SELECT,
     });
-    return { sessions: rows.map(toSessionSummary) };
+    // How many archived sessions each room kept (#89): a room of one reads as a plain session.
+    const roomIds = [...new Set(rows.flatMap((r) => (r.roomId ? [r.roomId] : [])))];
+    const inRooms = roomIds.length
+      ? await this.prisma.gameSessionLog.findMany({
+          where: { roomId: { in: roomIds }, quiz: { ownerId } },
+          select: { roomId: true },
+        })
+      : [];
+    const sizes = new Map<string, number>();
+    for (const { roomId } of inRooms) if (roomId) sizes.set(roomId, (sizes.get(roomId) ?? 0) + 1);
+    return {
+      sessions: rows.map((r) => {
+        const size = r.roomId ? (sizes.get(r.roomId) ?? 1) : 1;
+        return toSessionSummary(r, size > 1 ? size : null);
+      }),
+    };
+  }
+
+  /**
+   * The room a session was played in, from its archived sessions (#89): the
+   * quizzes kept, in order, and the standings summed over them — only when
+   * every one of them tracked its participants (RG-16). Null for a session
+   * played alone, or whose room kept only it.
+   */
+  private async roomOf(roomId: string | null, ownerId: string | undefined, current: string) {
+    if (!roomId) return null;
+    const sessions = await this.prisma.gameSessionLog.findMany({
+      where: { roomId, quiz: { ownerId } },
+      orderBy: { startedAt: 'asc' },
+      select: {
+        id: true,
+        quizId: true,
+        startedAt: true,
+        personalTracking: true,
+        quizSnapshot: true,
+        roomName: true,
+        host: { select: { displayName: true } },
+        playerResults: {
+          select: {
+            nickname: true,
+            finalScore: true,
+            correctCount: true,
+            answeredCount: true,
+            avgResponseMs: true,
+            maxStreak: true,
+          },
+        },
+      },
+    });
+    if (sessions.length < 2) return null;
+    return {
+      // The name it had last (the host may rename the room between two quizzes).
+      name: sessions[sessions.length - 1].roomName,
+      hostName: sessions[0].host.displayName,
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        quizId: s.quizId,
+        quizTitle: ((s.quizSnapshot ?? {}) as { title?: string }).title ?? '',
+        startedAt: s.startedAt.toISOString(),
+        current: s.id === current,
+      })),
+      standings: sessions.every((s) => s.personalTracking)
+        ? roomStandings(sessions.map((s) => s.playerResults))
+        : null,
+    };
   }
 
   /**
@@ -195,8 +272,10 @@ export class QuizzesService {
       questions?: Array<{ orderIndex: number; prompt: string; type: string }>;
     };
     const byIndex = new Map((snap.questions ?? []).map((q) => [q.orderIndex, q]));
+    const room = await this.roomOf(row.roomId, ownerId, row.id);
     return {
-      ...toSessionSummary(row),
+      ...toSessionSummary(row, room?.sessions.length ?? null),
+      room,
       quizTitle: snap.title ?? '',
       language: row.language,
       totalQuestions: row.questionStats.length,
@@ -255,7 +334,7 @@ export class QuizzesService {
         orderIndex: number;
         prompt: string;
         type: string;
-        options?: Array<{ id: string; text: string | null }>;
+        options?: SnapshotOptionLabel[];
       }>;
     };
     const byIndex = new Map((snap.questions ?? []).map((q) => [q.orderIndex, q]));
@@ -284,10 +363,14 @@ export class QuizzesService {
     };
   }
 
-  /** Duplique un quiz possédé (copie profonde questions/options/réponses) en `draft`. */
+  /**
+   * Duplique un quiz possédé (copie profonde questions/options/réponses) en `draft` —
+   * ou un quiz qu'un autre hôte partage (« Créer à partir de ce quiz ») : la copie
+   * est à l'appelant, privée, sans lien avec l'original.
+   */
   async duplicate(ownerId: string, id: string): Promise<Quiz> {
     const src = await this.prisma.quiz.findFirst({
-      where: { id, ownerId },
+      where: { id, ...this.readableBy(ownerId) },
       include: {
         questions: {
           orderBy: { orderIndex: 'asc' },
@@ -334,11 +417,13 @@ export class QuizzesService {
             timerAfterMedia: q.timerAfterMedia,
             numericValue: q.numericValue,
             numericTolerance: q.numericTolerance,
+            multiSelect: q.multiSelect,
             options: {
               create: q.options.map((o) => ({
                 orderIndex: o.orderIndex,
                 text: o.text,
                 mediaId: o.mediaId,
+                alt: o.alt,
                 color: o.color,
                 shape: o.shape,
                 isCorrect: o.isCorrect,
@@ -371,6 +456,12 @@ export class QuizzesService {
           blocks: s.blocks as Prisma.InputJsonValue,
           mediaId: s.mediaId,
           gradient: s.gradient ?? Prisma.JsonNull,
+          videoMediaId: s.videoMediaId,
+          videoLoop: s.videoLoop,
+          videoSound: s.videoSound,
+          audioMediaId: s.audioMediaId,
+          waveformSize: s.waveformSize,
+          audioTarget: s.audioTarget,
           displayDelayS: s.displayDelayS,
           textTone: s.textTone,
           textOutline: s.textOutline,
@@ -395,6 +486,7 @@ export class QuizzesService {
         audioTarget: dto.audioTarget,
         license: dto.license,
         tags: dto.tags,
+        shared: dto.shared,
       },
     });
   }
@@ -418,7 +510,7 @@ export class QuizzesService {
   private async hasLiveSession(ownerId: string, quizId: string): Promise<boolean> {
     const pins = await this.redis.smembers(gameKeys.hostGames(ownerId));
     for (const pin of pins) {
-      const [state, gameQuiz] = await this.redis.hmget(gameKeys.game(pin), 'state', 'quizId');
+      const [state, gameQuiz] = await currentGameFields(this.redis, pin, 'state', 'quizId');
       if (gameQuiz === quizId && state && state !== 'ENDED') return true;
     }
     return false;
@@ -477,41 +569,61 @@ const SESSION_SUMMARY_SELECT = {
   fullCapture: true,
   startedAt: true,
   endedAt: true,
+  roomId: true,
 } satisfies Prisma.GameSessionLogSelect;
+
+/** What the frozen snapshot keeps of an option to name it. */
+type SnapshotOptionLabel = {
+  id: string;
+  text: string | null;
+  media?: { alt?: string | null } | null;
+};
 
 /**
  * Rend une réponse stockée (`AnswerLog.answerValue`) lisible : texte d'option pour les
  * QCM/ordre, valeur brute pour le libre (texte/numérique). Tombe sur l'id ou la valeur
  * brute si le snapshot ne porte pas l'option (robustesse).
+ *
+ * A picture answer is named by its alt; a known option is never shown by its id.
  */
 function renderAnswer(
-  question: { type?: string; options?: Array<{ id: string; text: string | null }> } | undefined,
+  question: { type?: string; options?: SnapshotOptionLabel[] } | undefined,
   value: unknown,
 ): string {
-  const optText = (id: string) => question?.options?.find((o) => o.id === id)?.text ?? id;
+  const options = question?.options ?? [];
+  const label = (i: number) => {
+    const o = options[i];
+    return o.text || o.media?.alt || `#${i + 1}`;
+  };
+  const optText = (id: string) => {
+    const i = options.findIndex((o) => o.id === id);
+    return i >= 0 ? label(i) : id;
+  };
   if (Array.isArray(value)) {
     const sep = question?.type === 'ordering' ? ' → ' : ', ';
     return value.map((v) => (typeof v === 'string' ? optText(v) : String(v))).join(sep);
   }
   if (typeof value === 'string') {
-    const opt = question?.options?.find((o) => o.id === value);
-    return opt ? (opt.text ?? value) : value; // id d'option connu → texte ; sinon saisie libre
+    return optText(value); // id d'option connu → son libellé ; sinon saisie libre
   }
   return String(value);
 }
 
 /** Projette une ligne `GameSessionLog` en résumé sérialisable (Decimal→number, Date→ISO). */
-function toSessionSummary(row: {
-  id: string;
-  pin: string;
-  status: string;
-  playerCount: number;
-  successRate: Prisma.Decimal | null;
-  personalTracking: boolean;
-  fullCapture: boolean;
-  startedAt: Date;
-  endedAt: Date;
-}) {
+function toSessionSummary(
+  row: {
+    id: string;
+    pin: string;
+    status: string;
+    playerCount: number;
+    successRate: Prisma.Decimal | null;
+    personalTracking: boolean;
+    fullCapture: boolean;
+    startedAt: Date;
+    endedAt: Date;
+  },
+  roomSize: number | null,
+) {
   return {
     id: row.id,
     pin: row.pin,
@@ -522,5 +634,6 @@ function toSessionSummary(row: {
     fullCapture: row.fullCapture,
     startedAt: row.startedAt.toISOString(),
     endedAt: row.endedAt.toISOString(),
+    roomSize,
   };
 }

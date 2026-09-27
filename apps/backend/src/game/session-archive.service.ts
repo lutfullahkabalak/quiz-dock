@@ -2,9 +2,10 @@ import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, SessionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
-import { gameKeys } from './game.keys';
+import { type GameId, gameKeys } from './game.keys';
+import { answerStats } from './player-stats';
 import { buildRevealCommon } from './reveal';
-import type { AnswerRecord, GameMeta, PlayerRecord, QuizSnapshot } from './game.types';
+import type { AnswerRecord, GameMeta, PlayerRecord, PlayerScore, QuizSnapshot } from './game.types';
 
 /**
  * Rétention par défaut d'une session archivée (suivi individuel). Valeur de départ
@@ -12,7 +13,7 @@ import type { AnswerRecord, GameMeta, PlayerRecord, QuizSnapshot } from './game.
  */
 const SESSION_RETENTION_DAYS = 365;
 
-type RankedPlayer = PlayerRecord & { id: string };
+type RankedPlayer = PlayerRecord & PlayerScore & { id: string };
 
 /**
  * Archivage d'une partie terminée (§2.7-2.10) : projette l'état live Redis (résumé,
@@ -41,14 +42,14 @@ export class SessionArchiveService {
     opts: { interrupted?: boolean; bestEffort?: boolean } = {},
   ): Promise<void> {
     try {
-      const snapshot = await this.readSnapshot(pin);
+      const snapshot = await this.readSnapshot(meta.id);
       if (!snapshot) return;
 
-      const players = await this.readPlayers(pin);
+      const players = await this.readPlayers(pin, meta.id);
       const answersByIndex = new Map<number, Map<string, AnswerRecord>>();
       let totalAnswers = 0;
       for (const q of snapshot.questions) {
-        const recs = await this.readAnswers(pin, q.orderIndex);
+        const recs = await this.readAnswers(meta.id, q.orderIndex);
         answersByIndex.set(q.orderIndex, recs);
         totalAnswers += recs.size;
       }
@@ -142,6 +143,9 @@ export class SessionArchiveService {
       quizId: meta.quizId,
       hostId: meta.hostUserId,
       pin,
+      roomId: meta.roomId,
+      // A copy per session: there is no room table to hold it (SPECIFICATIONS-ROOM §5).
+      roomName: meta.roomName || null,
       status,
       language: meta.language,
       playerCount,
@@ -186,29 +190,8 @@ export class SessionArchiveService {
     playerId: string;
     data: Omit<Prisma.PlayerResultLogUncheckedCreateInput, 'sessionLogId'>;
   }[] {
-    const orderedIndexes = snapshot.questions.map((q) => q.orderIndex);
     return ranked.map((p, i) => {
-      let answered = 0;
-      let correct = 0;
-      let totalMs = 0;
-      let streak = 0;
-      let maxStreak = 0;
-      for (const idx of orderedIndexes) {
-        const rec = answersByIndex.get(idx)?.get(p.id);
-        if (!rec) {
-          streak = 0;
-          continue;
-        }
-        answered += 1;
-        totalMs += rec.tMs;
-        if (rec.isCorrect) {
-          correct += 1;
-          streak += 1;
-          if (streak > maxStreak) maxStreak = streak;
-        } else {
-          streak = 0;
-        }
-      }
+      const { answered, correct, totalMs, maxStreak } = answerStats(snapshot, answersByIndex, p.id);
       return {
         playerId: p.id,
         data: {
@@ -255,18 +238,32 @@ export class SessionArchiveService {
     return rows;
   }
 
-  private async readSnapshot(pin: string): Promise<QuizSnapshot | null> {
-    const raw = await this.redis.get(gameKeys.snapshot(pin));
+  private async readSnapshot(gameId: GameId): Promise<QuizSnapshot | null> {
+    const raw = await this.redis.get(gameKeys.snapshot(gameId));
     return raw ? (JSON.parse(raw) as QuizSnapshot) : null;
   }
 
-  private async readPlayers(pin: string): Promise<Map<string, PlayerRecord>> {
-    const raw = await this.redis.hgetall(gameKeys.players(pin));
-    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as PlayerRecord]));
+  /** Who played the game (a score in it), with who they are in the room. */
+  private async readPlayers(
+    pin: string,
+    gameId: GameId,
+  ): Promise<Map<string, PlayerRecord & PlayerScore>> {
+    const [players, scores] = await Promise.all([
+      this.redis.hgetall(gameKeys.players(pin)),
+      this.redis.hgetall(gameKeys.scores(gameId)),
+    ]);
+    return new Map(
+      Object.entries(scores)
+        .filter(([id]) => players[id])
+        .map(([id, score]) => [
+          id,
+          { ...(JSON.parse(players[id]) as PlayerRecord), ...(JSON.parse(score) as PlayerScore) },
+        ]),
+    );
   }
 
-  private async readAnswers(pin: string, index: number): Promise<Map<string, AnswerRecord>> {
-    const raw = await this.redis.hgetall(gameKeys.answers(pin, index));
+  private async readAnswers(gameId: GameId, index: number): Promise<Map<string, AnswerRecord>> {
+    const raw = await this.redis.hgetall(gameKeys.answers(gameId, index));
     return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord]));
   }
 }

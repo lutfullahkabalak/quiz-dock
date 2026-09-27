@@ -6,13 +6,23 @@ is what a Quiz Store repository holds.
 
 **JSON Schema.** The manifest is published as a JSON Schema (draft 2020-12),
 one file per manifest version, in [`schema/`](../schema/) — currently
-[`quiz-bundle.v3.json`](../schema/quiz-bundle.v3.json). It is generated from the
+[`quiz-bundle.v5.json`](../schema/quiz-bundle.v5.json). It is generated from the
 importer's own schema and a test keeps the two in step, so a tool outside
 QuizDock (a community store, a CI check) validates exactly what an import
 accepts. A published version is never rewritten: a change to the format comes
 with a new manifest version and a new file. The schema is structural, like the
 first step of an import; the per-type rules of each question and slide are
-checked afterwards. Contributors changing the bundle schema run
+checked afterwards.
+
+**Format guide.** [`schema/quiz-format-guide.md`](../schema/quiz-format-guide.md)
+is the same format in prose, text only, rules per type included: what someone —
+or a chatbot — needs to write a `quiz.json` by hand
+([self-hosting/import-from-other-tools.md](self-hosting/import-from-other-tools.md)).
+It is generated too, from the content schemas this time, and follows the
+importer rather than a manifest version. A test fails when a field of the
+format is neither described in it nor listed as left out.
+
+Contributors changing the bundle schema or a content schema run
 `pnpm generate:schema` and commit the result.
 
 > **Videos and sounds (version 3).** A question's visual may be an MP4 video
@@ -40,6 +50,9 @@ checked afterwards. Contributors changing the bundle schema run
   `qd quiz:import <file> <sub|email>`. The result is a **new draft** owned by
   the importer, with its own copies of the media. Nothing is merged or
   overwritten.
+- **From another tool** — no converter yet: a chatbot prompt writes the
+  `quiz.json` from a PDF, screenshots or a spreadsheet
+  ([self-hosting/import-from-other-tools.md](self-hosting/import-from-other-tools.md)).
 
 ## `quiz.json`
 
@@ -109,7 +122,7 @@ checked afterwards. Contributors changing the bundle schema run
   quizzes carrying videos). Nothing the archive declares is trusted: sizes are
   counted on the bytes actually unpacked, which may not exceed twice
   `IMPORT_MAX_BYTES` in total, over at most 2,000 entries.
-- `quiz.mediaTailS` (version 3, 0–30, default 3): the pause kept after a
+- `quiz.mediaTailS` (version 3, 0–30, default 1): the pause kept after a
   question's sound or video. A media longer than its question stretches the
   question to the end of the media plus this pause — nothing is cut mid-play.
 - `quiz.loudnessTargetLufs` (version 3): the level sounds and videos are
@@ -122,6 +135,19 @@ checked afterwards. Contributors changing the bundle schema run
   session).
 - A question's `media` is its visual (an image or an MP4), `audio` its sound
   (an MP3). Never both a video and a sound: the video carries its own.
+- `waveformSize` (version 3): how thick its sound's waveform is drawn — `S`,
+  `M` (default) or `L`; `hidden` (version 4): not drawn on the projection nor
+  the phones, only on the host's console (the sound still plays).
+- Slides with media (version 5), set like a question's: `video` (an MP4 filling
+  the slide behind its content) with `videoLoop` and `videoSound` (both `true`
+  when omitted), `audio` (a sound) with its `waveformSize` (`hidden` when
+  omitted), and the slide's own `audioTarget`. A slide plays **one sound at
+  most**: a video with its sound and an `audio` together are refused
+  (`slide.two_sounds`).
+- Image choice (version 6): a question of type `image_choice` has 2 or 4
+  options, each a picture — `media` with its `alt`, in the quiz's language —
+  and no `text`; `multiSelect: true` lets several be right. It has no `media`
+  of its own (an `audio` is fine).
 - Questions and slides follow the API content rules (question types and their
   fields, block types, colour/shape names, limits). Defaults apply when a
   field is omitted: `timeLimitS` 20, `pointsMode` standard, `textTone` light,
@@ -143,7 +169,7 @@ at `null`. An imported bundle keeps whatever it carried, except its identity
 
 | Field | Type | Meaning |
 |---|---|---|
-| `version` (top level) | integer | Manifest schema version, currently `3`. Absent in the earliest bundles: read as `0`, same layout. A bundle from a newer schema is refused. |
+| `version` (top level) | integer | Manifest schema version, up to `6`. An export stamps the **lowest version it needs** — `3`, `4` once a waveform is `hidden`, `5` once a slide carries a video or a sound, `6` once a question is an image choice — so an instance whose importer stops at an older version still takes a quiz that uses nothing newer. Absent in the earliest bundles: read as `0`, same layout. A bundle from a newer schema is refused. |
 | `media` (top level) | object | What each media file carries beyond its bytes, keyed by the same path the items reference: an `alt`, the description read aloud by screen readers (version 2); for a sound or a video, what the editor measured (version 3) — `durationMs`, `peaks` (200 values in 0–1, the waveform the screens draw), `origin` (`upload` or `recording`), `loudnessLufs` and `peakDbfs` (the playback gain). A sound needs `durationMs` and `peaks`. Absent in a version 1 bundle, and an image with no alternative text simply has no entry. |
 | `slug` | `^[a-z0-9]+(-[a-z0-9]+)*$`, ≤ 60 | The identity that travels — never an internal id. Fixed by the owner's first export (derived from the title); the zip is named after it. Ignored on import: a copy carries nothing of its origin and gets its own slug at its first export. |
 | `namespace` | string or `null` | Reserved for a Store submission (`<username>/<slug>`); `null` on a local export. Ignored on import. |

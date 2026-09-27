@@ -14,6 +14,7 @@ import {
   GameState,
   type ParticipantAccess,
   type PlayerPresence,
+  type RoomSoundsSettings,
 } from '@quiz-dock/contracts';
 import { QuizStatus } from '@prisma/client';
 import { allowsAnonymousParticipants, isOidcMode } from '../auth/auth-mode';
@@ -21,8 +22,18 @@ import { MediaLibraryService } from '../media/media-library.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { normalizeAnswer } from '../questions/dto/question-content.schema';
 import { RedisService } from '../redis/redis.service';
-import { GAME_TTL_S, gameKeys } from './game.keys';
-import type { GameMeta, PlayerRecord, QuizSnapshot } from './game.types';
+import { GAME_TTL_S, type GameId, gameKeys } from './game.keys';
+import { type PlayerStats, type SeriesStats, answerStats, sumGames } from './player-stats';
+import { DEFAULT_ROOM_SOUNDS, type RoomSounds } from './game.types';
+import type {
+  AnswerRecord,
+  GameFields,
+  GameMeta,
+  PlayerRecord,
+  PlayerScore,
+  QuizSnapshot,
+  RoomMeta,
+} from './game.types';
 import {
   QUIZ_SNAPSHOT_INCLUDE,
   buildSnapshot,
@@ -37,6 +48,52 @@ const NICKNAME_MAX = 20;
 const NICKNAME_HOMONYM_MAX = 20;
 /** Borne de la graine d'avatar (client-fournie, stockée Redis + diffusée). */
 const AVATAR_SEED_MAX = 64;
+
+/** A player's score at the start of a game. */
+const ZERO_SCORE = JSON.stringify({ score: 0, streak: 0 } satisfies PlayerScore);
+
+/*
+ * The two moves that must see the same room: a player joining and a quiz
+ * opening. Lua runs them whole. A game's keys are `game:<id>…` (see gameKeys).
+ */
+
+/**
+ * Join. KEYS: players, room, session, tokens, nicknames. ARGV: playerId, record,
+ * session value, token, zero score, TTL, the two states of a game that is over.
+ * Returns 1 when the player is in the current game, 0 when they wait for the next.
+ */
+const JOIN_SCRIPT = `
+redis.call('HSET', KEYS[1], ARGV[1], ARGV[2])
+redis.call('SET', KEYS[3], ARGV[3], 'EX', ARGV[6])
+redis.call('HSET', KEYS[4], ARGV[1], ARGV[4])
+for _, key in ipairs({KEYS[1], KEYS[4], KEYS[5]}) do redis.call('EXPIRE', key, ARGV[6]) end
+local game = redis.call('HGET', KEYS[2], 'gameId')
+if not game then return 0 end
+local state = redis.call('HGET', 'game:' .. game, 'state')
+if state == ARGV[7] or state == ARGV[8] then return 0 end
+local scores = 'game:' .. game .. ':scores'
+redis.call('HSET', scores, ARGV[1], ARGV[5])
+redis.call('EXPIRE', scores, ARGV[6])
+return 1
+`;
+
+/**
+ * Switch the room to a new game. KEYS: players, room, the new game's scores, the
+ * previous game's hash. ARGV: game id, zero score, TTL, the ended state, the previous game's id. The
+ * previous game ends there: nothing reads it as being played any more.
+ * Returns the number of players carried over.
+ */
+const SWITCH_GAME_SCRIPT = `
+local ids = redis.call('HKEYS', KEYS[1])
+for _, id in ipairs(ids) do redis.call('HSET', KEYS[3], id, ARGV[2]) end
+if #ids > 0 then redis.call('EXPIRE', KEYS[3], ARGV[3]) end
+redis.call('HSET', KEYS[2], 'gameId', ARGV[1], 'previousGameId', ARGV[5])
+if redis.call('EXISTS', KEYS[4]) == 1 then redis.call('HSET', KEYS[4], 'state', ARGV[4]) end
+return #ids
+`;
+
+/** A player of the room with their standing over its games. */
+export type RoomStanding = PlayerRecord & SeriesStats & { id: string };
 
 export interface CreateSessionResult {
   pin: string;
@@ -97,8 +154,128 @@ export class GameService {
     if (open && !allowsAnonymousParticipants()) {
       throw new ForbiddenException('session.open_access_forbidden');
     }
+    const snapshot = await this.playableSnapshot(hostUserId, dto.quizId);
+    const roomId = randomBytes(16).toString('hex');
+    const pin = await this.allocatePin(roomId);
+    const gameId = newGameId();
+
+    const room: RoomMeta = {
+      roomId,
+      hostUserId,
+      gameId,
+      fullCapture: dto.fullCapture === true,
+      // Suivi individuel : par défaut oui (RG-16). Nom choisi : par défaut oui, sauf
+      // sous OIDC où le nom vient du compte tant que l'hôte n'ouvre pas le choix.
+      // Open access: guests only, so nothing personal to track and no account to
+      // take a name from.
+      personalTracking: !open && dto.personalTracking !== false,
+      pickOwnName: open || (dto.pickOwnName ?? !isOidcMode()),
+      participantAccess: open ? 'open' : 'account',
+      joinLocked: false,
+      joinBaseUrl: '',
+      openedAt: Date.now(),
+      name: '',
+      sounds: DEFAULT_ROOM_SOUNDS,
+      hostName:
+        (
+          await this.prisma.user.findUnique({
+            where: { id: hostUserId },
+            select: { displayName: true },
+          })
+        )?.displayName ?? '',
+    };
+
+    const pipe = this.redis.multi();
+    pipe.hset(gameKeys.room(pin), serializeRoom(room));
+    pipe.expire(gameKeys.room(pin), GAME_TTL_S);
+    this.writeGame(pipe, gameId, snapshot);
+    // Index des parties en cours de l'hôte (reprise depuis le dashboard §6.2).
+    pipe.sadd(gameKeys.hostGames(hostUserId), pin);
+    pipe.expire(gameKeys.hostGames(hostUserId), GAME_TTL_S);
+    await pipe.exec();
+
+    return { pin };
+  }
+
+  /**
+   * Opens a new game of `quizId` in the room: its own snapshot and state, in the
+   * lobby, every player of the room at 0. The room points at it from then on;
+   * the previous game's state stays under its own id until it expires, so
+   * nothing it left behind (locks, answers, scores) reaches the new one. The
+   * host's pace and audio target carry over from the previous game.
+   */
+  async openGame(pin: string, quizId: string): Promise<GameId> {
+    return this.openGameWith(pin, await this.snapshotFor(pin, quizId));
+  }
+
+  /** The snapshot of a quiz the room's host may play next (throws like `host:create`). */
+  async snapshotFor(pin: string, quizId: string): Promise<QuizSnapshot> {
+    const room = await this.getRoom(pin);
+    if (!room) throw new NotFoundException('session.not_found');
+    return this.playableSnapshot(room.hostUserId, quizId);
+  }
+
+  /** `openGame` with the snapshot already frozen. */
+  async openGameWith(pin: string, snapshot: QuizSnapshot): Promise<GameId> {
+    const previous = await this.getMeta(pin);
+    if (!previous) throw new NotFoundException('session.not_found');
+    const gameId = newGameId();
+    const pipe = this.redis.multi();
+    this.writeGame(pipe, gameId, snapshot, {
+      mode: previous.mode,
+      audioTarget: previous.audioTarget ?? '',
+    });
+    await pipe.exec();
+    // Every player of the room at 0, and the room on the new game, in one step: a
+    // player joining meanwhile lands in one game or the other, never in neither.
+    await this.redis.eval(
+      SWITCH_GAME_SCRIPT,
+      4,
+      gameKeys.players(pin),
+      gameKeys.room(pin),
+      gameKeys.scores(gameId),
+      gameKeys.game(previous.id),
+      gameId,
+      ZERO_SCORE,
+      GAME_TTL_S,
+      GameState.Ended,
+      previous.id,
+    );
+    await this.touchRoom(pin);
+    return gameId;
+  }
+
+  /**
+   * Keeps a room alive while it is used: its keys, its players' session tokens
+   * and its current game start their TTL again. An idle room still expires.
+   */
+  async touchRoom(pin: string): Promise<void> {
+    const room = await this.getRoom(pin);
+    if (!room) return;
+    const tokens = Object.values(await this.redis.hgetall(gameKeys.tokens(pin)));
+    const pipe = this.redis.multi();
+    for (const key of [
+      gameKeys.pin(pin),
+      gameKeys.room(pin),
+      gameKeys.players(pin),
+      gameKeys.nicknames(pin),
+      gameKeys.tokens(pin),
+      gameKeys.played(pin),
+      gameKeys.hostGames(room.hostUserId),
+      gameKeys.game(room.gameId),
+      gameKeys.snapshot(room.gameId),
+      gameKeys.scores(room.gameId),
+      ...tokens.map((token) => gameKeys.session(token)),
+    ]) {
+      pipe.expire(key, GAME_TTL_S);
+    }
+    await pipe.exec();
+  }
+
+  /** The snapshot of a quiz the host may play: theirs, `ready`, with at least one question. */
+  private async playableSnapshot(hostUserId: string, quizId: string): Promise<QuizSnapshot> {
     const quiz = await this.prisma.quiz.findFirst({
-      where: { id: dto.quizId, ownerId: hostUserId },
+      where: { id: quizId, ownerId: hostUserId },
       include: QUIZ_SNAPSHOT_INCLUDE,
     });
     if (!quiz) {
@@ -110,51 +287,40 @@ export class GameService {
     if (quiz.questions.length < 1) {
       throw new BadRequestException('quiz.empty');
     }
-
     const snapshot = buildSnapshot(quiz);
     // Frozen with the rest: a licence's attribution is owed for what was played.
     const credits = (await this.mediaLibrary?.creditsOf(quiz.id)) ?? [];
     if (credits.length > 0) snapshot.credits = credits;
-    const id = randomBytes(16).toString('hex');
-    const pin = await this.allocatePin(id);
+    return snapshot;
+  }
 
-    const meta: GameMeta = {
-      id,
-      quizId: quiz.id,
-      hostUserId,
+  /** Queues a new game's state, in the lobby (its players come with the room's switch). */
+  private writeGame(
+    pipe: ReturnType<RedisService['multi']>,
+    gameId: GameId,
+    snapshot: QuizSnapshot,
+    carried: Pick<GameFields, 'mode' | 'audioTarget'> = { mode: 'manual', audioTarget: '' },
+  ): void {
+    const game: GameFields = {
+      quizId: snapshot.quizId,
       state: GameState.Lobby,
       currentIndex: -1,
       totalQuestions: snapshot.questions.length,
-      fullCapture: dto.fullCapture === true,
-      // Suivi individuel : par défaut oui (RG-16). Nom choisi : par défaut oui, sauf
-      // sous OIDC où le nom vient du compte tant que l'hôte n'ouvre pas le choix.
-      // Open access: guests only, so nothing personal to track and no account to
-      // take a name from.
-      personalTracking: !open && dto.personalTracking !== false,
-      pickOwnName: open || (dto.pickOwnName ?? !isOidcMode()),
-      participantAccess: open ? 'open' : 'account',
-      joinLocked: false,
-      title: quiz.title,
-      language: quiz.language,
+      title: snapshot.title,
+      language: snapshot.language,
       createdAt: Date.now(),
       questionStartedAt: 0,
       questionEndsAt: 0,
-      mode: 'manual', // rythme par défaut : l'hôte enchaîne les questions (§8)
+      // Rythme par défaut : l'hôte enchaîne les questions (§8) ; ensuite, celui du quiz précédent.
+      mode: carried.mode,
+      audioTarget: carried.audioTarget,
       paused: false,
       clockFrozen: false,
     };
-
-    const pipe = this.redis.multi();
-    pipe.hset(gameKeys.game(pin), serializeMeta(meta));
-    pipe.set(gameKeys.snapshot(pin), JSON.stringify(snapshot));
-    // Index des parties en cours de l'hôte (reprise depuis le dashboard §6.2).
-    pipe.sadd(gameKeys.hostGames(hostUserId), pin);
-    pipe.expire(gameKeys.game(pin), GAME_TTL_S);
-    pipe.expire(gameKeys.snapshot(pin), GAME_TTL_S);
-    pipe.expire(gameKeys.hostGames(hostUserId), GAME_TTL_S);
-    await pipe.exec();
-
-    return { pin };
+    pipe.hset(gameKeys.game(gameId), serializeGame(game));
+    pipe.set(gameKeys.snapshot(gameId), JSON.stringify(snapshot));
+    pipe.expire(gameKeys.game(gameId), GAME_TTL_S);
+    pipe.expire(gameKeys.snapshot(gameId), GAME_TTL_S);
   }
 
   /**
@@ -210,35 +376,38 @@ export class GameService {
     const sessionToken = randomBytes(24).toString('base64url');
     // Graine d'avatar : bornée (client-fournie, stockée + diffusée), défaut = pseudo.
     const avatar = (rawAvatar ?? '').trim().slice(0, AVATAR_SEED_MAX) || nickname;
-    // Remote only means something when the quiz plays sound; the room otherwise.
-    const presence: PlayerPresence =
-      wantedPresence === 'remote' && (await this.hasSound(pin)) ? 'remote' : 'room';
+    // Remote: no projection in sight, so the answers' text (and any sound) comes to this device.
+    const presence: PlayerPresence = wantedPresence === 'remote' ? 'remote' : 'room';
     const record: PlayerRecord = {
       nickname,
       avatar,
       userId,
-      score: 0,
-      streak: 0,
       connected: true,
       joinedAt: Date.now(),
       latencyMs: 0,
       presence,
     };
 
-    const pipe = this.redis.multi();
-    pipe.hset(gameKeys.players(pin), playerId, JSON.stringify(record));
-    pipe.zadd(gameKeys.leaderboard(pin), 0, playerId);
-    pipe.set(gameKeys.session(sessionToken), JSON.stringify({ pin, playerId }));
-    // TTL aligné sur le reste de la famille (clés créées au 1er joueur).
-    for (const key of [
+    // In the room, and in the game it plays unless that one is over (the player
+    // then waits for the next quiz) — read in the same step, so a quiz opening
+    // meanwhile cannot leave them out of both.
+    await this.redis.eval(
+      JOIN_SCRIPT,
+      5,
       gameKeys.players(pin),
-      gameKeys.nicknames(pin),
-      gameKeys.leaderboard(pin),
+      gameKeys.room(pin),
       gameKeys.session(sessionToken),
-    ]) {
-      pipe.expire(key, GAME_TTL_S);
-    }
-    await pipe.exec();
+      gameKeys.tokens(pin),
+      gameKeys.nicknames(pin),
+      playerId,
+      JSON.stringify(record),
+      JSON.stringify({ pin, playerId }),
+      sessionToken,
+      ZERO_SCORE,
+      GAME_TTL_S,
+      GameState.Podium,
+      GameState.Ended,
+    );
     // Compteur = joueurs **connectés** (§8), pas le total jamais joint.
     const playerCount = await this.connectedCount(pin);
 
@@ -263,7 +432,7 @@ export class GameService {
     const meta = await this.getMeta(pin);
     if (!meta) throw new NotFoundException('session.not_found');
     if (meta.state === GameState.Ended) throw new BadRequestException('session.ended');
-    const snapshot = await this.getSnapshot(pin);
+    const snapshot = await this.getSnapshot(meta.id);
     return !!snapshot && snapshotHasSound(snapshot);
   }
 
@@ -283,19 +452,147 @@ export class GameService {
     return record;
   }
 
-  /** Lit l'état scalaire d'une partie (null si inexistante/expirée). */
+  /** The room behind a PIN (null when gone or expired). */
+  async getRoom(pin: string): Promise<RoomMeta | null> {
+    const raw = await this.redis.hgetall(gameKeys.room(pin));
+    if (!raw || !raw.gameId) return null;
+    return deserializeRoom(raw);
+  }
+
+  /** The game the room plays, merged with the room (null when either is gone or expired). */
   async getMeta(pin: string): Promise<GameMeta | null> {
-    const raw = await this.redis.hgetall(gameKeys.game(pin));
+    const room = await this.getRoom(pin);
+    if (!room) return null;
+    const raw = await this.redis.hgetall(gameKeys.game(room.gameId));
     if (!raw || Object.keys(raw).length === 0) {
       return null;
     }
-    return deserializeMeta(raw);
+    return {
+      ...deserializeGame(raw),
+      id: room.gameId,
+      roomId: room.roomId,
+      roomName: room.name,
+      hostName: room.hostName,
+      hostUserId: room.hostUserId,
+      fullCapture: room.fullCapture,
+      personalTracking: room.personalTracking,
+      pickOwnName: room.pickOwnName,
+      participantAccess: room.participantAccess,
+      joinLocked: room.joinLocked,
+      joinBaseUrl: room.joinBaseUrl,
+    };
   }
 
-  /** Lit le snapshot figé du quiz (null si partie inexistante/expirée). */
-  async getSnapshot(pin: string): Promise<QuizSnapshot | null> {
-    const raw = await this.redis.get(gameKeys.snapshot(pin));
+  /** The frozen snapshot of a game (null when gone or expired). */
+  async getSnapshot(gameId: GameId): Promise<QuizSnapshot | null> {
+    const raw = await this.redis.get(gameKeys.snapshot(gameId));
     return raw ? (JSON.parse(raw) as QuizSnapshot) : null;
+  }
+
+  /** The snapshot of the game a room plays. */
+  async currentSnapshot(pin: string): Promise<QuizSnapshot | null> {
+    const room = await this.getRoom(pin);
+    return room ? this.getSnapshot(room.gameId) : null;
+  }
+
+  /**
+   * Records what each player did in a game that is over, for the room's
+   * standings. Keyed by the game: recording it again changes nothing.
+   */
+  async foldGame(pin: string, gameId: GameId): Promise<void> {
+    const snapshot = await this.getSnapshot(gameId);
+    if (!snapshot) return;
+    const scores = await this.redis.hgetall(gameKeys.scores(gameId));
+    const answersByIndex = new Map<number, Map<string, AnswerRecord>>();
+    for (const { orderIndex } of snapshot.questions) {
+      const raw = await this.redis.hgetall(gameKeys.answers(gameId, orderIndex));
+      answersByIndex.set(
+        orderIndex,
+        new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord])),
+      );
+    }
+    const played: Record<string, PlayerStats> = {};
+    for (const [playerId, json] of Object.entries(scores)) {
+      const { score } = JSON.parse(json) as PlayerScore;
+      played[playerId] = { score, ...answerStats(snapshot, answersByIndex, playerId) };
+    }
+    await this.redis
+      .multi()
+      .hset(gameKeys.played(pin), gameId, JSON.stringify(played))
+      .expire(gameKeys.played(pin), GAME_TTL_S)
+      .exec();
+  }
+
+  /**
+   * The room's standings over the games recorded so far: the players still in
+   * the room (one who left stays, one banned does not), by total score, then
+   * arrival in the room.
+   */
+  async standings(pin: string): Promise<{ quizzesPlayed: number; ranked: RoomStanding[] }> {
+    const [played, players] = await Promise.all([
+      this.redis.hgetall(gameKeys.played(pin)),
+      this.redis.hgetall(gameKeys.players(pin)),
+    ]);
+    const games = Object.values(played).map(
+      (json) => JSON.parse(json) as Record<string, PlayerStats>,
+    );
+    const ranked: RoomStanding[] = [];
+    for (const [id, stats] of sumGames(games)) {
+      if (!players[id]) continue;
+      ranked.push({ id, ...(JSON.parse(players[id]) as PlayerRecord), ...stats });
+    }
+    ranked.sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
+    return { quizzesPlayed: games.length, ranked };
+  }
+
+  /**
+   * The room's game sounds (#93) changed by its host: a sample or a track must
+   * be a sound of theirs or of the instance. Returns what the screens are sent.
+   */
+  async setSounds(pin: string, hostUserId: string, patch: RoomSoundsSettings): Promise<RoomSounds> {
+    const room = await this.getRoom(pin);
+    if (!room) throw new NotFoundException('session.not_found');
+    const next: RoomSounds = { ...room.sounds };
+    if (typeof patch.tick === 'boolean') next.tick = patch.tick;
+    if (typeof patch.gong === 'boolean') next.gong = patch.gong;
+    if (typeof patch.countdown === 'boolean') next.countdown = patch.countdown;
+    if (typeof patch.ding === 'boolean') next.ding = patch.ding;
+    if (typeof patch.musicMuted === 'boolean') next.musicMuted = patch.musicMuted;
+    if (typeof patch.sfxMuted === 'boolean') next.sfxMuted = patch.sfxMuted;
+    const level = (v: unknown, fallback: number) =>
+      typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback;
+    next.musicLevel = level(patch.musicLevel, next.musicLevel);
+    next.sfxLevel = level(patch.sfxLevel, next.sfxLevel);
+    for (const [idKey, urlKey] of [
+      ['tickId', 'tickUrl'],
+      ['gongId', 'gongUrl'],
+      ['dingId', 'dingUrl'],
+      ['countdownId', 'countdownUrl'],
+      ['musicId', 'musicUrl'],
+    ] as const) {
+      const id = patch[idKey];
+      if (id === undefined) continue;
+      if (id === '') {
+        next[idKey] = '';
+        next[urlKey] = null;
+        continue;
+      }
+      const asset = await this.prisma.mediaAsset.findFirst({
+        where: { id, kind: 'audio', OR: [{ ownerId: hostUserId }, { instance: true }] },
+        select: { url: true },
+      });
+      if (!asset) throw new BadRequestException('media.not_found');
+      next[idKey] = id;
+      next[urlKey] = asset.url;
+    }
+    await this.redis.hset(gameKeys.room(pin), { sounds: JSON.stringify(next) });
+    return next;
+  }
+
+  /** A player's score in a game (null when they do not play it). */
+  async getScore(gameId: GameId, playerId: string): Promise<PlayerScore | null> {
+    const raw = await this.redis.hget(gameKeys.scores(gameId), playerId);
+    return raw ? (JSON.parse(raw) as PlayerScore) : null;
   }
 
   /**
@@ -304,8 +601,8 @@ export class GameService {
    * host's edits reach a running session without touching its substance.
    * Returns the snapshot in use (unchanged when the quiz is gone).
    */
-  async refreshSnapshot(pin: string): Promise<QuizSnapshot | null> {
-    const frozen = await this.getSnapshot(pin);
+  async refreshSnapshot(gameId: GameId): Promise<QuizSnapshot | null> {
+    const frozen = await this.getSnapshot(gameId);
     if (!frozen) return null;
     const quiz = await this.prisma.quiz.findUnique({
       where: { id: frozen.quizId },
@@ -313,7 +610,7 @@ export class GameService {
     });
     if (!quiz) return frozen;
     const refreshed = refreshSnapshotForm(frozen, quiz);
-    await this.redis.set(gameKeys.snapshot(pin), JSON.stringify(refreshed), 'KEEPTTL');
+    await this.redis.set(gameKeys.snapshot(gameId), JSON.stringify(refreshed), 'KEEPTTL');
     return refreshed;
   }
 
@@ -351,7 +648,12 @@ export class GameService {
    * La reconnexion échoue ensuite d'elle-même (record absent → `setConnected` null),
    * et le re-join est refusé par la clé ban.
    */
-  async banPlayer(pin: string, playerId: string, minutes: number): Promise<string | null> {
+  async banPlayer(
+    pin: string,
+    gameId: GameId,
+    playerId: string,
+    minutes: number,
+  ): Promise<string | null> {
     const raw = await this.redis.hget(gameKeys.players(pin), playerId);
     if (!raw) return null;
     const record = JSON.parse(raw) as PlayerRecord;
@@ -361,7 +663,8 @@ export class GameService {
     pipe.set(gameKeys.ban(pin, normalized), '1', 'EX', ttlS);
     pipe.hdel(gameKeys.players(pin), playerId);
     pipe.srem(gameKeys.nicknames(pin), normalized);
-    pipe.zrem(gameKeys.leaderboard(pin), playerId);
+    pipe.hdel(gameKeys.scores(gameId), playerId);
+    pipe.hdel(gameKeys.tokens(pin), playerId);
     await pipe.exec();
     return record.nickname;
   }
@@ -392,11 +695,9 @@ export class GameService {
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return { ok: false };
     }
-    const meta = await this.getMeta(pin);
-    if (!meta || (meta.state !== GameState.Podium && meta.state !== GameState.Ended)) {
-      return { ok: false };
-    }
-    const snapshot = await this.getSnapshot(pin);
+    const rated = await this.ratedGame(pin, playerId);
+    if (!rated) return { ok: false };
+    const snapshot = await this.getSnapshot(rated.id);
     if (snapshot && !snapshot.feedbackEnabled) {
       return { ok: false }; // rating switched off on this quiz
     }
@@ -407,9 +708,9 @@ export class GameService {
     const player = JSON.parse(raw) as PlayerRecord;
     const cleanComment = comment?.trim() ? comment.trim().slice(0, 2000) : null;
     await this.prisma.quizFeedback.upsert({
-      where: { pin_playerId: { pin, playerId } },
+      where: { pin_playerId_quizId: { pin, playerId, quizId: rated.quizId } },
       create: {
-        quizId: meta.quizId,
+        quizId: rated.quizId,
         pin,
         playerId,
         nickname: player.nickname,
@@ -419,6 +720,33 @@ export class GameService {
       update: { rating, comment: cleanComment },
     });
     return { ok: true };
+  }
+
+  /**
+   * The quiz a rating is for: the room's game at its podium or over, else the
+   * one before it (the host moved on while the player was still rating). Only a
+   * game that started, and that this player played — never a quiz they only saw
+   * the podium of, nor one closed in its lobby.
+   */
+  private async ratedGame(
+    pin: string,
+    playerId: string,
+  ): Promise<{ id: GameId; quizId: string } | null> {
+    const room = await this.getRoom(pin);
+    if (!room) return null;
+    for (const id of [room.gameId, room.previousGameId]) {
+      if (!id) continue;
+      const [state, currentIndex, quizId] = await this.redis.hmget(
+        gameKeys.game(id),
+        'state',
+        'currentIndex',
+        'quizId',
+      );
+      if (!state || !quizId || Number(currentIndex) < 0) continue; // gone, or never started
+      if (id === room.gameId && state !== GameState.Podium && state !== GameState.Ended) continue;
+      return (await this.getScore(id, playerId)) ? { id, quizId } : null;
+    }
+    return null;
   }
 
   /**
@@ -492,10 +820,10 @@ export class GameService {
   }
 
   /** Alloue un PIN à 6 chiffres unique (claim atomique auto-expirant). */
-  private async allocatePin(gameId: string): Promise<string> {
+  private async allocatePin(roomId: string): Promise<string> {
     for (let i = 0; i < PIN_ALLOC_ATTEMPTS; i++) {
       const pin = randomInt(0, 1_000_000).toString().padStart(6, '0');
-      const ok = await this.redis.set(gameKeys.pin(pin), gameId, 'EX', GAME_TTL_S, 'NX');
+      const ok = await this.redis.set(gameKeys.pin(pin), roomId, 'EX', GAME_TTL_S, 'NX');
       if (ok === 'OK') {
         return pin;
       }
@@ -532,57 +860,86 @@ function suffixNickname(base: string, n: number): string {
   return base.slice(0, NICKNAME_MAX - suffix.length) + suffix;
 }
 
-/** Sérialise les méta pour un hash Redis (tout en string). */
-function serializeMeta(meta: GameMeta): Record<string, string> {
-  const raw: Record<string, string> = {
-    id: meta.id,
-    quizId: meta.quizId,
-    hostUserId: meta.hostUserId,
-    state: meta.state,
-    currentIndex: String(meta.currentIndex),
-    totalQuestions: String(meta.totalQuestions),
-    fullCapture: meta.fullCapture ? '1' : '0',
-    personalTracking: meta.personalTracking ? '1' : '0',
-    pickOwnName: meta.pickOwnName ? '1' : '0',
-    participantAccess: meta.participantAccess,
-    joinLocked: meta.joinLocked ? '1' : '0',
-    audioTarget: meta.audioTarget ?? '',
-    mediaWaitUntil: String(meta.mediaWaitUntil ?? 0),
-    mediaLeadMs: meta.mediaLeadMs == null ? '' : String(meta.mediaLeadMs),
-    title: meta.title,
-    language: meta.language,
-    createdAt: String(meta.createdAt),
-    questionStartedAt: String(meta.questionStartedAt),
-    questionEndsAt: String(meta.questionEndsAt),
-    mode: meta.mode,
-    paused: meta.paused ? '1' : '0',
-    clockFrozen: meta.clockFrozen ? '1' : '0',
-    autoNextAt: String(meta.autoNextAt ?? 0),
-    autoNextMs: String(meta.autoNextMs ?? 0),
-    slideIndex: String(meta.slideIndex ?? -1),
+/** A new game's id: 32 hex characters (see `GAME_HASH_KEY`). */
+function newGameId(): GameId {
+  return randomBytes(16).toString('hex') as GameId;
+}
+
+/** The room hash (every field a string). */
+function serializeRoom(room: RoomMeta): Record<string, string> {
+  return {
+    roomId: room.roomId,
+    hostUserId: room.hostUserId,
+    gameId: room.gameId,
+    fullCapture: room.fullCapture ? '1' : '0',
+    personalTracking: room.personalTracking ? '1' : '0',
+    pickOwnName: room.pickOwnName ? '1' : '0',
+    participantAccess: room.participantAccess,
+    joinLocked: room.joinLocked ? '1' : '0',
+    joinBaseUrl: room.joinBaseUrl,
+    openedAt: String(room.openedAt),
+    name: room.name,
+    hostName: room.hostName,
+    sounds: JSON.stringify(room.sounds),
   };
-  if (meta.prevState !== undefined) raw.prevState = meta.prevState;
-  if (meta.pausedRemainingMs !== undefined) raw.pausedRemainingMs = String(meta.pausedRemainingMs);
+}
+
+function deserializeRoom(raw: Record<string, string>): RoomMeta {
+  return {
+    roomId: raw.roomId,
+    hostUserId: raw.hostUserId,
+    gameId: raw.gameId as GameId,
+    ...(raw.previousGameId ? { previousGameId: raw.previousGameId as GameId } : {}),
+    fullCapture: raw.fullCapture === '1',
+    personalTracking: raw.personalTracking !== '0',
+    pickOwnName: raw.pickOwnName === '1',
+    participantAccess: raw.participantAccess === 'open' ? 'open' : 'account',
+    joinLocked: raw.joinLocked === '1',
+    joinBaseUrl: raw.joinBaseUrl ?? '',
+    openedAt: Number(raw.openedAt),
+    name: raw.name ?? '',
+    hostName: raw.hostName ?? '',
+    sounds: raw.sounds
+      ? { ...DEFAULT_ROOM_SOUNDS, ...(JSON.parse(raw.sounds) as Partial<RoomSounds>) }
+      : DEFAULT_ROOM_SOUNDS,
+  };
+}
+
+/** The game hash (every field a string). */
+function serializeGame(game: GameFields): Record<string, string> {
+  const raw: Record<string, string> = {
+    quizId: game.quizId,
+    state: game.state,
+    currentIndex: String(game.currentIndex),
+    totalQuestions: String(game.totalQuestions),
+    audioTarget: game.audioTarget ?? '',
+    mediaWaitUntil: String(game.mediaWaitUntil ?? 0),
+    mediaLeadMs: game.mediaLeadMs == null ? '' : String(game.mediaLeadMs),
+    title: game.title,
+    language: game.language,
+    createdAt: String(game.createdAt),
+    questionStartedAt: String(game.questionStartedAt),
+    questionEndsAt: String(game.questionEndsAt),
+    mode: game.mode,
+    paused: game.paused ? '1' : '0',
+    clockFrozen: game.clockFrozen ? '1' : '0',
+    autoNextAt: String(game.autoNextAt ?? 0),
+    autoNextMs: String(game.autoNextMs ?? 0),
+    slideIndex: String(game.slideIndex ?? -1),
+    slideMediaStartAt: String(game.slideMediaStartAt ?? 0),
+    slidePausedAt: String(game.slidePausedAt ?? 0),
+  };
+  if (game.prevState !== undefined) raw.prevState = game.prevState;
+  if (game.pausedRemainingMs !== undefined) raw.pausedRemainingMs = String(game.pausedRemainingMs);
   return raw;
 }
 
-function deserializeMeta(raw: Record<string, string>): GameMeta {
+function deserializeGame(raw: Record<string, string>): GameFields {
   return {
-    id: raw.id,
     quizId: raw.quizId,
-    hostUserId: raw.hostUserId,
     state: raw.state,
     currentIndex: Number(raw.currentIndex),
     totalQuestions: Number(raw.totalQuestions),
-    fullCapture: raw.fullCapture === '1',
-    // Défauts pour les parties déjà en vol avant l'ajout des deux options : les mêmes
-    // qu'à la création, pour qu'une session d'avant le déploiement se comporte comme
-    // une nouvelle (sous OIDC, le nom vient du compte).
-    personalTracking: raw.personalTracking !== '0',
-    pickOwnName: raw.pickOwnName === undefined ? !isOidcMode() : raw.pickOwnName === '1',
-    // Games in flight before #57 required accounts, as every game did.
-    participantAccess: raw.participantAccess === 'open' ? 'open' : 'account',
-    joinLocked: raw.joinLocked === '1',
     audioTarget: (AUDIO_TARGETS as readonly string[]).includes(raw.audioTarget ?? '')
       ? (raw.audioTarget as AudioTarget)
       : '',
@@ -593,16 +950,16 @@ function deserializeMeta(raw: Record<string, string>): GameMeta {
     createdAt: Number(raw.createdAt),
     questionStartedAt: Number(raw.questionStartedAt ?? 0),
     questionEndsAt: Number(raw.questionEndsAt ?? 0),
-    // Défauts pour les parties déjà en vol avant l'ajout du mode (§8).
     mode: raw.mode === 'auto' ? 'auto' : 'manual',
     paused: raw.paused === '1',
     clockFrozen: raw.clockFrozen === '1',
     autoNextAt: raw.autoNextAt ? Number(raw.autoNextAt) : 0,
     autoNextMs: raw.autoNextMs ? Number(raw.autoNextMs) : 0,
     slideIndex: raw.slideIndex ? Number(raw.slideIndex) : -1,
+    slideMediaStartAt: raw.slideMediaStartAt ? Number(raw.slideMediaStartAt) : 0,
+    slidePausedAt: raw.slidePausedAt ? Number(raw.slidePausedAt) : 0,
     prevState: raw.prevState,
     pausedRemainingMs: raw.pausedRemainingMs ? Number(raw.pausedRemainingMs) : undefined,
     reviewStep: raw.reviewStep ?? '',
-    joinBaseUrl: raw.joinBaseUrl ?? '',
   };
 }

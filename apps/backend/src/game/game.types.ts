@@ -3,6 +3,7 @@ import type {
   AudioTarget,
   PlayerPresence,
   GameMode,
+  LiveAudio,
   LiveQuestionMedia,
   OptionColor,
   OptionShape,
@@ -12,9 +13,11 @@ import type {
   QuestionType,
   SessionNotice,
   SlideBackground,
+  SlideVideo,
   SlideBlock,
   SlideTextTone,
 } from '@quiz-dock/contracts';
+import type { GameId } from './game.keys';
 
 /**
  * Snapshot serveur du quiz (SPECIFICATIONS §8 / mémoire gameplay-v0-3).
@@ -66,6 +69,8 @@ export interface SnapshotQuestion {
   numericTolerance: number | null;
   /** Réponses acceptées **normalisées** (type `text_input`) — secret serveur. */
   acceptedAnswersNormalized: string[];
+  /** image_choice: several pictures may be right (absent = one, older snapshots). */
+  multiSelect?: boolean;
   options: SnapshotOption[];
 }
 
@@ -79,6 +84,17 @@ export interface SnapshotSlide {
   /** Blocks with image URLs resolved (the client never needs a media id). */
   blocks: SlideBlock[];
   background: SlideBackground | null;
+  /** A video filling the slide behind its content (#125), over its background. */
+  video?: SlideVideo | null;
+  /** The slide's sound (#125); never with a video that plays its own. */
+  audio?: LiveAudio | null;
+  /** Who hears the slide's sound: its own target, null = the game's (#125). */
+  audioTarget?: AudioTarget | null;
+  /**
+   * How long the slide stays at least in auto mode from its media's start: its
+   * timed media, then the quiz's pause after it (#125); null when nothing is timed.
+   */
+  mediaHoldMs?: number | null;
   textTone: SlideTextTone;
   textOutline: boolean;
   displayDelayS: number | null;
@@ -100,15 +116,16 @@ export interface QuizSnapshot {
   credits?: string[];
 }
 
-/** Enregistrement d'un joueur dans l'état live (Redis hash `:players`). */
+/**
+ * Who a player is in the room (Redis hash `room:{pin}:players`). What they score
+ * belongs to each game (`PlayerScore`), never to the room.
+ */
 export interface PlayerRecord {
   nickname: string;
   /** Graine d'avatar (multiavatar) — cosmétique ; défaut = pseudo. */
   avatar: string;
   /** Compte lié si participant authentifié, sinon `null` (invité). */
   userId: string | null;
-  score: number;
-  streak: number;
   connected: boolean;
   /** ms epoch d'arrivée (départage des égalités §5). */
   joinedAt: number;
@@ -118,9 +135,114 @@ export interface PlayerRecord {
   presence?: PlayerPresence;
 }
 
-/** État scalaire d'une partie (Redis hash `game:{pin}`). */
+/** A player's score in one game (Redis hash `game:{id}:scores`). */
+export interface PlayerScore {
+  score: number;
+  streak: number;
+}
+
+/**
+ * The room (Redis hash `room:{pin}`): who hosts it, the game it plays, and what
+ * the players were told when they came in.
+ */
+export interface RoomMeta {
+  roomId: string;
+  hostUserId: string;
+  /** The game the room plays (the last one, once it is over). */
+  gameId: GameId;
+  /** The game before it, when the host moved on: its podium's ratings may still arrive. */
+  previousGameId?: GameId;
+  fullCapture: boolean;
+  personalTracking: boolean;
+  pickOwnName: boolean;
+  participantAccess: ParticipantAccess;
+  joinLocked: boolean;
+  /** Base URL of the invitations (QR, link) chosen by the host; '' = each screen's own origin. */
+  joinBaseUrl: string;
+  /** When the room opened (ms epoch); each game keeps its own `createdAt`. */
+  openedAt: number;
+  /** The room's own name, chosen by the host; '' = the default ("<host>'s room", shown by the screens). */
+  name: string;
+  /** The host's display name when the room opened, for that default. */
+  hostName: string;
+  /** The room's game sounds (#93): what the host set, and what the screens are sent. */
+  sounds: RoomSounds;
+}
+
+/** The room's game sounds as kept: the host's choices (media ids) and their URLs. */
+export interface RoomSounds {
+  tick: boolean;
+  gong: boolean;
+  countdown: boolean;
+  ding: boolean;
+  tickId: string;
+  gongId: string;
+  dingId: string;
+  countdownId: string;
+  musicId: string;
+  tickUrl: string | null;
+  gongUrl: string | null;
+  dingUrl: string | null;
+  countdownUrl: string | null;
+  musicUrl: string | null;
+  musicLevel: number;
+  sfxLevel: number;
+  musicMuted: boolean;
+  sfxMuted: boolean;
+}
+
+/** A new room's sounds: the tick, the countdown and the gong on, no track (SPECIFICATIONS-MEDIA §9). */
+export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
+  tick: true,
+  gong: true,
+  countdown: true,
+  ding: true,
+  tickId: '',
+  gongId: '',
+  dingId: '',
+  countdownId: '',
+  musicId: '',
+  tickUrl: null,
+  gongUrl: null,
+  dingUrl: null,
+  countdownUrl: null,
+  musicUrl: null,
+  musicLevel: 0.5,
+  sfxLevel: 0.8,
+  musicMuted: false,
+  sfxMuted: false,
+};
+
+/** The room fields, as the game view (`GameMeta`) carries them. */
+export const ROOM_FIELDS = [
+  'roomId',
+  'hostUserId',
+  'gameId',
+  'previousGameId',
+  'fullCapture',
+  'personalTracking',
+  'pickOwnName',
+  'participantAccess',
+  'joinLocked',
+  'joinBaseUrl',
+  'openedAt',
+  'name',
+  'hostName',
+  'sounds',
+] as const;
+
+/**
+ * The game a room is playing, as the engine reads it: its own hash
+ * (`game:{id}`) merged with the room's (`room:{pin}`).
+ */
 export interface GameMeta {
-  id: string;
+  /** The game's id, the key of its state. */
+  id: GameId;
+  /** The room it is played in. */
+  roomId: string;
+  /** The room's name ('' = the default) and its host's name. */
+  roomName: string;
+  hostName: string;
   quizId: string;
   hostUserId: string;
   state: string;
@@ -166,8 +288,15 @@ export interface GameMeta {
   clockFrozen: boolean;
   /** Deadline (ms epoch) de l'enchaînement auto en cours sur un reveal (§8), 0 sinon. */
   autoNextAt?: number;
-  /** Index of the slide on screen while `state === SLIDE_SHOW` (#7), -1 otherwise. */
+  /**
+   * Index of the slide on screen while `state === SLIDE_SHOW` (#7), or waited for
+   * while `MEDIA_LOADING` precedes a slide (#125); -1 otherwise.
+   */
   slideIndex?: number;
+  /** When the slide's videos and sound start (server ms epoch; #125), 0 when it plays none. */
+  slideMediaStartAt?: number;
+  /** When the game was paused on a slide that plays (#125), 0 otherwise: the start moves by the pause. */
+  slidePausedAt?: number;
   /** Duration (ms) of the auto-next countdown armed at `autoNextAt` (#6). */
   autoNextMs?: number;
   /** État figé avant `HOST_DISCONNECTED` (pour la reprise §7.3). */
@@ -179,6 +308,9 @@ export interface GameMeta {
   /** Base URL of the invitations (QR, link) chosen by the host; '' = each screen's own origin. */
   joinBaseUrl?: string;
 }
+
+/** The fields of the game hash (`game:{id}`): everything in `GameMeta` the room does not hold. */
+export type GameFields = Omit<GameMeta, 'id' | 'roomName' | (typeof ROOM_FIELDS)[number]>;
 
 /** Réponse gradée stockée au submit (Redis hash `:answers:{idx}`) — REVEAL la relit. */
 export interface AnswerRecord {

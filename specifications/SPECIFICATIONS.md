@@ -134,19 +134,19 @@ MediaAsset      id, owner_id, url, mime, size_bytes, created_at
 
 ### 3.2 Live (Redis)
 
-The keys (TTL ≈ the length of a game plus a margin, 4 h say):
+The keys (TTL ≈ the length of a session plus a margin, 4 h say). A session is a **room** under its PIN; each
+quiz played in it is a **game** under its own id (SPECIFICATIONS-ROOM §3). Full layout: données §4.
 
 ```
-game:{pin}                  Hash  -> state, quizId, hostId, currentQuestionIndex,
-                                     questionStartedAt (server epoch ms),
-                                     questionEndsAt, createdAt
-game:{pin}:players          Hash  -> playerId => {nickname, userId?, connected,
-                                     score, streak, joinedAt}
-game:{pin}:answers:{qIdx}   Hash  -> playerId => {optionId|value, receivedAt,
-                                     latencyMs, isCorrect, pointsAwarded}
-game:{pin}:leaderboard      ZSet  -> playerId scored by score
-session:{token}             Str   -> playerId (reconnecting)
-pin:index                   Set   -> the active PINs (uniqueness)
+pin:{pin}                   Str   -> the room id (PIN uniqueness, SET NX)
+room:{pin}                  Hash  -> hostUserId, gameId (the game it plays), what the players were told
+room:{pin}:players          Hash  -> playerId => {nickname, userId?, connected, joinedAt, ...}
+session:{token}             Str   -> {pin, playerId} (reconnecting)
+game:{id}                   Hash  -> state, quizId, currentIndex, questionStartedAt (server epoch ms),
+                                     questionEndsAt, mode, pause, ...
+game:{id}:snapshot          Str   -> the frozen quiz, right answers included
+game:{id}:scores            Hash  -> playerId => {score, streak} (who plays this game)
+game:{id}:answers:{qIdx}    Hash  -> playerId => {answer, receivedAt, tMs, isCorrect, pointsAwarded}
 ```
 
 ---
@@ -162,6 +162,7 @@ pin:index                   Set   -> the active PINs (uniqueness)
 | **Slider / numeric** | a value | the target value ± a tolerance | Standard when within the tolerance |
 | **Ordering** | a sequence | the exact sequence | All or nothing in v1 |
 | **Poll** | 1 option | none | **0 points** (an opinion is collected) |
+| **Image choice** | 1 picture, or N when `multi_select` | the right picture(s) | As single choice; with `multi_select`, as multiple choice (partial credit available). See [SPECIFICATIONS-IMAGE-CHOICE.md](./SPECIFICATIONS-IMAGE-CHOICE.md) |
 
 ### Accessible answers
 Every choice option has a **colour AND a shape** (triangle/diamond/circle/square) for colour-blind players.
@@ -294,8 +295,13 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `host:next` | `{ pin }` | the host | The next question / the podium |
 | `host:reveal` | `{ pin }` | the host | Forces the reveal |
 | `host:kick` | `{ pin, playerId }` | the host | Throws a player out |
-| `host:end` | `{ pin }` | the host | Ends the game |
+| `host:room-name` | `{ pin, name }` | the host | From the room's lobby: its own name (≤ 60 characters; blank = "<host>'s room") |
+| `host:next-quiz` | `{ pin, quizId, archive? }` | the host | From the lobby or the podium: opens the room's next quiz in its lobby, the players still in (SPECIFICATIONS-ROOM §6) |
+| `host:end` | `{ pin, archive? }` | the host | Closes the room (the game ends, the PIN is freed) |
 | `player:join` | `{ pin, nickname, authToken? }` | a player | Joins the LOBBY; returns a `sessionToken` and the **nickname the server retained** (the account's name when the host did not open the choice, a suffix when a homonym was already there). Refused without a valid token under `AUTH_MODE=oidc` unless the game is in open access, where everyone joins as a guest; refused once the host closed the game (RG-15) |
+| `host:sounds` | `{ pin, tick?, gong?, tickId?, gongId?, musicId?, musicLevel?, sfxLevel? }` | the host | The room's game sounds (#93), at any time; a sample or a track is a sound of the host's or the instance's |
+| `player:ready` | `{ pin, ready }` | a player | In the lobby (#104): ready, or not yet; the host sees one count, it never blocks the start |
+| `spectator:join` | `{ pin, follow? }` | a projection | Joins read-only; `follow`: a participant's copy of the projection (#104) — never waited for, never a position source |
 | `player:peek` | `{ pin }` | a player | Before joining: whether the quiz plays sound and whether an account is needed (`participantAccess`) |
 | `player:reconnect` | `{ sessionToken }` | a player | Takes back their seat and score |
 | `player:submit` | `{ pin, questionIndex, answer }` | a player | Submits an answer |
@@ -310,13 +316,18 @@ points = P_max_time * (right_ticks - wrong_ticks) / total_right   (floored at 0)
 | `player:joined` | `{ playerId, nickname, playerCount }` | the host + the players (the lobby list) |
 | `player:left` | `{ playerId, playerCount }` | the room |
 | `game:state` | `{ state, questionIndex, totalQuestions }` | the room |
-| `question:start` | `{ questionIndex, type, prompt, media?, options:[{id,text,color,shape,media?}], timeLimitS, basePoints, startedAt, endsAt }` | the room (**without** a correct flag) |
+| `question:start` | `{ questionIndex, type, prompt, media?, options:[{id,text,color,shape,media?}], multiSelect?, timeLimitS, basePoints, startedAt, endsAt }` | the room (**without** a correct flag) |
 | `answer:ack` | `{ accepted, receivedAt }` | the sending player |
 | `answer:count` | `{ answered, total }` | the host |
 | `question:reveal` | `{ correctOptionIds \| correctValue, distribution, yourResult:{ correct, points, totalScore, rank } }` | the room (the personal result aimed per socket) |
 | `leaderboard` | `{ top:[{nickname, score, rank}], you?:{score,rank} }` | the room |
-| `game:podium` | `{ podium:[top3], you?:{score,rank} }` | the room |
-| `game:ended` | `{ }` | the room |
+| `game:podium` | `{ podium:[top3], quizId?, you?:{score,rank} }` | the room (`quizId`: the quiz a rating goes to) |
+| `room:sounds` | `{ tick, gong, tickUrl, gongUrl, musicUrl, musicLevel, sfxLevel }` | the room | The room's game sounds (#93): on attach and when changed (SPECIFICATIONS-MEDIA §9.1) |
+| `lobby:you` | `{ ready }` | a participant back in a lobby | Whether they already said they are ready (#104) |
+| `room:info` | `{ name \| null, hostName }` | the room | The room's name (null = the default) and its host's: on attach and when renamed |
+| `room:standings` | `{ quizzesPlayed, top:[top10], you?:{score, rank, correct, answered, avgResponseMs, maxStreak, quizzes} }` | the room (`you` on each player's socket) | The room's standings over its quizzes: at a podium, in the next lobby, when the room closes (SPECIFICATIONS-ROOM §6) |
+| `game:ended` | `{ feedbackEnabled?, quizId? }` | the room |
+| `game:media` | `{ title?, hasSound, hasMedia, audioTarget }` | every device (a phone asks for sound when a room's next quiz has some; the projection shows the next quiz's title) |
 | `error` | `{ code, message }` | targeted |
 | `pong` | `{ t0, t1 }` | the sender |
 

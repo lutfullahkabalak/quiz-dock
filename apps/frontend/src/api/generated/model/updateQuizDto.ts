@@ -41,6 +41,7 @@ export interface UpdateQuizDto {
   coverMediaId?: string | null;
   /** @nullable */
   license?: UpdateQuizDtoLicense;
+  shared?: boolean;
   /**
      * @maxItems 5
      * @items.maxLength 30

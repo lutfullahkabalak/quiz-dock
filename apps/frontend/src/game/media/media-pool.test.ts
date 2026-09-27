@@ -61,4 +61,26 @@ describe('media pool on a phone', () => {
     releaseMedia(a);
     expect(takeMedia('video', '/api/v1/media/v')).not.toBe(a);
   });
+
+  it('a slide (#125): its muted video never takes the phone’s own element, left for the sound', async () => {
+    const { claimMediaElements, takeMedia } = await import('./media-pool');
+    claimMediaElements();
+    const muted = takeMedia('video', '/api/v1/media/decor', { muted: true });
+    const loud = takeMedia('video', '/api/v1/media/film');
+    // The one made in the Join click plays the sound; the muted one is a fresh element.
+    expect(loud).not.toBe(muted);
+    expect(takeMedia('video', '/api/v1/media/other')).not.toBe(loud);
+  });
+
+  it('the next step is not fetched into an element that could not play its sound (iOS)', async () => {
+    const { claimMediaElements, preloadMedia, takeMedia } = await import('./media-pool');
+    claimMediaElements();
+    takeMedia('audio', '/api/v1/media/slide-sound'); // the slide on screen plays in it
+    const next = {
+      visual: null,
+      audio: { url: '/api/v1/media/question-sound', durationMs: 1000, peaks: [], gainDb: 0 },
+    };
+    // Not loaded: the room's wait for the question asks again once the element is free.
+    await expect(preloadMedia(next)).resolves.toBe(false);
+  });
 });

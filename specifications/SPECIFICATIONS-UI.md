@@ -279,6 +279,41 @@ Shown on joining, **before** anything is collected, in the wording the two switc
 └───────────────────────────────┘
 ```
 
+### 5.6 Several quizzes in one room (#89)
+The screens above, with what a room adds (SPECIFICATIONS-ROOM §6, step 5):
+
+- **Console** — at the podium, **Next quiz** opens a small index of the host's own playable quizzes — a search into
+  titles, descriptions and tags, tags and language as filters, a sort, a line per quiz with its cover, the start of
+  its description, size, language, tags and last change — with *keep the results* checked, as when ending; in the lobby, **Change quiz** replaces the one picked. From the room's second quiz, its
+  standings sit under the podium and in the next lobby.
+- **Projection** — the next lobby names the quiz coming and shows the room's standings (top 5); the podium is the
+  quiz's, then the room's; a room of several quizzes closes on its own podium.
+- **Phone** — the next lobby says where the participant stands in the room and *Waiting for the next quiz…*; the
+  rating of the quiz just played stays open there if the host moved on; **Enable sound** appears when the next quiz
+  has some and the phone never enabled it.
+
+The room's name (*<host>'s room* until the host renames it from the lobby) heads the console, the projection's lobby
+and the phone's waiting screen, above the quiz being played. A room of one quiz looks as before otherwise, apart from
+*Change quiz* in its lobby and *Next quiz* at its podium.
+
+### 5.7 The projection on a participant's own device (#104)
+- **Share the projection** (the phone's lobby): the share sheet where there is one, else the link copied and shown as a
+  QR code for the other device. The link, `/join/<pin>/screen`, carries the PIN, never the participant's seat;
+  `?sound=1` when the participant is remote.
+- **The copy** is the projected screen, full page, following the big screen: never waited for, never a position
+  source. Muted in the room; with `?sound=1` it plays the sound meant for remote devices, after its own unlocking
+  click.
+- **On the same phone**, an icon in the participant's top bar switches between the answers and the big screen.
+- **Game sounds** (the console's lobby, folded; #93): a tick at each answer and a gong at the end of a question, each
+  synthesised or a sound of the library; a background track while players answer; the music and effects levels.
+- **Sound button** (projection, remote phone, a copy that plays the sound; #93): volume and mute, *Mixer* for this
+  device's own trims; the console's control bar has *Game sounds*, the room's mixer, at any moment. The *Turn sound on*
+  overlay offers *Without sound* (SPECIFICATIONS-MEDIA §9.2).
+- **Ready!** (the phone's lobby): the participant says they are ready, or takes it back (*Not yet*). The console shows
+  one count, *Ready: x / y participants*: ready once they said so **and** their device has loaded the first question's
+  media when it plays some; a check per participant, a spinner while their media still load. It never blocks the
+  start, and each quiz of a room asks again.
+
 ---
 
 ## 6. The session report (host)
@@ -309,6 +344,13 @@ Shown on joining, **before** anything is collected, in the wording the two switc
 │  (click a row → the detailed answer distribution)         │
 └───────────────────────────────────────────────────────────┘
 ```
+
+### 6.3 A session played in a room
+When the session's room kept other archived quizzes (SPECIFICATIONS-ROOM §5), the history list marks it
+(*Room · N quizzes*) and the report ends with a **Room** card: the room's archived quizzes in the order played (the
+others link to their own report), then the room's standings summed over them — rank, nickname, total score,
+correct/answered, longest run, average time, quizzes played — with their own CSV export. Without personalised
+tracking on every one of those sessions, the card says why there are no standings.
 
 ---
 

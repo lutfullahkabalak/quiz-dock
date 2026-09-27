@@ -71,7 +71,8 @@ export const USED_BY_QUIZ = Prisma.sql`(
   OR EXISTS (SELECT 1 FROM answer_option o JOIN question x ON x.id = o.question_id
              WHERE x.quiz_id = q.id AND (o.media_id = m.id OR o.text LIKE '%' || m.id || '%'))
   OR EXISTS (SELECT 1 FROM slide s WHERE s.quiz_id = q.id AND (
-       s.media_id = m.id OR s.blocks::text LIKE '%' || m.id || '%'))
+       s.media_id = m.id OR s.video_media_id = m.id OR s.audio_media_id = m.id
+       OR s.blocks::text LIKE '%' || m.id || '%'))
 )`;
 
 /**
@@ -193,10 +194,13 @@ export class MediaLibraryService {
    * importance: what the preview page lists and the podium shows (a CC-BY
    * licence asks for an attribution the audience sees).
    */
-  /** `creditsOf` for the quiz's owner only: someone else's quiz is not found. */
+  /**
+   * `creditsOf` for a quiz the caller reads: theirs, or one another host shares with
+   * the instance (its preview owes the same attributions); any other is not found.
+   */
   async creditsOfOwned(ownerId: string, quizId: string): Promise<string[]> {
     const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, ownerId },
+      where: { id: quizId, OR: [{ ownerId }, { shared: true, status: { not: 'archived' } }] },
       select: { id: true },
     });
     if (!quiz) throw new NotFoundException('quiz.not_found');

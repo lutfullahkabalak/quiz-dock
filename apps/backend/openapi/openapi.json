@@ -2685,6 +2685,12 @@
               "type": "string"
             }
           },
+          "shared": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
           "ownerName": {
             "type": "string"
           },
@@ -2714,6 +2720,7 @@
           "questionCount",
           "license",
           "tags",
+          "shared",
           "createdAt",
           "updatedAt",
           "archivedAt"
@@ -3012,6 +3019,12 @@
               "type": "string"
             }
           },
+          "shared": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
           "ownerName": {
             "type": "string"
           },
@@ -3024,9 +3037,6 @@
           "archivedAt": {
             "type": "string",
             "nullable": true
-          },
-          "editable": {
-            "type": "boolean"
           },
           "questions": {
             "type": "array",
@@ -3053,7 +3063,8 @@
                     "text_input",
                     "numeric",
                     "ordering",
-                    "poll"
+                    "poll",
+                    "image_choice"
                   ]
                 },
                 "prompt": {
@@ -3272,7 +3283,8 @@
                   "enum": [
                     "S",
                     "M",
-                    "L"
+                    "L",
+                    "hidden"
                   ]
                 },
                 "timerAfterMedia": {
@@ -3304,6 +3316,9 @@
                   "type": "string",
                   "nullable": true
                 },
+                "multiSelect": {
+                  "type": "boolean"
+                },
                 "options": {
                   "type": "array",
                   "items": {
@@ -3322,6 +3337,10 @@
                         "nullable": true
                       },
                       "mediaId": {
+                        "type": "string",
+                        "nullable": true
+                      },
+                      "alt": {
                         "type": "string",
                         "nullable": true
                       },
@@ -3366,6 +3385,7 @@
                       "orderIndex",
                       "text",
                       "mediaId",
+                      "alt",
                       "color",
                       "shape",
                       "isCorrect",
@@ -3417,6 +3437,7 @@
                 "scoring",
                 "numericValue",
                 "numericTolerance",
+                "multiSelect",
                 "options",
                 "acceptedAnswers"
               ]
@@ -3799,6 +3820,39 @@
                   ],
                   "nullable": true
                 },
+                "videoMediaId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "videoLoop": {
+                  "type": "boolean"
+                },
+                "videoSound": {
+                  "type": "boolean"
+                },
+                "audioMediaId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "waveformSize": {
+                  "type": "string",
+                  "enum": [
+                    "S",
+                    "M",
+                    "L",
+                    "hidden"
+                  ]
+                },
+                "audioTarget": {
+                  "type": "string",
+                  "enum": [
+                    "projection",
+                    "projection_remote",
+                    "everyone",
+                    null
+                  ],
+                  "nullable": true
+                },
                 "textTone": {
                   "type": "string",
                   "enum": [
@@ -3824,6 +3878,12 @@
                 "blocks",
                 "mediaId",
                 "gradient",
+                "videoMediaId",
+                "videoLoop",
+                "videoSound",
+                "audioMediaId",
+                "waveformSize",
+                "audioTarget",
                 "textTone",
                 "textOutline",
                 "displayDelayS"
@@ -3846,10 +3906,11 @@
           "questionCount",
           "license",
           "tags",
+          "shared",
+          "editable",
           "createdAt",
           "updatedAt",
           "archivedAt",
-          "editable",
           "questions",
           "slides"
         ]
@@ -3978,6 +4039,12 @@
                 },
                 "endedAt": {
                   "type": "string"
+                },
+                "roomSize": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991,
+                  "nullable": true
                 }
               },
               "required": [
@@ -3989,7 +4056,8 @@
                 "personalTracking",
                 "fullCapture",
                 "startedAt",
-                "endedAt"
+                "endedAt",
+                "roomSize"
               ]
             }
           }
@@ -4037,6 +4105,12 @@
           },
           "endedAt": {
             "type": "string"
+          },
+          "roomSize": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991,
+            "nullable": true
           },
           "quizTitle": {
             "type": "string"
@@ -4146,6 +4220,111 @@
                 "maxStreak"
               ]
             }
+          },
+          "room": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "nullable": true
+              },
+              "hostName": {
+                "type": "string"
+              },
+              "sessions": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "id": {
+                      "type": "string"
+                    },
+                    "quizId": {
+                      "type": "string"
+                    },
+                    "quizTitle": {
+                      "type": "string"
+                    },
+                    "startedAt": {
+                      "type": "string"
+                    },
+                    "current": {
+                      "type": "boolean"
+                    }
+                  },
+                  "required": [
+                    "id",
+                    "quizId",
+                    "quizTitle",
+                    "startedAt",
+                    "current"
+                  ]
+                }
+              },
+              "standings": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "rank": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "nickname": {
+                      "type": "string"
+                    },
+                    "score": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "correctCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "answeredCount": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "avgResponseMs": {
+                      "type": "number",
+                      "nullable": true
+                    },
+                    "maxStreak": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    },
+                    "quizzes": {
+                      "type": "integer",
+                      "minimum": -9007199254740991,
+                      "maximum": 9007199254740991
+                    }
+                  },
+                  "required": [
+                    "rank",
+                    "nickname",
+                    "score",
+                    "correctCount",
+                    "answeredCount",
+                    "avgResponseMs",
+                    "maxStreak",
+                    "quizzes"
+                  ]
+                },
+                "nullable": true
+              }
+            },
+            "required": [
+              "name",
+              "hostName",
+              "sessions",
+              "standings"
+            ],
+            "nullable": true
           }
         },
         "required": [
@@ -4158,11 +4337,13 @@
           "fullCapture",
           "startedAt",
           "endedAt",
+          "roomSize",
           "quizTitle",
           "language",
           "totalQuestions",
           "questions",
-          "players"
+          "players",
+          "room"
         ]
       },
       "SessionPlayerDetailDto": {
@@ -4335,6 +4516,9 @@
               null
             ],
             "nullable": true
+          },
+          "shared": {
+            "type": "boolean"
           },
           "tags": {
             "maxItems": 5,
@@ -5356,12 +5540,17 @@
                       },
                       "shape": {
                         "type": "string"
+                      },
+                      "mediaUrl": {
+                        "type": "string",
+                        "nullable": true
                       }
                     },
                     "required": [
                       "text",
                       "color",
-                      "shape"
+                      "shape",
+                      "mediaUrl"
                     ]
                   }
                 },
@@ -5476,7 +5665,8 @@
               "text_input",
               "numeric",
               "ordering",
-              "poll"
+              "poll",
+              "image_choice"
             ]
           },
           "prompt": {
@@ -5704,7 +5894,8 @@
             "enum": [
               "S",
               "M",
-              "L"
+              "L",
+              "hidden"
             ]
           },
           "timerAfterMedia": {
@@ -5738,6 +5929,10 @@
             "type": "number",
             "minimum": 0
           },
+          "multiSelect": {
+            "default": false,
+            "type": "boolean"
+          },
           "options": {
             "default": [],
             "maxItems": 8,
@@ -5753,6 +5948,10 @@
                   "type": "string",
                   "minLength": 26,
                   "maxLength": 26
+                },
+                "alt": {
+                  "type": "string",
+                  "maxLength": 300
                 },
                 "color": {
                   "type": "string",
@@ -5843,7 +6042,8 @@
               "text_input",
               "numeric",
               "ordering",
-              "poll"
+              "poll",
+              "image_choice"
             ]
           },
           "prompt": {
@@ -6062,7 +6262,8 @@
             "enum": [
               "S",
               "M",
-              "L"
+              "L",
+              "hidden"
             ]
           },
           "timerAfterMedia": {
@@ -6094,6 +6295,9 @@
             "type": "string",
             "nullable": true
           },
+          "multiSelect": {
+            "type": "boolean"
+          },
           "options": {
             "type": "array",
             "items": {
@@ -6112,6 +6316,10 @@
                   "nullable": true
                 },
                 "mediaId": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "alt": {
                   "type": "string",
                   "nullable": true
                 },
@@ -6156,6 +6364,7 @@
                 "orderIndex",
                 "text",
                 "mediaId",
+                "alt",
                 "color",
                 "shape",
                 "isCorrect",
@@ -6207,6 +6416,7 @@
           "scoring",
           "numericValue",
           "numericTolerance",
+          "multiSelect",
           "options",
           "acceptedAnswers"
         ]
@@ -6254,7 +6464,8 @@
               "text_input",
               "numeric",
               "ordering",
-              "poll"
+              "poll",
+              "image_choice"
             ]
           },
           "prompt": {
@@ -6482,7 +6693,8 @@
             "enum": [
               "S",
               "M",
-              "L"
+              "L",
+              "hidden"
             ]
           },
           "timerAfterMedia": {
@@ -6516,6 +6728,10 @@
             "type": "number",
             "minimum": 0
           },
+          "multiSelect": {
+            "default": false,
+            "type": "boolean"
+          },
           "options": {
             "default": [],
             "maxItems": 8,
@@ -6531,6 +6747,10 @@
                   "type": "string",
                   "minLength": 26,
                   "maxLength": 26
+                },
+                "alt": {
+                  "type": "string",
+                  "maxLength": 300
                 },
                 "color": {
                   "type": "string",
@@ -6962,6 +7182,46 @@
             ],
             "nullable": true
           },
+          "videoMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "videoLoop": {
+            "default": true,
+            "type": "boolean"
+          },
+          "videoSound": {
+            "default": true,
+            "type": "boolean"
+          },
+          "audioMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "waveformSize": {
+            "default": "hidden",
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "hidden"
+            ]
+          },
+          "audioTarget": {
+            "type": "string",
+            "enum": [
+              "projection",
+              "projection_remote",
+              "everyone",
+              null
+            ],
+            "nullable": true
+          },
           "textTone": {
             "default": "light",
             "type": "string",
@@ -7357,6 +7617,39 @@
             ],
             "nullable": true
           },
+          "videoMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "videoLoop": {
+            "type": "boolean"
+          },
+          "videoSound": {
+            "type": "boolean"
+          },
+          "audioMediaId": {
+            "type": "string",
+            "nullable": true
+          },
+          "waveformSize": {
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "hidden"
+            ]
+          },
+          "audioTarget": {
+            "type": "string",
+            "enum": [
+              "projection",
+              "projection_remote",
+              "everyone",
+              null
+            ],
+            "nullable": true
+          },
           "textTone": {
             "type": "string",
             "enum": [
@@ -7382,6 +7675,12 @@
           "blocks",
           "mediaId",
           "gradient",
+          "videoMediaId",
+          "videoLoop",
+          "videoSound",
+          "audioMediaId",
+          "waveformSize",
+          "audioTarget",
           "textTone",
           "textOutline",
           "displayDelayS"
@@ -7781,6 +8080,46 @@
             "required": [
               "angle",
               "colors"
+            ],
+            "nullable": true
+          },
+          "videoMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "videoLoop": {
+            "default": true,
+            "type": "boolean"
+          },
+          "videoSound": {
+            "default": true,
+            "type": "boolean"
+          },
+          "audioMediaId": {
+            "type": "string",
+            "minLength": 26,
+            "maxLength": 26,
+            "nullable": true
+          },
+          "waveformSize": {
+            "default": "hidden",
+            "type": "string",
+            "enum": [
+              "S",
+              "M",
+              "L",
+              "hidden"
+            ]
+          },
+          "audioTarget": {
+            "type": "string",
+            "enum": [
+              "projection",
+              "projection_remote",
+              "everyone",
+              null
             ],
             "nullable": true
           },

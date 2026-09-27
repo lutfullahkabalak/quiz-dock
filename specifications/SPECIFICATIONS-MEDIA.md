@@ -33,7 +33,7 @@ A video brings its own sound, so it excludes the sound slot.
   job does it since #50.
 - **Playback**: the media starts with `question:start` and follows the host's pause. Autoplay happens in the
   **projection window only**; phones show the image alone. Peer-to-peer delivery is ruled out (same Wi-Fi access point).
-- **Length**: a question lasts at least as long as its media plus a tail (`media_tail_s`, 3 s by default).
+- **Length**: a question lasts at least as long as its media plus a tail (`media_tail_s`, 1 s by default; 3 s before 2026-09-27).
 - **Loudness**: measured (ITU-R BS.1770) in the browser at upload, corrected by a Web Audio gain at playback, capped by
   the peak — never re-encoded. Each quiz picks a level: loud −14 / balanced −16 (default) / quiet −23 LUFS.
 - **Interruption**: playback resumes one second before the point reached; the console can restart the media.
@@ -183,3 +183,147 @@ The projection's "media not loaded in time" (`media.slow`).
 
 Specified in [SPECIFICATIONS-MEDIA-LIBRARY.md](./SPECIFICATIONS-MEDIA-LIBRARY.md): one format per kind converted in the
 author's browser, files shared between uses, a media input module, an administration page.
+
+## 9. Audio routing
+
+Several sources may sound at once on one device — a question's sound, a background track, the game's effects — and
+they are not the same kind of sound. Every page routes them through **buses** on one Web Audio context
+(`game/media/audio-mixer.ts`); no source plays straight to the speakers.
+
+```
+question's sound / video ─ loudness gain ─► QUIZ  ─┐
+background track (a sound of the library) ─► MUSIC ─┤
+tick, gong (synthesised, or a sample) ────► SFX   ─┼─► MASTER ─► limiter ─► speakers
+interface sounds (to come) ───────────────► UI    ─┘
+```
+
+- **A bus is two gains in a row**: its *level* (a host's volume) and its *duck* (automatic), so a volume change never
+  fights a duck. **MASTER** carries the participant's own mute; a **limiter** after it keeps simultaneous sources from
+  clipping.
+- **Two sounds are never laid over each other**: the background track fades out as a question's own sound or video
+  starts, and comes back once it is over — from its common start and length, or from the host's last command on it
+  (a media the host holds, or of unknown length, keeps the track out for the question). A sidechain that only lowered
+  the track was tried and left: a lowered track still covers a sound to recognise (a blind test), and a video's
+  silences would make it pump. SFX is never ducked (the effects are short).
+- **Faders are tapered**: a position (0–100 %) becomes its cube as a gain, close to how loudness is heard — half-way
+  is about −18 dB, not the −6 dB a straight line gives. Positions are what is kept (the room's levels, a device's
+  volume and trims).
+- **QUIZ** keeps its per-media loudness correction (§2); it is not a host's volume. A media element joins the bus once
+  the context runs (a suspended context would silence it) and once in its life — the phones reuse theirs.
+- **Which buses a device plays**:
+
+  | Device | QUIZ | MUSIC, SFX |
+  |--------|------|------------|
+  | the projection | yes | yes |
+  | a remote participant's phone | per the question's audio target (§5.2) | per the room's audio target |
+  | a phone in the room | only when the target is *everyone* | never |
+  | a participant's copy of the projection (#104) | muted, unless `?sound=1` — then as a remote phone | as a remote phone |
+
+- **Sources**: the effects are synthesised in the browser (no file, no licence); a host may replace one by a sound of
+  their media library. The background track is always a sound of the library. Nothing is bundled.
+- **Settings**: the MUSIC and SFX levels are the room's (the lobby), each with its own **mute** for every screen (the
+  level kept for when the channel is back); QUIZ stays at its normalised level.
+- **Fades**: no source starts or stops on a cut. Every start (a question's media, its resume, a sample, the
+  background track aside) comes in over ~5 ms — just the click off the attack; a pause or a stop fades out over
+  ~120 ms; a host's seek fades out, jumps, comes back in. The background track is a bed, not a playback: it fades in
+  and out over ~1.5 s.
+
+### 9.1 The game's sounds (#93)
+
+- **The tick** plays at each new answer while players answer (from `answer:count`) — the last answer too, whose count
+  arrives with the reveal; **the gong** when a question moves to its reveal — no event of their own. Both are on in a
+  new room; each can take a sound of the library instead of the synthesised one.
+- **The countdown** (2026-09-27): tic… tac… over the last five seconds of the time, on the server's clock — a
+  mechanical click (a fixed noise, drawn once from a seed, through a band-pass: 1800 Hz on the second, 1100 Hz on the
+  half), the last tac left out so a second of silence leads to **the gong, struck on zero itself** (the reveal comes a
+  moment later and does not strike it again). Everyone answered before zero, or a pause: what has not sounded yet is
+  called off, and the reveal strikes the gong. On in a new room (`countdown`), synthesised only.
+- **The ding** (2026-09-27): a question starts — one clear tone, A5 (880 Hz; the first 1550 Hz pierced), with two discreet
+  overtones (1306, 1787 Hz), an 8 ms attack and a faint strike (a noise burst around 1.5 kHz), all through a
+  low-pass far under it (300 Hz, 12 dB per octave, Q −3 dB: flat; chosen by ear in a sandbox) and +2.6 dB after it; not over a
+  question with its own sound or video. On in a new room (`ding`).
+- **The synthesised gong**: eight inharmonic sine partials (105–890 Hz, slightly detuned), the low ones louder, under a
+  low-pass darkening from 7 kHz to 500 Hz over 2.5 s; no mallet noise — after a countdown it reads as one click
+  too many.
+- **The background track** loops while players answer only — from the moment the answers open, never over the reading
+  (or the listening) of the question. Between questions and while the game is paused it fades
+  out and **keeps its place**, then comes back where it was — never from the top at each question. It makes way for a
+  question's own sound or video while that plays (§9).
+- **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
+  (`host:sounds`), sent to every screen as URLs and levels (`room:sounds`). A sample or a track must be a sound of the
+  host's or of the instance's; the hourly media sweep keeps what an open room plays.
+- **Played** by the projection, and by a remote participant's phone or copy when the room's audio target reaches
+  remote devices; the participant's mute is the MASTER. Nothing plays before the device's unlocking click: the
+  projection and a remote phone ask for it when the room has game sounds, even for a silent quiz.
+
+### 9.2 Each device's sound
+
+- **A sound button** on every screen that plays something — the projection, a copy that plays the sound, a remote
+  participant's phone (it replaces the phone's old mute): the device's **volume** and **mute**, on MASTER. With a
+  mouse, a click mutes or unmutes and hovering shows the volume and *Mixer*; on a phone, a tap opens them (one tap more).
+- **Mixer**: this device's own **trim** per bus (questions, music, effects, interface), each with its own **mute**
+  (the fader keeps its place for when the channel is back). A bus plays at the room's level (the host's, for MUSIC and
+  SFX) times the device's trim. Kept on the device (`localStorage`), from one visit to the next.
+- **The room's mixer** is the host's: *Game sounds* in the console's control bar, at any moment of a quiz, besides the
+  folded panel of the lobby (§9.1).
+- **Declining the sound**: the *Turn sound on* overlay (and the phone's prompt) also offers *Without sound*. That click
+  still unlocks the browser's audio — and readies a phone's media elements — but mutes the device; the sound button turns
+  it on at once, without asking again. A device kept muted is not asked again.
+
+
+## 10. Media on slides (arbitrated 2026-09-27, reframed the same day)
+
+A slide (#7) can play a video and a sound. Everything a question's media already does is reused — library media
+only, loudness correction, a common start on the server's clock, fetched ahead, the wait for the devices that play
+it, the console's transport, the audio routing of §9. Decided with the author, then reframed: the media of a slide
+are **settings of the slide, like a question's**, never blocks — the block builder stays visual (heading, text,
+image, columns).
+
+### 10.1 What the builder offers
+
+- A **Media** section, the question's own component: **Video** and **Sound** side by side, at the same level —
+  never buried in the background settings.
+  - **Video** (an MP4 of the library) fills the slide behind its content (*cover*, cropped to the screen). Its
+    switches: **Loop** (on by default: it runs as long as the slide shows; off: it plays once and stays on its last
+    frame) and **Sound** (on by default). Looped with its sound, its fades are long (a bed, like the room's track).
+  - **Sound** (a sound of the library): its waveform size, **hidden by default** (the console still draws it), and
+    who hears it.
+- The background image or gradient stays: behind the video, it is the poster while the video loads, and what a
+  phone in the room shows.
+- Embedded videos (YouTube, Vimeo) are left for later; a *fit* option (contain rather than cover) too.
+
+### 10.2 One sound at a time
+
+- A slide plays **one sound at most**: a video with its sound excludes the Sound, as a question's video does. A
+  muted video and a sound go together. The builder greys the one out as the question does; the server refuses a
+  slide breaking it (`slide.two_sounds`).
+- The room's background track never plays on a slide (it only plays while players answer, §9.1).
+
+### 10.3 Timing
+
+- **Auto mode**: a slide with a timed media — its sound, or its video played once — stays until that media has
+  played, plus the quiz's pause after it (`mediaTailS`), like a question stretched by its media. Its own display
+  time still applies when longer. A looped video never stretches it.
+- The media start on the common start (`mediaStartAt`, `MEDIA_LEAD_MS` after the slide shows), and the room waits
+  for the devices that play them, as for a question (§5.4). Each step is fetched one step ahead (§5.3): a phone's
+  one blessed element may be busy with the slide's sound while the question after it is due, so a remote phone may
+  make the room wait a moment there.
+- The game's pause holds the slide's media; they go on where they stood.
+
+### 10.4 Who hears, and the console
+
+- **Who hears**: as a question — the quiz's audio target, overridable per slide and per session. A remote
+  participant sees the video (muted when the sound is not theirs); a phone in the room shows no video (the big
+  screen does) and plays only a sound meant for every device.
+- **The console**: the slide's sound-bearing media gets the question's transport (play / pause, the waveform to click
+  or drag, restart), anchored on the server's clock (`media:control`, keyed by the step); a muted video, a mention.
+
+### 10.5 Format and scope
+
+- The bundle manifest gains the slide's `video`, `videoLoop`, `videoSound`, `audio`, `waveformSize`,
+  `audioTarget`: **version 5**; an export still stamps the lowest version it needs (a quiz without slide media stays
+  at 3 or 4).
+- Engine: the slide step gets the media machinery of the question step (preload, readiness, media wait, anchor,
+  stretch, pause), keyed by step (`s<i>`) where a question's is keyed by its index.
+- Tests: the one-sound rule (builder and server), the stretch, the common start and the wait on a slide, a looped
+  video never stretching, the transport on a slide, bundle v5 round trip.

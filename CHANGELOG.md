@@ -6,14 +6,84 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ## [Unreleased]
 
+### ⚠️ Breaking changes
+
+> [!WARNING]
+> Read before upgrading.
+> - **An OIDC_ISSUER ending in `/` while the provider's issuer does not (or the reverse) no longer signs in: set it to the provider's issuer, as the backend log and `quizdock doctor` point out.**
+
 ### Bug Fixes
 
+- An image choice keeps the projection's usual layout *(live)*
+- A picture's description arriving late overwrites nothing *(editor)*
+- No image added from the Markdown editor *(editor)*
+- No image to upload in an answer's explanation *(editor)*
+- A new quiz's intro slide comes first, before its question *(quiz)*
+- The ding back at 880 Hz, its low-pass down to 300 Hz *(sounds)*
+- The ding down to 300 Hz, as chosen by ear *(sounds)*
+- The ding down to A5 (880 Hz) *(sounds)*
+- A gentler ding — lower, softer attack, faint strike *(sounds)*
+- The ding's low-pass tames it for real *(sounds)*
+- Every device keeps to the room's instant while it plays *(media)*
+- Each device starts ahead by its output latency, heard together *(media)*
+- The waveform follows the sound as heard, not as decoded *(media)*
+- A phone in the room shows the slide's background, one waveform on the console *(slides)*
+- No fullscreen on the big screen shown in a participant's page *(live)*
+- A new question starts at 0 answers — its first answer gets its tick *(live)*
+- A question's media a second after it shows, replays in the same room, tiles and ticks *(live)*
+- The tick's description, plainly *(live)*
+- Answer tiles at line-height 1em *(live)*
+- Tighter answer tiles, a track from the answers' opening, the focus on a typed answer *(live)*
+- The time bar turns amber then red on every screen; the last answer gets its tick *(live)*
+- The sounds hint — the track makes way for a question's sound, then comes back *(live)*
+- The sounds hint says the track stops under a question's own sound *(live)*
+- No track under a question with its own sound, and no sidechain *(media)*
+- A fade in of a few milliseconds, just the click off the attack *(media)*
+- The format guide writes the version it needs; a hidden waveform through the database *(bundle)*
+- The transport holds its locks through a pause, and works without a projection *(live)*
+- The console's waveform follows the sound, the screen's sound button top left *(live)*
+- A refused answer is never shown as saved, and the server says why *(live)*
+- Room, quiz, session — one word for each level *(i18n)*
+- No way out to another PIN from a room's podium *(live)*
+- Ask a phone for sound until its media elements are claimed *(live)*
+- Smoother French for the remote presence hint *(i18n)*
+- Compare the OIDC issuer exactly, trailing slash included *(auth)*
 - A manager reads another host's quiz, and a failed save says so *(editor)*
 - Start a quiz in the instance language, and let the author change it *(quiz)*
 - Bound the archive on the bytes actually unpacked *(import)*
 
 ### Documentation
 
+- Every screen shot again, the new ones and each question type *(screenshots)*
+- The 0.7 and 0.8 notes out of the top *(readme)*
+- Image choice in the feature list and unreleased
+- The 2026-09-27 batch listed, video and sound no longer experimental
+- Media on slides, as arbitrated — blocks, a video background, one sound at a time *(spec)*
+- The game's sounds in the feature list and unreleased
+- Closing a quiz mid-way in unreleased *(changelog)*
+- The track and the mixers' mutes in the feature list
+- The room's sounds, the track and the mixers in unreleased *(changelog)*
+- The console transport, the hidden waveform and the bank's views listed
+- The fades of the audio routing *(spec)*
+- The format guide and the chatbot prompt in unreleased *(changelog)*
+- The projection on a device, Ready! and the game's sounds in the feature list
+- The sound button and the mixers in unreleased *(changelog)*
+- The game's sounds in unreleased *(changelog)*
+- The audio mixer in unreleased *(changelog)*
+- Ready in the lobby in unreleased *(changelog)*
+- The projection on a participant's device in unreleased *(changelog)*
+- The room on screen in unreleased *(changelog)*
+- The next quiz's picker is a small index *(ui)*
+- The room in history in unreleased *(changelog)*
+- The playlist goes to a later Programme, out of the room *(spec)*
+- The room's standings in unreleased *(changelog)*
+- The next quiz in the room in unreleased *(changelog)*
+- Game sequencing by events, and the engine split, after the room *(roadmap)*
+- The room layer in unreleased *(changelog)*
+- The multi-quiz room brief, from the model to the ordered pull requests *(spec)*
+- One answer grid in unreleased *(changelog)*
+- Exact OIDC issuer in unreleased *(changelog)*
+- Unreleased before the release *(changelog)*
 - The licence, tags and language of a quiz in the feature list
 - The refactoring plan for the game gateway tests *(dev)*
 - #91 is merged *(spec)*
@@ -28,6 +98,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - The licence and the tags are set in the quiz settings *(bundle)*
 - Licence and tags of a quiz in unreleased *(changelog)*
 - The README no longer opens on the 0.8 breaking change
+- The README no longer opens on the 0.8 breaking change
 - The 0.8 breaking change at the top of the README
 - The README warns OIDC deployments about the 0.8 breaking change
 - Breaking changes in a warning box, impossible to miss *(changelog)*
@@ -35,9 +106,70 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- The pictures on the phone in the room too *(player)*
+- Name a picture answer by its alt, in the history, the CSV and the templates *(history)*
+- Answer an image choice — the pictures at a distance, the shapes in the room *(player)*
+- Project an image choice — the pictures fill the screen, the reveal keeps them *(live)*
+- Write an image choice — pictures, their alt, 2 or 4, one or several right *(editor)*
+- Play the image choice as the choice it is scored as *(game)*
+- Image choice type, its rules and bundle version 6 *(questions)*
+- Offer to move an image of the prompt to the question's media *(editor)*
+- Answer shapes drawn in SVG, a softer ding, a wider label column *(ui)*
+- The grid shows each quiz's first slide, fetched once in view *(quizzes)*
+- Archived quizzes out of the list by default *(quizzes)*
+- Filter by owner, and by several statuses at once *(quizzes)*
+- Wrong answers greyed in the step preview and its settings *(quiz)*
+- The read-only view as the editor lays it out, with each step's settings *(quiz)*
+- The read-only view shows each step as it will show *(quiz)*
+- Spinners and skeletons while pages load *(ui)*
+- Share a quiz with the instance's other hosts *(quiz)*
+- A new quiz starts from a draft — an intro slide and a question *(quiz)*
+- Variables in a slide's text, filled wherever it shows *(slides)*
+- The space bar pauses the game, a bin removes a participant *(console)*
+- A softer ding, generic names for the effect slots *(sounds)*
+- One second after a media by default for a new quiz *(quiz)*
+- A slide's video and sound, set like a question's media (#125) *(slides)*
+- Video and sound on slides — model, engine, bundle v5 (#125) *(slides)*
+- Each answer's tick slightly higher or lower — no machine gun *(live)*
+- Everyone answered, the reveal a second later — the last tick apart from the gong *(live)*
+- Each room effect says when it plays *(live)*
+- The room's effects in one compact list — a sample for each, a preview here *(live)*
+- A ding as a question starts; no gong from the last question's end *(live)*
+- A countdown on the last five seconds, the gong on zero, a new gong *(live)*
+- Close the quiz mid-way and pick the next one, the room kept *(live)*
+- A mute per channel on the room's mixer, for every screen *(live)*
+- The room's sounds — built in, or a sound of the library with the editor's picker *(live)*
+- The track makes way for a question's sound and comes back; a mute per channel *(media)*
+- The track keeps its place, a sidechain makes way for the quiz, tapered faders *(media)*
+- Fades on every start and stop — the host's transport, the samples, the track *(media)*
+- My quizzes and the templates — filters, a list or a grid, richer items *(ui)*
+- A waveform hidden from the screens, still on the console — manifest v4 *(media)*
+- The host steers the question's media from the console *(live)*
+- The participant's lobby — an avatar draft, a ready button that breathes *(live)*
+- A format guide from the importer, and a chatbot prompt to bring a quiz in *(bundle)*
+- A sound button, and a mixer for the room and for each device *(live)*
+- The game's sounds — a tick, a gong, a background track *(live)*
+- An audio mixer — every source into a bus, then the master *(media)*
+- "Ready!" in the lobby, and one count for the host *(live)*
+- The projection on a participant's own device *(live)*
+- A room of its own name, not the quiz's *(live)*
+- The next quiz picked from a small index of the host's quizzes *(live)*
+- A searchable picker for the room's next quiz *(live)*
+- The room on the console, the projection and the phones *(live)*
+- Ratings and sound follow the room's quizzes *(game)*
+- A session played in a room shows its room *(history)*
+- The room's standings, summed over its quizzes *(game)*
+- The next quiz in the same room, the players still in *(game)*
+- The question fits the screen, the clock as a bar *(live)*
+- One answer grid on the projection and the phone *(live)*
 - Export a quiz for publication to a community store *(editor)*
 - Publish the manifest as a JSON Schema, one file per version *(bundle)*
 - Set the licence and the tags of a quiz *(editor)*
+
+### Refactor
+
+- One step preview for every page, its content centred *(quiz)*
+- The room under its PIN, each game under its own id *(game)*
 
 ### Contributors
 

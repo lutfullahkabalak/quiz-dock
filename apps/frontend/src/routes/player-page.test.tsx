@@ -4,18 +4,28 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameView } from '../game/use-game-session';
 import { configureAnonymousParticipants } from '../config';
 import { renderApp } from '../test/harness';
+import { resetMixerForTests } from '../game/media/audio-mixer';
 
-const { fakeSocket, hookState } = vi.hoisted(() => ({
-  fakeSocket: { emit: vi.fn() },
+const { fakeSocket, hookState, audio } = vi.hoisted(() => ({
+  fakeSocket: { emit: vi.fn(), emitWithAck: vi.fn(() => Promise.resolve({ ok: true })) },
   hookState: { value: null as unknown },
+  audio: { unlocked: true },
 }));
 const markJoined = vi.fn();
+const markReady = vi.fn();
 const claimMediaElements = vi.fn();
 
 vi.mock('../game/media/media-pool', () => ({
   claimMediaElements: () => claimMediaElements(),
+  mediaElementsClaimed: () => audio.unlocked,
 }));
-vi.mock('../game/media/audio-unlock', () => ({ unlockAudio: () => Promise.resolve(true) }));
+vi.mock('../game/media/audio-unlock', () => ({
+  unlockAudio: () => Promise.resolve(true),
+  useAudioUnlocked: () => true,
+  // No Web Audio here: the mixer builds nothing and every sound call is a no-op.
+  audioContext: () => null,
+  isAudioUnlocked: () => true,
+}));
 // The stage plays real media elements; here it only says how it was asked to play.
 vi.mock('../game/media/question-media-stage', () => ({
   FollowedWaveform: (p: { follow: { t: number } | null }) => (
@@ -32,7 +42,7 @@ const peekSession = vi.fn(() =>
 );
 
 vi.mock('../game/use-game-session', () => ({
-  useGameSession: () => ({ view: hookState.value, socket: fakeSocket, markJoined }),
+  useGameSession: () => ({ view: hookState.value, socket: fakeSocket, markJoined, markReady }),
 }));
 vi.mock('../game/game-client', () => ({
   joinSession: (...a: unknown[]) => joinSession(...a),
@@ -61,6 +71,9 @@ const view = (partial: Partial<GameView>): GameView => ({
   feedbackEnabled: true,
   players: [],
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
+  lobbyCount: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -86,6 +99,12 @@ const view = (partial: Partial<GameView>): GameView => ({
   mediaWait: null,
   nav: null,
   joinBaseUrl: null,
+  youReady: false,
+  sounds: null,
+  roomName: null,
+  hostName: null,
+  standings: null,
+  rateable: null,
   ...partial,
 });
 
@@ -93,6 +112,8 @@ const PARIS = { id: 'opt-paris', text: 'Paris', color: 'red', shape: 'triangle' 
 
 describe('PlayerPage (client participant)', () => {
   afterEach(() => {
+    // This device's sound choices live in the mixer's module: back to the defaults.
+    resetMixerForTests();
     vi.clearAllMocks();
     loadPlayerSession.mockReturnValue(null);
   });
@@ -108,11 +129,12 @@ describe('PlayerPage (client participant)', () => {
     fireEvent.click(screen.getByRole('button', { name: /C'est parti/ }));
 
     await waitFor(() =>
-      expect(joinSession).toHaveBeenCalledWith('771122', 'Alice', undefined, undefined),
+      expect(joinSession).toHaveBeenCalledWith('771122', 'Alice', undefined, 'room'),
     );
     await waitFor(() => expect(markJoined).toHaveBeenCalled());
-    // A quiz without sound: nobody is asked where they play from.
-    expect(screen.queryByText(/joues-tu/)).not.toBeInTheDocument();
+    // A quiz without sound still asks where they play from: remote gets the answers' text (#92).
+    expect(screen.getByRole('radio', { name: /Dans la salle/ })).toBeChecked();
+    expect(claimMediaElements).not.toHaveBeenCalled();
   });
 
   it('no-session, quiz with sound: asks where the player is and joins remote', async () => {
@@ -185,8 +207,163 @@ describe('PlayerPage (client participant)', () => {
     hookState.value = view({ state: GameState.Lobby });
     renderApp('/join/771122');
 
-    expect(await screen.findByText(/Tu es dans la session/)).toBeInTheDocument();
+    expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
     expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
+  });
+
+  describe('“Ready!” in the lobby (#104)', () => {
+    const session = { pin: '771122', nickname: 'Bob', sessionToken: 't', playerId: 'p1' };
+
+    it('says so once the server took it', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: 'Je suis prêt !' }));
+      await waitFor(() => expect(markReady).toHaveBeenCalledWith(true));
+      expect(fakeSocket.emitWithAck).toHaveBeenCalledWith('player:ready', {
+        pin: '771122',
+        ready: true,
+      });
+    });
+
+    it('once ready, tells what the room waits for: the quiz to come and who is ready', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({
+        state: GameState.Lobby,
+        youReady: true,
+        quizTitle: 'Capitales',
+        lobbyCount: { ready: 2, total: 5 },
+      });
+      renderApp('/join/771122');
+      expect(await screen.findByText(/À suivre : Capitales/)).toBeInTheDocument();
+      expect(screen.getByText(/5 joueurs dans le salon/)).toBeInTheDocument();
+      expect(screen.getByText(/2 sur 5 prêts/)).toBeInTheDocument();
+    });
+
+    it('a new avatar stays a draft until saved: the top bar keeps the room’s, Cancel goes back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      await screen.findByText(/Tu es dans le salon/);
+      const topbarAvatar = () =>
+        document.getElementById('participant-topbar')?.querySelector('svg, img')?.outerHTML;
+      const before = topbarAvatar();
+      expect(before).toBeTruthy();
+      fireEvent.click(screen.getByRole('button', { name: /Avatar aléatoire/ }));
+      expect(topbarAvatar()).toBe(before);
+      expect(fakeSocket.emit).not.toHaveBeenCalledWith('player:avatar', expect.anything());
+      fireEvent.click(screen.getByRole('button', { name: 'Garder l’avatar actuel' }));
+      expect(screen.queryByRole('button', { name: 'Garder l’avatar actuel' })).toBeNull();
+    });
+
+    it('once ready, waits for the host and can take it back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby, youReady: true });
+      renderApp('/join/771122');
+      expect(await screen.findByText(/Prêt — en attente de l’animateur/)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Pas encore' }));
+      await waitFor(() => expect(markReady).toHaveBeenCalledWith(false));
+    });
+  });
+
+  describe('the projection on another device, or on this one (#104)', () => {
+    const session = { pin: '771122', nickname: 'Bob', sessionToken: 't', playerId: 'p1' };
+    afterEach(() => {
+      vi.unstubAllGlobals();
+      Object.defineProperty(navigator, 'share', { value: undefined, configurable: true });
+    });
+
+    it('shares the projection’s link: the PIN, never the seat; with sound for a remote participant', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      const share = vi.fn(() => Promise.resolve());
+      Object.defineProperty(navigator, 'share', { value: share, configurable: true });
+      hookState.value = view({
+        state: GameState.Lobby,
+        players: [{ playerId: 'p1', nickname: 'Bob', presence: 'remote' }],
+      });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: /Partager la projection/ }));
+      await waitFor(() => expect(share).toHaveBeenCalled());
+      const { url } = (share.mock.calls[0] as unknown as [{ url: string }])[0];
+      expect(url).toMatch(/\/join\/771122\/screen\?sound=1$/);
+    });
+
+    it('without a share sheet, shows the link as a QR code', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: /Partager la projection/ }));
+      expect(await screen.findByText(/Lien copié/)).toBeInTheDocument();
+    });
+
+    it('switches this phone to the big screen and back', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({ state: GameState.Lobby, hostName: 'Billy' });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: 'Afficher le grand écran' }));
+      // The projection's lobby: the PIN in big, the room's name as its title.
+      expect(await screen.findByRole('heading', { name: 'Salon de Billy' })).toBeInTheDocument();
+      expect(screen.queryByText(/Tu es dans le salon/)).toBeNull();
+      fireEvent.click(screen.getByRole('button', { name: 'Revenir à mes réponses' }));
+      expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
+    });
+  });
+
+  describe('in a room, between two quizzes (#89)', () => {
+    const standings = {
+      quizzesPlayed: 1,
+      top: [{ nickname: 'Bob', score: 900, rank: 1 }],
+      you: {
+        score: 900,
+        rank: 1,
+        correct: 1,
+        answered: 1,
+        avgResponseMs: 1200,
+        maxStreak: 1,
+        quizzes: 1,
+      },
+    };
+    const session = { pin: '771122', nickname: 'Bob', sessionToken: 't', playerId: 'p1' };
+    afterEach(() => {
+      audio.unlocked = true;
+    });
+
+    it('says where they stand and waits for the next quiz, the last one still to rate', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({
+        state: GameState.Lobby,
+        standings,
+        rateable: { quizId: 'quiz-1', feedbackEnabled: true },
+      });
+      renderApp('/join/771122');
+      expect(await screen.findByText(/Dans le salon : #1 — 900 pts/)).toBeInTheDocument();
+      expect(screen.getByText(/En attente du quiz suivant/)).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: /Envoyer mon avis/ })).toBeInTheDocument();
+    });
+
+    it('asks this phone for sound when the next quiz has some and it never enabled it', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      audio.unlocked = false;
+      hookState.value = view({ state: GameState.Lobby, standings, quizHasSound: true });
+      renderApp('/join/771122');
+      fireEvent.click(await screen.findByRole('button', { name: /Activer le son/ }));
+      expect(claimMediaElements).toHaveBeenCalled();
+    });
+
+    it('offers no rating to someone who only saw the podium', async () => {
+      loadPlayerSession.mockReturnValue(session);
+      hookState.value = view({
+        state: GameState.Podium,
+        podium: { podium: [], quizId: 'quiz-1' },
+        feedbackEnabled: true,
+        rateable: null,
+      });
+      renderApp('/join/771122');
+      expect(await screen.findByText('Podium')).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /Envoyer mon avis/ })).toBeNull();
+      // Still in the room at a podium: no way out to another PIN from here.
+      expect(screen.queryByRole('link', { name: /autre partie|another/i })).toBeNull();
+    });
   });
 
   it('LOBBY : l’avis dit ce que la session enregistre (RG-16)', async () => {
@@ -201,7 +378,7 @@ describe('PlayerPage (client participant)', () => {
     hookState.value = view({ state: GameState.Lobby });
     const guest = renderApp('/join/771122');
     expect(
-      await screen.findByText(/enregistrés avec les résultats de la session/i),
+      await screen.findByText(/enregistrés avec les résultats de chaque quiz/i),
     ).toBeInTheDocument();
     guest.unmount();
 
@@ -260,12 +437,27 @@ describe('PlayerPage (client participant)', () => {
         audioTarget: 'projection_remote',
       } as never,
     });
-    renderApp('/join/771122');
+    const background = renderApp('/join/771122');
     expect(await screen.findByRole('button', { name: /Paris/ })).toBeInTheDocument();
     expect(screen.queryByRole('img', { name: /Illustration de la question/i })).toBeNull();
     expect(screen.queryByTestId('stage')).toBeNull();
-    // …but its waveform follows the projection's playhead.
-    expect(screen.getByTestId('followed')).toBeInTheDocument();
+    // A background sound: no waveform on the phone, the answers keep the room (#92)…
+    expect(screen.queryByTestId('followed')).toBeNull();
+    background.unmount();
+
+    // …but when the sound is the question (listen first), its waveform follows the projection's playhead.
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: {
+        ...question,
+        media: { visual: null, audio: sound },
+        audioTarget: 'projection_remote',
+        listenFirst: true,
+      } as never,
+    });
+    renderApp('/join/771122');
+    expect(await screen.findByTestId('followed')).toBeInTheDocument();
   });
 
   it('ANSWERING, remote: the phone plays the question’s sound, and its owner can mute it', async () => {
@@ -296,7 +488,9 @@ describe('PlayerPage (client participant)', () => {
     const heard = renderApp('/join/771122');
     const stage = await screen.findByTestId('stage');
     expect(stage).toHaveAttribute('data-audible', 'true');
+    // On a phone the sound button opens its panel (one tap more); the mute is in it.
     fireEvent.click(await screen.findByRole('button', { name: 'Couper le son' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Couper le son' })[1]);
     expect(screen.getByTestId('stage')).toHaveAttribute('data-muted', 'true');
     heard.unmount();
     sessionStorage.clear();
@@ -337,6 +531,35 @@ describe('PlayerPage (client participant)', () => {
       answer: 'opt-paris',
     });
     expect(await screen.findByText(/Réponse enregistrée/)).toBeInTheDocument();
+  });
+
+  it('a refused answer is never shown as saved: too late, it says so; too early, the tiles come back', async () => {
+    const answering = (over: Partial<GameView>) =>
+      view({
+        state: GameState.Answering,
+        questionIndex: 0,
+        question: {
+          questionIndex: 0,
+          type: 'single_choice',
+          prompt: 'Capitale ?',
+          options: [PARIS],
+          timeLimitS: 5,
+          basePoints: 1000,
+          startedAt: Date.now(),
+          endsAt: Date.now() + 5000,
+        } as never,
+        ...over,
+      });
+    hookState.value = answering({ answerAccepted: false, answerRefusal: 'late', answerAckAt: 1 });
+    const { unmount } = renderApp('/join/771122');
+    expect(await screen.findByRole('alert')).toHaveTextContent(/trop tard/);
+    expect(screen.queryByText(/Réponse enregistrée/)).toBeNull();
+    unmount();
+
+    hookState.value = answering({ answerAccepted: false, answerRefusal: 'early', answerAckAt: 2 });
+    renderApp('/join/771122');
+    expect(await screen.findByText(/Trop tôt/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Paris/ })).toBeEnabled();
   });
 
   it('multi-réponses : sélectionner plusieurs puis Valider (pas de submit au 1ᵉʳ clic)', async () => {
@@ -389,7 +612,10 @@ describe('PlayerPage (client participant)', () => {
     });
     renderApp('/join/771122');
 
-    fireEvent.change(await screen.findByPlaceholderText(/nombre/), { target: { value: '42' } });
+    // The answers are open: the input has the focus, the phone's keyboard with it.
+    const input = await screen.findByPlaceholderText(/nombre/);
+    expect(input).toHaveFocus();
+    fireEvent.change(input, { target: { value: '42' } });
     fireEvent.click(screen.getByRole('button', { name: /Valider/ }));
     expect(fakeSocket.emit).toHaveBeenCalledWith('player:submit', {
       pin: '771122',
@@ -448,6 +674,82 @@ describe('PlayerPage (client participant)', () => {
       expect(await screen.findByPlaceholderText('Votre pseudo')).toBeInTheDocument();
       await waitFor(() => expect(peekSession).toHaveBeenCalled());
       expect(router.state.location.pathname).toBe('/join/771122');
+    });
+  });
+
+  describe('image choice', () => {
+    const picture = (i: number) => ({
+      id: `pic-${i}`,
+      text: null,
+      color: ['red', 'blue', 'yellow', 'green'][i],
+      shape: ['triangle', 'diamond', 'circle', 'square'][i],
+      media: { url: `/api/v1/media/p${i}`, kind: 'image', alt: `Picture ${i}` },
+    });
+    const answering = (presence: 'room' | 'remote', multiSelect = false) => {
+      loadPlayerSession.mockReturnValue({
+        pin: '771122',
+        nickname: 'Ada',
+        sessionToken: 't',
+        playerId: 'p1',
+      });
+      hookState.value = view({
+        state: GameState.Answering,
+        questionIndex: 0,
+        players: [{ playerId: 'p1', nickname: 'Ada', presence }],
+        question: {
+          questionIndex: 0,
+          type: 'image_choice',
+          prompt: 'Which one is a cat?',
+          options: [0, 1, 2, 3].map(picture),
+          ...(multiSelect ? { multiSelect: true } : {}),
+          timeLimitS: 20,
+          basePoints: 1000,
+          startedAt: Date.now() - 1000,
+          endsAt: Date.now() + 20_000,
+          media: { visual: null, audio: null },
+        } as never,
+      });
+      return renderApp('/join/771122');
+    };
+
+    it('remote: the pictures themselves, a tap answers', async () => {
+      answering('remote');
+      const tile = await screen.findByRole('button', { name: 'Picture 2' });
+      // Each tile shows its picture (named by the tile, the picture is part of it).
+      expect(
+        [...document.querySelectorAll('button img')].map((img) => img.getAttribute('src')),
+      ).toEqual(['/api/v1/media/p0', '/api/v1/media/p1', '/api/v1/media/p2', '/api/v1/media/p3']);
+      fireEvent.click(tile);
+      expect(fakeSocket.emit).toHaveBeenCalledWith('player:submit', {
+        pin: '771122',
+        questionIndex: 0,
+        answer: 'pic-2',
+      });
+    });
+
+    it('in the room too: the pictures, in the projection’s order', async () => {
+      answering('room');
+      const tiles = await screen.findAllByRole('button', { name: /Picture/ });
+      expect(tiles.map((b) => b.getAttribute('aria-label'))).toEqual([
+        'Picture 0',
+        'Picture 1',
+        'Picture 2',
+        'Picture 3',
+      ]);
+      expect(document.querySelectorAll('button img')).toHaveLength(4);
+    });
+
+    it('several right pictures: ticked, then submitted', async () => {
+      answering('remote', true);
+      fireEvent.click(await screen.findByRole('button', { name: 'Picture 0' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Picture 3' }));
+      expect(fakeSocket.emit).not.toHaveBeenCalledWith('player:submit', expect.anything());
+      fireEvent.click(screen.getByRole('button', { name: 'Valider ma réponse' }));
+      expect(fakeSocket.emit).toHaveBeenCalledWith('player:submit', {
+        pin: '771122',
+        questionIndex: 0,
+        answer: ['pic-0', 'pic-3'],
+      });
     });
   });
 });

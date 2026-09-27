@@ -307,7 +307,8 @@ describe('EditorPage', () => {
       expect(
         await screen.findByText(/Quiz de Alice : vous pouvez le consulter/),
       ).toBeInTheDocument();
-      expect(screen.getByText('Capitale de la France ?')).toBeInTheDocument();
+      // Each step as it shows: its label, and the question on its stage.
+      expect(screen.getAllByText('Capitale de la France ?').length).toBeGreaterThan(0);
       expect(screen.queryByRole('button', { name: 'Exporter' })).toBeNull();
       expect(screen.queryByText('Publier (prêt)')).toBeNull();
       expect(screen.queryByLabelText('Licence')).toBeNull();
@@ -511,7 +512,7 @@ describe('EditorPage', () => {
     const { router } = renderApp('/quizzes/q1');
 
     // Only this quiz's sessions, each linking to its console.
-    expect(await screen.findByText('1 session en cours')).toBeInTheDocument();
+    expect(await screen.findByText('1 salon le joue')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /111111/ })).toHaveAttribute(
       'href',
       '/session/111111/console',

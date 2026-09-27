@@ -25,6 +25,9 @@ infrastructure — for operators and integrators (not contributors).
   on a dedicated computer).
 - **[Where participants connect](invitation-address.md)** — which address the
   QR code and the join link carry, per setup, and what to configure.
+- **[Bringing a quiz from another tool](import-from-other-tools.md)** — a
+  chatbot prompt that turns a PDF, screenshots, a spreadsheet or text (a Kahoot
+  quiz, for one) into a file QuizDock imports.
 - **[Upgrading](upgrading.md)** — backup, pull, migrations, and the rules.
 
 Images on Docker Hub: [`fchaussin/quizdock`](https://hub.docker.com/r/fchaussin/quizdock)

@@ -156,6 +156,11 @@ describe('doctor', () => {
     expect(text()).toContain('client_id quiz-dock-frontend (public, PKCE)');
     expect(text()).toContain('discovery ok → token endpoint https://idp/x/token');
     expect(text()).toContain('JWKS reachable (2 key(s))');
+    expect(fetchMock).toHaveBeenCalledWith('https://idp/x/.well-known/openid-configuration');
+    // OIDC_ISSUER has a slash the provider's issuer lacks: tokens would be refused (#99).
+    expect(text()).toMatch(
+      /WARN discovery issuer "https:\/\/idp\/x" differs .* by a trailing slash only/,
+    );
     expect(healthy).toBe(true);
   });
 
@@ -356,6 +361,7 @@ describe('quiz commands', () => {
       } as unknown as Parameters<typeof quizTransfer>[1];
       const redis = {
         smembers: jest.fn().mockResolvedValue(live ? ['123456'] : []),
+        hget: jest.fn().mockResolvedValue(live ? 'a'.repeat(32) : null),
         hmget: jest.fn().mockResolvedValue(live ? ['ANSWERING', 'q1'] : [null, null]),
       };
       return { prisma, redis };
@@ -387,6 +393,9 @@ describe('quiz commands', () => {
       await expect(quizTransfer(out, prisma, redis, 'q1', 'bob@ex.io')).rejects.toThrow(
         /being played/,
       );
+      // The game the room plays, found through the room: the PIN alone keys no game.
+      expect(redis.hget).toHaveBeenCalledWith('room:123456', 'gameId');
+      expect(redis.hmget).toHaveBeenCalledWith(`game:${'a'.repeat(32)}`, 'state', 'quizId');
       expect(prisma.$transaction).not.toHaveBeenCalled();
     });
 

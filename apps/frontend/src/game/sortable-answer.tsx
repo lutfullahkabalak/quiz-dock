@@ -20,8 +20,9 @@ import type { PublicOption } from '@quiz-dock/contracts';
 import { ArrowDown, ArrowUp, GripVertical } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
-import { COLOR_TEXT, SHAPE_GLYPH } from '@/lib/option-style';
+import { COLOR_TEXT } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
+import { ShapeIcon } from '@/components/shape-icon';
 
 /**
  * Participant's ordering answer: drag and drop (pointer, touch, keyboard) with
@@ -111,7 +112,7 @@ function SortableRow({
       </button>
       <span className="text-muted-foreground w-[1.5em] tabular-nums">{index + 1}.</span>
       <span aria-hidden className={cn('text-[1.1em] leading-none', COLOR_TEXT[option.color])}>
-        {SHAPE_GLYPH[option.shape] ?? '●'}
+        <ShapeIcon shape={option.shape} />
       </span>
       <span className="min-w-0 flex-1 text-left">{option.text ?? option.color}</span>
       <Button

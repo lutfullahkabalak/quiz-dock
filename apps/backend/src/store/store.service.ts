@@ -117,7 +117,7 @@ interface BundleItem {
   timeLimitS?: number;
   media?: string;
   blocks?: unknown[];
-  options?: { text?: string; color?: string; shape?: string }[];
+  options?: { text?: string; color?: string; shape?: string; media?: string; alt?: string }[];
 }
 
 /**
@@ -242,7 +242,7 @@ export type StorePreview = StoreEntry & {
     mediaUrl: string | null;
     mediaAlt: string | null;
     gradient: { angle: number; colors: string[] } | null;
-    options: { text: string; color: string; shape: string }[];
+    options: { text: string; color: string; shape: string; mediaUrl: string | null }[];
     /** A slide as the stage draws it; null for a question. */
     slide: ServedSlide | null;
   }[];
@@ -463,9 +463,11 @@ export class StoreService implements OnModuleInit {
       mediaAlt: item.media ? (bundle.media?.[item.media]?.alt ?? null) : null,
       gradient: item.backgroundGradient ?? null,
       options: (item.options ?? []).map((o) => ({
-        text: o.text ?? '',
+        // A picture answer (an image choice) is named by its alt.
+        text: o.text ?? o.alt ?? '',
         color: o.color ?? 'blue',
         shape: o.shape ?? 'circle',
+        mediaUrl: o.media ? urlOf(o.media) : null,
       })),
       slide: item.kind === 'slide' ? servedSlide(id, item) : null,
     }));

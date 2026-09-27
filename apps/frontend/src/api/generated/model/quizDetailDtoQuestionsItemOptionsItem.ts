@@ -19,6 +19,8 @@ export type QuizDetailDtoQuestionsItemOptionsItem = {
   text: string | null;
   /** @nullable */
   mediaId: string | null;
+  /** @nullable */
+  alt: string | null;
   color: QuizDetailDtoQuestionsItemOptionsItemColor;
   shape: QuizDetailDtoQuestionsItemOptionsItemShape;
   isCorrect: boolean;

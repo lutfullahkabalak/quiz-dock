@@ -1,11 +1,12 @@
 import { GameState } from '@quiz-dock/contracts';
-import { act, fireEvent, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { GameView } from '../game/use-game-session';
-import { renderApp } from '../test/harness';
+import { mockApi, renderApp } from '../test/harness';
 
 const { fakeSocket, hookState } = vi.hoisted(() => ({
-  fakeSocket: { emit: vi.fn() },
+  // `once`/`off`: an emit with an ack also listens for the server's `error`.
+  fakeSocket: { emit: vi.fn(), once: vi.fn(), off: vi.fn() },
   hookState: { value: null as unknown },
 }));
 
@@ -29,6 +30,9 @@ const view = (partial: Partial<GameView>): GameView => ({
   feedbackEnabled: true,
   players: [],
   answerAccepted: null,
+  answerRefusal: null,
+  answerAckAt: null,
+  lobbyCount: null,
   fullCapture: false,
   personalTracking: true,
   pickOwnName: true,
@@ -54,7 +58,163 @@ const view = (partial: Partial<GameView>): GameView => ({
   mediaWait: null,
   nav: null,
   joinBaseUrl: null,
+  youReady: false,
+  sounds: null,
+  roomName: null,
+  hostName: null,
+  standings: null,
+  rateable: null,
   ...partial,
+});
+
+const quiz = (id: string, title: string, over: Record<string, unknown> = {}) => ({
+  id,
+  ownerId: 'me',
+  title,
+  description: null,
+  coverMediaId: null,
+  status: 'ready',
+  language: 'fr',
+  feedbackEnabled: true,
+  mediaTailS: 0,
+  loudnessTargetLufs: -16,
+  audioTarget: 'projection_remote',
+  questionCount: 3,
+  license: null,
+  tags: [],
+  editable: true,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+  archivedAt: null,
+  ...over,
+});
+
+describe('ControlPage: who is ready in the lobby (#104)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('shows one count of the participants, and each one’s state', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({
+      players: [
+        { playerId: 'p1', nickname: 'Ada' },
+        { playerId: 'p2', nickname: 'Bob' },
+        { playerId: 'p3', nickname: 'Cy' },
+      ],
+      readiness: {
+        questionIndex: 0,
+        ready: 1,
+        total: 3,
+        lobby: true,
+        screens: { ready: 0, total: 0 },
+        players: [
+          { playerId: 'p1', ready: true, pressed: true },
+          { playerId: 'p2', ready: false, pressed: true },
+          { playerId: 'p3', ready: false, pressed: false },
+        ],
+      },
+    });
+    renderApp('/session/482913/console');
+    expect(await screen.findByTestId('readiness')).toHaveTextContent('Prêts : 1 / 3 participants');
+    expect(screen.getByLabelText('Prêt')).toBeInTheDocument(); // Ada
+    expect(screen.getByLabelText('Prêt, médias en chargement')).toBeInTheDocument(); // Bob
+  });
+});
+
+describe('ControlPage: the room’s name (#89)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('shows the default name, then renames the room from its lobby', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({ hostName: 'Billy', quizTitle: 'Capitals' });
+    renderApp('/session/482913/console');
+    expect(await screen.findByRole('heading', { name: 'Salon de Billy' })).toBeInTheDocument();
+    expect(screen.getByText('Capitals')).toBeInTheDocument(); // the quiz, under the room
+
+    fireEvent.click(screen.getByRole('button', { name: 'Renommer le salon' }));
+    const input = screen.getByRole('textbox', { name: 'Nom du salon' });
+    fireEvent.change(input, { target: { value: 'Soirée quiz' } });
+    fireEvent.submit(input.closest('form')!);
+    expect(fakeSocket.emit).toHaveBeenCalledWith('host:room-name', {
+      pin: '482913',
+      name: 'Soirée quiz',
+    });
+  });
+});
+
+describe('ControlPage: the room’s next quiz (#89)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('at the podium, opens the host’s next playable quiz, results kept', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    mockApi([
+      {
+        method: 'GET',
+        path: '/me',
+        body: {
+          id: 'me',
+          displayName: 'Animateur',
+          email: null,
+          roles: ['host'],
+          subject: 'local:animateur',
+        },
+      },
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [
+          quiz('q2', 'Round two', { tags: ['geo'], description: 'Rivers and mountains' }),
+          quiz('q6', 'Round three', { tags: ['history'] }),
+          quiz('q3', 'A draft', { status: 'draft' }),
+          quiz('q4', 'Someone else’s', { ownerId: 'other' }),
+          quiz('q5', 'Empty', { questionCount: 0 }),
+        ],
+      },
+    ]);
+    hookState.value = view({
+      state: GameState.Podium,
+      quizId: 'q1',
+      podium: { podium: [{ nickname: 'Ada', score: 900, rank: 1 }] },
+      standings: { quizzesPlayed: 2, top: [{ nickname: 'Ada', score: 1800, rank: 1 }] },
+    });
+    renderApp('/session/482913/console');
+
+    // The quiz's podium, then the room's.
+    expect(await screen.findByText(/Classement du salon/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /Quiz suivant/ }));
+    const picker = await screen.findByRole('combobox', { name: 'Quiz' });
+    fireEvent.focus(picker);
+    await waitFor(() =>
+      expect(screen.getByRole('option', { name: /Round two/ })).toBeInTheDocument(),
+    );
+    // Only the host's own quizzes that can be played.
+    expect(screen.queryByRole('option', { name: /A draft/ })).toBeNull();
+    expect(screen.queryByRole('option', { name: /Someone else’s/ })).toBeNull();
+    expect(screen.queryByRole('option', { name: /Empty/ })).toBeNull();
+    // A tag narrows the list; the search looks into the description too.
+    fireEvent.click(screen.getByRole('button', { name: 'history' }));
+    expect(screen.queryByRole('option', { name: /Round two/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: 'history' }));
+    fireEvent.change(picker, { target: { value: 'mountains' } });
+    expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(1);
+    expect(screen.getByRole('status')).toHaveTextContent('1 quiz'); // counted after the search
+    fireEvent.click(screen.getByRole('option', { name: /Round two/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Ouvrir ce quiz/ }));
+    expect(fakeSocket.emit).toHaveBeenCalledWith(
+      'host:next-quiz',
+      { pin: '482913', quizId: 'q2', archive: true },
+      expect.any(Function),
+    );
+  });
 });
 
 describe('ControlPage (console hôte)', () => {
@@ -94,7 +254,7 @@ describe('ControlPage (console hôte)', () => {
     });
     renderApp('/session/482913/console');
 
-    const select = await screen.findByLabelText('Qui entend le son dans cette session');
+    const select = await screen.findByLabelText('Qui entend le son dans ce quiz');
     expect(select).toHaveValue('projection_remote');
     expect(screen.getByLabelText('Participe à distance')).toBeInTheDocument();
     // Who is still loading the first question's sound: Alice, the projection is ready.
@@ -115,7 +275,7 @@ describe('ControlPage (console hôte)', () => {
     hookState.value = view({ quizHasSound: false, gameAudioTarget: 'projection_remote' });
     renderApp('/session/482913/console');
     await screen.findByLabelText('Code PIN');
-    expect(screen.queryByText('Qui entend le son dans cette session')).not.toBeInTheDocument();
+    expect(screen.queryByText('Qui entend le son dans ce quiz')).not.toBeInTheDocument();
   });
 
   it('MEDIA_LOADING: names who is still loading, and starts anyway on request', async () => {
@@ -163,6 +323,32 @@ describe('ControlPage (console hôte)', () => {
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:reveal', { pin: '482913' });
   });
 
+  it('the space bar pauses the game and resumes it — not while typing, nor in the lobby', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: { prompt: 'Capitale ?' } as never,
+    });
+    const { unmount } = renderApp('/session/482913/console');
+    await screen.findByText('Capitale ?');
+    fireEvent.keyDown(document.body, { code: 'Space', key: ' ' });
+    expect(fakeSocket.emit).toHaveBeenCalledWith('host:pause', { pin: '482913', paused: true });
+    fakeSocket.emit.mockClear();
+    const field = document.createElement('input');
+    document.body.appendChild(field);
+    fireEvent.keyDown(field, { code: 'Space', key: ' ' });
+    expect(fakeSocket.emit).not.toHaveBeenCalledWith('host:pause', expect.anything());
+    field.remove();
+    unmount();
+    hookState.value = view({});
+    renderApp('/session/482913/console');
+    await screen.findAllByText(/482\s?913/);
+    fireEvent.keyDown(document.body, { code: 'Space', key: ' ' });
+    expect(fakeSocket.emit).not.toHaveBeenCalledWith('host:pause', expect.anything());
+  });
+
   it('le bouton « Partager » diffuse le lien de la partie (Web Share)', async () => {
     localStorage.setItem('live.localUser', 'Animateur');
     hookState.value = view({});
@@ -189,7 +375,7 @@ describe('ControlPage (console hôte)', () => {
     renderApp('/session/482913/console');
 
     const lock = await screen.findByRole('switch', {
-      name: 'Fermer la partie aux nouveaux participants',
+      name: 'Fermer le salon aux nouveaux participants',
     });
     act(() => fireEvent.click(lock));
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:lock', { pin: '482913', locked: true });
@@ -217,7 +403,7 @@ describe('ControlPage (console hôte)', () => {
     renderApp('/session/482913/console');
 
     const lock = await screen.findByRole('button', {
-      name: 'Fermer la partie aux nouveaux participants',
+      name: 'Fermer le salon aux nouveaux participants',
     });
     expect(lock).toHaveAttribute('aria-pressed', 'true');
     act(() => lock.click());
