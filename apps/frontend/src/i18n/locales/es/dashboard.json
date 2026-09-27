@@ -183,5 +183,7 @@
     "prompt": "¿Tu pregunta?",
     "answer1": "Respuesta 1",
     "answer2": "Respuesta 2"
-  }
+  },
+  "createFrom": "Crear a partir de este quiz",
+  "readOnly": "Solo lectura: compartido por otro anfitrión"
 }

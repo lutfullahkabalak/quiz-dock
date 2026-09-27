@@ -194,10 +194,13 @@ export class MediaLibraryService {
    * importance: what the preview page lists and the podium shows (a CC-BY
    * licence asks for an attribution the audience sees).
    */
-  /** `creditsOf` for the quiz's owner only: someone else's quiz is not found. */
+  /**
+   * `creditsOf` for a quiz the caller reads: theirs, or one another host shares with
+   * the instance (its preview owes the same attributions); any other is not found.
+   */
   async creditsOfOwned(ownerId: string, quizId: string): Promise<string[]> {
     const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, ownerId },
+      where: { id: quizId, OR: [{ ownerId }, { shared: true, status: { not: 'archived' } }] },
       select: { id: true },
     });
     if (!quiz) throw new NotFoundException('quiz.not_found');

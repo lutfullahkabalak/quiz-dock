@@ -36,22 +36,34 @@ export class QuizzesService {
   ) {}
 
   /**
-   * Banque de l'appelant, les plus récents d'abord — et **toute l'instance** pour
-   * un gestionnaire (`admin`), avec le nom du propriétaire de chaque quiz : il
-   * voit tout, il ne présente rien (RG-14).
+   * Banque de l'appelant, les plus récents d'abord, avec les quiz que les autres
+   * hôtes partagent avec l'instance — en lecture seule, à copier — et **toute
+   * l'instance** pour un gestionnaire (`admin`), avec le nom du propriétaire de
+   * chaque quiz : il voit tout, il ne présente rien (RG-14).
    */
-  async list(user: { id: string; roles: RoleSet }): Promise<(Quiz & { ownerName?: string })[]> {
+  async list(user: {
+    id: string;
+    roles: RoleSet;
+  }): Promise<(Quiz & { ownerName?: string; editable: boolean })[]> {
     const manager = isManager(user.roles);
     const rows = await this.prisma.quiz.findMany({
-      where: manager ? {} : { ownerId: user.id },
+      where: manager ? {} : this.readableBy(user.id),
       orderBy: { createdAt: 'desc' },
       include: { owner: { select: { displayName: true } } },
     });
-    // Le nom du propriétaire n'a de sens que dans la vue d'ensemble : un hôte qui
+    // Le nom du propriétaire n'a de sens que pour le quiz d'un autre : un hôte qui
     // lit sa banque n'a pas besoin qu'on lui rappelle que tout est à lui.
-    return rows.map(({ owner, ...quiz }) =>
-      manager ? { ...quiz, ownerName: owner.displayName } : quiz,
-    );
+    return rows.map(({ owner, ...quiz }) => {
+      const editable = quiz.ownerId === user.id;
+      return manager || !editable
+        ? { ...quiz, editable, ownerName: owner.displayName }
+        : { ...quiz, editable };
+    });
+  }
+
+  /** What a host reads: their quizzes, and those shared with the instance (not archived). */
+  private readableBy(userId: string): Prisma.QuizWhereInput {
+    return { OR: [{ ownerId: userId }, { shared: true, status: { not: QuizStatus.archived } }] };
   }
 
   /**
@@ -86,9 +98,9 @@ export class QuizzesService {
    * alors à qui il est.
    */
   async get(user: { id: string; roles: RoleSet }, id: string) {
-    const ownerId = this.scopeOf(user);
     const quiz = await this.prisma.quiz.findFirst({
-      where: { id, ownerId },
+      // A quiz another host shares is read too, never edited.
+      where: isManager(user.roles) ? { id } : { id, ...this.readableBy(user.id) },
       include: {
         questions: { orderBy: { orderIndex: 'asc' }, include: QUESTION_INCLUDE },
         slides: { orderBy: { orderIndex: 'asc' } },
@@ -351,10 +363,14 @@ export class QuizzesService {
     };
   }
 
-  /** Duplique un quiz possédé (copie profonde questions/options/réponses) en `draft`. */
+  /**
+   * Duplique un quiz possédé (copie profonde questions/options/réponses) en `draft` —
+   * ou un quiz qu'un autre hôte partage (« Créer à partir de ce quiz ») : la copie
+   * est à l'appelant, privée, sans lien avec l'original.
+   */
   async duplicate(ownerId: string, id: string): Promise<Quiz> {
     const src = await this.prisma.quiz.findFirst({
-      where: { id, ownerId },
+      where: { id, ...this.readableBy(ownerId) },
       include: {
         questions: {
           orderBy: { orderIndex: 'asc' },
@@ -468,6 +484,7 @@ export class QuizzesService {
         audioTarget: dto.audioTarget,
         license: dto.license,
         tags: dto.tags,
+        shared: dto.shared,
       },
     });
   }

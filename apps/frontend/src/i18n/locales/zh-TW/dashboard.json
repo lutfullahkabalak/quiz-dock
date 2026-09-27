@@ -183,5 +183,7 @@
     "prompt": "你的問題？",
     "answer1": "答案 1",
     "answer2": "答案 2"
-  }
+  },
+  "createFrom": "以此測驗建立",
+  "readOnly": "唯讀：由其他主持人共享"
 }

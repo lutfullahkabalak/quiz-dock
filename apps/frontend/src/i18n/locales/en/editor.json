@@ -60,7 +60,11 @@
     "tagsPlaceholder": "Add a tag…",
     "tagsHelp": "Up to 5 keywords to find the quiz among templates. Press Enter to add one.",
     "removeTag": "Remove tag {{tag}}",
-    "saveError": "Could not save the change."
+    "saveError": "Could not save the change.",
+    "sharedLabel": "Share with the instance’s other hosts",
+    "sharedHelp": "They see it in their quizzes, read-only, and can create their own copy from it. Unchecked, it stays yours alone.",
+    "sharedOn": "Shared",
+    "sharedOff": "Private"
   },
   "broadcast": {
     "title": "Broadcast",
@@ -463,6 +467,7 @@
     "slugChanged": "Changing it from “{{previous}}” makes a new quiz for the store: delete the old file from your repository."
   },
   "readOnly": {
-    "notice": "{{owner}}'s quiz: you can read it, not change it."
+    "notice": "{{owner}}'s quiz: you can read it, not change it.",
+    "createFrom": "Create from this quiz"
   }
 }

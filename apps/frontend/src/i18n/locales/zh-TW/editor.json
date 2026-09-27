@@ -60,7 +60,11 @@
     "tagsPlaceholder": "新增標籤…",
     "tagsHelp": "最多 5 個關鍵字，方便在範本中找到此測驗。按 Enter 新增。",
     "removeTag": "移除標籤 {{tag}}",
-    "saveError": "無法儲存變更。"
+    "saveError": "無法儲存變更。",
+    "sharedLabel": "與本實例的其他主持人共享",
+    "sharedHelp": "他們會在自己的測驗中看到它（唯讀），並可建立自己的副本。不勾選則只有你能看到。",
+    "sharedOn": "已共享",
+    "sharedOff": "私人"
   },
   "broadcast": {
     "title": "廣播",
@@ -463,6 +467,7 @@
     "slugChanged": "變更它（原為「{{previous}}」）會在目錄中產生新的測驗：請從儲存庫刪除舊檔案。"
   },
   "readOnly": {
-    "notice": "{{owner}} 的測驗：你可以檢視，但不能修改。"
+    "notice": "{{owner}} 的測驗：你可以檢視，但不能修改。",
+    "createFrom": "以此測驗建立"
   }
 }

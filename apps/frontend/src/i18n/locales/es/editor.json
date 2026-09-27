@@ -60,7 +60,11 @@
     "tagsPlaceholder": "Añadir una etiqueta…",
     "tagsHelp": "Hasta 5 palabras clave para encontrar el quiz entre las plantillas. Pulsa Intro para añadir una.",
     "removeTag": "Quitar la etiqueta {{tag}}",
-    "saveError": "No se pudo guardar el cambio."
+    "saveError": "No se pudo guardar el cambio.",
+    "sharedLabel": "Compartir con los otros anfitriones de la instancia",
+    "sharedHelp": "Lo ven en sus quiz, en solo lectura, y pueden crear su propia copia. Sin marcar, solo es tuyo.",
+    "sharedOn": "Compartido",
+    "sharedOff": "Privado"
   },
   "broadcast": {
     "title": "Difusión",
@@ -463,6 +467,7 @@
     "slugChanged": "Cambiarlo (antes «{{previous}}») crea un cuestionario nuevo para el catálogo: borra el archivo antiguo de tu repositorio."
   },
   "readOnly": {
-    "notice": "Cuestionario de {{owner}}: puedes consultarlo, no modificarlo."
+    "notice": "Cuestionario de {{owner}}: puedes consultarlo, no modificarlo.",
+    "createFrom": "Crear a partir de este quiz"
   }
 }

@@ -199,6 +199,9 @@ model Quiz {
   coverMediaId       String?        @map("cover_media_id") @db.Char(26)
   status             QuizStatus     @default(draft)
   visibility         QuizVisibility @default(private)
+  /// Shared with the instance's other hosts: listed in their bank, read-only, to copy from
+  /// ("Create from this"). Off by default: a private quiz is the owner's alone.
+  shared             Boolean        @default(false)
   language           String         @default("fr")
   questionCount      Int            @default(0) @map("question_count")
   /// Quiz Store identity (docs/quiz-bundle.md): kebab-case, taken from an imported bundle or set at first export.

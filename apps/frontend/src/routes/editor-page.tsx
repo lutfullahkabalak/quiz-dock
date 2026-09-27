@@ -277,6 +277,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   const setAudioTarget = (audioTarget: AudioTarget) => saveSettings({ audioTarget });
   const setLicense = (license: (typeof QUIZ_LICENSES)[number] | null) => saveSettings({ license });
   const setLanguage = (language: string) => saveSettings({ language });
+  const setShared = (shared: boolean) => saveSettings({ shared });
   const setTags = (tags: string[]) => saveSettings({ tags });
   const setMediaTailS = (mediaTailS: number) => saveSettings({ mediaTailS });
 
@@ -614,6 +615,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                 className="-mx-3 border-t px-3 pt-1"
                 title={t('settings.sharingLegend')}
                 value={[
+                  quiz.shared ? t('settings.sharedOn') : t('settings.sharedOff'),
                   languageName(quiz.language, i18n.language),
                   quiz.license
                     ? t('settings.sharingSummary', {
@@ -623,6 +625,20 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                     : t('settings.noLicense'),
                 ].join(' · ')}
               >
+                {/* Private by default: the other hosts see nothing of it until it is shared. */}
+                <label className="mb-2 flex items-start gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    className="accent-primary mt-0.5"
+                    checked={quiz.shared}
+                    disabled={update.isPending}
+                    onChange={(e) => void setShared(e.target.checked)}
+                  />
+                  <span>
+                    <span className="font-medium">{t('settings.sharedLabel')}</span>
+                    <span className="text-muted-foreground block">{t('settings.sharedHelp')}</span>
+                  </span>
+                </label>
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                   <label
                     className="flex items-center gap-2 text-sm"

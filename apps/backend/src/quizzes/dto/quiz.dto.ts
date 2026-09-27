@@ -22,7 +22,11 @@ export const quizSchema = z.object({
   /** SPDX identifier, required to share the quiz; an imported one may be outside the list offered. */
   license: z.string().nullable(),
   tags: z.array(z.string()),
-  /** Nom du propriétaire — uniquement dans la vue d'ensemble d'un gestionnaire (RG-14). */
+  /** Shared with the instance's other hosts (read-only for them, to copy from). */
+  shared: z.boolean(),
+  /** Whether the caller may edit it: theirs. Absent on the answers that do not say. */
+  editable: z.boolean().optional(),
+  /** Nom du propriétaire — un quiz d'un autre (partagé, ou la vue d'un gestionnaire, RG-14). */
   ownerName: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),

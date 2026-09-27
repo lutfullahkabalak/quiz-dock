@@ -1,9 +1,12 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
+  CopyPlus,
+  Eye,
   LayoutGrid,
   List as ListIcon,
   ListChecks,
+  Lock,
   Pencil,
   Play,
   Plus,
@@ -26,6 +29,7 @@ import { useStoredView } from '@/lib/use-stored-view';
 import { useRole } from '../auth/use-role';
 import { useLaunchSession } from '../game/use-launch-session';
 import { addStarter } from './quiz-starter';
+import { useCopyQuiz } from './use-copy-quiz';
 import {
   getQuizzesControllerListQueryKey,
   useQuizzesControllerCreate,
@@ -53,6 +57,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
   const { launch, isLaunching, error: launchError, dialog: launchDialog } = useLaunchSession();
+  const { copy, copying } = useCopyQuiz();
   // Un gestionnaire lit l'instance ; s'il n'anime pas, il ne crée, n'importe ni ne
   // présente rien. Un compte qui cumule garde tout (RG-14).
   const { isManager, isHost } = useRole();
@@ -295,15 +300,32 @@ export function DashboardPage() {
         }
       >
         {visible.map((quiz) => {
+          // Someone else's: shared with the instance (or a manager's overview) — read, copied.
+          const readOnly = quiz.editable === false;
+          const lock = readOnly ? (
+            <Lock className="text-muted-foreground size-3.5 shrink-0" aria-label={t('readOnly')} />
+          ) : null;
           const actions = (
             <span className="flex flex-wrap gap-2">
               <Link to="/quizzes/$quizId" params={{ quizId: quiz.id }}>
                 <Button type="button" size="sm" variant="outline">
-                  <Pencil className="size-4" />
-                  {quiz.ownerName && !isHost ? t('view') : t('edit')}
+                  {readOnly ? <Eye className="size-4" /> : <Pencil className="size-4" />}
+                  {readOnly ? t('view') : t('edit')}
                 </Button>
               </Link>
-              {!managerOnly && quiz.status === 'ready' && (
+              {readOnly && quiz.shared && !managerOnly ? (
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={copying}
+                  onClick={() => copy(quiz.id)}
+                >
+                  <CopyPlus className="size-4" />
+                  {t('createFrom')}
+                </Button>
+              ) : null}
+              {!managerOnly && !readOnly && quiz.status === 'ready' && (
                 <Button
                   type="button"
                   size="sm"
@@ -328,7 +350,10 @@ export function DashboardPage() {
                 <QuizCover quiz={quiz} className="aspect-video w-full" />
                 <span className="flex flex-1 flex-col gap-2 p-4">
                   <span className="flex items-start justify-between gap-2">
-                    <span className="font-semibold">{quiz.title}</span>
+                    <span className="flex items-center gap-1.5 font-semibold">
+                      {lock}
+                      {quiz.title}
+                    </span>
                     <StatusBadge status={quiz.status} />
                   </span>
                   {quiz.description ? (
@@ -350,6 +375,7 @@ export function DashboardPage() {
               {/* Le titre peut être long : il tronque au lieu de pousser les actions hors écran. */}
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex min-w-0 items-center gap-2">
+                  {lock}
                   <Link
                     to="/quizzes/$quizId"
                     params={{ quizId: quiz.id }}

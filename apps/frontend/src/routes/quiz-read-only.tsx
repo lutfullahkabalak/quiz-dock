@@ -1,22 +1,26 @@
 import { Link } from '@tanstack/react-router';
-import { ExternalLink, Eye, History, LayoutTemplate } from 'lucide-react';
+import { CopyPlus, ExternalLink, Eye, History, LayoutTemplate } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
 import { Badge } from '@/components/ui/badge';
-import { buttonVariants } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { quizItems, slideLabel } from '@/lib/quiz-items';
 import { cn } from '@/lib/utils';
 import type { QuizDetailDto } from '../api/generated/model';
+import { useRole } from '../auth/use-role';
+import { useCopyQuiz } from './use-copy-quiz';
 
 /**
- * A quiz the caller may read but not change: a manager looking at another
- * host's quiz (RG-14, #82). The editor's controls would only fail on save, so
- * this view shows the content, the way to see it played (Preview) and its
- * history. Taking a copy stays the owner's call: only a quiz they shared as a
- * template can be copied, from the templates, like any host (RG-17).
+ * A quiz the caller may read but not change: one another host shares with the
+ * instance, or a manager looking at another host's quiz (RG-14, #82). The
+ * editor's controls would only fail on save, so this view shows the content and
+ * the way to see it played (Preview); a manager also reads its history. A quiz
+ * shared with the instance is copied to be made one's own ("Create from this").
  */
 export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
   const { t } = useTranslation(['editor', 'common']);
+  const { isManager, isHost } = useRole();
+  const { copy, copying } = useCopyQuiz();
   const items = quizItems(quiz);
 
   let questionIndex = 0;
@@ -38,14 +42,22 @@ export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
               <ExternalLink className="size-4" />
               {t('header.preview')}
             </a>
-            <Link
-              to="/quizzes/$quizId/history"
-              params={{ quizId: quiz.id }}
-              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
-            >
-              <History className="size-4" />
-              {t('header.history')}
-            </Link>
+            {isManager ? (
+              <Link
+                to="/quizzes/$quizId/history"
+                params={{ quizId: quiz.id }}
+                className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+              >
+                <History className="size-4" />
+                {t('header.history')}
+              </Link>
+            ) : null}
+            {quiz.shared && isHost ? (
+              <Button type="button" size="sm" disabled={copying} onClick={() => copy(quiz.id)}>
+                <CopyPlus className="size-4" />
+                {t('readOnly.createFrom')}
+              </Button>
+            ) : null}
           </div>
         </div>
         <div

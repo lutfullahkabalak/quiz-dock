@@ -26,6 +26,8 @@ export const updateQuizSchema = z.object({
   coverMediaId: z.string().length(26).nullable().optional(),
   /** Terms the quiz travels under when shared (#39, #21); `null` clears it. */
   license: z.enum(QUIZ_LICENSES).nullable().optional(),
+  /** Shared with the instance's other hosts: read-only for them, to copy from. */
+  shared: z.boolean().optional(),
   /** Replaces the whole list; duplicates are dropped. */
   tags: z
     .array(z.string().regex(TAG_RE).max(TAG_MAX_LENGTH))

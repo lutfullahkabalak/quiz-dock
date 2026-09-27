@@ -60,7 +60,11 @@
     "tagsPlaceholder": "Ajouter un tag…",
     "tagsHelp": "Jusqu’à 5 mots-clés pour retrouver le quiz parmi les modèles. Entrée pour en ajouter un.",
     "removeTag": "Retirer le tag {{tag}}",
-    "saveError": "Impossible d’enregistrer la modification."
+    "saveError": "Impossible d’enregistrer la modification.",
+    "sharedLabel": "Partager avec les autres animateurs de l’instance",
+    "sharedHelp": "Ils le voient dans leurs quiz, en lecture seule, et peuvent en créer leur propre copie. Décoché, il reste à vous seul.",
+    "sharedOn": "Partagé",
+    "sharedOff": "Privé"
   },
   "broadcast": {
     "title": "Diffusion",
@@ -463,6 +467,7 @@
     "slugChanged": "Le changer (auparavant « {{previous}} ») crée un nouveau quiz pour le catalogue : supprimez l’ancien fichier de votre dépôt."
   },
   "readOnly": {
-    "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier."
+    "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier.",
+    "createFrom": "Créer à partir de ce quiz"
   }
 }

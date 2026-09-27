@@ -38,6 +38,8 @@ export interface QuizDto {
   /** @nullable */
   license: string | null;
   tags: string[];
+  shared: boolean;
+  editable?: boolean;
   ownerName?: string;
   createdAt: string;
   updatedAt: string;

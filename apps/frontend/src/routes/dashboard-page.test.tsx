@@ -33,6 +33,53 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('Histoire')).toBeInTheDocument();
   });
 
+  it('a quiz another host shares: a lock, read-only, and « Créer à partir de ce quiz »', async () => {
+    const fetchMock = mockApi([
+      {
+        method: 'POST',
+        path: '/quizzes/shared/duplicate',
+        status: 201,
+        body: quiz({ id: 'copy' }),
+      },
+      {
+        method: 'GET',
+        path: '/quizzes/copy',
+        body: { ...quiz({ id: 'copy' }), questions: [], slides: [] },
+      },
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [
+          quiz({
+            id: 'shared',
+            title: 'Partagé',
+            status: 'ready',
+            editable: false,
+            shared: true,
+            ownerName: 'Alice',
+          }),
+        ],
+      },
+    ]);
+    renderApp('/quizzes');
+    expect(await screen.findByText('Partagé')).toBeInTheDocument();
+    expect(
+      screen.getByLabelText('Lecture seule : partagé par un autre animateur'),
+    ).toBeInTheDocument();
+    // Nothing of an owner's: no editing, no presenting.
+    expect(screen.queryByRole('button', { name: /Éditer/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Présenter/ })).toBeNull();
+    fireEvent.click(screen.getByRole('button', { name: /Créer à partir de ce quiz/ }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, opts]) =>
+            String(url).includes('/quizzes/shared/duplicate') && opts?.method === 'POST',
+        ),
+      ).toBe(true),
+    );
+  });
+
   it('narrows by language and tag, and shows what tells quizzes apart', async () => {
     mockApi([
       {

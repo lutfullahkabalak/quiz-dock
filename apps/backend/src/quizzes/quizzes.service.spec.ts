@@ -65,20 +65,45 @@ describe('QuizzesService', () => {
   });
 
   describe('isolation par propriétaire', () => {
-    it('list filtre sur ownerId', async () => {
+    it("list: the host's quizzes, and those others share with the instance", async () => {
       prisma.quiz.findMany.mockResolvedValue([]);
       await service.list(HOST);
       expect(prisma.quiz.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { ownerId: OWNER } }),
+        expect.objectContaining({
+          where: { OR: [{ ownerId: OWNER }, { shared: true, status: { not: 'archived' } }] },
+        }),
       );
     });
 
-    it('get cherche par id ET ownerId', async () => {
+    it('get: by id, among what the host may read', async () => {
       prisma.quiz.findFirst.mockResolvedValue({ ...makeQuiz(), questions: [] });
       await service.get(HOST, 'q1');
       expect(prisma.quiz.findFirst).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { id: 'q1', ownerId: OWNER } }),
+        expect.objectContaining({
+          where: {
+            id: 'q1',
+            ...{ OR: [{ ownerId: OWNER }, { shared: true, status: { not: 'archived' } }] },
+          },
+        }),
       );
+    });
+
+    it("a quiz another host shares: listed read-only, with its owner, copied to make it one's own", async () => {
+      prisma.quiz.findMany.mockResolvedValue([
+        { id: 'mine', ownerId: OWNER, owner: { displayName: 'Me' } },
+        { id: 'theirs', ownerId: 'other', shared: true, owner: { displayName: 'Alice' } },
+      ]);
+      const rows = await service.list(HOST);
+      expect(rows[0]).toMatchObject({ editable: true });
+      expect(rows[0]).not.toHaveProperty('ownerName');
+      expect(rows[1]).toMatchObject({ editable: false, ownerName: 'Alice' });
+      // Its copy: looked for among what the host reads.
+      prisma.quiz.findFirst.mockResolvedValue(null);
+      await expect(service.duplicate(OWNER, 'theirs')).rejects.toThrow(NotFoundException);
+      expect(prisma.quiz.findFirst.mock.calls[0][0].where).toEqual({
+        id: 'theirs',
+        ...{ OR: [{ ownerId: OWNER }, { shared: true, status: { not: 'archived' } }] },
+      });
     });
 
     it('get renvoie 404 si non possédé', async () => {
@@ -105,12 +130,11 @@ describe('QuizzesService', () => {
       expect(rows).toMatchObject([{ ownerName: 'Alice' }, { ownerName: 'Bob' }]);
     });
 
-    it('un hôte ne voit que la sienne, sans nom de propriétaire', async () => {
-      prisma.quiz.findMany.mockResolvedValue([{ id: 'q1', owner: { displayName: 'Alice' } }]);
+    it('un hôte ne se voit pas rappeler que ses quiz sont à lui', async () => {
+      prisma.quiz.findMany.mockResolvedValue([
+        { id: 'q1', ownerId: HOST.id, owner: { displayName: 'Alice' } },
+      ]);
       const rows = await service.list(HOST);
-      expect(prisma.quiz.findMany).toHaveBeenCalledWith(
-        expect.objectContaining({ where: { ownerId: HOST.id } }),
-      );
       expect(rows[0]).not.toHaveProperty('ownerName');
     });
 
@@ -382,10 +406,7 @@ describe('QuizzesService', () => {
         owner: { displayName: 'Alice' },
       });
       const detail = await service.get(MANAGER, 'q1');
-      expect(prisma.quiz.findFirst.mock.calls[0][0].where).toEqual({
-        id: 'q1',
-        ownerId: undefined,
-      });
+      expect(prisma.quiz.findFirst.mock.calls[0][0].where).toEqual({ id: 'q1' });
       expect(detail).toMatchObject({ editable: false, ownerName: 'Alice' });
     });
   });

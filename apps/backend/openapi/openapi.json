@@ -2685,6 +2685,12 @@
               "type": "string"
             }
           },
+          "shared": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
           "ownerName": {
             "type": "string"
           },
@@ -2714,6 +2720,7 @@
           "questionCount",
           "license",
           "tags",
+          "shared",
           "createdAt",
           "updatedAt",
           "archivedAt"
@@ -3012,6 +3019,12 @@
               "type": "string"
             }
           },
+          "shared": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
           "ownerName": {
             "type": "string"
           },
@@ -3024,9 +3037,6 @@
           "archivedAt": {
             "type": "string",
             "nullable": true
-          },
-          "editable": {
-            "type": "boolean"
           },
           "questions": {
             "type": "array",
@@ -3886,10 +3896,11 @@
           "questionCount",
           "license",
           "tags",
+          "shared",
+          "editable",
           "createdAt",
           "updatedAt",
           "archivedAt",
-          "editable",
           "questions",
           "slides"
         ]
@@ -4495,6 +4506,9 @@
               null
             ],
             "nullable": true
+          },
+          "shared": {
+            "type": "boolean"
           },
           "tags": {
             "maxItems": 5,
