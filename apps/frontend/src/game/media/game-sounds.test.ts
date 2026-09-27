@@ -113,19 +113,23 @@ describe('game sounds (#93)', () => {
     expect(oscillators).toHaveLength(0);
   });
 
-  it('plays the track while players answer and holds it in between, never from the top again', async () => {
+  it('plays the track while players answer, holds it anywhere else, never from the top again', async () => {
     const withTrack = { ...SOUNDS, musicUrl: '/api/v1/media/track' };
+    const ownSound = { visual: null, audio: { url: '/a.m4a' } } as never;
     const { rerender } = renderHook(({ g }) => useGameSounds(withTrack, g, true), {
-      // A question with its own sound: the track plays too, the sidechain pushes it aside.
-      initialProps: {
-        g: game({ media: { visual: null, audio: { url: '/a.m4a' } } as never }),
-      },
+      // A question with its own sound: no track over it.
+      initialProps: { g: game({ media: ownSound }) },
     });
-    await vi.waitFor(() => expect(track).toEqual(['play']));
-    rerender({ g: game({ state: 'REVEAL' }) });
-    rerender({ g: game({ state: 'ANSWERING', questionIndex: 1 }) });
-    rerender({ g: game({ questionIndex: 1, paused: true }) });
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    await Promise.resolve();
+    expect(track).toEqual([]);
     rerender({ g: game({ questionIndex: 1 }) });
+    await vi.waitFor(() => expect(track).toEqual(['play']));
+    rerender({ g: game({ questionIndex: 1, state: 'REVEAL' }) });
+    rerender({ g: game({ questionIndex: 2, media: ownSound }) });
+    rerender({ g: game({ questionIndex: 3 }) });
+    rerender({ g: game({ questionIndex: 3, paused: true }) });
+    rerender({ g: game({ questionIndex: 3 }) });
     // One track, held and played again (it keeps its place): never a new one per question.
     expect(track).toEqual(['play', 'hold', 'play', 'hold', 'play']);
     expect(played).toEqual([]);

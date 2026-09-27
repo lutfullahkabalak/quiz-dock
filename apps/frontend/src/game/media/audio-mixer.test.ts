@@ -86,8 +86,8 @@ describe('audio mixer (SPECIFICATIONS-MEDIA §9)', () => {
   it('plugs every bus into the master, then a limiter, then the speakers', () => {
     for (const bus of mod.BUSES) {
       const input = mod.busInput(bus) as unknown as FakeNode;
-      // level → duck → side (the sidechain) → master → limiter → speakers
-      expect(pathOf(input)).toEqual(['gain', 'gain', 'gain', 'gain', 'limiter', 'destination']);
+      // level → duck → master → limiter → speakers
+      expect(pathOf(input)).toEqual(['gain', 'gain', 'gain', 'limiter', 'destination']);
     }
     expect(mod.BUSES).toEqual(['quiz', 'music', 'sfx', 'ui']);
   });
@@ -102,7 +102,6 @@ describe('audio mixer (SPECIFICATIONS-MEDIA §9)', () => {
     // element → its gain (−6 dB) → the QUIZ bus (level, duck) → master → limiter → speakers
     expect(pathOf(source)).toEqual([
       'element',
-      'gain',
       'gain',
       'gain',
       'gain',
@@ -141,29 +140,6 @@ describe('audio mixer (SPECIFICATIONS-MEDIA §9)', () => {
     // A source with its own gain, into the SFX bus.
     expect(typeof stop).toBe('function');
     expect(sfxIn.out[0]).toBe(mixer.strips.sfx.duck);
-  });
-
-  it('pushes the music aside while the QUIZ bus sounds, and brings it back after', () => {
-    vi.useFakeTimers();
-    let loudness = 0;
-    const proto = FakeContext.prototype as unknown as Record<string, unknown>;
-    proto.createAnalyser = () =>
-      Object.assign(new FakeNode('analyser'), {
-        fftSize: 0,
-        getFloatTimeDomainData: (a: Float32Array) => a.fill(loudness),
-      });
-    try {
-      const side = (mod.getMixer()!.strips.music.side as unknown as FakeGain).gain;
-      loudness = 0.3; // a question's sound plays
-      vi.advanceTimersByTime(60);
-      expect(side.targets.at(-1)).toBe(0.2);
-      loudness = 0; // it ends
-      vi.advanceTimersByTime(60);
-      expect(side.targets.at(-1)).toBe(1);
-    } finally {
-      delete proto.createAnalyser;
-      vi.useRealTimers();
-    }
   });
 
   it('fades a media in to its own level and out to silence, so nothing clicks', async () => {

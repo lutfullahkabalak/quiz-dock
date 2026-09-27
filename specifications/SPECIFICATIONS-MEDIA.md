@@ -197,13 +197,13 @@ tick, gong (synthesised, or a sample) ────► SFX   ─┼─► MASTER 
 interface sounds (to come) ───────────────► UI    ─┘
 ```
 
-- **A bus is three gains in a row**: its *level* (a host's volume), its *duck* (from the game's state) and its *side*
-  (the sidechain), so a volume change never fights a duck. **MASTER** carries the participant's own mute; a **limiter**
-  after it keeps simultaneous sources from clipping.
-- **MUSIC is sidechained on QUIZ**: an envelope follower reads the QUIZ bus (every 50 ms) and pushes MUSIC down to
-  −14 dB while it sounds — fast down (50 ms), slow back (0.6 s) — so a question's sound or video comes through and the
-  track returns when it ends, whatever the media's length or silences. Web Audio's own compressor takes no key input,
-  hence the follower. SFX is never ducked (the effects are short).
+- **A bus is two gains in a row**: its *level* (a host's volume) and its *duck* (automatic), so a volume change never
+  fights a duck. **MASTER** carries the participant's own mute; a **limiter** after it keeps simultaneous sources from
+  clipping.
+- **Two sounds are never laid over each other**: a question that plays its own sound or video has no background track
+  at all (it fades out and keeps its place). A sidechain that only lowered the track was tried and left: a lowered
+  track still covers a sound to recognise, and a video's silences would make it pump. SFX is never ducked (the effects
+  are short).
 - **Faders are tapered**: a position (0–100 %) becomes its cube as a gain, close to how loudness is heard — half-way
   is about −18 dB, not the −6 dB a straight line gives. Positions are what is kept (the room's levels, a device's
   volume and trims).
@@ -231,8 +231,8 @@ interface sounds (to come) ───────────────► UI  
   to its reveal — no event of their own. Both are on in a new room; each can take a sound of the library instead of
   the synthesised one.
 - **The background track** loops while players answer only. Between questions and while the game is paused it fades
-  out and **keeps its place**, then comes back where it was — never from the top at each question. Under a question
-  with its own sound or video it plays on, pushed aside by the sidechain.
+  out and **keeps its place**, then comes back where it was — never from the top at each question. A question with its
+  own sound or video has none.
 - **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
   (`host:sounds`), sent to every screen as URLs and levels (`room:sounds`). A sample or a track must be a sound of the
   host's or of the instance's; the hourly media sweep keeps what an open room plays.

@@ -155,12 +155,13 @@ export function useGameSounds(
     }
   }, [on, sounds, game.state, game.questionIndex, game.answered]);
 
-  // The track: looped while players answer. Between questions, and while the game
-  // is paused, it fades out and keeps its place, then comes back where it was —
-  // never from the top at each question. A question's own sound or video pushes
-  // it aside through the sidechain (the mixer), not by stopping it.
+  // The track: looped while players answer a question without a sound of its own —
+  // two sounds are never laid over each other. Anywhere else (between questions, a
+  // pause, a question that plays its own sound or video) it fades out and keeps
+  // its place, then comes back where it was: never from the top at each question.
   const trackUrl = on ? (sounds?.musicUrl ?? null) : null;
-  const plays = !!trackUrl && game.state === 'ANSWERING' && !game.paused;
+  const plays =
+    !!trackUrl && game.state === 'ANSWERING' && !game.paused && !questionHasOwnSound(game.media);
   const [track, setTrack] = useState<ReturnType<typeof loopTrack> | null>(null);
   useEffect(() => {
     if (!trackUrl) return;
