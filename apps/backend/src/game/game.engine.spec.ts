@@ -797,4 +797,226 @@ describe('GameEngine (characterization)', () => {
       );
     });
   });
+
+  /**
+   * What keeps every device of a room in step: one server clock, the same
+   * common content for everyone, a screen arriving late told exactly what the
+   * others were, stale timers doing nothing, and a fixed order of events.
+   */
+  describe('sync between devices', () => {
+    const audio = { url: '/media/a.mp3', durationMs: 2_000, peaks: [], gainDb: 0 };
+    const withSound = (over: Partial<SnapshotQuestion> = {}) =>
+      question({ media: { visual: null, audio }, ...over });
+
+    type Timing = { startedAt: number; endsAt: number; mediaStartAt?: number };
+    const timingOf = ({ startedAt, endsAt, mediaStartAt }: Timing): Timing => ({
+      startedAt,
+      endsAt,
+      mediaStartAt,
+    });
+
+    /** A screen (re)attaching now, and what it is sent. */
+    async function reattach(playerId?: string): Promise<FakeSocket> {
+      const socket = new FakeSocket(playerId ? { playerId } : {});
+      await engine.sendStateTo(socket, pin);
+      return socket;
+    }
+
+    /** The reveal a socket got, without its own result: what every device shares. */
+    const commonReveal = (socket: FakeSocket) => {
+      const reveal = { ...socket.of<{ yourResult?: object }>('question:reveal')[0] };
+      delete reveal.yourResult;
+      return reveal;
+    };
+
+    /** The event names sent to the room, then to `socket`, since `from` / `fromSocket`. */
+    const roomNames = (from = 0) => room.slice(from).map(([e]) => e);
+    const socketNames = (socket: FakeSocket, from = 0) =>
+      socket.sent
+        .slice(from)
+        .map(([e]) => e)
+        .filter((e) => e !== 'media:preload'); // what to fetch next is per device
+
+    describe('a screen arriving late gets the clock the room has', () => {
+      it('mid-question, with the common start of the sound', async () => {
+        await startedAt(snapshotOf([withSound()]), { p1: player('Ann') });
+        const live = roomOf<Timing>('question:start')[0];
+        expect(live.mediaStartAt).toBeDefined();
+        const late = await reattach('p1');
+        expect(timingOf(late.of<Timing>('question:start')[0])).toEqual(timingOf(live));
+      });
+
+      it('after a pause and its resume', async () => {
+        await startedAt(snapshotOf([withSound()]), { p1: player('Ann') });
+        await engine.setPaused(pin, HOST, true);
+        await new Promise((r) => setTimeout(r, 30));
+        await engine.setPaused(pin, HOST, false);
+        const live = roomOf<Timing>('question:time').at(-1)!;
+        const late = await reattach();
+        expect(timingOf(late.of<Timing>('question:start')[0])).toEqual(timingOf(live));
+      });
+
+      it('after the host moved the end', async () => {
+        await startedAt(snapshotOf([withSound()]), { p1: player('Ann') });
+        await engine.adjustTime(pin, HOST, 7);
+        const live = roomOf<Timing>('question:time').at(-1)!;
+        const late = await reattach();
+        expect(timingOf(late.of<Timing>('question:start')[0])).toEqual(timingOf(live));
+      });
+
+      it('while paused: the frozen remainder, whenever the screen arrives', async () => {
+        await startedAt(snapshotOf([question()]), { p1: player('Ann') });
+        await engine.setPaused(pin, HOST, true);
+        const { remainingMs } = roomOf<{ remainingMs: number }>('game:mode').at(-1)!;
+        for (const wait of [0, 60]) {
+          await new Promise((r) => setTimeout(r, wait));
+          const shown = (await reattach()).of<Timing>('question:start')[0];
+          expect(Math.abs(shown.endsAt - Date.now() - remainingMs)).toBeLessThan(40);
+        }
+      });
+
+      it('on a slide that plays, its start moved by a pause like everyone’s', async () => {
+        const sounding = { ...slide(0), audio };
+        await seed(snapshotOf([question()], [sounding]));
+        await engine.start(pin, HOST);
+        const first = roomOf<{ mediaStartAt: number }>('slide:show')[0].mediaStartAt;
+        expect(first).toBeGreaterThan(0);
+        await engine.setPaused(pin, HOST, true);
+        await new Promise((r) => setTimeout(r, 50));
+        await engine.setPaused(pin, HOST, false);
+
+        const live = roomOf<{ mediaStartAt: number }>('slide:show').at(-1)!.mediaStartAt;
+        expect(live - first).toBeGreaterThanOrEqual(50);
+        const late = await reattach();
+        expect(late.of<{ mediaStartAt: number }>('slide:show')[0].mediaStartAt).toBe(live);
+      });
+
+      it('at a reveal: the same common result and leaderboard', async () => {
+        const [ann, screen] = [join('p1'), join()];
+        const t0 = await startedAt(snapshotOf([question()]), {
+          p1: player('Ann'),
+          p2: player('Bob'),
+        });
+        await engine.submit(pin, 'p1', 0, await rightOption(), t0 + 1);
+        await engine.reveal(pin, HOST);
+
+        const late = await reattach('p2');
+        expect(commonReveal(late)).toEqual(commonReveal(ann));
+        expect(late.of<{ top: object }>('leaderboard')[0].top).toEqual(
+          screen.of<{ top: object }>('leaderboard')[0].top,
+        );
+      });
+    });
+
+    it('every device gets the same common content, only its own line differs', async () => {
+      const devices = [join('p1'), join('p2'), join()];
+      const t0 = await startedAt(snapshotOf([question()]), {
+        p1: player('Ann'),
+        p2: player('Bob'),
+      });
+      await engine.submit(pin, 'p1', 0, await rightOption(), t0 + 1);
+      await engine.submit(pin, 'p2', 0, 'nope', t0 + 1);
+      await eventually(async () => (await state()) === 'REVEAL');
+      await engine.next(pin, HOST); // podium
+
+      const reveals = devices.map(commonReveal);
+      expect(reveals[1]).toEqual(reveals[0]);
+      expect(reveals[2]).toEqual(reveals[0]);
+      const podiums = devices.map((d) => d.of<{ podium: object }>('game:podium')[0].podium);
+      expect(podiums[1]).toEqual(podiums[0]);
+      expect(podiums[2]).toEqual(podiums[0]);
+      // Each player's own line, and none for the screen.
+      const yous = devices.map((d) => d.of<{ you?: { rank: number } }>('game:podium')[0].you);
+      expect(yous.map((y) => y?.rank)).toEqual([1, 2, undefined]);
+    });
+
+    describe('a timer of a step left behind does nothing', () => {
+      it('the end of the question before does not reveal the one after', async () => {
+        await startedAt(snapshotOf([question({ timeLimitS: 0.2 }), question()]), {
+          p1: player('Ann'),
+        });
+        await engine.reveal(pin, HOST);
+        await engine.next(pin, HOST);
+        await new Promise((r) => setTimeout(r, 700)); // past the first question's end
+        const m = await meta();
+        expect([m.state, m.currentIndex]).toEqual(['ANSWERING', 1]);
+      });
+
+      it('a reveal fired for another question, or another game of the room, is ignored', async () => {
+        // What a stale timer calls; the single timer per room and the reveal lock
+        // usually stop it first, this is the last guard.
+        await startedAt(snapshotOf([question(), question()]), { p1: player('Ann') });
+        const otherGame = randomBytes(16).toString('hex') as GameId;
+        const from = room.length;
+        await engine.advanceToReveal(pin, 1, 'timer', gameId);
+        await engine.advanceToReveal(pin, 0, 'timer', otherGame);
+        expect(await state()).toBe('ANSWERING');
+        expect(roomNames(from)).toEqual([]); // no device was told anything
+        await engine.advanceToReveal(pin, 0, 'timer', gameId);
+        expect(await state()).toBe('REVEAL');
+      });
+
+      it('the auto pace of a slide does not move on from the question after it', async () => {
+        await seed(snapshotOf([question()], [slide(0, 0.2)]), { mode: 'auto' });
+        await engine.start(pin, HOST);
+        await engine.next(pin, HOST); // the host is faster than the slide's timer
+        await new Promise((r) => setTimeout(r, 500));
+        const m = await meta();
+        expect([m.state, m.currentIndex]).toEqual(['ANSWERING', 0]);
+      });
+
+      it('the auto pace of a reveal does not skip the question after it', async () => {
+        await startedAt(snapshotOf([question({ revealDelayS: 0.2 }), question(), question()]), {
+          p1: player('Ann'),
+        });
+        await engine.setMode(pin, HOST, 'auto');
+        await engine.reveal(pin, HOST);
+        await engine.next(pin, HOST); // the host moves on before the auto pace
+        await new Promise((r) => setTimeout(r, 500));
+        const m = await meta();
+        expect([m.state, m.currentIndex]).toEqual(['ANSWERING', 1]);
+      });
+    });
+
+    describe('the order of events on each transition', () => {
+      it('a question starts: its state, the question, then the pace', async () => {
+        await seed(snapshotOf([question()]), {}, { p1: player('Ann') });
+        await engine.start(pin, HOST);
+        expect(roomNames()).toEqual(['game:state', 'question:start', 'game:mode']);
+      });
+
+      it('a reveal: its state, each device its result then the leaderboard, then the pace', async () => {
+        const ann = join('p1');
+        await startedAt(snapshotOf([question(), question()]), { p1: player('Ann') });
+        const [atRoom, atAnn] = [room.length, ann.sent.length];
+        await engine.reveal(pin, HOST);
+        expect(roomNames(atRoom)).toEqual(['game:state', 'game:mode']);
+        expect(socketNames(ann, atAnn)).toEqual(['question:reveal', 'leaderboard']);
+      });
+
+      it('a slide: its state, the slide, then the pace', async () => {
+        await seed(snapshotOf([question()], [slide(0)]));
+        await engine.start(pin, HOST);
+        expect(roomNames()).toEqual(['game:state', 'slide:show', 'game:mode']);
+      });
+
+      it('the podium: its state, then each device its podium, leaderboard and standings', async () => {
+        const ann = join('p1');
+        await startedAt(snapshotOf([question()]), { p1: player('Ann') });
+        await engine.reveal(pin, HOST);
+        const [atRoom, atAnn] = [room.length, ann.sent.length];
+        await engine.next(pin, HOST);
+        expect(roomNames(atRoom)).toEqual(['game:state']);
+        expect(socketNames(ann, atAnn)).toEqual(['game:podium', 'leaderboard', 'room:standings']);
+      });
+
+      it('a pause and its resume: the pace, then the new clock before the pace', async () => {
+        await startedAt(snapshotOf([question()]), { p1: player('Ann') });
+        const from = room.length;
+        await engine.setPaused(pin, HOST, true);
+        await engine.setPaused(pin, HOST, false);
+        expect(roomNames(from)).toEqual(['game:mode', 'question:time', 'game:mode']);
+      });
+    });
+  });
 });
