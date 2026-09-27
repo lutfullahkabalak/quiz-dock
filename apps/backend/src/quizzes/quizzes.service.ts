@@ -334,7 +334,7 @@ export class QuizzesService {
         orderIndex: number;
         prompt: string;
         type: string;
-        options?: Array<{ id: string; text: string | null }>;
+        options?: SnapshotOptionLabel[];
       }>;
     };
     const byIndex = new Map((snap.questions ?? []).map((q) => [q.orderIndex, q]));
@@ -572,23 +572,39 @@ const SESSION_SUMMARY_SELECT = {
   roomId: true,
 } satisfies Prisma.GameSessionLogSelect;
 
+/** What the frozen snapshot keeps of an option to name it. */
+type SnapshotOptionLabel = {
+  id: string;
+  text: string | null;
+  media?: { alt?: string | null } | null;
+};
+
 /**
  * Rend une réponse stockée (`AnswerLog.answerValue`) lisible : texte d'option pour les
  * QCM/ordre, valeur brute pour le libre (texte/numérique). Tombe sur l'id ou la valeur
  * brute si le snapshot ne porte pas l'option (robustesse).
+ *
+ * A picture answer is named by its alt; a known option is never shown by its id.
  */
 function renderAnswer(
-  question: { type?: string; options?: Array<{ id: string; text: string | null }> } | undefined,
+  question: { type?: string; options?: SnapshotOptionLabel[] } | undefined,
   value: unknown,
 ): string {
-  const optText = (id: string) => question?.options?.find((o) => o.id === id)?.text ?? id;
+  const options = question?.options ?? [];
+  const label = (i: number) => {
+    const o = options[i];
+    return o.text || o.media?.alt || `#${i + 1}`;
+  };
+  const optText = (id: string) => {
+    const i = options.findIndex((o) => o.id === id);
+    return i >= 0 ? label(i) : id;
+  };
   if (Array.isArray(value)) {
     const sep = question?.type === 'ordering' ? ' → ' : ', ';
     return value.map((v) => (typeof v === 'string' ? optText(v) : String(v))).join(sep);
   }
   if (typeof value === 'string') {
-    const opt = question?.options?.find((o) => o.id === value);
-    return opt ? (opt.text ?? value) : value; // id d'option connu → texte ; sinon saisie libre
+    return optText(value); // id d'option connu → son libellé ; sinon saisie libre
   }
   return String(value);
 }

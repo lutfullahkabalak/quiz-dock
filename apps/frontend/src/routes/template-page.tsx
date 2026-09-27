@@ -1,3 +1,4 @@
+import { TILE_RATIO } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { ArrowLeft, Download, Trash2 } from 'lucide-react';
@@ -170,6 +171,14 @@ export function TemplatePage() {
                         <span aria-hidden>
                           <ShapeIcon shape={option.shape} />
                         </span>
+                        {option.mediaUrl ? (
+                          <img
+                            src={option.mediaUrl}
+                            alt=""
+                            className="h-10 shrink-0 rounded object-cover"
+                            style={{ aspectRatio: TILE_RATIO }}
+                          />
+                        ) : null}
                         <span className="min-w-0 truncate">{option.text}</span>
                       </li>
                     ))}
@@ -198,14 +207,14 @@ export function TemplatePage() {
  * l'élément, elles ne descendent pas dans le contenu.
  */
 function ItemMeta({ item }: { item: StorePreviewDtoItemsItem }) {
-  const { t } = useTranslation(['store', 'common']);
+  const { t } = useTranslation(['store', 'common', 'editor']);
   return (
     <span className="text-muted-foreground absolute top-2 left-2 z-10 flex flex-wrap items-center gap-2 text-xs">
       <span className="quiz-item-number bg-background/80 text-foreground flex size-6 items-center justify-center rounded-full font-semibold tabular-nums" />
       <Badge variant={item.kind === 'slide' ? 'muted' : 'default'}>
         {item.kind === 'slide'
           ? t('slide')
-          : t(`common:questionType.${item.type}`, item.type ?? '')}
+          : t(`editor:questionType.${item.type}`, item.type ?? '')}
       </Badge>
       {item.timeLimitS ? (
         <span className="bg-background/80 rounded-full px-2 py-0.5">

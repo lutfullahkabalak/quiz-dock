@@ -5540,12 +5540,17 @@
                       },
                       "shape": {
                         "type": "string"
+                      },
+                      "mediaUrl": {
+                        "type": "string",
+                        "nullable": true
                       }
                     },
                     "required": [
                       "text",
                       "color",
-                      "shape"
+                      "shape",
+                      "mediaUrl"
                     ]
                   }
                 },

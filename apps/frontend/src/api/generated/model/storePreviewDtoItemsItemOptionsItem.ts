@@ -10,4 +10,6 @@ export type StorePreviewDtoItemsItemOptionsItem = {
   text: string;
   color: string;
   shape: string;
+  /** @nullable */
+  mediaUrl: string | null;
 };

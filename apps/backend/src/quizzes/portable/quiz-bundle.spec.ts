@@ -314,6 +314,16 @@ describe('quiz bundle', () => {
     );
     // A bundle from a newer schema is refused, as an older importer refuses this one.
     expect(quizBundleSchema.safeParse({ ...bundle, version: 7 }).success).toBe(false);
+    // What makes it true: the published v5 schema, the one a 0.8 / 0.9 importer matches, refuses it.
+    const v5 = JSON.parse(
+      readFileSync(
+        join(__dirname, '..', '..', '..', '..', '..', 'schema', 'quiz-bundle.v5.json'),
+        'utf8',
+      ),
+    ) as object;
+    const ajv = new Ajv2020({ strict: false, allErrors: true });
+    addFormats(ajv);
+    expect(ajv.compile(v5)(JSON.parse(JSON.stringify(bundle)))).toBe(false);
   });
 
   it('round-trips through import with the API content rules applied', () => {
