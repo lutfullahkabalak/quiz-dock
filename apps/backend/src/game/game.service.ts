@@ -441,24 +441,19 @@ export class GameService {
 
   /**
    * What a player is told before joining: whether the quiz plays sound, and
-   * whether an account is needed to get in (#57). Throws like `hasSound`.
+   * whether an account is needed to get in (#57). Throws for a game that does not
+   * exist or is over.
    */
   async peek(pin: string): Promise<{ hasSound: boolean; participantAccess: ParticipantAccess }> {
-    const hasSound = await this.hasSound(pin);
-    const meta = await this.getMeta(pin);
-    return { hasSound, participantAccess: meta?.participantAccess ?? 'account' };
-  }
-
-  /**
-   * Whether the quiz of a live game plays any sound or video — what a player is
-   * told before joining. Throws for a game that does not exist or is over.
-   */
-  async hasSound(pin: string): Promise<boolean> {
     const meta = await this.getMeta(pin);
     if (!meta) throw new NotFoundException('session.not_found');
     if (meta.state === GameState.Ended) throw new BadRequestException('session.ended');
+    // Whether the quiz plays any sound or video: what a player is told before joining.
     const snapshot = await this.getSnapshot(meta.id);
-    return !!snapshot && snapshotHasSound(snapshot);
+    return {
+      hasSound: !!snapshot && snapshotHasSound(snapshot),
+      participantAccess: meta.participantAccess,
+    };
   }
 
   /**

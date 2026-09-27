@@ -113,6 +113,19 @@ describe('GameService: the hashes of a new session (integration)', () => {
     });
   });
 
+  it('tells a player what joining asks, in one read of the room and its game', async () => {
+    await expect(game.peek('000000')).rejects.toThrow('session.not_found');
+    const { pin } = await game.createSession(ownerId, { quizId });
+    pins.push(pin);
+    const reads = jest.spyOn(redis, 'hgetall');
+    expect(await game.peek(pin)).toEqual({ hasSound: false, participantAccess: 'account' });
+    expect(reads).toHaveBeenCalledTimes(2);
+    reads.mockRestore();
+    const gameId = (await redis.hget(gameKeys.room(pin), 'gameId')) as never;
+    await redis.hset(gameKeys.game(gameId), { state: 'ENDED' });
+    await expect(game.peek(pin)).rejects.toThrow('session.ended');
+  });
+
   it("opens the next game with the room's pace and audio target", async () => {
     const { pin } = await game.createSession(ownerId, { quizId });
     pins.push(pin);
