@@ -157,8 +157,8 @@ in the sound cannot be moved from the console and its play / pause is the game's
 pause (the answers open on a time fixed from the sound); **Restart the media**
 still replays it.
 
-**Starting together.** The server sets a common start a fraction of a second
-ahead, and every device — the projection, the remote phones — starts the media on
+**Starting together.** The server sets a common start a second and a half
+ahead (the room sees the question a second before its sound or video), and every device — the projection, the remote phones — starts the media on
 that instant of the **server's** clock: each device measures how far its own clock
 is off (a few ping/pong exchanges when it connects, then one a minute), so a phone
 whose clock is wrong still starts on time. A device that gets the question late

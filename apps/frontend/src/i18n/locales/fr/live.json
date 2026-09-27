@@ -173,12 +173,17 @@
     "sounds": {
       "title": "Sons du jeu",
       "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique joue pendant les réponses ; elle se retire pendant le son d’une question, et revient après.",
+      "effects": "Effets",
       "tick": "Tic",
+      "ding": "Ding",
       "gong": "Gong",
+      "countdown": "Tic-tac",
       "music": "Musique",
       "off": "Désactivés",
       "tickLabel": "Un tic à chaque réponse",
+      "dingLabel": "Un ding au début de chaque question",
       "gongLabel": "Un gong à la fin de la question",
+      "countdownLabel": "Tic… tac… sur les 5 dernières secondes, le gong à zéro",
       "sample": "Son",
       "synth": "Intégré (synthétisé)",
       "fromLibrary": "Un son de la médiathèque…",
@@ -189,7 +194,13 @@
       "sfxLevel": "Effets",
       "instanceMedia": "{{name}} (instance)",
       "muteChannel": "Couper {{bus}} pour le salon",
-      "unmuteChannel": "Rétablir {{bus}} pour le salon"
+      "unmuteChannel": "Rétablir {{bus}} pour le salon",
+      "preview": "Écouter : {{name}} (ici seulement)",
+      "dingWhen": "À l’apparition de chaque question — pas pour une question qui joue son propre son ou sa vidéo.",
+      "tickWhen": "À chaque réponse reçue.",
+      "countdownWhen": "Sur les 5 dernières secondes du chrono : tic à la seconde, tac à la demie ; le dernier tac est omis et le gong tombe à zéro. S’arrête si tout le monde a répondu.",
+      "gongWhen": "À la fin de la question : à zéro, ou dès que tout le monde a répondu.",
+      "musicWhen": "Tourne en boucle pendant les réponses, dès qu’elles s’ouvrent. Elle se retire pendant le son ou la vidéo d’une question, et entre les questions, puis reprend là où elle en était."
     }
   },
   "screen": {

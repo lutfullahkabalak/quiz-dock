@@ -462,9 +462,16 @@ export interface LeaderboardPayload {
 export interface RoomSoundsPayload {
   tick: boolean;
   gong: boolean;
-  /** A sample replacing the synthesised tick / gong (a sound of the library), null = synthesised. */
+  /** Tic… tac… on the last five seconds of a question, the gong on zero. */
+  countdown: boolean;
+  /** A bright ding as a question starts (not over a question with its own sound). */
+  ding: boolean;
+  /** A sample replacing a synthesised effect (a sound of the library), null = synthesised. */
   tickUrl: string | null;
   gongUrl: string | null;
+  dingUrl: string | null;
+  /** The countdown's sample: its tic, and its tac played lower. */
+  countdownUrl: string | null;
   /** The background track, looped while players answer; null = none. */
   musicUrl: string | null;
   /** Levels of the MUSIC and SFX buses, 0..1. */
@@ -479,9 +486,13 @@ export interface RoomSoundsPayload {
 export interface RoomSoundsSettings {
   tick?: boolean;
   gong?: boolean;
+  countdown?: boolean;
+  ding?: boolean;
   /** A media id of the library ('' = back to the synthesised effect / no track). */
   tickId?: string;
   gongId?: string;
+  dingId?: string;
+  countdownId?: string;
   musicId?: string;
   musicLevel?: number;
   sfxLevel?: number;

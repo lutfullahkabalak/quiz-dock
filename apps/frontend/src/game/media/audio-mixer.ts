@@ -226,8 +226,15 @@ export const TRACK_FADE_S = 1.5;
 export function fadeElement(el: HTMLMediaElement, to: 'in' | 'out'): Promise<void> {
   const gain = routed.get(el);
   const m = mixer;
-  if (!gain || !m || m.ctx.state !== 'running') return Promise.resolve();
+  if (!gain || !m) return Promise.resolve();
   const target = to === 'in' ? (levels.get(el) ?? 1) : 0;
+  // A context not running cannot ramp: set the level at once, never left at the silence
+  // a fade in starts from.
+  if (m.ctx.state !== 'running') {
+    gain.gain.cancelScheduledValues(0);
+    gain.gain.value = target;
+    return Promise.resolve();
+  }
   const span = to === 'in' ? FADE_IN_S : FADE_OUT_S;
   const t = m.ctx.currentTime;
   gain.gain.cancelScheduledValues(t);
@@ -281,22 +288,39 @@ export function playBuffer(
     gain = 1,
     fadeInS = FADE_IN_S,
     fadeOutS = FADE_OUT_S,
-  }: { loop?: boolean; gain?: number; fadeInS?: number; fadeOutS?: number } = {},
+    at,
+    rate = 1,
+  }: {
+    loop?: boolean;
+    gain?: number;
+    fadeInS?: number;
+    fadeOutS?: number;
+    /** When it starts, on the context's clock; now when omitted. */
+    at?: number;
+    /** Playback rate: below 1, lower and longer (the countdown's tac from its tic). */
+    rate?: number;
+  } = {},
 ): () => void {
   const m = getMixer();
   if (!m) return () => undefined;
   const source = m.ctx.createBufferSource();
   source.buffer = buffer;
   source.loop = loop;
+  source.playbackRate.value = rate;
   const own = m.ctx.createGain();
   // In from silence: a sample that starts mid-wave does not click.
-  const t = m.ctx.currentTime;
+  const t = Math.max(at ?? 0, m.ctx.currentTime);
   own.gain.setValueAtTime(0, t);
   own.gain.linearRampToValueAtTime(gain, t + fadeInS);
   source.connect(own).connect(m.strips[bus].level);
-  source.start();
+  source.start(t);
   return () => {
     const now = m.ctx.currentTime;
+    // Scheduled and not started yet: it never plays.
+    if (now < t) {
+      source.stop();
+      return;
+    }
     own.gain.cancelScheduledValues(now);
     own.gain.setValueAtTime(own.gain.value, now);
     own.gain.linearRampToValueAtTime(0, now + fadeOutS);

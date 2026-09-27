@@ -555,6 +555,8 @@ export class GameService {
     const next: RoomSounds = { ...room.sounds };
     if (typeof patch.tick === 'boolean') next.tick = patch.tick;
     if (typeof patch.gong === 'boolean') next.gong = patch.gong;
+    if (typeof patch.countdown === 'boolean') next.countdown = patch.countdown;
+    if (typeof patch.ding === 'boolean') next.ding = patch.ding;
     if (typeof patch.musicMuted === 'boolean') next.musicMuted = patch.musicMuted;
     if (typeof patch.sfxMuted === 'boolean') next.sfxMuted = patch.sfxMuted;
     const level = (v: unknown, fallback: number) =>
@@ -564,6 +566,8 @@ export class GameService {
     for (const [idKey, urlKey] of [
       ['tickId', 'tickUrl'],
       ['gongId', 'gongUrl'],
+      ['dingId', 'dingUrl'],
+      ['countdownId', 'countdownUrl'],
       ['musicId', 'musicUrl'],
     ] as const) {
       const id = patch[idKey];

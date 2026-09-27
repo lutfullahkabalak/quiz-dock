@@ -288,7 +288,18 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         ...prev,
         players: prev.players.filter((x) => x.playerId !== p.playerId),
       }));
-    const onQuestion = (p: QuestionStartPayload) => patch({ question: p });
+    // A new question starts at 0 answers: the last one's count would otherwise stand until
+    // the first answer (the console shows it; the tick reads its rise). A screen attaching
+    // mid-question is sent the true count right after.
+    const onQuestion = (p: QuestionStartPayload) =>
+      setView((prev) => ({
+        ...prev,
+        question: p,
+        answerCount:
+          prev.question?.questionIndex === p.questionIndex
+            ? prev.answerCount
+            : { answered: 0, total: prev.answerCount?.total ?? prev.players.length },
+      }));
     const onJoinUrl = (p: { baseUrl: string | null }) => patch({ joinBaseUrl: p.baseUrl });
     const onMode = (p: GameModePayload) =>
       patch({

@@ -318,8 +318,12 @@ export function roomTests(ctx: GameContext): void {
       expect(await first).toEqual({
         tick: true,
         gong: true,
+        countdown: true,
+        ding: true,
         tickUrl: null,
         gongUrl: null,
+        dingUrl: null,
+        countdownUrl: null,
         musicUrl: null,
         musicLevel: 0.5,
         sfxLevel: 0.8,

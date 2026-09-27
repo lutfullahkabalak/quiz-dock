@@ -53,6 +53,7 @@ export interface GameHarness {
 /** The test settings of the engine: short windows so a game runs in milliseconds. */
 const GAME_TEST_ENV: Record<string, string> = {
   GAME_READ_DELAY_MS: '150', // reading window before the timer
+  GAME_ALL_ANSWERED_DELAY_MS: '50', // everyone answered: the reveal a moment later
   GAME_HOST_GRACE_MS: '200', // host grace (§7.1)
   GAME_HOST_WINDOW_MS: '800', // host reconnection window (§7.3)
   GAME_AUTO_ADVANCE_MS: '300', // automatic pacing (§8)
@@ -205,9 +206,15 @@ export function stateEvent(socket: Socket, state: string, timeoutMs?: number): P
  * limit a question may have). The delta leaves about 1.5 s whatever the latency
  * so far: under 1 s left, the engine would reveal at once instead of re-arming.
  */
-export async function shortenTimer(host: Socket, pin: string, endsAt: number): Promise<number> {
+export async function shortenTimer(
+  host: Socket,
+  pin: string,
+  endsAt: number,
+  /** When the answers open: the 1.5 s left count from there, not from now (the reading comes first). */
+  opensAt = Date.now(),
+): Promise<number> {
   const time = nextEvent<{ endsAt: number }>(host, 'question:time');
-  const deltaS = -Math.floor((endsAt - Date.now() - 1_500) / 1_000);
+  const deltaS = -Math.floor((endsAt - Math.max(Date.now(), opensAt) - 1_500) / 1_000);
   host.emit('host:adjust-time', { pin, deltaS });
   return (await time).endsAt;
 }

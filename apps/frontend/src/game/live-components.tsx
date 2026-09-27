@@ -106,7 +106,7 @@ export function OptionGrid({
             onClick={onPick ? () => onPick(o.id) : undefined}
             aria-pressed={onPick ? isPicked : undefined}
             className={cn(
-              'flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.6em] text-left leading-tight font-semibold text-white shadow transition',
+              'flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.45em] text-left leading-[1em] font-semibold text-white shadow transition',
               // Five answers and more: lower tiles, so four rows still leave room above.
               many ? 'min-h-[2.6em]' : 'min-h-[3.25em]',
               long ? 'text-[0.95em]' : many ? 'text-[1em]' : 'text-[1.125em]',
@@ -124,7 +124,10 @@ export function OptionGrid({
               {SHAPE_GLYPH[o.shape] ?? '●'}
             </span>
             {o.text ? (
-              <Markdown profile="inline" className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+              <Markdown
+                profile="inline"
+                className="min-w-0 flex-1 leading-[1em] [overflow-wrap:anywhere]"
+              >
                 {o.text}
               </Markdown>
             ) : null}
@@ -169,7 +172,10 @@ export function OptionKey({
             {SHAPE_GLYPH[o.shape] ?? '●'}
           </span>
           {o.text ? (
-            <Markdown profile="inline" className="min-w-0 flex-1 [overflow-wrap:anywhere]">
+            <Markdown
+              profile="inline"
+              className="min-w-0 flex-1 leading-[1em] [overflow-wrap:anywhere]"
+            >
               {o.text}
             </Markdown>
           ) : null}
@@ -500,6 +506,17 @@ export function ZoomableImage({
  * The question's clock as a draining bar across the top, the seconds and their
  * icon at its right end (#92): the prompt gets the room a big number took.
  */
+/**
+ * The colour of a question's time, the same on every screen (console, projection,
+ * phones): green, amber from half the time, red on the last fifth; grey while paused.
+ */
+export function timeTone(share: number, paused: boolean): string {
+  if (paused) return 'bg-muted-foreground';
+  if (share <= 0.2) return 'bg-destructive';
+  if (share <= 0.5) return 'bg-amber-500';
+  return 'bg-success';
+}
+
 export function TimerBar({
   remaining,
   totalS,
@@ -518,8 +535,6 @@ export function TimerBar({
 }) {
   const total = Math.max(totalS, remaining);
   const share = total > 0 ? remaining / total : 1;
-  // The last seconds turn red, where a player's eye goes anyway.
-  const late = !paused && remaining <= 5;
   return (
     <div
       role="timer"
@@ -529,8 +544,8 @@ export function TimerBar({
       <div className="bg-muted h-[0.5em] flex-1 overflow-hidden rounded-full">
         <div
           className={cn(
-            'h-full rounded-full transition-[width] duration-1000 ease-linear',
-            late ? 'bg-destructive' : 'bg-primary',
+            'h-full rounded-full transition-[width,background-color] duration-1000 ease-linear',
+            timeTone(share, paused),
           )}
           style={{ width: `${share * 100}%` }}
         />

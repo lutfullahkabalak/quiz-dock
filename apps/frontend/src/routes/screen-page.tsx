@@ -8,6 +8,7 @@ import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useFullscreen } from '@/lib/use-fullscreen';
+import { clearRoomPositions } from '../game/media/media-position';
 import { Avatar } from '../game/avatar';
 import {
   AnswerExplanation,
@@ -128,6 +129,11 @@ export function ScreenSurface({
   // remote participant when the room's sound reaches remote devices.
   const soundsOn =
     !!view.sounds && (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
+  // A new lobby, a new game: the media positions of the room's last one are gone
+  // (its PIN stays; a quiz played again would read "played to the end" and stay silent).
+  useEffect(() => {
+    if (view.state === 'LOBBY') clearRoomPositions(pin);
+  }, [view.state, pin]);
   useGameSounds(
     view.sounds,
     {
@@ -137,6 +143,8 @@ export function ScreenSurface({
       paused: view.paused,
       media: view.question?.media,
       mediaStartAt: view.question?.mediaStartAt ?? null,
+      endsAt: view.question?.endsAt ?? null,
+      startedAt: view.question?.startedAt ?? null,
       anchor:
         view.question && view.mediaControl?.questionIndex === view.question.questionIndex
           ? view.mediaControl

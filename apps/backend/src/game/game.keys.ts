@@ -3,6 +3,11 @@ export const GAME_TTL_S = 4 * 60 * 60;
 
 /** Délai de lecture de l'énoncé avant ouverture des réponses (§8, défaut 3 s). */
 export const READ_DELAY_MS = 3_000;
+/**
+ * Everyone answered: the reveal waits this long, so the last answer's tick is
+ * heard on its own before the gong (the two would run together otherwise).
+ */
+export const ALL_ANSWERED_DELAY_MS = 1_000;
 
 /**
  * How long the room waits at most for the devices that play a question's sound
@@ -12,10 +17,11 @@ export const MEDIA_WAIT_S = 10;
 
 /**
  * How far ahead the server sets the common start of a question's media (ms):
- * enough for the question to reach every device, which then starts on the
+ * a second for the room to see the question before its sound or video starts,
+ * and enough for the question to reach every device, which then starts on the
  * same instant of the server's clock.
  */
-export const MEDIA_LEAD_MS = 600;
+export const MEDIA_LEAD_MS = 1_600;
 
 /** Tolérance serveur : réponses reçues après `endsAt + grace` rejetées (§6). */
 export const GRACE_MS = 300;

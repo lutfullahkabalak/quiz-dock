@@ -173,12 +173,17 @@
     "sounds": {
       "title": "遊戲音效",
       "hint": "由投影和遠端參與者播放，房間內的手機不播放。背景音樂在作答時播放；題目自帶聲音播放時會淡出，結束後再回來。",
+      "effects": "音效",
       "tick": "滴答",
+      "ding": "叮",
       "gong": "鑼聲",
+      "countdown": "倒數",
       "music": "音樂",
       "off": "關閉",
       "tickLabel": "每次作答時滴答一聲",
+      "dingLabel": "每道題開始時叮一聲",
       "gongLabel": "題目結束時敲鑼",
+      "countdownLabel": "最後 5 秒滴…答…，歸零時敲鑼",
       "sample": "聲音",
       "synth": "內建（合成）",
       "fromLibrary": "媒體庫中的聲音…",
@@ -189,7 +194,13 @@
       "sfxLevel": "音效",
       "instanceMedia": "{{name}}（執行個體）",
       "muteChannel": "為房間靜音：{{bus}}",
-      "unmuteChannel": "為房間取消靜音：{{bus}}"
+      "unmuteChannel": "為房間取消靜音：{{bus}}",
+      "preview": "試聽：{{name}}（僅本機）",
+      "dingWhen": "每道題出現時——題目自帶聲音或影片時不播放。",
+      "tickWhen": "每收到一個回答時。",
+      "countdownWhen": "計時的最後 5 秒：整秒「滴」，半秒「答」；最後一個「答」省略，歸零時敲鑼。所有人都作答後停止。",
+      "gongWhen": "題目結束時：計時歸零，或所有人作答後立即。",
+      "musicWhen": "作答期間循環播放，從作答開放時開始。題目自帶聲音或影片播放時以及題目之間會淡出，之後從原處繼續。"
     }
   },
   "screen": {

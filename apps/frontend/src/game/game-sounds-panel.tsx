@@ -1,13 +1,15 @@
 import type { RoomSoundsPayload, RoomSoundsSettings } from '@quiz-dock/contracts';
-import { SlidersHorizontal, Volume2, VolumeX } from 'lucide-react';
-import { useState } from 'react';
+import { Play, SlidersHorizontal, Volume2, VolumeX } from 'lucide-react';
+import { Fragment, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { Select } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { cn } from '@/lib/utils';
 import { useMediaControllerInstance, useMediaControllerList } from '../api/generated/media/media';
 import { MediaUpload } from '../routes/media-upload';
+import { type RoomEffect, previewEffect } from './media/game-sounds';
 import { SimpleDialog } from './media/sound-button';
 
 /**
@@ -27,6 +29,8 @@ export function GameSoundsPanel({
   if (!sounds) return null;
   const summary = [
     sounds.tick ? t('control.sounds.tick') : null,
+    sounds.ding ? t('control.sounds.ding') : null,
+    sounds.countdown ? t('control.sounds.countdown') : null,
     sounds.gong ? t('control.sounds.gong') : null,
     sounds.musicUrl ? t('control.sounds.music') : null,
   ]
@@ -76,7 +80,7 @@ export function RoomSoundsButton({
 }
 
 /** The controls themselves: the effects, the track, the two levels. */
-type SoundKey = 'tickId' | 'gongId' | 'musicId';
+type SoundKey = 'tickId' | 'gongId' | 'dingId' | 'countdownId' | 'musicId';
 
 /**
  * One of the room's sounds: the built-in one (or none, for the track), or a
@@ -89,34 +93,35 @@ function SoundSlot({
   mediaId,
   chosen,
   onChange,
+  disabled = false,
 }: {
+  /** Read by screen readers; the row around it says it on screen. */
   label: string;
   none: string;
   mediaId: string | null;
   chosen: boolean;
   onChange: (mediaId: string | null) => void;
+  disabled?: boolean;
 }) {
   const { t } = useTranslation('live');
   const [fromLibrary, setFromLibrary] = useState(chosen);
   return (
-    <div className="flex flex-col gap-1.5">
-      <label className="flex flex-col gap-1">
-        <span className="text-muted-foreground text-xs">{label}</span>
-        <Select
-          className="h-8"
-          aria-label={label}
-          value={fromLibrary ? 'library' : ''}
-          onChange={(e) => {
-            const library = e.target.value === 'library';
-            setFromLibrary(library);
-            if (!library) onChange(null);
-          }}
-        >
-          <option value="">{none}</option>
-          <option value="library">{t('control.sounds.fromLibrary')}</option>
-        </Select>
-      </label>
-      {fromLibrary ? (
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <Select
+        className="h-8"
+        aria-label={label}
+        disabled={disabled}
+        value={fromLibrary ? 'library' : ''}
+        onChange={(e) => {
+          const library = e.target.value === 'library';
+          setFromLibrary(library);
+          if (!library) onChange(null);
+        }}
+      >
+        <option value="">{none}</option>
+        <option value="library">{t('control.sounds.fromLibrary')}</option>
+      </Select>
+      {fromLibrary && !disabled ? (
         <MediaUpload
           kind="audio"
           value={mediaId}
@@ -149,33 +154,43 @@ export function GameSoundsControls({
   ];
   // The choice is kept as a URL on the screens' side: find its media back by it.
   const idOf = (url: string | null) => options.find((o) => o.url === url)?.id ?? '';
-  const picker = (label: string, url: string | null, none: string, key: SoundKey) => (
+  const picker = (
+    label: string,
+    url: string | null,
+    none: string,
+    key: SoundKey,
+    disabled = false,
+  ) => (
     <SoundSlot
       key={key}
       label={label}
       none={none}
       mediaId={idOf(url) || null}
       chosen={url !== null}
+      disabled={disabled}
       onChange={(id) => onChange({ [key]: id ?? '' })}
     />
   );
+
+  // A channel's level on its section's title line: its mute, its fader, its value.
   const level = (
     label: string,
     value: number,
     key: 'musicLevel' | 'sfxLevel',
     muteKey: 'musicMuted' | 'sfxMuted',
   ) => (
-    <label className="flex items-center gap-3">
-      {/* The room's channel off (for every screen), its level kept for when it is back. */}
+    <span className="flex min-w-0 flex-1 items-center gap-2">
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="size-8 shrink-0"
+        className="size-7 shrink-0"
         aria-pressed={sounds[muteKey]}
         aria-label={t(
           sounds[muteKey] ? 'control.sounds.unmuteChannel' : 'control.sounds.muteChannel',
-          { bus: label },
+          {
+            bus: label,
+          },
         )}
         title={t(sounds[muteKey] ? 'control.sounds.unmuteChannel' : 'control.sounds.muteChannel', {
           bus: label,
@@ -188,15 +203,6 @@ export function GameSoundsControls({
           <Volume2 className="size-4" />
         )}
       </Button>
-      <span
-        className={
-          sounds[muteKey]
-            ? 'text-muted-foreground w-20 shrink-0 text-xs line-through'
-            : 'text-muted-foreground w-20 shrink-0 text-xs'
-        }
-      >
-        {label}
-      </span>
       <input
         type="range"
         min={0}
@@ -205,63 +211,95 @@ export function GameSoundsControls({
         aria-label={label}
         value={Math.round(value * 100)}
         onChange={(e) => onChange({ [key]: Number(e.target.value) / 100 })}
-        className="accent-primary flex-1"
+        className={cn('accent-primary min-w-0 flex-1', sounds[muteKey] && 'opacity-40')}
       />
-      <span className="w-10 text-right text-xs tabular-nums">{Math.round(value * 100)} %</span>
-    </label>
+      <span className="w-9 text-right text-xs tabular-nums">{Math.round(value * 100)} %</span>
+    </span>
+  );
+
+  // The effects in the order the game plays them, each built the same way: on or
+  // off, and its sound — the built-in one, or one of the library.
+  const effects: {
+    on: RoomEffect;
+    id: SoundKey;
+    url: string | null;
+  }[] = [
+    { on: 'ding', id: 'dingId', url: sounds.dingUrl },
+    { on: 'tick', id: 'tickId', url: sounds.tickUrl },
+    { on: 'countdown', id: 'countdownId', url: sounds.countdownUrl },
+    { on: 'gong', id: 'gongId', url: sounds.gongUrl },
+  ];
+
+  const heading = (id: string, title: string) => (
+    <h3 id={id} className="w-16 shrink-0 text-xs font-semibold tracking-wide uppercase">
+      {title}
+    </h3>
   );
 
   return (
     <div className="flex flex-col gap-4 text-sm">
       <p className="text-muted-foreground text-xs">{t('control.sounds.hint')}</p>
-      <div className="grid gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2">
-            <Switch
-              checked={sounds.tick}
-              onCheckedChange={(tick) => onChange({ tick })}
-              aria-label={t('control.sounds.tickLabel')}
-            />
-            {t('control.sounds.tickLabel')}
-          </label>
-          {sounds.tick
-            ? picker(
-                t('control.sounds.sample'),
-                sounds.tickUrl,
-                t('control.sounds.synth'),
-                'tickId',
-              )
-            : null}
+
+      <section className="flex flex-col gap-2" aria-labelledby="room-sfx">
+        <div className="flex items-center gap-3">
+          {heading('room-sfx', t('control.sounds.effects'))}
+          {level(t('control.sounds.sfxLevel'), sounds.sfxLevel, 'sfxLevel', 'sfxMuted')}
         </div>
-        <div className="flex flex-col gap-2">
-          <label className="flex items-center gap-2">
-            <Switch
-              checked={sounds.gong}
-              onCheckedChange={(gong) => onChange({ gong })}
-              aria-label={t('control.sounds.gongLabel')}
-            />
-            {t('control.sounds.gongLabel')}
-          </label>
-          {sounds.gong
-            ? picker(
-                t('control.sounds.sample'),
-                sounds.gongUrl,
+        {/* One line an effect, in the order the game plays them, when it plays under it;
+            its sound stays in place while it is off (greyed), so nothing jumps. */}
+        <div className="grid grid-cols-[auto_4.5rem_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-2">
+          {effects.map((e) => (
+            <Fragment key={e.on}>
+              <Switch
+                className="mt-1.5"
+                checked={sounds[e.on]}
+                onCheckedChange={(v) => onChange({ [e.on]: v })}
+                aria-label={t(`control.sounds.${e.on}Label`)}
+              />
+              <span className={cn('pt-1.5 font-medium', !sounds[e.on] && 'text-muted-foreground')}>
+                {t(`control.sounds.${e.on}`)}
+              </span>
+              {/* Heard here only: the room does not. */}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                className="size-8"
+                aria-label={t('control.sounds.preview', { name: t(`control.sounds.${e.on}`) })}
+                title={t('control.sounds.preview', { name: t(`control.sounds.${e.on}`) })}
+                onClick={() => void previewEffect(e.on, sounds)}
+              >
+                <Play className="size-4" />
+              </Button>
+              {picker(
+                t(`control.sounds.${e.on}Label`),
+                e.url,
                 t('control.sounds.synth'),
-                'gongId',
-              )
-            : null}
+                e.id,
+                !sounds[e.on],
+              )}
+              {/* When it plays, under its line: what the host needs to choose it. */}
+              <p className="text-muted-foreground col-span-3 col-start-2 -mt-1 text-xs">
+                {t(`control.sounds.${e.on}When`)}
+              </p>
+            </Fragment>
+          ))}
         </div>
-      </div>
-      {picker(
-        t('control.sounds.musicLabel'),
-        sounds.musicUrl,
-        t('control.sounds.noMusic'),
-        'musicId',
-      )}
-      <div className="flex flex-col gap-2">
-        {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel', 'musicMuted')}
-        {level(t('control.sounds.sfxLevel'), sounds.sfxLevel, 'sfxLevel', 'sfxMuted')}
-      </div>
+      </section>
+
+      <section className="flex flex-col gap-2 border-t pt-3" aria-labelledby="room-music">
+        <div className="flex items-center gap-3">
+          {heading('room-music', t('control.sounds.music'))}
+          {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel', 'musicMuted')}
+        </div>
+        <p className="text-muted-foreground -mt-1 text-xs">{t('control.sounds.musicWhen')}</p>
+        {picker(
+          t('control.sounds.musicLabel'),
+          sounds.musicUrl,
+          t('control.sounds.noMusic'),
+          'musicId',
+        )}
+      </section>
     </div>
   );
 }

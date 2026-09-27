@@ -93,7 +93,8 @@ export function questionLoopTests(ctx: GameContext): void {
     const q = await qStart;
     const parisId = q.options.find((o) => o.text === 'Paris')!.id;
 
-    const endsAt = await shortenTimer(host, pin, q.endsAt);
+    // 1.5 s left once the answers open: a loaded machine still answers in time.
+    const endsAt = await shortenTimer(host, pin, q.endsAt, q.startedAt);
     // Attendre l'ouverture des réponses (startedAt) avant de soumettre.
     await new Promise((r) => setTimeout(r, Math.max(0, q.startedAt - Date.now()) + 50));
 
@@ -289,5 +290,36 @@ export function questionLoopTests(ctx: GameContext): void {
 
     // Doit révéler car les 2 connectés ont répondu — peu importe que ce soit faux.
     await revealP;
+  }, 15_000);
+
+  it('everyone answered: the reveal a moment later, the last tick heard apart from the gong', async () => {
+    const before = process.env.GAME_ALL_ANSWERED_DELAY_MS;
+    process.env.GAME_ALL_ANSWERED_DELAY_MS = '400';
+    try {
+      const host = connect({ localUser: 'Animateur' });
+      const { pin } = await host.emitWithAck('host:create', { quizId });
+      const player = connect();
+      await player.emitWithAck('player:join', { pin, nickname: 'Solo' });
+      const qStart = new Promise<{ startedAt: number; options: Array<{ id: string }> }>((resolve) =>
+        player.on('question:start', (q) => resolve(q as never)),
+      );
+      host.emit('host:start', { pin });
+      const q = await qStart;
+      await new Promise((r) => setTimeout(r, Math.max(0, q.startedAt - Date.now()) + 50));
+      const counted = new Promise<number>((resolve) =>
+        player.once('answer:count', () => resolve(Date.now())),
+      );
+      const revealed = new Promise<number>((resolve) =>
+        player.on('game:state', (st) => {
+          if ((st as { state: string }).state === 'REVEAL') resolve(Date.now());
+        }),
+      );
+      player.emit('player:submit', { pin, questionIndex: 0, answer: q.options[0].id });
+      const gap = (await revealed) - (await counted);
+      expect(gap).toBeGreaterThanOrEqual(350);
+    } finally {
+      if (before === undefined) delete process.env.GAME_ALL_ANSWERED_DELAY_MS;
+      else process.env.GAME_ALL_ANSWERED_DELAY_MS = before;
+    }
   }, 15_000);
 }

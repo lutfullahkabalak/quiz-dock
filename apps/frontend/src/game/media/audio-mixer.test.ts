@@ -54,6 +54,7 @@ class FakeContext {
     return Object.assign(new FakeNode('buffer'), {
       buffer: null,
       loop: false,
+      playbackRate: new FakeParam(),
       start: vi.fn(),
       stop: vi.fn(),
     });

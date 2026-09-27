@@ -29,6 +29,7 @@ import type {
 import type { Server } from 'socket.io';
 import { GameService } from './game.service';
 import {
+  ALL_ANSWERED_DELAY_MS,
   AUTO_ADVANCE_MS,
   CHRONO_FLOOR_MS,
   GAME_TTL_S,
@@ -611,14 +612,19 @@ export class GameEngine {
   }
 
   /** Arme (ou ré-arme) le timer de fin de question → `advanceToReveal`. */
-  private scheduleReveal(ref: GameRef, index: number, delayMs: number): void {
+  private scheduleReveal(
+    ref: GameRef,
+    index: number,
+    delayMs: number,
+    trigger: 'timer' | 'all' = 'timer',
+  ): void {
     const { pin } = ref;
     this.clearTimer(pin);
     const timer = setTimeout(
       () => {
         this.timers.delete(pin);
-        this.advanceToReveal(pin, index, 'timer', ref.id).catch((err: Error) =>
-          this.log.error(`advanceToReveal(timer) ${pin}: ${err.message}`),
+        this.advanceToReveal(pin, index, trigger, ref.id).catch((err: Error) =>
+          this.log.error(`advanceToReveal(${trigger}) ${pin}: ${err.message}`),
         );
       },
       Math.max(0, delayMs),
@@ -2098,8 +2104,10 @@ export class GameEngine {
     const { answered, total, allAnswered } = progress;
     this.server.to(pin).emit('answer:count', { answered, total });
 
+    // Everyone answered: the reveal a moment later, the last tick heard apart from the gong.
     if (allAnswered) {
-      await this.advanceToReveal(pin, questionIndex, 'all', meta.id);
+      const delay = Number(process.env.GAME_ALL_ANSWERED_DELAY_MS ?? ALL_ANSWERED_DELAY_MS);
+      this.scheduleReveal(refOf(pin, meta), questionIndex, delay, 'all');
     }
     return { accepted: true, receivedAt };
   }
@@ -2147,8 +2155,12 @@ function soundsPayload(s: RoomSounds): RoomSoundsPayload {
   return {
     tick: s.tick,
     gong: s.gong,
+    countdown: s.countdown,
+    ding: s.ding,
     tickUrl: s.tickUrl,
     gongUrl: s.gongUrl,
+    dingUrl: s.dingUrl,
+    countdownUrl: s.countdownUrl,
     musicUrl: s.musicUrl,
     musicLevel: s.musicLevel,
     sfxLevel: s.sfxLevel,

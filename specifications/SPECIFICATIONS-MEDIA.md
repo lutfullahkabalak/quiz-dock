@@ -230,10 +230,21 @@ interface sounds (to come) ───────────────► UI  
 
 ### 9.1 The game's sounds (#93)
 
-- **The tick** plays at each new answer while players answer (from `answer:count`), **the gong** when a question moves
-  to its reveal — no event of their own. Both are on in a new room; each can take a sound of the library instead of
-  the synthesised one.
-- **The background track** loops while players answer only. Between questions and while the game is paused it fades
+- **The tick** plays at each new answer while players answer (from `answer:count`) — the last answer too, whose count
+  arrives with the reveal; **the gong** when a question moves to its reveal — no event of their own. Both are on in a
+  new room; each can take a sound of the library instead of the synthesised one.
+- **The countdown** (2026-09-27): tic… tac… over the last five seconds of the time, on the server's clock — a
+  mechanical click (a fixed noise, drawn once from a seed, through a band-pass: 1800 Hz on the second, 1100 Hz on the
+  half), the last tac left out so a second of silence leads to **the gong, struck on zero itself** (the reveal comes a
+  moment later and does not strike it again). Everyone answered before zero, or a pause: what has not sounded yet is
+  called off, and the reveal strikes the gong. On in a new room (`countdown`), synthesised only.
+- **The ding** (2026-09-27): a question starts — one bright tone (1550 Hz) with two discreet harmonics (2300, 3150 Hz)
+  and a 15 ms struck transient; not over a question with its own sound or video. On in a new room (`ding`).
+- **The synthesised gong**: eight inharmonic sine partials (105–890 Hz, slightly detuned), the low ones louder, under a
+  low-pass darkening from 7 kHz to 500 Hz over 2.5 s; no mallet noise — after a countdown it reads as one click
+  too many.
+- **The background track** loops while players answer only — from the moment the answers open, never over the reading
+  (or the listening) of the question. Between questions and while the game is paused it fades
   out and **keeps its place**, then comes back where it was — never from the top at each question. It makes way for a
   question's own sound or video while that plays (§9).
 - **Kept by the room** (`room:{pin}` `sounds`) from one quiz to the next, set from the console's lobby
