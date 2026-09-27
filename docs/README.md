@@ -43,5 +43,6 @@ docs/
 - [`scoring.md`](scoring.md) — the scales: points, speed, streak, per-type variants (closest, partial credit, lenient).
 - [`live-session.md`](live-session.md) — the live session: substance/form snapshot, states, looking back, resuming after a restart, media on every device (experimental), the invitation address.
 - [`dev/load-testing.md`](dev/load-testing.md) — load testing a live game: the benchmark, how many players one instance holds, the sizing it gives.
+- [`dev/performance-roadmap.md`](dev/performance-roadmap.md) — *draft*: where the live engine spends its time, and the options to go further, in order.
 - [`tech-debt.md`](tech-debt.md) — known shortcuts, what they cost and what would replace them (OIDC tokens in the browser, the client address behind a proxy…).
 - [`../apps/frontend/src/i18n/GLOSSARY.md`](../apps/frontend/src/i18n/GLOSSARY.md) — the interface vocabulary (5 languages) and the choices behind it.
