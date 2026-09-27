@@ -22,6 +22,7 @@ import { useRole } from '../auth/use-role';
 import { getDemo } from '../config';
 import { templateRoute } from '../router';
 import { TemplateSlide } from './templates-page';
+import { PageLoading } from '@/components/ui/loading';
 
 /**
  * Un modèle, vu **avant** d'en prendre une copie (#39) : ce qu'il contient,
@@ -66,7 +67,7 @@ export function TemplatePage() {
     }
   };
 
-  if (isPending) return <p className="text-muted-foreground">{t('common:loading')}</p>;
+  if (isPending) return <PageLoading />;
   if (!template) return <p className="text-destructive">{t('notFound')}</p>;
 
   return (

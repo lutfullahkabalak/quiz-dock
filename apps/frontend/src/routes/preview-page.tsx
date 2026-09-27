@@ -13,13 +13,14 @@ import type { QuizDetailDto, QuizDetailDtoQuestionsItem } from '../api/generated
 import { useQuizzesControllerGet } from '../api/generated/quizzes/quizzes';
 import { previewRoute } from '../router';
 import { useMediaControllerCredits } from '../api/generated/media/media';
+import { PageLoading } from '@/components/ui/loading';
 
 export function PreviewPage() {
   const { t } = useTranslation(['editor', 'common']);
   const { quizId } = previewRoute.useParams();
   const { data, isLoading, error } = useQuizzesControllerGet(quizId);
 
-  if (isLoading) return <p className="text-muted-foreground">{t('common:loading')}</p>;
+  if (isLoading) return <PageLoading />;
   if (error || !data) return <p className="text-destructive">{t('notFound')}</p>;
   return <QuizPreview quiz={data.data} />;
 }

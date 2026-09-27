@@ -38,6 +38,7 @@ import {
 } from '../api/generated/quizzes/quizzes';
 import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
+import { ListSkeleton } from '@/components/ui/loading';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
@@ -181,7 +182,7 @@ export function DashboardPage() {
         </p>
       ) : null}
 
-      {isLoading && <p className="text-muted-foreground">{t('common:loading')}</p>}
+      {isLoading && <ListSkeleton variant={view} rows={view === 'grid' ? 6 : 5} />}
       {error ? (
         <p className="text-destructive" role="alert">
           {seatTaken ? t('seatTaken') : t('loadError')}{' '}

@@ -20,6 +20,7 @@ import { getQuizzesControllerListQueryKey } from '../api/generated/quizzes/quizz
 import { apiErrorText } from '../api/http';
 import { useRole } from '../auth/use-role';
 import { SlideStage } from '../game/slide-stage';
+import { ListSkeleton } from '@/components/ui/loading';
 
 const PAGE_SIZE = 20;
 
@@ -91,7 +92,7 @@ export function TemplatesPage() {
         </p>
       ) : null}
 
-      {list.isPending ? <p className="text-muted-foreground">{t('common:loading')}</p> : null}
+      {list.isPending ? <ListSkeleton variant="grid" rows={6} /> : null}
 
       {!list.isPending && entries.length === 0 ? <EmptyCatalogue /> : null}
 

@@ -70,6 +70,7 @@ import { roomLabel } from '../game/room-components';
 import { useCountdown, useGameRemaining } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from '../auth/auth-context';
+import { Spinner } from '@/components/ui/loading';
 
 /**
  * Avis de transparence (§2.10, RG-16) : ce que la session enregistre de ce
@@ -590,7 +591,7 @@ export function PlayerPage() {
   }
 
   if (view.status === 'connecting') {
-    return wrap(<p className="text-muted-foreground">{t('player.connectingToSession')}</p>);
+    return wrap(<Spinner label={t('player.connectingToSession')} showLabel />);
   }
 
   // Exclu par l'hôte : écran terminal (la session locale a été purgée, pas de reprise).

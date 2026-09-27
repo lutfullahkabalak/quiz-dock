@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import type { QuizFeedbackSummaryDto } from '../api/generated/model';
 import { useQuizzesControllerFeedback } from '../api/generated/quizzes/quizzes';
 import { feedbackRoute } from '../router';
+import { ListSkeleton } from '@/components/ui/loading';
 
 const PAGE_SIZE = 20;
 
@@ -128,7 +129,7 @@ export function FeedbackPage() {
         </Link>
       </header>
 
-      {isLoading ? <p className="text-muted-foreground">{t('common:loading')}</p> : null}
+      {isLoading ? <ListSkeleton rows={3} /> : null}
       {error ? <p className="text-destructive">{t('feedback.loadError')}</p> : null}
 
       {summary ? (

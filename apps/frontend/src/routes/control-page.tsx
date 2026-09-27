@@ -74,6 +74,7 @@ import { joinBase, joinHostLabel, joinUrlFor } from '../game/join-url';
 import { JoinAddressPicker } from '../game/join-address-picker';
 import { type GameView, type RosterPlayer, useGameSession } from '../game/use-game-session';
 import { ScreenView } from './screen-page';
+import { PageLoading } from '@/components/ui/loading';
 
 /** Boutons d'ajustement du chrono (§8) : retire/ajoute des secondes en direct. */
 const CHRONO_STEPS = [-5, -1, 1, 5] as const;
@@ -224,7 +225,7 @@ export function ControlPage() {
   };
 
   if (view.status === 'connecting') {
-    return <p className="text-muted-foreground py-16 text-center">{t('control.connecting')}</p>;
+    return <PageLoading label={t('control.connecting')} />;
   }
   if (view.status === 'error') {
     return (
