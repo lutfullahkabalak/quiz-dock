@@ -24,6 +24,7 @@ import { SlideVariablesContext } from './slide-variables';
 import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
 import { ShapeIcon } from '@/components/shape-icon';
 import { optionLabel } from './image-choice';
+import { mediaUrl } from '@/lib/media-url';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -752,7 +753,7 @@ function SlideBlockView({ block }: { block: SlideLeafBlock }) {
     case 'image':
       return (
         <img
-          src={block.url ?? `/api/v1/media/${block.mediaId}`}
+          src={block.url ?? mediaUrl(block.mediaId)}
           alt=""
           className={cn(
             'max-h-[18em] rounded-[0.5em] object-contain',

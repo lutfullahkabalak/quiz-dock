@@ -20,6 +20,7 @@ import type { QuizItem } from '@/lib/quiz-items';
 import { ScaledStage, SlideStage } from '../game/slide-stage';
 import { ShapeIcon } from '@/components/shape-icon';
 import { ImageChoiceGrid } from '../game/image-choice';
+import { mediaUrl } from '@/lib/media-url';
 
 /**
  * A quiz's steps as they will show, still: what the preview walks through and
@@ -50,14 +51,14 @@ export function slideShowOf(
     questionIndex: 0,
     blocks: quizFields ? fillSlideBlocks(blocks, quizVariables(quizFields)) : blocks,
     background: slide.mediaId
-      ? { url: `/api/v1/media/${slide.mediaId}` }
+      ? { url: mediaUrl(slide.mediaId) }
       : slide.gradient
         ? { gradient: slide.gradient as SlideGradient }
         : null,
     // Its video, shown still (its first frame) behind the content.
     video: slide.videoMediaId
       ? {
-          url: `/api/v1/media/${slide.videoMediaId}`,
+          url: mediaUrl(slide.videoMediaId),
           loop: slide.videoLoop,
           sound: slide.videoSound,
           gainDb: 0,
@@ -83,7 +84,7 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
       {question.media?.visual?.kind === 'image' && (
         <img
           className="max-h-[260px] self-center object-contain"
-          src={`/api/v1/media/${question.media?.visual.assetId}`}
+          src={mediaUrl(question.media?.visual.assetId)}
           alt=""
         />
       )}
@@ -91,7 +92,7 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
         // Its first frame, still: the preview plays nothing.
         <video
           className="max-h-[260px] self-center rounded-lg object-contain"
-          src={`/api/v1/media/${question.media?.visual.assetId}#t=0.1`}
+          src={`${mediaUrl(question.media?.visual.assetId)}#t=0.1`}
           preload="metadata"
           muted
           aria-label={t('preview.video')}
@@ -169,7 +170,7 @@ function ImageChoicePreview({ question }: { question: QuizDetailDtoQuestionsItem
     color: o.color as PublicOption['color'],
     shape: o.shape as PublicOption['shape'],
     media: o.mediaId
-      ? { url: `/api/v1/media/${o.mediaId}`, kind: 'image' as const, alt: o.alt ?? null }
+      ? { url: mediaUrl(o.mediaId), kind: 'image' as const, alt: o.alt ?? null }
       : null,
   }));
   return (

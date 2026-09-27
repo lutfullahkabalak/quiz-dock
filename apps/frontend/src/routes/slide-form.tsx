@@ -66,6 +66,7 @@ import { SlideStage } from '../game/slide-stage';
 import { BackgroundField } from './background-field';
 import { MediaUpload } from './media-upload';
 import { SlideMediaField, type SlideMediaValue } from './slide-media-field';
+import { mediaUrl } from '@/lib/media-url';
 
 interface FormValues extends SlideMediaValue {
   blocks: SlideBlock[];
@@ -234,14 +235,14 @@ export function SlideForm({
     questionIndex: 0,
     blocks: quizFields ? fillSlideBlocks(values.blocks, quizVariables(quizFields)) : values.blocks,
     background: values.mediaId
-      ? { url: `/api/v1/media/${values.mediaId}` }
+      ? { url: mediaUrl(values.mediaId) }
       : values.gradient
         ? { gradient: values.gradient }
         : null,
     // Its media, shown still (#125): the video's first frame, the sound's waveform when known.
     video: values.videoMediaId
       ? {
-          url: `/api/v1/media/${values.videoMediaId}`,
+          url: mediaUrl(values.videoMediaId),
           loop: values.videoLoop,
           sound: values.videoSound,
           gainDb: 0,
@@ -250,7 +251,7 @@ export function SlideForm({
     audio:
       values.audioMediaId && audioPeaks && !(values.videoMediaId && values.videoSound)
         ? {
-            url: `/api/v1/media/${values.audioMediaId}`,
+            url: mediaUrl(values.audioMediaId),
             durationMs: 0,
             peaks: audioPeaks,
             gainDb: 0,

@@ -11,6 +11,7 @@ import { cn } from '@/lib/utils';
 import { mediaControllerDescribe } from '../api/generated/media/media';
 import { ImageTile } from '../game/image-choice';
 import { MediaUpload } from './media-upload';
+import { mediaUrl } from '@/lib/media-url';
 
 /** What the editor keeps of an image choice answer. */
 export interface ImageOptionValue {
@@ -158,7 +159,7 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
                 <SortableTile key={opt.key} id={opt.key}>
                   <div className="text-base">
                     <ImageTile
-                      src={opt.mediaId ? `/api/v1/media/${opt.mediaId}` : null}
+                      src={opt.mediaId ? mediaUrl(opt.mediaId) : null}
                       alt={opt.alt}
                       color={opt.color}
                       shape={opt.shape}

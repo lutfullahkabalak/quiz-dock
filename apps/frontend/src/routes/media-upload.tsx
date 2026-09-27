@@ -19,6 +19,7 @@ import {
 import type { MediaLibraryItemDto } from '../api/generated/model';
 import { getDemo } from '../config';
 import { MediaLibraryDialog } from './media-library-dialog';
+import { mediaUrl } from '@/lib/media-url';
 
 /**
  * What the picker offers for each kind — a hint only: whatever this browser can
@@ -142,7 +143,7 @@ export function MediaUpload({
     return <p className="text-muted-foreground text-sm">{t('media.demoDisabled')}</p>;
   }
   const Icon = ADD_ICON[kind];
-  const src = value ? `/api/v1/media/${value}` : null;
+  const src = value ? mediaUrl(value) : null;
   return (
     <div className="flex flex-col gap-1.5">
       {src ? (

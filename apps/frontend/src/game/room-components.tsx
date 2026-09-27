@@ -14,6 +14,7 @@ import type { QuizDto } from '../api/generated/model';
 import { useQuizzesControllerList } from '../api/generated/quizzes/quizzes';
 import { type GameSocket, emitWithAckOrError } from './game-client';
 import { LeaderboardList } from './live-components';
+import { mediaUrl } from '@/lib/media-url';
 
 /** The room's name as the screens show it: its own, else "<host>'s room". */
 export function roomLabel(
@@ -282,7 +283,7 @@ function QuizPicker({
           <span className="flex min-w-0 flex-1 items-center gap-3">
             {q.coverMediaId ? (
               <img
-                src={`/api/v1/media/${q.coverMediaId}`}
+                src={mediaUrl(q.coverMediaId)}
                 alt=""
                 className="size-12 shrink-0 rounded-md object-cover"
               />
