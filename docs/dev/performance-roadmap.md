@@ -59,8 +59,11 @@ Before that measure, the analysis read the code:
   In a large room (133 answers a second at 400 players) the clatter thins out; in a
   room of 30, answers rarely come within 100 ms of each other and nothing changes.
   The game's sounds are off in a new room anyway: the host turns on the ones they want.
-- Measure: at the next cold-start run of the benchmark (see
-  [load testing](load-testing.md#2-running-it)).
+- **Indicative** measure (a warm container, A/B alternated, 2 rounds each, just before
+  and after the change): answer ack p95 from 480–503 ms to 12 ms at 500 players on two
+  cores, from 23–34 ms to 7–8 ms at 300 players on one; Redis from 13 to 10 commands
+  per answer; no answer lost. The reference figures come from the next cold-start run
+  (see [load testing](load-testing.md#2-running-it)).
 
 ### 3.1 In-memory indexes and a snapshot cache (low risk): **done**
 
