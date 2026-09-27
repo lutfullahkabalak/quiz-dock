@@ -68,7 +68,7 @@ scripts/bench.sh series /tmp/bench/series
 scripts/bench.sh ab b6c792e /tmp/bench/ab
 ```
 
-- `series`: the tables of §3, 10 to 700 players on one core, 300 to 700 on two.
+- `series`: the tables of §3, 10 to 1500 players on one core, 300 to 700 on two.
 - `ab <ref>`: compares a commit (A) with the checkout (B). Their runs alternate
   (A B, B A, A B) rather than follow each other: a container's CPU varies from one
   minute to the next, and a single run of each can mislead. Both share the
@@ -136,12 +136,71 @@ Raw results: [`load-results/2026-09-27-baseline.json`](load-results/2026-09-27-b
 - **Memory is not the constraint**: about 265 MB at rest, under 450 MB up to 400
   players.
 
+### After the lots, measured cold (2026-09-27, night): the reference
+
+The code after every lot, the answer count coalesced included (lot 5b, `41ba1ac`),
+measured minutes after the container started, on the same kind of machine as the
+baseline (Xeon @ 2.10 GHz, 4 vCPU). `scripts/bench.sh`, then `ab b6c792e`.
+
+**Backend pinned to 1 core**
+
+| Players | join p95 | ack p50 | ack p95 | ack p99 | lost | start spread p95 | reveal spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|--:|--:|--:|
+| 10 | 73 | 5 | 12 | 14 | 0 | 1 | 3 | 12 % | 238 MB |
+| 50 | 454 | 3 | 6 | 9 | 0 | 5 | 2 | 8 % | 245 MB |
+| 100 | 387 | 3 | 6 | 24 | 0 | 5 | 6 | 12 % | 257 MB |
+| 200 | 567 | 2 | 5 | 10 | 0 | 7 | 9 | 20 % | 271 MB |
+| 300 | 478 | 1 | 7 | 11 | 0 | 12 | 14 | 36 % | 331 MB |
+| 400 | 772 | 2 | 10 | 15 | 0 | 14 | 15 | 100 % | 362 MB |
+| 500 | 1106 | 2 | 12 | 16 | 0 | 18 | 19 | 100 % | 427 MB |
+| 700 | 1544 | 2 | 18 | 25 | 0 | 39 | 30 | 100 % | 510 MB |
+| 1000 | 2165 | 2 | 29 | 38 | 0 | 81 | 53 | 103 % | 515 MB |
+| 1500 | 3465 | 3 | **61** | **431** | 0 | 60 | 45 | 104 % | 926 MB |
+
+**Backend on 2 cores**
+
+| Players | ack p95 | ack p99 | lost | start spread p95 | cpu p95 | rss max |
+|--:|--:|--:|--:|--:|--:|--:|
+| 300 | 6 | 10 | 0 | 10 | 104 % | 284 MB |
+| 500 | 16 | 35 | 0 | 13 | 104 % | 364 MB |
+| 700 | 19 | 26 | 0 | 26 | 104 % | 417 MB |
+
+Redis: 10 to 11 commands per answer (19 at 10 players); its peak since it started,
+which cannot be reset between runs, reached 80 MB after the series up to 700 and
+375 MB after 1000 then 1500 (both games' keys held together, until their TTL).
+
+**A/B against the baseline's code** (`b6c792e`), alternated, three rounds each:
+
+| | ack p50 | ack p95 | ack p99 | start spread p95 | redis cmd/answer |
+|---|--:|--:|--:|--:|--:|
+| 300 players, 1 core, before | 8–12 | 18–37 | 28–54 | 9–11 | 12 |
+| 300 players, 1 core, after | 2 | 7–8 | 11–12 | 11–13 | 11 |
+| 500 players, 2 cores, before | 55–219 | 120–623 | 161–693 | 17–34 | 12 |
+| 500 players, 2 cores, after | 2 | 11–12 | 16–18 | 17–21 | 10 |
+
+Raw results: [`load-results/2026-09-27-cold.json`](load-results/2026-09-27-cold.json).
+
+**Reading**
+
+- **The ceiling moved from ~400 to ~1500 players in one room.** At 700 players an
+  answer is acknowledged in 18 ms (p95) where the baseline took 3.4 s. At 1500 the
+  p95 is still 61 ms but the p99 reaches 0.4 s: the edge.
+- **The CPU per player fell by half** (36 % of a core at 300 against 75 %). `cpu p95`
+  reaches 100 % from 400 players up: it is the busiest 5 % of the run, and the
+  answers stay fast meanwhile. Which moment it is (the joins, most likely: a whole
+  room arrives within seconds here) is not measured.
+- **The room stays in step**: the devices receive a question within 40 ms of each
+  other up to 700 players, 60 to 80 ms at 1000 to 1500.
+- **A second core no longer changes much**: one core is enough for one room up to
+  700 players.
+- The spread at 500 players looked wider after the change in the warm A/B; cold, it
+  is not (17–21 ms against 17–34).
+
 ### After the refactoring lots (2026-09-27, evening)
 
 The same setup and series, on the code after every lot (2, 4a to 4d, perf, 5).
-**Indicative**: measured on a container already warm from a day of runs, unlike the
-baseline, and before the answer count was coalesced (lot 5b). To be measured again
-from a cold start.
+**Indicative, superseded by the cold measure above**: measured on a container already
+warm from a day of runs, and before the answer count was coalesced (lot 5b).
 
 **Backend pinned to 1 core**
 

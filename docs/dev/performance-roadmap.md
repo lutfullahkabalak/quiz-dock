@@ -8,20 +8,17 @@
 
 ## 1. Where we stand
 
-From the [baseline](load-testing.md#3-results) (one room, questions without
-media, Xeon @ 2.10 GHz):
+From the [measure after the lots](load-testing.md#3-results), taken on a machine that
+had just started (one room, questions without media, Xeon @ 2.10 GHz):
 
-- **Stable up to 700 players**: no answer lost, the devices receive each event
-  within 35 ms of each other.
-- **Fluid up to ~400 players on one core.** Past that, answers queue: 0.6 s at
-  500, 3.4 s at 700.
-- **A second core barely helps** (0.1 s at 500, still 2.8 s at 700): the engine
-  runs on Node's single JavaScript thread.
-- **CPU grows faster than the players**: 16 % of a core at 100, 40 % at 200,
-  75 % at 300.
-
-The last point is the lead: the limit comes from the algorithms before it
-comes from the hardware.
+- **Fluid up to ~1500 players in one room, on one core**: an answer acknowledged in
+  18 ms (p95) at 700 players, 61 ms at 1500 where the slowest 1 % reach 0.4 s. The
+  baseline, before the lots, queued the answers past 400 players (3.4 s at 700).
+- **No answer lost**, the devices receive each question within 40 ms of each other
+  up to 700 players.
+- **A second core barely changes it** for one room: the engine runs on Node's single
+  JavaScript thread.
+- **Not measured yet: several rooms at once**, the other shape of a large instance.
 
 ## 2. Where the time goes
 
@@ -59,11 +56,11 @@ Before that measure, the analysis read the code:
   In a large room (133 answers a second at 400 players) the clatter thins out; in a
   room of 30, answers rarely come within 100 ms of each other and nothing changes.
   The game's sounds are off in a new room anyway: the host turns on the ones they want.
-- **Indicative** measure (a warm container, A/B alternated, 2 rounds each, just before
-  and after the change): answer ack p95 from 480–503 ms to 12 ms at 500 players on two
-  cores, from 23–34 ms to 7–8 ms at 300 players on one; Redis from 13 to 10 commands
-  per answer; no answer lost. The reference figures come from the next cold-start run
-  (see [load testing](load-testing.md#2-running-it)).
+- **Measured**, A/B against the code before the lots, alternated, three rounds, on a
+  machine that had just started: answer ack p95 from 120–623 ms to 11–12 ms at 500
+  players on two cores, from 18–37 ms to 7–8 ms at 300 on one; Redis from 12 to 10
+  commands per answer; no answer lost. A warm A/B just before and after this change
+  alone gave the same order (480–503 ms to 12 ms).
 
 ### 3.1 In-memory indexes and a snapshot cache (low risk): **done**
 
@@ -127,8 +124,8 @@ Before that measure, the analysis read the code:
 1. ~~The engine refactoring (lot 2), behaviour unchanged, measured.~~ Done.
 2. ~~3.1, measured.~~ Done. 3.2 set aside (see above).
 3. ~~3.0.~~ Done (lot 5b). 3.3 if the product accepts it.
-4. The sizing table published in the [self-hosting guides](../self-hosting/sizing.md),
-   from a warm container: to measure again from a cold start, 3.0 included.
+4. ~~The sizing table measured again and published in the
+   [self-hosting guides](../self-hosting/sizing.md).~~ Done, measured cold, 3.0 included.
 5. 3.4 only on a confirmed need, after a multi-room measure.
 
 ## 5. Also noted
@@ -141,5 +138,6 @@ Before that measure, the analysis read the code:
 - **Candidate, not measured**: the archive of a finished game writes one row per
   player, in a transaction (`createManyAndReturn` would take one query). A game's
   end, not its play: to measure before changing.
-- Not measured yet: media (bandwidth, the reverse proxy), a real Wi-Fi network,
-  several rooms at once, Postgres archiving a large session.
+- Not measured yet: several rooms at once (a mode of the load test to add), media
+  (bandwidth, the reverse proxy), a real Wi-Fi network, Postgres archiving a large
+  session.

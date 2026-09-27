@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The load benchmark's two runs (docs/dev/load-testing.md), on a built backend:
 #
-#   scripts/bench.sh series <out>        the sizing series, on this checkout
+#   scripts/bench.sh series <out>        the sizing series (10 to 1500 players), on this checkout
 #   scripts/bench.sh ab <ref> <out> [n]  <ref> (A) against this checkout (B), n rounds
 #                                        alternated (A B, B A, …), 300 players on
 #                                        1 core then 500 on 2 cores
@@ -31,6 +31,7 @@ run() {
   (cd "$BACKEND" && taskset -c "$pcores" node scripts/load-test.mjs --url "http://localhost:$PORT" \
     --players "$players" --questions "$questions" --server-pid "$pid" --redis "$REDIS" \
     --out "$out/$name.json" ${BENCH_ARGS:-} >"$out/client-$name.log" 2>&1) || echo "run $name failed, see $out/client-$name.log"
+  # Redis's peak since it started: it cannot be reset, so it only grows from one run to the next.
   redis-cli -u "$REDIS" info memory | grep used_memory_peak_human >"$out/redis-$name.txt"
   kill "$pid" 2>/dev/null || true
   wait "$pid" 2>/dev/null || true
@@ -49,6 +50,7 @@ case ${1:-} in
     run "$BACKEND" "$out" one-small 0 1-3 10,50,100,200,300 10
     run "$BACKEND" "$out" one-large 0 1-3 400,500,700 5
     run "$BACKEND" "$out" two 0,1 2-3 300,500,700 5
+    run "$BACKEND" "$out" one-xl 0 1-3 1000,1500 5
     ;;
   ab)
     ref=${2:?ref}; out=$(realpath -m "${3:?out dir}"); rounds=${4:-3}; mkdir -p "$out"; machine "$out"

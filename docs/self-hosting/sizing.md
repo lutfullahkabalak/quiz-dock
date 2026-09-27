@@ -8,31 +8,31 @@ The figures come from the load test: one room, a quiz of single-choice questions
 without media, every player answering within 3 s, the whole stack (backend, Postgres,
 Redis) on the same machine, an Intel Xeon at 2.1 GHz.
 
-> [!NOTE]
-> **Provisional (2026-09-27).** Measured on a machine already busy for hours, before
-> the last performance change (the answer count sent at most every 100 ms). To be
-> measured again on a machine that just started, that change included.
+Measured on 2026-09-27, on a machine that had just started (version after commit
+`41ba1ac`). The load test and its script are in the repository: the figures can be
+measured again on your own hardware.
 
 ## The table
 
 | Players at once, in one room | vCPU | RAM | What to expect |
 |--:|--:|--:|---|
-| up to 100 | 1 | 2 GB | wide margin: the backend uses a fifth of a core at the peak of a question |
-| up to 300 | 2 | 2 GB | fluid: answers acknowledged within ~50 ms, one core busy during the answers |
-| up to 400 | 2 | 4 GB | at the limit: one core saturated while the room answers, still fluid (~50 ms) |
-| over 400 | | | not advised in one room: past 400 to 500 players, answers queue (0.5 s at 500, 3 s at 700) whatever the number of vCPU |
+| up to 300 | 1 | 2 GB | comfortable: the backend uses about a third of a core at the peak of a question |
+| up to 700 | 2 | 2 GB | fluid: answers acknowledged within ~20 ms, the backend under 550 MB |
+| up to 1500 | 2 | 4 GB | the edge: answers within ~60 ms for most, up to 0.4 s for the slowest 1 %, the backend near 1 GB, Redis near 400 MB |
+| over 1500 | | | not measured |
 
 In every case no answer was lost, and the devices of the room received each question
-within a few tens of milliseconds of each other (35 ms at 700 players).
+within 40 ms of each other up to 700 players, 80 ms at 1000 to 1500.
 
 ## Why more vCPU do not raise the limit
 
 The live engine runs on Node's single JavaScript thread: a room is played on **one
 core**. A second vCPU takes Postgres, Redis, the garbage collector and the network,
-which is why 2 vCPU are advised past 100 players, but a third or a fourth changes
+which is why 2 vCPU are advised past 300 players, but a third or a fourth changes
 nothing for one room. A **faster core** does raise it.
 
-Several rooms at the same time share that same core: add their players up.
+Several rooms at the same time share that same core. Until a measure with several
+rooms says otherwise, add their players up.
 
 ## What the table does not cover
 
@@ -44,5 +44,6 @@ Several rooms at the same time share that same core: add their players up.
 - **Very long quizzes**: the table was measured with short questions. A text-heavy
   quiz costs a little more per answer, not enough to change a line of the table.
 
-Memory is not the constraint: the backend holds about 300 MB at rest and under
-450 MB up to 500 players; Redis stays under 100 MB.
+Memory is not the constraint below 1000 players: the backend holds about 250 MB at
+rest and about 500 MB at 700 to 1000 players, Redis under 100 MB up to 700. At 1500
+the backend reaches about 0.9 GB and Redis about 400 MB, hence the 4 GB.
