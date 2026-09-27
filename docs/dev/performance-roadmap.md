@@ -1,10 +1,10 @@
-# Performance roadmap (draft)
+# Performance roadmap
 
-> **Status: draft, 2026-09-27.** Where the live engine spends its time today,
-> and the options to go further, in the order they are worth trying. Every step
-> is measured with the [load test](load-testing.md) before and after, and must
-> keep the sync tests green (`src/game/game.engine.spec.ts`, "sync between
-> devices").
+> **Status: 2026-09-27, after the refactoring lots.** Where the live engine
+> spends its time, what was done, and the options to go further, in the order
+> they are worth trying. Every step is measured with the [load test](load-testing.md)
+> before and after, and must keep the sync tests green
+> (`src/game/game.engine.spec.ts`, "sync between devices").
 
 ## 1. Where we stand
 
@@ -25,6 +25,19 @@ comes from the hardware.
 
 ## 2. Where the time goes
 
+**Measured** with a CPU profile of the backend at 400 players (one core saturated,
+`node --cpu-prof`-style sampling through the inspector), after the lots:
+
+| Share of the backend's time | What |
+|--:|---|
+| ~27 % | sending over the network (`writev`, engine.io, socket.io): mostly `answer:count`, sent to every device on every answer, so 400 × 400 = 160,000 messages a question |
+| ~6 % | re-reading and parsing every player on every answer, to count who answered |
+| ~4 % | Redis transfers |
+| ~3 % | garbage collection |
+| ~40 % | idle (the joins, the waits between questions) |
+
+Before that measure, the analysis read the code:
+
 | Moment | What the engine does | Cost |
 |---|---|---|
 | Each answer (`submit`) | reads the room and the game, parses the **whole quiz snapshot**, then re-reads and parses **every player**, every score and every answer to count who answered | O(N) per answer, **O(N²) per question** |
@@ -34,7 +47,23 @@ comes from the hardware.
 
 ## 3. Options, in order
 
-### 3.1 In-memory indexes and a snapshot cache — low risk
+### 3.0 Coalescing `answer:count`: the strongest lever, to decide
+
+- Send the answer count at most every ~100 ms, the last one always, instead of on
+  every answer. The count is the same on every device, only its steps are coarser:
+  the room's sync is untouched.
+- **Audible**: the screens tick once per answer counted, at most 5 ticks per update.
+  In a large room (133 answers a second at 400 players) the clatter thins out; in a
+  room of 30, answers rarely come within 100 ms of each other and nothing changes.
+- A product choice: **not done** until decided.
+
+### 3.1 In-memory indexes and a snapshot cache (low risk): **done**
+
+- **Done**: the rank index (lot 2) and the snapshot cache (`GameService`, the last
+  50 games). Measured on a text-heavy quiz (`--rich`, 10 questions) at 400 players:
+  answer ack p95 from 91–129 ms to 60–75 ms, the start spread from 23–35 ms to
+  17–21 ms. The CPU stays saturated: it lightens each answer, it does not move
+  the ceiling.
 
 - **Rank index.** Build `playerId → rank` once per reveal or podium, instead
   of a linear search per device. Same result, pure code.
@@ -45,7 +74,10 @@ comes from the hardware.
   the time: they stay in Redis, the source of truth, so a restart (timers
   re-armed from Redis) and, later, several processes stay correct.
 
-### 3.2 Indexes in Redis — medium risk
+### 3.2 Indexes in Redis (medium risk): **not done**
+
+- The profile gives what they would save, the per-answer parse of every player,
+  about 6 % of the time at 400 players. Not worth the drift risk while 3.0 is open.
 
 - A set of the game's **connected players** and a set of **who answered** each
   question, kept up to date on join, reconnect, disconnect, ban, answer and
@@ -83,20 +115,22 @@ comes from the hardware.
 
 ## 4. Order of work
 
-1. The engine refactoring (lot 2), behaviour unchanged, measured.
-2. 3.1, measured; then 3.2, measured.
-3. 3.3 if the product accepts it.
-4. The sizing table measured again and published in the
-   [self-hosting guides](../self-hosting/README.md).
+1. ~~The engine refactoring (lot 2), behaviour unchanged, measured.~~ Done.
+2. ~~3.1, measured.~~ Done. 3.2 set aside (see above).
+3. 3.0 and 3.3 if the product accepts them.
+4. ~~The sizing table measured again and published in the
+   [self-hosting guides](../self-hosting/sizing.md).~~ Done.
 5. 3.4 only on a confirmed need, after a multi-room measure.
 
 ## 5. Also noted
 
-- The reveal writes its state in Redis **before** settling the points of a
-  `closest` question: a screen reattaching in those few milliseconds would get
-  unsettled scores. To fix in the engine work.
-- The server logs a `pg` deprecation under load ("`client.query()` when the
-  client is already executing a query"): concurrent queries on one client, to
-  look at before `pg@9`.
+- Fixed in lot 4a: the reveal settled a `closest` question's points after writing its
+  state; the `pg` overlap warning under load.
+- **Found while measuring**: the author's media library matched every media against
+  every quiz with `LIKE`, 28.6 s for an author with 2,000 quizzes and 200 media. It
+  reads the one-pass definition the administration used: 0.25 s (lot 4c).
+- **Candidate, not measured**: the archive of a finished game writes one row per
+  player, in a transaction (`createManyAndReturn` would take one query). A game's
+  end, not its play: to measure before changing.
 - Not measured yet: media (bandwidth, the reverse proxy), a real Wi-Fi network,
   several rooms at once, Postgres archiving a large session.

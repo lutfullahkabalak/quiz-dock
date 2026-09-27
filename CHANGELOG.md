@@ -14,6 +14,28 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Bug Fixes
 
+- The console's chrono shows the pause sign, as the screens do *(console)*
+- Time the host adds while resuming is kept *(game)*
+- One question clock for the screen, the phones and the console *(live)*
+- No new session when the language changes or the Projection tab opens *(live)*
+- A saved or deleted element releases every media it held *(media)*
+- A copy named in its own language, made whole or not at all *(quizzes)*
+- The background field follows its value after a draft is discarded *(editor)*
+- A page that cannot load says why, not "not found" or nothing *(ui)*
+- What the account may do follows a change of identity at once *(auth)*
+- Failed actions say so instead of failing silently *(ui)*
+- A question's options keep distinct keys after a reload *(editor)*
+- Saving the title no longer writes back the old language *(editor)*
+- A question's background only while the question is on screen *(projection)*
+- Countdowns stop ticking once their deadline is past *(live)*
+- Adjusting the time no longer resets an order being put together *(player)*
+- The Tab key moves the focus again, switching views only from the page *(console)*
+- A phone that leaves can join again, and no connection leaks *(live)*
+- Load override.css after the app's stylesheet *(branding)*
+- A catalogue index that survives a crash and two shares at once *(store)*
+- Answer database errors with their meaning, and stop pg's overlap warning *(api)*
+- Check every place an author puts a media in, in one way *(media)*
+- Keep the room's players and answers right under concurrency *(game)*
 - No image added from the Markdown editor *(editor)*
 - No image to upload in an answer's explanation *(editor)*
 - A new quiz's intro slide comes first, before its question *(quiz)*
@@ -101,6 +123,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- Hooks on the live screens for an instance's override.css *(branding)*
+- Tokens for the answers' colours, warning, podium and typeface *(theme)*
+- The live pages say when their connection is lost *(live)*
 - Name a picture answer by its alt, in the history, the CSV and the templates *(history)*
 - Answer an image choice — the pictures at a distance, the shapes in the room *(player)*
 - Project an image choice — the pictures fill the screen, the reveal keeps them *(live)*
@@ -160,8 +185,19 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - Publish the manifest as a JSON Schema, one file per version *(bundle)*
 - Set the licence and the tags of a quiz *(editor)*
 
+### Performance
+
+- The instance's language alone downloaded, not all five *(frontend)*
+- A game's snapshot parsed once, not on every answer *(game)*
+- A joining device's preload reads its own record only *(game)*
+- The join page's peek reads the game once *(game)*
+- One definition of where a media is used, the library 100 times faster *(media)*
+- The auth guard writes the user only when something changed *(auth)*
+- Walk keys with SCAN, never KEYS *(redis)*
+
 ### Refactor
 
+- The questions-only reorder and the samples route marked deprecated *(api)*
 - One step preview for every page, its content centred *(quiz)*
 - The room under its PIN, each game under its own id *(game)*
 

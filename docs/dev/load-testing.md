@@ -54,6 +54,14 @@ taskset -c 1-3 pnpm load-test --url http://localhost:3100 --players 10,50,100,20
 `GAME_READ_DELAY_MS=1000` only shortens the reading time before each question
 (3 s by default) so a run takes less long; it changes nothing to the load.
 
+`--rich` fills each question (prompt, explanation, answers) to the editor's limits:
+the quiz's snapshot, which the engine reads on every answer, then weighs what a real
+text-heavy quiz does (about 4 KB a question) instead of a few bytes.
+
+To compare two versions of the engine, build each, then alternate their runs
+(A, B, B, A, A, B) rather than running one after the other: a container's CPU
+varies from one minute to the next, and a single run of each can mislead.
+
 **Do not point it at a production instance**: it takes the host seat and plays
 real games there.
 
