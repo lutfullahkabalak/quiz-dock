@@ -82,18 +82,37 @@ describe('DashboardPage', () => {
     expect(screen.getByRole('button', { name: /Parcourir les modèles/ })).toBeInTheDocument();
   });
 
-  it('crée un quiz au clic sur « Nouveau quiz »', async () => {
+  it('crée un quiz au clic sur « Nouveau quiz », avec une slide d’intro et une question à compléter', async () => {
     const fetchMock = mockApi([
       { method: 'GET', path: '/quizzes', body: [] },
-      { method: 'POST', path: '/quizzes', status: 201, body: quiz() },
+      { method: 'POST', path: /\/slides$/, status: 201, body: {} },
+      { method: 'POST', path: /\/questions$/, status: 201, body: {} },
+      { method: 'POST', path: '/quizzes', status: 201, body: quiz({ id: 'fresh' }) },
     ]);
     renderApp('/quizzes');
     fireEvent.click(await screen.findByText('Nouveau quiz'));
-    await waitFor(() => {
-      const posted = fetchMock.mock.calls.some(
-        ([url, opts]) => String(url).includes('/quizzes') && opts?.method === 'POST',
+    const bodyOf = (suffix: string) => {
+      const call = fetchMock.mock.calls.find(
+        ([url, opts]) =>
+          String(url).endsWith(`/quizzes/fresh/${suffix}`) && opts?.method === 'POST',
       );
-      expect(posted).toBe(true);
+      return call ? JSON.parse(String(call[1]?.body)) : null;
+    };
+    await waitFor(() => expect(bodyOf('questions')).not.toBeNull());
+    // The intro names the quiz through its variables, on a gradient drawn at random.
+    const slide = bodyOf('slides');
+    expect(slide.blocks.map((b: { text?: string; md?: string }) => b.text ?? b.md)).toEqual([
+      '{title}',
+      '{description}',
+    ]);
+    expect(slide.gradient.colors).toHaveLength(2);
+    expect(bodyOf('questions')).toMatchObject({
+      type: 'single_choice',
+      prompt: 'Votre question ?',
+      options: [
+        { text: 'Réponse 1', isCorrect: true },
+        { text: 'Réponse 2', isCorrect: false },
+      ],
     });
   });
 

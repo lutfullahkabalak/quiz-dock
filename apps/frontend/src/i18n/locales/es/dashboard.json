@@ -178,5 +178,10 @@
       "next": "Siguiente",
       "close": "Cerrar"
     }
+  },
+  "starter": {
+    "prompt": "¿Tu pregunta?",
+    "answer1": "Respuesta 1",
+    "answer2": "Respuesta 2"
   }
 }

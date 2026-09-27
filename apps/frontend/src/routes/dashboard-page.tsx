@@ -25,6 +25,7 @@ import { fold } from '@/lib/text';
 import { useStoredView } from '@/lib/use-stored-view';
 import { useRole } from '../auth/use-role';
 import { useLaunchSession } from '../game/use-launch-session';
+import { addStarter } from './quiz-starter';
 import {
   getQuizzesControllerListQueryKey,
   useQuizzesControllerCreate,
@@ -123,10 +124,17 @@ export function DashboardPage() {
       // No language: the server gives the instance's (#83).
       { data: { title: t('newQuiz') } },
       {
-        onSuccess: () =>
-          queryClient.invalidateQueries({
+        onSuccess: async (res) => {
+          // A draft to start from: an intro slide and a first question (see `addStarter`).
+          await addStarter(res.data.id, {
+            prompt: t('starter.prompt'),
+            answer1: t('starter.answer1'),
+            answer2: t('starter.answer2'),
+          }).catch(() => undefined);
+          await queryClient.invalidateQueries({
             queryKey: getQuizzesControllerListQueryKey(),
-          }),
+          });
+        },
       },
     );
   };

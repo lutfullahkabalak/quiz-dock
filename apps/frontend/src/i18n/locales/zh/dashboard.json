@@ -178,5 +178,10 @@
       "next": "下一个",
       "close": "关闭"
     }
+  },
+  "starter": {
+    "prompt": "你的问题？",
+    "answer1": "答案 1",
+    "answer2": "答案 2"
   }
 }
