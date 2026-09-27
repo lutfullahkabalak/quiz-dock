@@ -173,6 +173,7 @@
     "sounds": {
       "title": "Sons du jeu",
       "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique joue pendant les réponses ; elle se retire pendant le son d’une question, et revient après.",
+      "effects": "Effets",
       "tick": "Tic",
       "ding": "Ding",
       "gong": "Gong",
@@ -193,7 +194,8 @@
       "sfxLevel": "Effets",
       "instanceMedia": "{{name}} (instance)",
       "muteChannel": "Couper {{bus}} pour le salon",
-      "unmuteChannel": "Rétablir {{bus}} pour le salon"
+      "unmuteChannel": "Rétablir {{bus}} pour le salon",
+      "preview": "Écouter : {{name}} (ici seulement)"
     }
   },
   "screen": {

@@ -5,6 +5,7 @@ import {
   mediaDurationMs,
 } from '@quiz-dock/contracts';
 import { serverNow } from '../clock';
+import { unlockAudio } from './audio-unlock';
 import { useEffect, useRef, useState } from 'react';
 import {
   TRACK_FADE_S,
@@ -213,6 +214,7 @@ function playEffect(
   url: string | null,
   synth: (at?: number) => (() => void) | void,
   at?: number,
+  rate = 1,
 ): () => void {
   if (!url) return synth(at) ?? noop;
   let cancelled = false;
@@ -220,12 +222,47 @@ function playEffect(
   void loadSound(url).then((buffer) => {
     if (cancelled) return;
     // A sample that does not load: the room still hears something.
-    cancel = buffer ? playBuffer(buffer, 'sfx', { at }) : (synth(at) ?? noop);
+    cancel = buffer ? playBuffer(buffer, 'sfx', { at, rate }) : (synth(at) ?? noop);
   });
   return () => {
     cancelled = true;
     cancel();
   };
+}
+
+/** The room's effects, by their switch in the room's sounds. */
+export type RoomEffect = 'ding' | 'tick' | 'countdown' | 'gong';
+
+/**
+ * Plays one of the room's effects here, for the host to hear it before the room
+ * does (the console plays nothing of the game otherwise): its sample when the room
+ * has one, else the synthesised one. The countdown: tic, tac, tic, a beat of
+ * silence, then the gong.
+ */
+export async function previewEffect(effect: RoomEffect, sounds: RoomSoundsPayload): Promise<void> {
+  await unlockAudio();
+  const ctx = getMixer()?.ctx;
+  if (!ctx) return;
+  if (ctx.state === 'suspended') await ctx.resume().catch(() => undefined);
+  if (effect === 'ding') playEffect(sounds.dingUrl, synthDing);
+  else if (effect === 'tick') playEffect(sounds.tickUrl, synthTick);
+  else if (effect === 'gong') playEffect(sounds.gongUrl, synthGong);
+  else {
+    const t = ctx.currentTime + 0.05;
+    for (const [slot, tic] of [
+      [0, true],
+      [1, false],
+      [2, true],
+    ] as const) {
+      playEffect(
+        sounds.countdownUrl,
+        (when) => synthClick(when ?? t + slot * 0.5, tic ? TIC_HZ : TAC_HZ),
+        t + slot * 0.5,
+        tic ? 1 : TAC_HZ / TIC_HZ,
+      );
+    }
+    playEffect(sounds.gongUrl, synthGong, t + 2);
+  }
 }
 
 /** What the game's sounds follow of a live view. */
@@ -313,7 +350,7 @@ export function useGameSounds(
       (!sameQuestion || prev.state !== 'ANSWERING') &&
       !questionHasOwnSound(game.media)
     ) {
-      synthDing();
+      playEffect(sounds.dingUrl, synthDing);
     }
     // The gong at the reveal — unless the countdown already struck it at zero.
     const struck = countdownGong.current?.questionIndex === game.questionIndex;
@@ -326,7 +363,7 @@ export function useGameSounds(
     ) {
       playEffect(sounds.gongUrl, synthGong);
     }
-  }, [on, sounds, game.state, game.questionIndex, game.answered]);
+  }, [on, sounds, game.state, game.questionIndex, game.answered, game.media]);
 
   // The countdown: tic… tac… over the last five seconds of the time, on the server's
   // clock, the last tac left out so a clear silence leads to the gong, struck on zero
@@ -350,7 +387,16 @@ export function useGameSounds(
       const at = first + slot * 500;
       // Already gone by (a question shorter than the countdown); one just due still sounds.
       if (at < serverNow() - 50) continue;
-      cancels.push(synthClick(toCtx(at), slot % 2 === 0 ? TIC_HZ : TAC_HZ));
+      const tic = slot % 2 === 0;
+      // A sample of the room's: its tic as it is, its tac lower.
+      cancels.push(
+        playEffect(
+          sounds.countdownUrl,
+          (when) => synthClick(when ?? toCtx(at), tic ? TIC_HZ : TAC_HZ),
+          toCtx(at),
+          tic ? 1 : TAC_HZ / TIC_HZ,
+        ),
+      );
     }
     if (sounds.gong) {
       cancels.push(playEffect(sounds.gongUrl, synthGong, toCtx(endsAt)));

@@ -566,6 +566,8 @@ export class GameService {
     for (const [idKey, urlKey] of [
       ['tickId', 'tickUrl'],
       ['gongId', 'gongUrl'],
+      ['dingId', 'dingUrl'],
+      ['countdownId', 'countdownUrl'],
       ['musicId', 'musicUrl'],
     ] as const) {
       const id = patch[idKey];

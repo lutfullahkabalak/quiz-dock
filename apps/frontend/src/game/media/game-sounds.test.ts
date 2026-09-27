@@ -68,6 +68,8 @@ const SOUNDS: RoomSoundsPayload = {
   ding: false, // its own test below: the counts of the others stay theirs
   tickUrl: null,
   gongUrl: null,
+  dingUrl: null,
+  countdownUrl: null,
   musicUrl: null,
   musicLevel: 0.4,
   sfxLevel: 0.7,

@@ -93,7 +93,8 @@ export function questionLoopTests(ctx: GameContext): void {
     const q = await qStart;
     const parisId = q.options.find((o) => o.text === 'Paris')!.id;
 
-    const endsAt = await shortenTimer(host, pin, q.endsAt);
+    // 1.5 s left once the answers open: a loaded machine still answers in time.
+    const endsAt = await shortenTimer(host, pin, q.endsAt, q.startedAt);
     // Attendre l'ouverture des réponses (startedAt) avant de soumettre.
     await new Promise((r) => setTimeout(r, Math.max(0, q.startedAt - Date.now()) + 50));
 

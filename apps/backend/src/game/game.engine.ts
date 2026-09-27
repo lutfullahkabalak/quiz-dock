@@ -2151,6 +2151,8 @@ function soundsPayload(s: RoomSounds): RoomSoundsPayload {
     ding: s.ding,
     tickUrl: s.tickUrl,
     gongUrl: s.gongUrl,
+    dingUrl: s.dingUrl,
+    countdownUrl: s.countdownUrl,
     musicUrl: s.musicUrl,
     musicLevel: s.musicLevel,
     sfxLevel: s.sfxLevel,

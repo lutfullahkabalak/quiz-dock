@@ -322,6 +322,8 @@ export function roomTests(ctx: GameContext): void {
         ding: true,
         tickUrl: null,
         gongUrl: null,
+        dingUrl: null,
+        countdownUrl: null,
         musicUrl: null,
         musicLevel: 0.5,
         sfxLevel: 0.8,

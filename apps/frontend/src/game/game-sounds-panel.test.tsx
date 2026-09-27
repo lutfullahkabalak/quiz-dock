@@ -29,6 +29,8 @@ const SOUNDS = {
   ding: true,
   tickUrl: null,
   gongUrl: null,
+  dingUrl: null,
+  countdownUrl: null,
   musicUrl: null,
   musicLevel: 0.5,
   sfxLevel: 0.8,
@@ -66,6 +68,12 @@ describe('GameSoundsPanel (#93)', () => {
     expect(onChange).toHaveBeenCalledWith({ tick: false });
     fireEvent.change(screen.getByRole('slider', { name: 'Effets' }), { target: { value: '30' } });
     expect(onChange).toHaveBeenCalledWith({ sfxLevel: 0.3 });
+    // Every effect can be heard here first, the room does not hear it.
+    for (const name of ['Ding', 'Tic', 'Tic-tac', 'Gong']) {
+      expect(
+        screen.getByRole('button', { name: `Écouter : ${name} (ici seulement)` }),
+      ).toBeInTheDocument();
+    }
     // Each channel of the room has its own mute.
     fireEvent.click(screen.getByRole('button', { name: 'Couper Musique pour le salon' }));
     expect(onChange).toHaveBeenCalledWith({ musicMuted: true });

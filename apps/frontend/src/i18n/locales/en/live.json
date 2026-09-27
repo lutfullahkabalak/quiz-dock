@@ -173,6 +173,7 @@
     "sounds": {
       "title": "Game sounds",
       "hint": "Played by the projection and by participants following from home, never by phones in the room. The track plays while players answer; it makes way while a question plays its own sound, and comes back after.",
+      "effects": "Effects",
       "tick": "Tick",
       "ding": "Ding",
       "gong": "Gong",
@@ -193,7 +194,8 @@
       "sfxLevel": "Effects",
       "instanceMedia": "{{name}} (instance)",
       "muteChannel": "Mute {{bus}} for the room",
-      "unmuteChannel": "Unmute {{bus}} for the room"
+      "unmuteChannel": "Unmute {{bus}} for the room",
+      "preview": "Hear the {{name}} (here only)"
     }
   },
   "screen": {

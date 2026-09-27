@@ -173,6 +173,7 @@
     "sounds": {
       "title": "遊戲音效",
       "hint": "由投影和遠端參與者播放，房間內的手機不播放。背景音樂在作答時播放；題目自帶聲音播放時會淡出，結束後再回來。",
+      "effects": "音效",
       "tick": "滴答",
       "ding": "叮",
       "gong": "鑼聲",
@@ -193,7 +194,8 @@
       "sfxLevel": "音效",
       "instanceMedia": "{{name}}（執行個體）",
       "muteChannel": "為房間靜音：{{bus}}",
-      "unmuteChannel": "為房間取消靜音：{{bus}}"
+      "unmuteChannel": "為房間取消靜音：{{bus}}",
+      "preview": "試聽：{{name}}（僅本機）"
     }
   },
   "screen": {

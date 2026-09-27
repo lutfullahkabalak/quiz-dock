@@ -162,9 +162,13 @@ export interface RoomSounds {
   ding: boolean;
   tickId: string;
   gongId: string;
+  dingId: string;
+  countdownId: string;
   musicId: string;
   tickUrl: string | null;
   gongUrl: string | null;
+  dingUrl: string | null;
+  countdownUrl: string | null;
   musicUrl: string | null;
   musicLevel: number;
   sfxLevel: number;
@@ -180,9 +184,13 @@ export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
   ding: true,
   tickId: '',
   gongId: '',
+  dingId: '',
+  countdownId: '',
   musicId: '',
   tickUrl: null,
   gongUrl: null,
+  dingUrl: null,
+  countdownUrl: null,
   musicUrl: null,
   musicLevel: 0.5,
   sfxLevel: 0.8,

@@ -282,6 +282,7 @@ export function playBuffer(
     fadeInS = FADE_IN_S,
     fadeOutS = FADE_OUT_S,
     at,
+    rate = 1,
   }: {
     loop?: boolean;
     gain?: number;
@@ -289,6 +290,8 @@ export function playBuffer(
     fadeOutS?: number;
     /** When it starts, on the context's clock; now when omitted. */
     at?: number;
+    /** Playback rate: below 1, lower and longer (the countdown's tac from its tic). */
+    rate?: number;
   } = {},
 ): () => void {
   const m = getMixer();
@@ -296,6 +299,7 @@ export function playBuffer(
   const source = m.ctx.createBufferSource();
   source.buffer = buffer;
   source.loop = loop;
+  source.playbackRate.value = rate;
   const own = m.ctx.createGain();
   // In from silence: a sample that starts mid-wave does not click.
   const t = Math.max(at ?? 0, m.ctx.currentTime);

@@ -10,7 +10,6 @@ import {
 } from '@quiz-dock/contracts';
 import { Link, useParams } from '@tanstack/react-router';
 import {
-  Ban,
   Check,
   ChevronLeft,
   ChevronRight,
@@ -34,6 +33,7 @@ import {
   UserCheck,
   Users,
   Wifi,
+  X,
 } from 'lucide-react';
 import { QRCodeSVG } from 'qrcode.react';
 import { useEffect, useState } from 'react';
@@ -1116,7 +1116,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
           onClick={() => setOpen(true)}
           className="size-6 rounded-full"
         >
-          <Ban className="text-destructive size-3.5" />
+          <X className="text-destructive size-3.5" strokeWidth={3} />
         </Button>
       </Tooltip>
       <ConfirmDialog
