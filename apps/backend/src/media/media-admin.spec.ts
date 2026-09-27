@@ -135,6 +135,23 @@ describe('MediaAdminService (integration)', () => {
     expect((await admin.files({ ownerId: bob, q: 'big' })).total).toBe(0);
   });
 
+  it('gives the same total past the last page, whatever the filter', async () => {
+    await upload(alice, 'harbour.webp');
+    await upload(alice, 'lighthouse.webp');
+    await upload(bob, 'harbour.webp');
+    const total = async (filter: Parameters<MediaAdminService['files']>[0]) => {
+      const first = await admin.files(filter);
+      const past = await admin.files({ ...filter, offset: 50 });
+      expect(past.items).toEqual([]);
+      expect(past.total).toBe(first.total);
+      return first.total;
+    };
+    expect(await total({ ownerId: alice })).toBe(2);
+    expect(await total({ ownerId: alice, q: 'harbour' })).toBe(1);
+    expect(await total({ ownerId: bob, kind: 'image', legacy: true })).toBe(1);
+    expect(await total({ ownerId: bob, kind: 'video' })).toBe(0);
+  });
+
   it('lists what deleting a file breaks, then deletes it for every owner', async () => {
     const bytes = png('moderated');
     const a = await upload(alice, 'moderated.webp', bytes);
