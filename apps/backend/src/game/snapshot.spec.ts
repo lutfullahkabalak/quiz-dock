@@ -393,4 +393,46 @@ describe('buildSnapshot', () => {
     expect(snap.slides[0].background).toEqual({ url: '/api/v1/media/BG' });
     expect(snap.slides[0]).toMatchObject({ textTone: 'dark', textOutline: true });
   });
+
+  it('slides: the quiz’s variables are filled, the room’s left to the screens', () => {
+    const snap = buildSnapshot(
+      quiz({
+        title: 'Capitales',
+        description: 'Tour d’Europe',
+        tags: ['europe'],
+        license: 'CC-BY-4.0',
+        owner: { displayName: 'Billy' },
+        questions: [baseQuestion] as never,
+        slides: [
+          {
+            id: 's',
+            beforeQuestionId: null,
+            orderIndex: 0,
+            blocks: [
+              { type: 'heading', id: 'h', text: '{title} — {questions} questions', level: 1 },
+              {
+                type: 'columns',
+                id: 'c',
+                columns: [
+                  [{ type: 'text', id: 't', md: '{description} par {author} ({tags}, {license})' }],
+                  [{ type: 'text', id: 'u', md: 'PIN {pin}, {unknown}' }],
+                ],
+              },
+            ],
+            media: null,
+            displayDelayS: null,
+            textTone: 'light',
+            textOutline: true,
+          },
+        ] as never,
+      } as never),
+    );
+    const [heading, cols] = snap.slides[0].blocks;
+    expect(heading).toMatchObject({ text: 'Capitales — 1 questions' });
+    if (cols.type !== 'columns') throw new Error('expected columns');
+    expect(cols.columns[0][0]).toMatchObject({
+      md: 'Tour d’Europe par Billy (europe, CC-BY-4.0)',
+    });
+    expect(cols.columns[1][0]).toMatchObject({ md: 'PIN {pin}, {unknown}' });
+  });
 });

@@ -74,3 +74,91 @@ export function sameMediaStep(a: MediaStepRef | null | undefined, b: MediaStepRe
     !!a && a.questionIndex === b.questionIndex && (a.slideIndex ?? -1) === (b.slideIndex ?? -1)
   );
 }
+
+/**
+ * Variables a slide's text may hold (heading and text blocks), replaced wherever
+ * the slide shows. The quiz's are filled by the server from the quiz as it is
+ * now — a new quiz's intro follows its title as the author changes it; the room's
+ * by each screen from what it knows of the room, so a count stays live. An
+ * unknown name is left as written.
+ */
+export const QUIZ_VARIABLES = [
+  'title',
+  'description',
+  'questions',
+  'author',
+  'tags',
+  'license',
+] as const;
+export const ROOM_VARIABLES = [
+  'room',
+  'host',
+  'pin',
+  'join',
+  'players',
+  'question',
+  'total',
+  'remaining',
+  'date',
+  'time',
+] as const;
+export type SlideVariable = (typeof QUIZ_VARIABLES)[number] | (typeof ROOM_VARIABLES)[number];
+export const SLIDE_VARIABLES: readonly SlideVariable[] = [...QUIZ_VARIABLES, ...ROOM_VARIABLES];
+
+/** Replaces each `{name}` the values know; the others stay as written. */
+export function fillVariables(
+  text: string,
+  values: Partial<Record<SlideVariable, string | number | null | undefined>>,
+): string {
+  return text.replace(/\{([a-z]+)\}/g, (whole, name: string) => {
+    if (!Object.prototype.hasOwnProperty.call(values, name)) return whole;
+    const v = values[name as SlideVariable];
+    return v === null || v === undefined ? '' : String(v);
+  });
+}
+
+/** The quiz's variables, as the server fills them. */
+export function quizVariables(quiz: {
+  title: string;
+  description?: string | null;
+  questionCount?: number;
+  author?: string | null;
+  tags?: string[];
+  license?: string | null;
+}): Partial<Record<SlideVariable, string | number | null>> {
+  return {
+    title: quiz.title,
+    description: quiz.description ?? '',
+    ...(quiz.questionCount !== undefined ? { questions: quiz.questionCount } : {}),
+    ...(quiz.author !== undefined ? { author: quiz.author ?? '' } : {}),
+    ...(quiz.tags ? { tags: quiz.tags.join(', ') } : {}),
+    ...(quiz.license !== undefined ? { license: quiz.license ?? '' } : {}),
+  };
+}
+
+/** Every text of a slide's blocks with its variables filled. */
+export function fillSlideBlocks<B extends SlideBlockLike>(
+  blocks: B[],
+  values: Partial<Record<SlideVariable, string | number | null | undefined>>,
+): B[] {
+  const leaf = (b: SlideLeafLike): SlideLeafLike =>
+    b.type === 'heading' && typeof b.text === 'string'
+      ? { ...b, text: fillVariables(b.text, values) }
+      : b.type === 'text' && typeof b.md === 'string'
+        ? { ...b, md: fillVariables(b.md, values) }
+        : b;
+  return blocks.map((b) =>
+    b.type === 'columns' && Array.isArray(b.columns)
+      ? ({ ...b, columns: b.columns.map((c) => c.map(leaf)) } as B)
+      : (leaf(b as SlideLeafLike) as B),
+  );
+}
+
+interface SlideLeafLike {
+  type: string;
+  text?: string;
+  md?: string;
+}
+interface SlideBlockLike extends SlideLeafLike {
+  columns?: SlideLeafLike[][];
+}

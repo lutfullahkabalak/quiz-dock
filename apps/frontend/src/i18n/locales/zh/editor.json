@@ -179,7 +179,27 @@
     "videoSound": "声音",
     "videoSoundHint": "播放视频自带的声音。关闭：静音，幻灯片可以有自己的声音。",
     "audioExcludesVideoSound": "幻灯片已有声音：一次只能有一个声音。移除它才能打开视频的声音。",
-    "videoSoundExcludesAudio": "视频播放自带的声音：不能再加声音。将视频静音后才能添加。"
+    "videoSoundExcludesAudio": "视频播放自带的声音：不能再加声音。将视频静音后才能添加。",
+    "variablesLegend": "变量",
+    "variablesHint": "写在标题或文本中：幻灯片显示时会被替换。测验的变量在预览中显示，房间的变量在进行测验时显示。",
+    "variables": {
+      "title": "测验标题",
+      "description": "测验说明",
+      "questions": "题目数量",
+      "author": "作者",
+      "tags": "标签",
+      "license": "许可协议",
+      "room": "房间名称",
+      "host": "主持人名称",
+      "pin": "房间 PIN",
+      "join": "加入地址（主机/join）",
+      "players": "已连接的参与者人数",
+      "question": "幻灯片之后的题号",
+      "total": "测验的题目总数",
+      "remaining": "剩余题目数（含下一题）",
+      "date": "今天的日期",
+      "time": "时间"
+    }
   },
   "discardConfirm": {
     "title": "放弃修改？",

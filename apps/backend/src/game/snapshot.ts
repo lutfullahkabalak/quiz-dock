@@ -12,6 +12,8 @@ import {
   type AudioTarget,
   LOUDNESS_TARGET_LUFS,
   effectiveTimeLimitS,
+  fillSlideBlocks,
+  quizVariables,
   mediaDurationMs,
   playbackGainDb,
   resolveAudioTarget,
@@ -47,6 +49,8 @@ const quizWithContent = Prisma.validator<Prisma.QuizDefaultArgs>()({
       orderBy: { orderIndex: 'asc' },
       include: { media: true, videoMedia: true, audioMedia: true },
     },
+    // Its slides may name the author (`{author}`).
+    owner: { select: { displayName: true } },
   },
 });
 /** Whether a question plays a sound: an MP3, or a video's own track. */
@@ -173,7 +177,7 @@ export function buildSnapshot(quiz: QuizWithContent): QuizSnapshot {
 function buildSnapshotSlides(quiz: QuizWithContent): SnapshotSlide[] {
   const indexById = new Map(quiz.questions.map((q, i) => [q.id, i]));
   return orderSlides(quiz.slides, indexById, quiz.questions.length).map(({ slide, anchor }) =>
-    snapshotSlide(slide, anchor, quiz.loudnessTargetLufs, quiz.mediaTailS),
+    snapshotSlide(slide, anchor, quiz.loudnessTargetLufs, quiz.mediaTailS, slideQuizFields(quiz)),
   );
 }
 
@@ -197,6 +201,8 @@ function snapshotSlide(
   anchor: number,
   targetLufs: number = LOUDNESS_TARGET_LUFS,
   mediaTailS = 0,
+  /** The quiz whose fields the slide's text may name (`{title}`, `{questions}`…). */
+  quiz: SlideQuizFields = { title: '' },
 ): SnapshotSlide {
   const gain = (m: MediaAsset) => playbackGainDb(m.loudnessLufs, m.peakDbfs, targetLufs);
   // Media (#125): a video of the right kind, and a sound only beside a muted one.
@@ -225,7 +231,7 @@ function snapshotSlide(
   return {
     id: slide.id,
     beforeQuestionIndex: anchor,
-    blocks: resolveBlocks(slide.blocks as SlideBlock[]),
+    blocks: resolveBlocks(slide.blocks as SlideBlock[], quiz),
     background: slide.media
       ? { url: slide.media.url }
       : slide.gradient
@@ -241,13 +247,32 @@ function snapshotSlide(
   };
 }
 
-/** Image blocks get their served URL so the clients never build one from an id. */
-function resolveBlocks(blocks: SlideBlock[]): SlideBlock[] {
+/** What a slide's variables read of the quiz (see `quizVariables`). */
+type SlideQuizFields = Parameters<typeof quizVariables>[0];
+
+/** The quiz's fields for its slides' variables, from the rows the snapshot reads. */
+function slideQuizFields(quiz: QuizWithContent): SlideQuizFields {
+  return {
+    title: quiz.title,
+    description: quiz.description,
+    questionCount: quiz.questions.length,
+    author: quiz.owner?.displayName ?? null,
+    tags: quiz.tags,
+    license: quiz.license,
+  };
+}
+
+/**
+ * Image blocks get their served URL so the clients never build one from an id;
+ * a text naming the quiz (`{title}`, `{description}`) gets the quiz's current ones.
+ */
+function resolveBlocks(blocks: SlideBlock[], quiz: SlideQuizFields): SlideBlock[] {
   const leaf = (b: SlideLeafBlock): SlideLeafBlock =>
     b.type === 'image' ? { ...b, url: `/api/v1/media/${b.mediaId}` } : b;
-  return blocks.map((b) =>
+  const resolved = blocks.map((b) =>
     b.type === 'columns' ? { ...b, columns: b.columns.map((c) => c.map(leaf)) } : leaf(b),
   );
+  return fillSlideBlocks(resolved, quizVariables(quiz));
 }
 
 /**
@@ -356,7 +381,13 @@ export function refreshSnapshotForm(frozen: QuizSnapshot, current: QuizWithConte
   const indexById = new Map(frozen.questions.map((q, i) => [q.id, i]));
   const slides = orderSlides(current.slides, indexById, frozen.questions.length).map(
     ({ slide, anchor }) =>
-      snapshotSlide(slide, anchor, current.loudnessTargetLufs, current.mediaTailS),
+      snapshotSlide(
+        slide,
+        anchor,
+        current.loudnessTargetLufs,
+        current.mediaTailS,
+        slideQuizFields(current),
+      ),
   );
   return {
     ...frozen,

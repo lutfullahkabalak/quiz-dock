@@ -28,6 +28,7 @@ import { useGameSounds } from '../game/media/game-sounds';
 import { preloadMedia, waitedFor } from '../game/media/media-pool';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { SlidePlaybackContext } from '../game/media/slide-media';
+import { RoomVariables } from '../game/slide-variables';
 import { ReadinessMeter } from '../game/media/readiness-meter';
 import { anchorOf, followed } from '../game/media/followed';
 import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
@@ -297,7 +298,9 @@ export function ScreenSurface({
             onPosition: playMedia ? sayPosition : undefined,
           }}
         >
-          <SlideView key={slide.slideIndex} slide={slide} />
+          <RoomVariables view={view} pin={pin}>
+            <SlideView key={slide.slideIndex} slide={slide} />
+          </RoomVariables>
         </SlidePlaybackContext.Provider>
       </div>
     );

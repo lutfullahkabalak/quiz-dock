@@ -60,6 +60,7 @@ import {
 } from '../game/media/media-pool';
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
 import { SlidePlaybackContext } from '../game/media/slide-media';
+import { RoomVariables } from '../game/slide-variables';
 import { anchorOf, followed } from '../game/media/followed';
 import { RatingPanel } from '../game/rating-panel';
 import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
@@ -652,7 +653,9 @@ export function PlayerPage() {
             videos: remote,
           }}
         >
-          <SlideView key={slide.slideIndex} slide={slide} />
+          <RoomVariables view={view} pin={pin}>
+            <SlideView key={slide.slideIndex} slide={slide} />
+          </RoomVariables>
         </SlidePlaybackContext.Provider>
       </div>
     );

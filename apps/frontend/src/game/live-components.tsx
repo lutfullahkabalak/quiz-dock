@@ -11,6 +11,7 @@ import type {
   SlideTextAlign,
   SlideTextSize,
 } from '@quiz-dock/contracts';
+import { fillSlideBlocks } from '@quiz-dock/contracts';
 import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -25,6 +26,7 @@ import {
 import { cn } from '@/lib/utils';
 import { Avatar } from './avatar';
 import { Surface } from './surface';
+import { SlideVariablesContext } from './slide-variables';
 import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
 
 /**
@@ -626,6 +628,9 @@ export function AnswerExplanation({
  */
 export function SlideView({ slide }: { slide: SlideShowPayload }) {
   const playback = useContext(SlidePlaybackContext);
+  // The room's variables, filled here (the quiz's came filled from the server).
+  const variables = useContext(SlideVariablesContext);
+  const blocks = fillSlideBlocks(slide.blocks, variables);
   // A phone in the room shows the slide's background, not its video (the big screen does).
   const video = slide.video && showsVideo(slide.video, playback) ? slide.video : null;
   return (
@@ -639,7 +644,7 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
       className="w-full flex-1"
     >
       <article className="flex h-full min-h-full w-full flex-col justify-center gap-[1.5em] p-[2em]">
-        {slide.blocks.map((b) =>
+        {blocks.map((b) =>
           b.type === 'columns' ? (
             <div
               key={b.id}

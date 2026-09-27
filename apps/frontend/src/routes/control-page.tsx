@@ -47,6 +47,7 @@ import { Select } from '@/components/ui/select';
 import { ReadinessMeter } from '../game/media/readiness-meter';
 import { ConsoleTransport } from '../game/media/console-transport';
 import { SlidePlaybackContext } from '../game/media/slide-media';
+import { RoomVariables } from '../game/slide-variables';
 import { anchorOf, followed } from '../game/media/followed';
 import { serverNow } from '../game/clock';
 import { Switch } from '@/components/ui/switch';
@@ -247,7 +248,7 @@ export function ControlPage() {
             <ScreenView pin={pin} />
           </div>
         ) : (
-          <ParticipantPreview view={view} />
+          <ParticipantPreview view={view} pin={pin} />
         )}
       </section>
     );
@@ -572,7 +573,9 @@ export function ControlPage() {
               follow: followed(view, step),
             }}
           >
-            <SlideView key={slide.slideIndex} slide={slide} />
+            <RoomVariables view={view} pin={pin}>
+              <SlideView key={slide.slideIndex} slide={slide} />
+            </RoomVariables>
           </SlidePlaybackContext.Provider>
         </div>
         {soundMedia ? (

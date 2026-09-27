@@ -333,6 +333,17 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   };
 
   const editingItem = items.find((it) => it.id === editing);
+  // What a slide's quiz variables read in the builder's preview (`{title}`, `{questions}`…).
+  const slideQuizFields = quiz
+    ? {
+        title: quiz.title,
+        description: quiz.description,
+        questionCount: quiz.questionCount,
+        ...(quiz.ownerName ? { author: quiz.ownerName } : {}),
+        tags: quiz.tags,
+        license: quiz.license,
+      }
+    : undefined;
   const openForm: ReactNode =
     editing === 'new' ? (
       <QuestionForm
@@ -343,7 +354,13 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         onDirtyChange={onFormDirty}
       />
     ) : editing === 'new-slide' ? (
-      <SlideForm key="new-slide" quizId={quiz.id} onClose={closeForm} onDirtyChange={onFormDirty} />
+      <SlideForm
+        key="new-slide"
+        quizId={quiz.id}
+        quizFields={slideQuizFields}
+        onClose={closeForm}
+        onDirtyChange={onFormDirty}
+      />
     ) : editingItem?.kind === 'question' ? (
       // Keyed by item: switching items must remount the form (fresh defaults, fresh dirty state).
       <QuestionForm
@@ -359,6 +376,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         key={editingItem.id}
         quizId={quiz.id}
         slide={editingItem.slide}
+        quizFields={slideQuizFields}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
       />
