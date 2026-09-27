@@ -26,7 +26,7 @@ import type {
   SlideTextSize,
   SlideTextTone,
 } from '@quiz-dock/contracts';
-import { SLIDE_VARIABLES, fillSlideBlocks, quizVariables } from '@quiz-dock/contracts';
+import { SLIDE_VARIABLES, type quizVariables } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlignCenter,
@@ -67,6 +67,7 @@ import { BackgroundField } from './background-field';
 import { MediaUpload } from './media-upload';
 import { SlideMediaField, type SlideMediaValue } from './slide-media-field';
 import { mediaUrl } from '@/lib/media-url';
+import { slideShowOf } from './quiz-stage-preview';
 
 interface FormValues extends SlideMediaValue {
   blocks: SlideBlock[];
@@ -231,23 +232,8 @@ export function SlideForm({
   };
 
   const stage = {
-    slideIndex: 0,
-    questionIndex: 0,
-    blocks: quizFields ? fillSlideBlocks(values.blocks, quizVariables(quizFields)) : values.blocks,
-    background: values.mediaId
-      ? { url: mediaUrl(values.mediaId) }
-      : values.gradient
-        ? { gradient: values.gradient }
-        : null,
+    ...slideShowOf(values, 0, quizFields),
     // Its media, shown still (#125): the video's first frame, the sound's waveform when known.
-    video: values.videoMediaId
-      ? {
-          url: mediaUrl(values.videoMediaId),
-          loop: values.videoLoop,
-          sound: values.videoSound,
-          gainDb: 0,
-        }
-      : null,
     audio:
       values.audioMediaId && audioPeaks && !(values.videoMediaId && values.videoSound)
         ? {
@@ -258,9 +244,6 @@ export function SlideForm({
             size: values.waveformSize,
           }
         : null,
-    textTone: values.textTone,
-    textOutline: values.textOutline,
-    displayDelayS: values.displayDelayS,
   };
 
   return (

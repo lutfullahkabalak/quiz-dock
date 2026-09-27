@@ -39,9 +39,20 @@ export function slideQuizFieldsOf(quiz: QuizDetailDto) {
   };
 }
 
-/** A stored slide as the screens would get it, the quiz's variables filled. */
+/** A slide, stored or being edited, as the screens would get it, the quiz's variables filled. */
 export function slideShowOf(
-  slide: QuizDetailDtoSlidesItem,
+  slide: Pick<
+    QuizDetailDtoSlidesItem,
+    | 'blocks'
+    | 'mediaId'
+    | 'gradient'
+    | 'videoMediaId'
+    | 'videoLoop'
+    | 'videoSound'
+    | 'textTone'
+    | 'textOutline'
+    | 'displayDelayS'
+  >,
   index: number,
   quizFields?: Parameters<typeof quizVariables>[0],
 ): SlideShowPayload {
