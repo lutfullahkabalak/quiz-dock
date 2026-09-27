@@ -56,11 +56,13 @@ describe('QuestionForm', () => {
     expect(payload.revealDelayS).toBeNull();
   });
 
-  it('the answer explanation offers no image to upload', () => {
+  it("no text field offers an image to add: a question's picture goes in its Media section", () => {
     renderForm();
-    const field = screen.getByLabelText('Explication de la réponse (affichée après la révélation)');
-    const editor = field.closest('[data-markdown-editor]') as HTMLElement;
-    expect(within(editor).queryByRole('button', { name: /Insérer une image/ })).toBeNull();
+    for (const label of ['Énoncé', 'Explication de la réponse (affichée après la révélation)']) {
+      const editor = screen.getByLabelText(label).closest('[data-markdown-editor]') as HTMLElement;
+      expect(within(editor).queryByRole('button', { name: /image/i })).toBeNull();
+      expect(editor.querySelector('input[type="file"]')).toBeNull();
+    }
   });
 
   it('sends the per-question reveal delay when set (#6)', async () => {

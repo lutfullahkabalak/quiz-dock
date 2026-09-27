@@ -226,7 +226,7 @@ of a sound on its waveform, the account preferences:
 <details>
 <summary>Everything else QuizDock does</summary>
 
-- 📝 **Rich text** — prompts, options and descriptions in Markdown with a visual editor (bold, lists, code, inline images).
+- 📝 **Rich text** — prompts, options and descriptions in Markdown with a visual editor (bold, lists, code).
 - 🎞️ **Content slides** — headings, text, images, 2–3 columns between questions; image or gradient backgrounds for slides and questions, with a faithful 16:9 preview. A slide can play a video behind its content (looped or once, with its sound or muted) and a sound, set like a question's; in automatic mode it waits for them to play. Its text can name the quiz and the room — `{title}`, `{pin}`, `{players}`, `{question}` and more, filled wherever the slide shows.
 - 💡 **Answer explanations** — shown at the reveal, with a per-question reveal delay in automatic mode.
 - 👁️ **Preview** — rehearse your quiz exactly as it will look on the big screen, answers shown.
