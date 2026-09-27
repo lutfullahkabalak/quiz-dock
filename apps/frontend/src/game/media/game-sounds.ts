@@ -105,12 +105,12 @@ export function synthGong(at?: number): () => void {
 }
 
 /**
- * The ding's low-pass, a little over its tone (1047 Hz) on a gentle slope — a
+ * The ding's low-pass, a little over its tone (880 Hz) on a gentle slope — a
  * biquad, 12 dB per octave. Web Audio reads its Q in dB: −3 dB is flat, no bump.
  * Measured in Chromium: the tone loses 2.6 dB, given back after the filter;
- * relative to it, the overtones lose 4.4 (1554 Hz) and 9.2 dB (2126 Hz).
+ * relative to it, the overtones lose 4.4 (1306 Hz) and 9.2 dB (1787 Hz).
  */
-const DING_SOFTEN_HZ = 1100;
+const DING_SOFTEN_HZ = 925;
 /** How long the ding takes to reach its level: soft enough not to snap. */
 const DING_ATTACK_S = 0.008;
 const DING_SOFTEN_Q = -3;
@@ -118,8 +118,8 @@ const DING_SOFTEN_Q = -3;
 const DING_MAKEUP = 1.35;
 
 /**
- * A ding as a question starts: one clear tone (C6, 1047 Hz — a fifth under the
- * first ding's 1550 Hz, which pierced) with two discreet overtones for the
+ * A ding as a question starts: one clear tone (A5, 880 Hz — the first ding's
+ * 1550 Hz pierced, and C6 was still bright) with two discreet overtones for the
  * crystal (no low body, or it turns into a cowbell), an 8 ms attack and a faint
  * strike: struck, not snapped. All through a gentle low-pass.
  */
@@ -140,9 +140,9 @@ export function synthDing(at?: number): () => void {
   out.connect(soften).connect(makeup).connect(into);
   const sources: AudioScheduledSourceNode[] = [];
   for (const { freq, level, decay } of [
-    { freq: 1047, level: 1, decay: 1.2 },
-    { freq: 1554, level: 0.14, decay: 0.6 },
-    { freq: 2126, level: 0.05, decay: 0.35 },
+    { freq: 880, level: 1, decay: 1.2 },
+    { freq: 1306, level: 0.14, decay: 0.6 },
+    { freq: 1787, level: 0.05, decay: 0.35 },
   ]) {
     const osc = ctx.createOscillator();
     osc.type = 'sine';
@@ -160,7 +160,7 @@ export function synthDing(at?: number): () => void {
   noise.buffer = seededNoise(ctx, 0.015);
   const band = ctx.createBiquadFilter();
   band.type = 'bandpass';
-  band.frequency.value = 1800;
+  band.frequency.value = 1500;
   band.Q.value = 0.5;
   const ng = ctx.createGain();
   ng.gain.setValueAtTime(0.12, t);
