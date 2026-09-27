@@ -167,7 +167,7 @@
     "participantLoading": "Listo, cargando los medios",
     "sounds": {
       "title": "Sonidos del juego",
-      "hint": "Los reproducen la proyección y los participantes a distancia, nunca los teléfonos de la sala. La música suena mientras se responde y se calla cuando una pregunta tiene su propio sonido.",
+      "hint": "Los reproducen la proyección y los participantes a distancia, nunca los teléfonos de la sala. La música suena mientras se responde; se retira mientras suena el sonido de una pregunta y vuelve después.",
       "tick": "Tic",
       "gong": "Gong",
       "music": "Música",
