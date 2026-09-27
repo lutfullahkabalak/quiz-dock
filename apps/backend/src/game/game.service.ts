@@ -128,11 +128,6 @@ export interface JoinSessionResult {
 }
 
 /**
- * Cycle de vie d'une partie sur l'état Redis (SPECIFICATIONS §8). Ce service ne
- * gère pas le transport : il est appelé par le gateway (`host:create`,
- * `player:join`) et renvoie des données ; la diffusion socket reste au gateway.
- */
-/**
  * A running game, as the interface lists it (§6.2). `host` is filled only for the
  * instance-wide view an `admin` gets: a host listing their own needs no name.
  */
@@ -145,6 +140,11 @@ type ActiveGame = {
   host?: string;
 };
 
+/**
+ * Cycle de vie d'une partie sur l'état Redis (SPECIFICATIONS §8). Ce service ne
+ * gère pas le transport : il est appelé par le gateway (`host:create`,
+ * `player:join`) et renvoie des données ; la diffusion socket reste au gateway.
+ */
 @Injectable()
 export class GameService {
   constructor(

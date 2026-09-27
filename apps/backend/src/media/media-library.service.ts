@@ -191,11 +191,6 @@ export class MediaLibraryService {
   }
 
   /**
-   * The credits of the media a quiz uses, each once, in no particular order of
-   * importance: what the preview page lists and the podium shows (a CC-BY
-   * licence asks for an attribution the audience sees).
-   */
-  /**
    * `creditsOf` for a quiz the caller reads: theirs, or one another host shares with
    * the instance (its preview owes the same attributions); any other is not found.
    */
@@ -208,6 +203,11 @@ export class MediaLibraryService {
     return this.creditsOf(quizId);
   }
 
+  /**
+   * The credits of the media a quiz uses, each once, in no particular order of
+   * importance: what the preview page lists and the podium shows (a CC-BY
+   * licence asks for an attribution the audience sees).
+   */
   async creditsOf(quizId: string): Promise<string[]> {
     const rows = await this.prisma.$queryRaw<Array<{ credit: string }>>`
       SELECT DISTINCT m.credit

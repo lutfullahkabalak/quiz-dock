@@ -1,7 +1,7 @@
 import { BadRequestException } from '@nestjs/common';
 import { readFile, writeFile } from 'node:fs/promises';
 import type { PrismaService } from '../../prisma/prisma.service';
-import { type LiveReader, currentGameFields, gameKeys } from '../../game/game.keys';
+import { type LiveReader, livePinOf } from '../../game/game.keys';
 import {
   collectMediaIds,
   EXPORT_INCLUDE,
@@ -171,13 +171,10 @@ export async function quizTransfer(
 
 /** A quiz being played cannot change hands: the running session would lose its owner. */
 async function refuseWhilePlayed(redis: LiveIndex, ownerId: string, quizId: string): Promise<void> {
-  const pins = await redis.smembers(gameKeys.hostGames(ownerId));
-  for (const pin of pins) {
-    const [state, playing] = await currentGameFields(redis, pin, 'state', 'quizId');
-    if (playing === quizId && state && state !== 'ENDED') {
-      throw new CliError(
-        `"${quizId}" is being played right now (PIN ${pin}): end the session first.`,
-      );
-    }
+  const pin = await livePinOf(redis, ownerId, quizId);
+  if (pin) {
+    throw new CliError(
+      `"${quizId}" is being played right now (PIN ${pin}): end the session first.`,
+    );
   }
 }

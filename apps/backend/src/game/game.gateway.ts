@@ -494,7 +494,6 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     await this.engine.setMode(payload.pin, this.requireHostId(socket), payload.mode);
   }
 
-  /** `host:pause` : suspend/reprend l'auto-progression (gèle le chrono en ANSWERING). */
   /** `host:media` : the host steers the current question's media on every device that plays it. */
   @SubscribeMessage('host:media')
   async hostMedia(
@@ -505,6 +504,7 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
     await this.engine.mediaControl(payload.pin, this.requireHostId(socket), payload);
   }
 
+  /** `host:pause` : suspend/reprend l'auto-progression (gèle le chrono en ANSWERING). */
   @SubscribeMessage('host:pause')
   async hostPause(
     @ConnectedSocket() socket: GameSocket,

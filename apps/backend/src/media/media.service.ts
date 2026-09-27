@@ -30,7 +30,7 @@ import { type GameId, ROOM_HASH_KEY, gameKeys } from '../game/game.keys';
 import { PrismaService } from '../prisma/prisma.service';
 import { RedisService } from '../redis/redis.service';
 import { parseUploadMeta } from './dto/media-upload-meta';
-import { mediaLimits, uploadCeiling } from './media.config';
+import { mediaLimits, mediaUrl, uploadCeiling } from './media.config';
 import { mediaDimensions } from './media-dimensions';
 
 interface UploadFile {
@@ -202,7 +202,7 @@ export class MediaService implements OnModuleInit {
       });
       return tx.mediaAsset.update({
         where: { id: created.id },
-        data: { url: `/api/v1/media/${created.id}` },
+        data: { url: mediaUrl(created.id) },
       });
     });
     // A clean-up may have let go of that file between the write and the rows.
@@ -406,7 +406,7 @@ export class MediaService implements OnModuleInit {
         sourceSha256: source.sourceSha256,
       },
     });
-    const url = `/api/v1/media/${created.id}`;
+    const url = mediaUrl(created.id);
     await this.prisma.mediaAsset.update({ where: { id: created.id }, data: { url } });
     return { mediaId: created.id, url, kind: created.kind };
   }
@@ -779,7 +779,6 @@ export class MediaService implements OnModuleInit {
     return true;
   }
 
-  /** Supprime un média possédé (ligne + fichier). */
   /**
    * Removes an entry of the author's library: every media of theirs on the
    * same file (a reused media is one entry). Refused while any of them is

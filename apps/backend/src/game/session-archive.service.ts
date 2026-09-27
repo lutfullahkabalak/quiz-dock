@@ -20,7 +20,8 @@ type RankedPlayer = PlayerRecord & PlayerScore & { id: string };
  * classement, agrégats par question, et — en capture intégrale — réponses
  * individuelles) vers les tables durables, en **une transaction**, AVANT la purge
  * Redis. Suivi individuel coupé (RG-16) : seuls le résumé et les agrégats par
- * question sont écrits — la partie elle-même (classement, podium) n'y perd rien. Déclenché à la demande de l'hôte (`host:end` avec `archive`) ou
+ * question sont écrits — la partie elle-même (classement, podium) n'y perd rien.
+ * Déclenché à la demande de l'hôte (`host:end` avec `archive`) ou
  * automatiquement sur une fin orpheline (§7.3, marquée `interrupted`).
  *
  * Best-effort : une erreur de persistance est journalisée mais n'empêche pas la fin
@@ -77,10 +78,10 @@ export class SessionArchiveService {
       await this.prisma.$transaction(async (tx) => {
         const created = await tx.gameSessionLog.create({ data: session });
 
-        // Suivi individuel coupé (RG-16) : aucune ligne par participant, et donc
-        // aucune réponse individuelle — seuls les agrégats et ce résumé subsistent.
         // Résultats par participant : créés un à un pour récupérer les id (rattachement
-        // des réponses individuelles en capture intégrale).
+        // des réponses individuelles en capture intégrale). Suivi individuel coupé
+        // (RG-16) : aucune ligne par participant, donc aucune réponse individuelle —
+        // seuls les agrégats et ce résumé subsistent.
         const resultIdByPlayer = new Map<string, string>();
         if (meta.personalTracking) {
           for (const agg of playerAgg) {

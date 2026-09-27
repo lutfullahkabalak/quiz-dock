@@ -22,6 +22,7 @@ import {
   type SlideBundleItem,
 } from './quiz-bundle.schema';
 import { instanceLanguage } from '../../common/instance-language';
+import { mediaUrl } from '../../media/media.config';
 
 /** Rows needed to export a quiz, in the shape `prisma.quiz.findFirst` returns with this include. */
 export const EXPORT_INCLUDE = {
@@ -297,7 +298,7 @@ export interface ImportedQuiz {
 }
 
 function mdIn(text: string, idFor: IdFor): string {
-  return text.replace(BUNDLE_URL_RE, (_m, path: string) => `](/api/v1/media/${idFor(path)})`);
+  return text.replace(BUNDLE_URL_RE, (_m, path: string) => `](${mediaUrl(idFor(path))})`);
 }
 
 function blocksIn(blocks: unknown, idFor: IdFor): unknown {

@@ -22,6 +22,7 @@ import {
   toBundle,
 } from './quiz-bundle';
 import { type BundleMediaMeta, type QuizBundle, quizBundleSchema } from './quiz-bundle.schema';
+import { mediaUrl } from '../../media/media.config';
 
 export { slugify };
 
@@ -105,7 +106,7 @@ export class QuizPortableService {
     // A media that could not be read keeps its route: harmless on re-import (rejected as missing).
     const bundle = toBundle(
       quiz,
-      (mediaId) => pathById.get(mediaId) ?? `/api/v1/media/${mediaId}`,
+      (mediaId) => pathById.get(mediaId) ?? mediaUrl(mediaId),
       metaByPath,
     );
     files[MANIFEST] = strToU8(JSON.stringify(bundle, null, 2));
