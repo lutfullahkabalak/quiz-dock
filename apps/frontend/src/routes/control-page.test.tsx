@@ -7,11 +7,15 @@ import { mockApi, renderApp } from '../test/harness';
 const { fakeSocket, hookState } = vi.hoisted(() => ({
   // `once`/`off`: an emit with an ack also listens for the server's `error`.
   fakeSocket: { emit: vi.fn(), once: vi.fn(), off: vi.fn() },
-  hookState: { value: null as unknown },
+  // `roles`: every session the page opened, by role.
+  hookState: { value: null as unknown, roles: new Set<string>() },
 }));
 
 vi.mock('../game/use-game-session', () => ({
-  useGameSession: () => ({ view: hookState.value, socket: fakeSocket, markJoined: vi.fn() }),
+  useGameSession: (_pin: string, role: string) => {
+    hookState.roles.add(role);
+    return { view: hookState.value, socket: fakeSocket, markJoined: vi.fn() };
+  },
 }));
 
 const view = (partial: Partial<GameView>): GameView => ({
@@ -120,6 +124,37 @@ describe('ControlPage: who is ready in the lobby (#104)', () => {
     expect(await screen.findByTestId('readiness')).toHaveTextContent('Prêts : 1 / 3 participants');
     expect(screen.getByLabelText('Prêt')).toBeInTheDocument(); // Ada
     expect(screen.getByLabelText('Prêt, médias en chargement')).toBeInTheDocument(); // Bob
+  });
+});
+
+describe('ControlPage: the Projection tab (audit F9)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('shows the screen from the console’s own session, without opening a second one', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.roles.clear();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: {
+        questionIndex: 0,
+        type: 'single_choice',
+        prompt: 'Capitale ?',
+        options: [],
+        media: null,
+        startedAt: Date.now(),
+        endsAt: Date.now() + 20_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    renderApp('/session/482913/console');
+    fireEvent.click(await screen.findByRole('tab', { name: /Projection/ }));
+    expect(await screen.findByRole('heading', { name: 'Capitale ?' })).toBeInTheDocument();
+    expect([...hookState.roles]).toEqual(['host']);
   });
 });
 

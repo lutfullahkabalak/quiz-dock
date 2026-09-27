@@ -27,9 +27,9 @@ import type {
   SessionNotice,
   SlideShowPayload,
 } from '@quiz-dock/contracts';
+import i18next from 'i18next';
 import { useEffect, useRef, useState } from 'react';
 import type { FollowedPosition } from './media/question-media-stage';
-import { useTranslation } from 'react-i18next';
 import {
   type GameSocket,
   clearPlayerSession,
@@ -223,6 +223,12 @@ const PER_QUIZ: Partial<GameView> = {
 };
 
 /**
+ * Read when the error shows, not from `useTranslation`: this hook renders no
+ * text, and a change of language must not subscribe the view again (audit F8).
+ */
+const sessionNotFound = () => i18next.t('live:errors.sessionNotFound');
+
+/**
  * S'abonne à la partie `pin` selon le rôle et expose une vue réactive. Garanties :
  * - **un seul socket** (dédoublonnage `ensureGameSocket`, robuste au StrictMode) ;
  * - **listeners posés AVANT le kick** (`host:attach`/`spectator:join`/`player:reconnect`)
@@ -234,7 +240,6 @@ const PER_QUIZ: Partial<GameView> = {
  */
 export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boolean } = {}) {
   const follow = opts.follow === true;
-  const { t } = useTranslation('live');
   const [view, setView] = useState<GameView>(INITIAL);
   const socketRef = useRef<GameSocket | null>(null);
 
@@ -460,11 +465,11 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         if (!active) return;
         if (role === 'host') {
           sock.emit('host:attach', { pin }, (res: { ok: boolean }) => {
-            if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
+            if (active && !res.ok) patch({ status: 'error', error: sessionNotFound() });
           });
         } else if (role === 'spectator') {
           sock.emit('spectator:join', { pin, follow }, (res: { ok: boolean }) => {
-            if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
+            if (active && !res.ok) patch({ status: 'error', error: sessionNotFound() });
           });
         } else {
           const session = loadPlayerSession();
@@ -497,7 +502,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       if (reconnectHandler) s.io?.off('reconnect', reconnectHandler);
       for (const [event, handler] of events) s.off(event, handler);
     };
-  }, [pin, role, follow, t]);
+  }, [pin, role, follow]);
 
   /** Joueur : à appeler après un `player:join` réussi pour quitter `no-session`. */
   const markJoined = () => setView((prev) => ({ ...prev, status: 'ready' }));

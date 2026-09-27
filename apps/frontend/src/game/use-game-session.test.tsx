@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import i18n from '../i18n';
 
 // Socket factice : capture les listeners et les ack des emits pour les piloter.
 const { fakeSocket, listeners, emitted, setAckOk, managerListeners } = vi.hoisted(() => {
@@ -68,6 +69,16 @@ describe('useGameSession', () => {
     expect(listeners.size).toBe(29);
     unmount();
     expect([...listeners.keys()]).toEqual([]);
+  });
+
+  it('keeps its subscription and its seat when the language changes (audit F8)', async () => {
+    renderHook(() => useGameSession('482913', 'host'));
+    await waitFor(() => expect(emitted.some((e) => e.event === 'host:attach')).toBe(true));
+    const before = i18n.language;
+    await act(() => i18n.changeLanguage(before === 'en' ? 'fr' : 'en'));
+    await act(() => i18n.changeLanguage(before));
+    expect(emitted.filter((e) => e.event === 'host:attach')).toHaveLength(1);
+    expect(listeners.size).toBe(29);
   });
 
   it('hôte : émet host:attach après avoir posé les listeners, puis suit l’état + le roster', async () => {

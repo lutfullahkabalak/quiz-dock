@@ -74,7 +74,7 @@ import { ParticipantPreview } from '../game/participant-preview';
 import { joinBase, joinHostLabel, joinUrlFor } from '../game/join-url';
 import { JoinAddressPicker } from '../game/join-address-picker';
 import { type GameView, type RosterPlayer, useGameSession } from '../game/use-game-session';
-import { ScreenView } from './screen-page';
+import { ScreenSurface } from './screen-page';
 import { PageLoading } from '@/components/ui/loading';
 
 /** Boutons d'ajustement du chrono (§8) : retire/ajoute des secondes en direct. */
@@ -237,7 +237,8 @@ export function ControlPage() {
         {tabs}
         {tab === 'screen' ? (
           <div className="overflow-hidden rounded-xl border">
-            <ScreenView pin={pin} />
+            {/* The console's own session: a second one would re-join the room on the host's socket. */}
+            <ScreenSurface pin={pin} view={view} socket={socket} role="preview" />
           </div>
         ) : (
           <ParticipantPreview view={view} pin={pin} />

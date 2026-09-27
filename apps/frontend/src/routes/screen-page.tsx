@@ -80,8 +80,9 @@ export function FollowScreenPage() {
 export type ScreenRole = 'lead' | 'preview' | 'follow';
 
 /**
- * The projected screen itself; also embedded in the host console's Projection
- * tab (`preview`) and opened by a participant on a device of their own (`follow`).
+ * The projected screen itself, also opened by a participant on a device of their
+ * own (`follow`). The host console's Projection tab shows `ScreenSurface`
+ * (`preview`) on the console's own session.
  */
 export function ScreenView({
   pin,
