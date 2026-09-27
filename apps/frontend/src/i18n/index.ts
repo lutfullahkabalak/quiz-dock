@@ -1,61 +1,9 @@
 import i18next from 'i18next';
 import { initReactI18next } from 'react-i18next';
 import { appConfig } from '../config';
-import commonFr from './locales/fr/common.json';
-import dashboardFr from './locales/fr/dashboard.json';
-import editorFr from './locales/fr/editor.json';
-import liveFr from './locales/fr/live.json';
-import joinFr from './locales/fr/join.json';
-import sessionsFr from './locales/fr/sessions.json';
-import storeFr from './locales/fr/store.json';
-import authFr from './locales/fr/auth.json';
-import errorsFr from './locales/fr/errors.json';
-import validationFr from './locales/fr/validation.json';
-import commonEn from './locales/en/common.json';
-import dashboardEn from './locales/en/dashboard.json';
-import editorEn from './locales/en/editor.json';
-import liveEn from './locales/en/live.json';
-import joinEn from './locales/en/join.json';
-import sessionsEn from './locales/en/sessions.json';
-import storeEn from './locales/en/store.json';
-import authEn from './locales/en/auth.json';
-import errorsEn from './locales/en/errors.json';
-import validationEn from './locales/en/validation.json';
-import commonEs from './locales/es/common.json';
-import dashboardEs from './locales/es/dashboard.json';
-import editorEs from './locales/es/editor.json';
-import liveEs from './locales/es/live.json';
-import joinEs from './locales/es/join.json';
-import sessionsEs from './locales/es/sessions.json';
-import storeEs from './locales/es/store.json';
-import authEs from './locales/es/auth.json';
-import errorsEs from './locales/es/errors.json';
-import validationEs from './locales/es/validation.json';
-import commonZh from './locales/zh/common.json';
-import dashboardZh from './locales/zh/dashboard.json';
-import editorZh from './locales/zh/editor.json';
-import liveZh from './locales/zh/live.json';
-import joinZh from './locales/zh/join.json';
-import sessionsZh from './locales/zh/sessions.json';
-import storeZh from './locales/zh/store.json';
-import authZh from './locales/zh/auth.json';
-import errorsZh from './locales/zh/errors.json';
-import validationZh from './locales/zh/validation.json';
-import commonZhTW from './locales/zh-TW/common.json';
-import dashboardZhTW from './locales/zh-TW/dashboard.json';
-import editorZhTW from './locales/zh-TW/editor.json';
-import liveZhTW from './locales/zh-TW/live.json';
-import joinZhTW from './locales/zh-TW/join.json';
-import sessionsZhTW from './locales/zh-TW/sessions.json';
-import storeZhTW from './locales/zh-TW/store.json';
-import authZhTW from './locales/zh-TW/auth.json';
-import errorsZhTW from './locales/zh-TW/errors.json';
-import validationZhTW from './locales/zh-TW/validation.json';
-
 /**
  * i18n — dictionnaire 100 % côté front (le backend n'émet que des codes, cf.
- * ADR 0001). Ressources **bundlées en synchrone** (pas de backend HTTP) : `t()`
- * renvoie le texte immédiatement, ce qui garde l'app ET les tests déterministes.
+ * ADR 0001).
  *
  * **Une seule langue par déploiement**, fixée via `APP_LANG` (.env → `config.js`
  * → `window.__APP_CONFIG__.lang`, comme `APP_NAME`). Pas de détection navigateur
@@ -63,69 +11,27 @@ import validationZhTW from './locales/zh-TW/validation.json';
  * quiz n'est pas multilingue, on évite donc toute incohérence langue UI / contenu.
  * Langues fournies : `en` (défaut), `fr`, `es`, `zh` (chinois simplifié),
  * `zh-TW` (chinois traditionnel). Vocabulaire et arbitrages : `GLOSSARY.md`.
+ *
+ * Chaque langue est un fichier à part, chargé à la demande (audit E16) : le
+ * navigateur ne télécharge que celle de l'instance, et l'anglais pour une clé qui
+ * manquerait, au lieu des cinq. `loadLanguages()` les charge avant le premier
+ * rendu (`main.tsx`, et le setup des tests) : `t()` reste alors synchrone.
  */
-export const resources = {
-  en: {
-    common: commonEn,
-    dashboard: dashboardEn,
-    editor: editorEn,
-    live: liveEn,
-    join: joinEn,
-    sessions: sessionsEn,
-    store: storeEn,
-    auth: authEn,
-    errors: errorsEn,
-    validation: validationEn,
-  },
-  fr: {
-    common: commonFr,
-    dashboard: dashboardFr,
-    editor: editorFr,
-    live: liveFr,
-    join: joinFr,
-    sessions: sessionsFr,
-    store: storeFr,
-    auth: authFr,
-    errors: errorsFr,
-    validation: validationFr,
-  },
-  es: {
-    common: commonEs,
-    dashboard: dashboardEs,
-    editor: editorEs,
-    live: liveEs,
-    join: joinEs,
-    sessions: sessionsEs,
-    store: storeEs,
-    auth: authEs,
-    errors: errorsEs,
-    validation: validationEs,
-  },
-  zh: {
-    common: commonZh,
-    dashboard: dashboardZh,
-    editor: editorZh,
-    live: liveZh,
-    join: joinZh,
-    sessions: sessionsZh,
-    store: storeZh,
-    auth: authZh,
-    errors: errorsZh,
-    validation: validationZh,
-  },
-  'zh-TW': {
-    common: commonZhTW,
-    dashboard: dashboardZhTW,
-    editor: editorZhTW,
-    live: liveZhTW,
-    join: joinZhTW,
-    sessions: sessionsZhTW,
-    store: storeZhTW,
-    auth: authZhTW,
-    errors: errorsZhTW,
-    validation: validationZhTW,
-  },
-} as const;
+const files = import.meta.glob<{ default: Record<string, unknown> }>('./locales/*/*.json');
+
+/** The namespaces, one file each per language. */
+export const namespaces = [
+  'common',
+  'dashboard',
+  'editor',
+  'live',
+  'join',
+  'sessions',
+  'store',
+  'auth',
+  'errors',
+  'validation',
+] as const;
 
 export const supportedLngs = ['en', 'fr', 'es', 'zh', 'zh-TW'] as const;
 export type AppLang = (typeof supportedLngs)[number];
@@ -147,7 +53,8 @@ function resolveLang(): AppLang {
 }
 
 void i18next.use(initReactI18next).init({
-  resources,
+  // Filled by `loadLanguages`, before the first render.
+  resources: {},
   lng: resolveLang(),
   fallbackLng: DEFAULT_LANG,
   supportedLngs: [...supportedLngs],
@@ -155,9 +62,22 @@ void i18next.use(initReactI18next).init({
   // i18next résout zh-TW → zh → en, et une clé manquante s'affiche en simplifié.
   load: 'currentOnly',
   defaultNS,
-  ns: Object.keys(resources.en),
+  ns: [...namespaces],
   interpolation: { escapeValue: false }, // React échappe déjà
-  react: { useSuspense: false }, // ressources synchrones → pas de Suspense
+  react: { useSuspense: false }, // chargées avant le rendu → pas de Suspense
 });
+
+/** Loads the instance's language, and English for a key it would miss, into i18next. */
+export async function loadLanguages(): Promise<void> {
+  const langs = [...new Set([resolveLang(), DEFAULT_LANG])];
+  await Promise.all(
+    langs.flatMap((lang) =>
+      namespaces.map(async (ns) => {
+        const { default: bundle } = await files[`./locales/${lang}/${ns}.json`]();
+        i18next.addResourceBundle(lang, ns, bundle, true, true);
+      }),
+    ),
+  );
+}
 
 export default i18next;
