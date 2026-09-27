@@ -245,8 +245,8 @@ export function GameSoundsControls({
           {heading('room-sfx', t('control.sounds.effects'))}
           {level(t('control.sounds.sfxLevel'), sounds.sfxLevel, 'sfxLevel', 'sfxMuted')}
         </div>
-        {/* One line an effect, in the order the game plays them; its sound stays in place
-            while it is off (greyed), so nothing jumps. */}
+        {/* One line an effect, in the order the game plays them, when it plays under it;
+            its sound stays in place while it is off (greyed), so nothing jumps. */}
         <div className="grid grid-cols-[auto_4.5rem_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-2">
           {effects.map((e) => (
             <Fragment key={e.on}>
@@ -256,10 +256,7 @@ export function GameSoundsControls({
                 onCheckedChange={(v) => onChange({ [e.on]: v })}
                 aria-label={t(`control.sounds.${e.on}Label`)}
               />
-              <span
-                className={cn('pt-1.5 font-medium', !sounds[e.on] && 'text-muted-foreground')}
-                title={t(`control.sounds.${e.on}Label`)}
-              >
+              <span className={cn('pt-1.5 font-medium', !sounds[e.on] && 'text-muted-foreground')}>
                 {t(`control.sounds.${e.on}`)}
               </span>
               {/* Heard here only: the room does not. */}
@@ -281,6 +278,10 @@ export function GameSoundsControls({
                 e.id,
                 !sounds[e.on],
               )}
+              {/* When it plays, under its line: what the host needs to choose it. */}
+              <p className="text-muted-foreground col-span-3 col-start-2 -mt-1 text-xs">
+                {t(`control.sounds.${e.on}When`)}
+              </p>
             </Fragment>
           ))}
         </div>

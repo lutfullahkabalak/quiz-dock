@@ -195,7 +195,11 @@
       "instanceMedia": "{{name}}（实例）",
       "muteChannel": "为房间静音：{{bus}}",
       "unmuteChannel": "为房间取消静音：{{bus}}",
-      "preview": "试听：{{name}}（仅本机）"
+      "preview": "试听：{{name}}（仅本机）",
+      "dingWhen": "每道题出现时——题目自带声音或视频时不播放。",
+      "tickWhen": "每收到一个回答时，包括最后一个（紧接在锣声之前）。",
+      "countdownWhen": "计时的最后 5 秒：整秒“滴”，半秒“答”；最后一个“答”省略，归零时敲锣。所有人都作答后停止。",
+      "gongWhen": "题目结束时：计时归零，或所有人作答后立即。"
     }
   },
   "screen": {
