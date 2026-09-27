@@ -536,7 +536,7 @@ export function ControlPage() {
         />
         {/* Reduced base: the slide is a preview in a card, not the projection. */}
         <div className="bg-card flex rounded-xl border p-5 text-[0.8rem] sm:p-6">
-          {/* Shown still: the projection plays; the waveform follows where it is. */}
+          {/* Shown still, as projected: the projection plays; the transport below draws the sound. */}
           <SlidePlaybackContext.Provider
             value={{
               mode: 'still',
@@ -545,7 +545,6 @@ export function ControlPage() {
               anchor: null,
               resumeKey: null,
               follow: followed(view, step),
-              showHidden: true,
             }}
           >
             <SlideView key={slide.slideIndex} slide={slide} />

@@ -85,12 +85,16 @@ export function SlideSound({ audio }: { audio: LiveAudio }) {
   );
 }
 
+/** Whether a screen shows the slide's video: not a phone in the room, unless it plays its sound. */
+export function showsVideo(video: SlideVideo, play: SlidePlayback): boolean {
+  return play.videos !== false || playsSoundHere(video.sound, play);
+}
+
 /** The slide's video, behind its content (cover): looped or played once, with its sound or muted. */
 export function SlideVideoLayer({ video }: { video: SlideVideo }) {
   const play = useContext(SlidePlaybackContext);
   const withSound = playsSoundHere(video.sound, play);
-  // A phone in the room: its background, unless the video's sound is meant for it.
-  if (play.videos === false && !withSound) return null;
+  if (!showsVideo(video, play)) return null;
   return (
     <VideoBox
       url={video.url}
