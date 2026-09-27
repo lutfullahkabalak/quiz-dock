@@ -67,8 +67,9 @@ your phone to play.
   in step; each player gets a generated [Multiavatar](https://multiavatar.com) avatar.
 - 🖥️ **Made for the big screen** — bright, high-contrast projection screens, with
   separate projection and control windows; manual or automatic pacing.
-- 🧩 **A real quiz builder** — seven question types (single/multi choice, true-false,
-  text, numeric, reorder, poll), images with alternative text, Markdown everywhere, content
+- 🧩 **A real quiz builder** — eight question types (single/multi choice, true-false,
+  text, numeric, reorder, poll, and image choice — pictures as the answers), images with
+  alternative text, Markdown everywhere, content
   slides between questions, backgrounds, answer explanations at the reveal. A new quiz
   starts from a draft: an intro slide and a first question to complete.
 - 🎧 **Video & sound** — videos and sounds in questions and slides,
@@ -195,7 +196,7 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/templates.png" alt="Shared templates" /><br /><sub><b>Templates</b> — quizzes shared on the instance; take an independent copy</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/editor.png" alt="Quiz builder" /><br /><sub><b>Quiz builder</b> — 7 question types, video &amp; sound, slides, backgrounds, scoring rules</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/editor.png" alt="Quiz builder" /><br /><sub><b>Quiz builder</b> — 8 question types, video &amp; sound, slides, backgrounds, scoring rules</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby.png" alt="Host console — lobby" /><br /><sub><b>Host console</b> — lobby: PIN, QR code, players in the room or remote, who hears the sound</sub></td>
   </tr>
   <tr>
