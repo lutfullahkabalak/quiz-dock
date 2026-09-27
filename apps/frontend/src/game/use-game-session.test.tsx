@@ -62,6 +62,14 @@ describe('useGameSession', () => {
     expect(managerListeners.has('reconnect')).toBe(false);
   });
 
+  it('takes on every event it follows, and lets every one go on unmount', async () => {
+    const { unmount } = renderHook(() => useGameSession('482913', 'host'));
+    await waitFor(() => expect(emitted.some((e) => e.event === 'host:attach')).toBe(true));
+    expect(listeners.size).toBe(29);
+    unmount();
+    expect([...listeners.keys()]).toEqual([]);
+  });
+
   it('hôte : émet host:attach après avoir posé les listeners, puis suit l’état + le roster', async () => {
     const { result } = renderHook(() => useGameSession('482913', 'host'));
 

@@ -23,6 +23,7 @@ import type {
   QuestionTimePayload,
   RoomSoundsPayload,
   RoomStandingsPayload,
+  ServerToClientEvents,
   SessionNotice,
   SlideShowPayload,
 } from '@quiz-dock/contracts';
@@ -411,40 +412,46 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       patch({ kicked: p });
     };
 
+    // Every event this view follows, taken on and off together: one list, never two to keep in step.
+    const handlers = {
+      'game:state': onState,
+      'game:roster': onRoster,
+      'player:joined': onJoined,
+      'player:left': onLeft,
+      'question:start': onQuestion,
+      'game:mode': onMode,
+      'game:join-url': onJoinUrl,
+      'game:outline': onOutline,
+      'question:time': onTime,
+      'answer:count': onCount,
+      'answer:ack': onAck,
+      'question:reveal': onReveal,
+      'slide:show': onSlide,
+      leaderboard: onLeaderboard,
+      'media:preload': onPreload,
+      'media:readiness': onReadiness,
+      'media:position': onPosition,
+      'media:wait': onMediaWait,
+      'media:control': onMediaControl,
+      'game:media': onGameMedia,
+      'game:podium': onPodium,
+      'room:standings': onStandings,
+      'room:info': onRoomInfo,
+      'lobby:you': onLobbyYou,
+      'lobby:count': onLobbyCount,
+      'room:sounds': onSounds,
+      'game:ended': onEnded,
+      notice: onNotice,
+      kicked: onKicked,
+    } satisfies Partial<ServerToClientEvents>;
+    const events = Object.entries(handlers) as [keyof ServerToClientEvents, never][];
+
     void ensureGameSocket(role === 'host' ? 'host' : 'guest').then((sock) => {
       if (!active) return;
       s = sock;
       socketRef.current = sock;
 
-      sock.on('game:state', onState);
-      sock.on('game:roster', onRoster);
-      sock.on('player:joined', onJoined);
-      sock.on('player:left', onLeft);
-      sock.on('question:start', onQuestion);
-      sock.on('game:mode', onMode);
-      sock.on('game:join-url', onJoinUrl);
-      sock.on('game:outline', onOutline);
-      sock.on('question:time', onTime);
-      sock.on('answer:count', onCount);
-      sock.on('answer:ack', onAck);
-      sock.on('question:reveal', onReveal);
-      sock.on('slide:show', onSlide);
-      sock.on('leaderboard', onLeaderboard);
-      sock.on('media:preload', onPreload);
-      sock.on('media:readiness', onReadiness);
-      sock.on('media:position', onPosition);
-      sock.on('media:wait', onMediaWait);
-      sock.on('media:control', onMediaControl);
-      sock.on('game:media', onGameMedia);
-      sock.on('game:podium', onPodium);
-      sock.on('room:standings', onStandings);
-      sock.on('room:info', onRoomInfo);
-      sock.on('lobby:you', onLobbyYou);
-      sock.on('lobby:count', onLobbyCount);
-      sock.on('room:sounds', onSounds);
-      sock.on('game:ended', onEnded);
-      sock.on('notice', onNotice);
-      sock.on('kicked', onKicked);
+      for (const [event, handler] of events) sock.on(event, handler);
 
       // Kick — listeners déjà en place : la rafale `sendStateTo` ne peut être ratée.
       // Rejoué à chaque (re)connexion : après un redémarrage du serveur, le socket
@@ -488,35 +495,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       active = false;
       if (!s) return;
       if (reconnectHandler) s.io?.off('reconnect', reconnectHandler);
-      s.off('game:state', onState);
-      s.off('game:roster', onRoster);
-      s.off('player:joined', onJoined);
-      s.off('player:left', onLeft);
-      s.off('question:start', onQuestion);
-      s.off('game:mode', onMode);
-      s.off('game:join-url', onJoinUrl);
-      s.off('game:outline', onOutline);
-      s.off('question:time', onTime);
-      s.off('answer:count', onCount);
-      s.off('answer:ack', onAck);
-      s.off('question:reveal', onReveal);
-      s.off('slide:show', onSlide);
-      s.off('leaderboard', onLeaderboard);
-      s.off('media:preload', onPreload);
-      s.off('media:readiness', onReadiness);
-      s.off('media:position', onPosition);
-      s.off('media:wait', onMediaWait);
-      s.off('media:control', onMediaControl);
-      s.off('game:media', onGameMedia);
-      s.off('game:podium', onPodium);
-      s.off('room:standings', onStandings);
-      s.off('room:info', onRoomInfo);
-      s.off('lobby:you', onLobbyYou);
-      s.off('lobby:count', onLobbyCount);
-      s.off('room:sounds', onSounds);
-      s.off('game:ended', onEnded);
-      s.off('notice', onNotice);
-      s.off('kicked', onKicked);
+      for (const [event, handler] of events) s.off(event, handler);
     };
   }, [pin, role, follow, t]);
 
