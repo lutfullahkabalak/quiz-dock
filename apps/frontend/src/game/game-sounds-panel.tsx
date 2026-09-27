@@ -247,7 +247,7 @@ export function GameSoundsControls({
         </div>
         {/* One line an effect, in the order the game plays them, when it plays under it;
             its sound stays in place while it is off (greyed), so nothing jumps. */}
-        <div className="grid grid-cols-[auto_4.5rem_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-2">
+        <div className="grid grid-cols-[auto_7.5rem_auto_minmax(0,1fr)] items-start gap-x-2 gap-y-2">
           {effects.map((e) => (
             <Fragment key={e.on}>
               <Switch

@@ -8,7 +8,7 @@ import {
 import { AudioLines } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
-import { COLOR_BG, OPTION_BG_FALLBACK, SHAPE_GLYPH } from '@/lib/option-style';
+import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import type {
   QuizDetailDto,
@@ -17,6 +17,7 @@ import type {
 } from '../api/generated/model';
 import type { QuizItem } from '@/lib/quiz-items';
 import { ScaledStage, SlideStage } from '../game/slide-stage';
+import { ShapeIcon } from '@/components/shape-icon';
 
 /**
  * A quiz's steps as they will show, still: what the preview walks through and
@@ -119,7 +120,7 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
               )}
             >
               <span className="text-3xl" aria-hidden="true">
-                {SHAPE_GLYPH[opt.shape] ?? '◆'}
+                <ShapeIcon shape={opt.shape} />
               </span>
               <span className="flex-1">
                 {opt.text ?? t('preview.optionFallback', { index: opt.orderIndex + 1 })}

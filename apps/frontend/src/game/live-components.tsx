@@ -16,18 +16,13 @@ import { type ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
-import {
-  COLOR_BG,
-  COLOR_BG_SOFT,
-  COLOR_TEXT,
-  OPTION_BG_FALLBACK,
-  SHAPE_GLYPH,
-} from '@/lib/option-style';
+import { COLOR_BG, COLOR_BG_SOFT, COLOR_TEXT, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import { Avatar } from './avatar';
 import { Surface } from './surface';
 import { SlideVariablesContext } from './slide-variables';
 import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
+import { ShapeIcon } from '@/components/shape-icon';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -124,7 +119,7 @@ export function OptionGrid({
             aria-label={o.text ?? o.color}
           >
             <span aria-hidden className="shrink-0 text-[1.35em] leading-none">
-              {SHAPE_GLYPH[o.shape] ?? '●'}
+              <ShapeIcon shape={o.shape} />
             </span>
             {o.text ? (
               <Markdown
@@ -172,7 +167,7 @@ export function OptionKey({
             aria-hidden
             className={cn('shrink-0 text-[1.25em] leading-none', COLOR_TEXT[o.color])}
           >
-            {SHAPE_GLYPH[o.shape] ?? '●'}
+            <ShapeIcon shape={o.shape} />
           </span>
           {o.text ? (
             <Markdown
@@ -243,7 +238,9 @@ export function OptionTiles({
               isPicked && 'ring-4 ring-black/60',
             )}
           >
-            <span aria-hidden>{SHAPE_GLYPH[o.shape] ?? '●'}</span>
+            <span aria-hidden>
+              <ShapeIcon shape={o.shape} />
+            </span>
           </Tag>
         );
       })}
@@ -283,7 +280,7 @@ export function Distribution({
                 COLOR_TEXT[o.color],
               )}
             >
-              {SHAPE_GLYPH[o.shape] ?? '●'}
+              <ShapeIcon shape={o.shape} />
             </span>
             <div
               className={cn(

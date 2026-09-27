@@ -2,9 +2,10 @@ import { Check } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
-import { COLOR_BG, OPTION_BG_FALLBACK, SHAPE_GLYPH } from '@/lib/option-style';
+import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import type { QuizDetailDtoQuestionsItem, QuizDetailDtoSlidesItem } from '../api/generated/model';
+import { ShapeIcon } from '@/components/shape-icon';
 
 /** One property: its name, then what it is set to. */
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -57,7 +58,7 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
                     )}
                     aria-hidden
                   >
-                    {SHAPE_GLYPH[o.shape] ?? '◆'}
+                    <ShapeIcon shape={o.shape} />
                   </span>
                   {q.type === 'ordering' && o.correctOrderIndex != null ? (
                     <span className="text-muted-foreground tabular-nums">

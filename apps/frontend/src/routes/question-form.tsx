@@ -44,7 +44,7 @@ import { MarkdownEditor } from '@/components/markdown-editor';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
-import { COLOR_BG, OPTION_BG_FALLBACK, SHAPE_GLYPH } from '@/lib/option-style';
+import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import { errorText } from '../api/error-text';
 import { apiErrorText } from '../api/http';
@@ -57,6 +57,7 @@ import {
   useQuestionsControllerUpdate,
 } from '../api/generated/questions/questions';
 import { getQuizzesControllerGetQueryKey } from '../api/generated/quizzes/quizzes';
+import { ShapeIcon } from '@/components/shape-icon';
 
 type QType =
   | 'single_choice'
@@ -579,7 +580,7 @@ export function QuestionForm({
                       COLOR_BG[opt.color] ?? OPTION_BG_FALLBACK,
                     )}
                   >
-                    {SHAPE_GLYPH[opt.shape] ?? '●'}
+                    <ShapeIcon shape={opt.shape} />
                   </span>
                   <MarkdownEditor
                     profile="inline"

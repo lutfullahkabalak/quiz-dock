@@ -104,8 +104,11 @@ export function synthGong(at?: number): () => void {
   };
 }
 
-/** Where the ding's low-pass starts to soften: above its tone, under its brightest harmonics. */
-const DING_SOFTEN_HZ = 2600;
+/**
+ * Where the ding's low-pass starts to soften: just above its tone (1550 Hz), so
+ * its harmonics and the strike's click come through tamed, not cut.
+ */
+const DING_SOFTEN_HZ = 1900;
 
 /**
  * A ding as a question starts: one bright tone with two discreet harmonics for
@@ -148,7 +151,7 @@ export function synthDing(at?: number): () => void {
   noise.buffer = seededNoise(ctx, 0.015);
   const band = ctx.createBiquadFilter();
   band.type = 'bandpass';
-  band.frequency.value = 3200;
+  band.frequency.value = 2400;
   band.Q.value = 0.5;
   const ng = ctx.createGain();
   ng.gain.setValueAtTime(0.4, t);
