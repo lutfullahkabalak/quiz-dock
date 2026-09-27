@@ -126,6 +126,29 @@ describe('GameService: the hashes of a new session (integration)', () => {
     await expect(game.peek(pin)).rejects.toThrow('session.ended');
   });
 
+  it('reads a game’s snapshot from Redis once, and sees its form refreshed (roadmap 3.1)', async () => {
+    const { pin } = await game.createSession(ownerId, { quizId });
+    pins.push(pin);
+    const gameId = (await redis.hget(gameKeys.room(pin), 'gameId')) as never;
+    const reads = jest.spyOn(redis, 'get');
+    const first = await game.getSnapshot(gameId);
+    const again = await game.getSnapshot(gameId);
+    expect(again).toBe(first);
+    expect(reads.mock.calls.filter(([key]) => key === gameKeys.snapshot(gameId))).toHaveLength(1);
+    reads.mockRestore();
+    // The host edits the explanation while the quiz is played: the next step shows it.
+    const question = await prisma.question.findFirstOrThrow({ where: { quizId } });
+    await prisma.question.update({
+      where: { id: question.id },
+      data: { answerExplanation: 'Because.' },
+    });
+    await game.refreshSnapshot(gameId);
+    expect((await game.getSnapshot(gameId))?.questions[0].answerExplanation).toBe('Because.');
+    // Another GameService (a restart) reads the same from Redis.
+    const restarted = new GameService(prisma, redis);
+    expect((await restarted.getSnapshot(gameId))?.questions[0].answerExplanation).toBe('Because.');
+  });
+
   it("opens the next game with the room's pace and audio target", async () => {
     const { pin } = await game.createSession(ownerId, { quizId });
     pins.push(pin);

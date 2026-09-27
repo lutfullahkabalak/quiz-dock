@@ -42,6 +42,8 @@ import {
 } from './snapshot';
 
 const PIN_ALLOC_ATTEMPTS = 10;
+/** Games whose snapshot stays parsed in memory (a room plays one at a time). */
+const SNAPSHOT_CACHE_MAX = 50;
 const NICKNAME_MIN = 2;
 const NICKNAME_MAX = 20;
 /** Homonymes distingués par un suffixe avant de refuser (noms venus des comptes). */
@@ -147,6 +149,15 @@ type ActiveGame = {
  */
 @Injectable()
 export class GameService {
+  /**
+   * The snapshots already parsed, by game. A game's is frozen, but for its form,
+   * which `refreshSnapshot` changes here too; the room's next game has a new id.
+   * Every answer used to read the whole quiz again (44 KB for 30 questions: at
+   * 400 players, 17 MB and 50 ms of parsing per question). Shared: never change
+   * what `getSnapshot` returns.
+   */
+  private readonly snapshots = new Map<GameId, QuizSnapshot>();
+
   constructor(
     private readonly prisma: PrismaService,
     private readonly redis: RedisService,
@@ -502,8 +513,20 @@ export class GameService {
 
   /** The frozen snapshot of a game (null when gone or expired). */
   async getSnapshot(gameId: GameId): Promise<QuizSnapshot | null> {
+    const cached = this.snapshots.get(gameId);
+    if (cached) return cached;
     const raw = await this.redis.get(gameKeys.snapshot(gameId));
-    return raw ? (JSON.parse(raw) as QuizSnapshot) : null;
+    return raw ? this.remember(gameId, JSON.parse(raw) as QuizSnapshot) : null;
+  }
+
+  /** Keeps a game's snapshot parsed, the least recently kept going first. */
+  private remember(gameId: GameId, snapshot: QuizSnapshot): QuizSnapshot {
+    this.snapshots.delete(gameId);
+    this.snapshots.set(gameId, snapshot);
+    if (this.snapshots.size > SNAPSHOT_CACHE_MAX) {
+      this.snapshots.delete(this.snapshots.keys().next().value as GameId);
+    }
+    return snapshot;
   }
 
   /** The room's players (playerId → record), whether they play the current game or wait. */
@@ -652,7 +675,7 @@ export class GameService {
     if (!quiz) return frozen;
     const refreshed = refreshSnapshotForm(frozen, quiz);
     await this.redis.set(gameKeys.snapshot(gameId), JSON.stringify(refreshed), 'KEEPTTL');
-    return refreshed;
+    return this.remember(gameId, refreshed);
   }
 
   /** Nombre de joueurs **connectés** (§8 : base de la convergence et des compteurs). */

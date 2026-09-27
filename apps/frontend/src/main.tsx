@@ -21,7 +21,7 @@ import {
   configureStandalone,
 } from './config';
 import { router } from './router';
-import './i18n';
+import { loadLanguages } from './i18n';
 import './index.css';
 
 document.title = APP_NAME; // marque runtime (white-label)
@@ -42,6 +42,8 @@ const queryClient = new QueryClient({
  * de route (synchrone) connaisse l'état dès le premier affichage (refresh inclus).
  */
 async function bootstrap(): Promise<void> {
+  // The instance's language, fetched while the backend says how it signs in.
+  const languages = loadLanguages();
   let mode: AuthMode = 'none';
   let initialUser: string | null = null;
   try {
@@ -64,6 +66,7 @@ async function bootstrap(): Promise<void> {
   } catch {
     configureAuth('none'); // backend injoignable → repli mode local
   }
+  await languages;
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

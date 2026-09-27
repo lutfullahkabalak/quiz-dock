@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { resources, supportedLngs } from './index';
+import { namespaces, supportedLngs } from './index';
+
+// Every locale file, read here directly: the app loads one language only.
+const files = import.meta.glob<Record<string, unknown>>('./locales/*/*.json', {
+  eager: true,
+  import: 'default',
+});
+const resources = Object.fromEntries(
+  supportedLngs.map((lang) => [
+    lang,
+    Object.fromEntries(namespaces.map((ns) => [ns, files[`./locales/${lang}/${ns}.json`]])),
+  ]),
+);
 
 /** Flattens nested translation objects into dotted keys, recursively. */
 function flatKeys(value: unknown, prefix = ''): string[] {
