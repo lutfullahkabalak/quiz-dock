@@ -13,17 +13,13 @@ import type {
   AudioTarget,
   GameMode,
   GameModePayload,
-  GameStatePayload,
   GameStep,
   HostMediaCommand,
   LiveQuestionMedia,
-  LeaderboardPayload,
-  LeaderboardRow,
   MediaAnchor,
   MediaPreloadPayload,
   MediaReadinessPayload,
   PlayerPresence,
-  PodiumPayload,
   QuestionRevealPayload,
   RoomSoundsPayload,
   RoomSoundsSettings,
@@ -50,7 +46,6 @@ import type {
   AnswerRecord,
   GameMeta,
   PlayerRecord,
-  PlayerScore,
   QuizSnapshot,
   RoomSounds,
   SnapshotQuestion,
@@ -72,18 +67,34 @@ import {
   stepHasPlayback,
   stepMediaForDevice,
 } from './preload';
+import {
+  type Ranking,
+  personalLeaderboard,
+  personalPodium,
+  personalReveal,
+  rankPlayers,
+  rankingOf,
+  topRows,
+} from './results';
+import { RoomTimers } from './room-timers';
 import { buildQuestionStart, buildSlideShow, gameAudioTarget, snapshotHasSound } from './snapshot';
+import {
+  liveStepKey,
+  mediaStepKey,
+  navFor,
+  parseStepKey,
+  playedSteps,
+  slideStep,
+  stepKey,
+  stepRef,
+  waitedStep,
+} from './steps';
 
 type GameServer = Server<Record<string, never>, ServerToClientEvents>;
 
 /** Auto-mode delay on a REVEAL when the question sets none (#6): env override, else constant. */
 const defaultAutoAdvanceMs = () => Number(process.env.GAME_AUTO_ADVANCE_MS ?? AUTO_ADVANCE_MS);
 
-/**
- * Cible d'émission unitaire : satisfaite à la fois par un `Socket` local (gateway)
- * et un `RemoteSocket` (`fetchSockets()`). Permet de partager le calcul du reveal
- * personnel entre la diffusion live et la relecture d'état (reconnexion / late join).
- */
 /** The media's start derived from `startedAt`, as a payload fragment (empty when silent). */
 function mediaStartOf(
   mediaLeadMs: number | null | undefined,
@@ -92,25 +103,33 @@ function mediaStartOf(
   return mediaLeadMs == null ? {} : { mediaStartAt: startedAt - mediaLeadMs };
 }
 
-/** The Redis key part of a step: a question's index, or `s<i>` for a slide (#125). */
-function mediaStepKey(step: PreloadStep): number | string {
-  return step.slideIndex === undefined ? step.questionIndex : `s${step.slideIndex}`;
+/**
+ * `question:start` of question `index` at these timings, for a screen that
+ * (re)attaches or a room that resumes: the game's audio target and the media's
+ * distance to the answers as the game keeps them.
+ */
+function questionStartOf(
+  meta: GameMeta,
+  snapshot: QuizSnapshot,
+  index: number,
+  startedAt: number,
+  endsAt: number,
+) {
+  return buildQuestionStart(
+    snapshot.questions[index],
+    index,
+    startedAt,
+    endsAt,
+    gameAudioTarget(snapshot, meta.audioTarget),
+    meta.mediaLeadMs ?? null,
+  );
 }
 
-/** A step's reference in a payload: the question index, and the slide's when it is one. */
-function stepRef(step: PreloadStep): { questionIndex: number; slideIndex?: number } {
-  return step.slideIndex === undefined
-    ? { questionIndex: step.questionIndex }
-    : { questionIndex: step.questionIndex, slideIndex: step.slideIndex };
-}
-
-/** The step a media wait holds back: the slide it precedes when set, else the question. */
-function waitedStep(meta: GameMeta): PreloadStep {
-  return (meta.slideIndex ?? -1) >= 0
-    ? { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex }
-    : { questionIndex: meta.currentIndex };
-}
-
+/**
+ * Cible d'émission unitaire : satisfaite à la fois par un `Socket` local (gateway)
+ * et un `RemoteSocket` (`fetchSockets()`). Permet de partager le calcul du reveal
+ * personnel entre la diffusion live et la relecture d'état (reconnexion / late join).
+ */
 interface Emitter {
   data: { playerId?: string };
   emit<E extends keyof ServerToClientEvents>(
@@ -118,8 +137,6 @@ interface Emitter {
     ...args: Parameters<ServerToClientEvents[E]>
   ): unknown;
 }
-
-type RankedPlayer = PlayerRecord & PlayerScore & { id: string };
 
 /**
  * A game in its room: where to broadcast (`pin`) and whose state to touch
@@ -138,22 +155,14 @@ const refOf = (pin: string, meta: GameMeta): GameRef => ({ pin, id: meta.id });
  * **déclencheur** vers `advanceToReveal`, transition rendue **idempotente** par un
  * verrou atomique Redis (NX) : les deux chemins de convergence (timer écoulé /
  * tous ont répondu) et `host:reveal` passent par le même verrou — 1 seul gagnant,
- * pas de double `reveal`. Mono-instance v1 : les timers vivent en mémoire (le gap
- * « restart process perd le timer » est adressé en P4, cf. mémoire gameplay-v0-3).
+ * pas de double `reveal`. Mono-instance v1 : les timers vivent en mémoire (`RoomTimers`)
+ * et sont ré-armés depuis Redis après un redémarrage (`recoverTimers`).
  */
 @Injectable()
 export class GameEngine {
   private readonly log = new Logger(GameEngine.name);
   private server!: GameServer;
-  private readonly timers = new Map<string, NodeJS.Timeout>();
-  /** Délai de grâce avant `HOST_DISCONNECTED` (§7.1) — par PIN. */
-  private readonly graceTimers = new Map<string, NodeJS.Timeout>();
-  /** Fenêtre de reconnexion hôte avant fin auto (§7.3) — par PIN. */
-  private readonly endWindowTimers = new Map<string, NodeJS.Timeout>();
-  /** Minuterie d'enchaînement automatique en mode auto (§8) — par PIN. */
-  private readonly autoNextTimers = new Map<string, NodeJS.Timeout>();
-  /** End of a media wait (`MEDIA_LOADING`): the cap, after which the question starts anyway. */
-  private readonly mediaWaitTimers = new Map<string, NodeJS.Timeout>();
+  private readonly timers = new RoomTimers(this.log);
 
   constructor(
     private readonly game: GameService,
@@ -397,11 +406,8 @@ export class GameEngine {
     // The players of this game, as the answer count has them (not those waiting for the next).
     const inGame = new Set(await this.redis.hkeys(gameKeys.scores(ref.id)));
     const pressed = lobby ? new Set(await this.redis.smembers(gameKeys.pressed(ref.id))) : null;
-    for (const [playerId, json] of Object.entries(
-      await this.redis.hgetall(gameKeys.players(pin)),
-    )) {
-      const rec = JSON.parse(json) as PlayerRecord;
-      if (!inGame.has(playerId) || !rec.connected) continue;
+    for (const [playerId, rec] of await this.connectedPlayers(pin)) {
+      if (!inGame.has(playerId)) continue;
       const own = stepMediaForDevice(snapshot, step, gameTarget, rec.presence ?? 'room');
       const plays = !!own && (hasSoundOrVideo(own.media) || own.videos.length > 0);
       if (pressed) {
@@ -505,9 +511,9 @@ export class GameEngine {
   ): Promise<void> {
     const { pin } = ref;
     const slide = snapshot.slides[slideIndex];
-    this.clearTimer(pin);
-    this.cancelTimer(this.autoNextTimers, pin);
-    this.cancelTimer(this.mediaWaitTimers, pin);
+    this.timers.cancel('reveal', pin);
+    this.timers.cancel('autoNext', pin);
+    this.timers.cancel('mediaWait', pin);
     const now = Date.now();
     const plays = slideHasPlayback(slide);
     const before = await this.currentMeta(ref);
@@ -528,7 +534,7 @@ export class GameEngine {
       state: GameState.SlideShow,
       questionIndex: slide.beforeQuestionIndex,
       totalQuestions: snapshot.questions.length,
-      nav: meta ? this.navFor(meta, snapshot) : undefined,
+      nav: meta ? navFor(meta, snapshot) : undefined,
     });
     this.server
       .to(pin)
@@ -597,7 +603,7 @@ export class GameEngine {
     const readiness = waitS > 0 ? await this.readiness(ref, step) : null;
     if (!readiness || readiness.ready >= readiness.total) return false;
     const until = Date.now() + waitS * 1000;
-    this.cancelTimer(this.autoNextTimers, pin);
+    this.timers.cancel('autoNext', pin);
     await this.redis.hset(gameKeys.game(ref.id), {
       state: GameState.MediaLoading,
       currentIndex: String(step.questionIndex),
@@ -619,20 +625,7 @@ export class GameEngine {
   }
 
   private armMediaWait(ref: GameRef, step: PreloadStep, delayMs: number): void {
-    const { pin } = ref;
-    this.cancelTimer(this.mediaWaitTimers, pin);
-    this.mediaWaitTimers.set(
-      pin,
-      setTimeout(
-        () => {
-          this.mediaWaitTimers.delete(pin);
-          this.endMediaWait(ref, step).catch((err: Error) =>
-            this.log.error(`endMediaWait ${pin}: ${err.message}`),
-          );
-        },
-        Math.max(0, delayMs),
-      ),
-    );
+    this.timers.arm('mediaWait', ref.pin, delayMs, () => this.endMediaWait(ref, step));
   }
 
   /**
@@ -647,15 +640,8 @@ export class GameEngine {
     if (waited.questionIndex !== step.questionIndex || waited.slideIndex !== step.slideIndex) {
       return;
     }
-    const won = await this.redis.set(
-      gameKeys.mediaWaitLock(ref.id, mediaStepKey(step)),
-      '1',
-      'EX',
-      GAME_TTL_S,
-      'NX',
-    );
-    if (won !== 'OK') return;
-    this.cancelTimer(this.mediaWaitTimers, pin);
+    if (!(await this.firstThrough(gameKeys.mediaWaitLock(ref.id, mediaStepKey(step))))) return;
+    this.timers.cancel('mediaWait', pin);
     const snapshot = await this.game.getSnapshot(ref.id);
     if (!snapshot) return;
     if (step.slideIndex !== undefined) await this.startSlide(ref, snapshot, step.slideIndex);
@@ -678,7 +664,7 @@ export class GameEngine {
 
     // Nouvelle question : chrono qui tourne, ni gelé ni en pause (un enchaînement
     // manuel pendant une pause reprend implicitement la main).
-    this.cancelTimer(this.autoNextTimers, pin);
+    this.timers.cancel('autoNext', pin);
     await this.redis.hset(gameKeys.game(ref.id), {
       state: GameState.Answering,
       mediaWaitUntil: '0',
@@ -724,33 +710,15 @@ export class GameEngine {
     delayMs: number,
     trigger: 'timer' | 'all' = 'timer',
   ): void {
-    const { pin } = ref;
-    this.clearTimer(pin);
-    const timer = setTimeout(
-      () => {
-        this.timers.delete(pin);
-        this.advanceToReveal(pin, index, trigger, ref.id).catch((err: Error) =>
-          this.log.error(`advanceToReveal(${trigger}) ${pin}: ${err.message}`),
-        );
-      },
-      Math.max(0, delayMs),
+    this.timers.arm('reveal', ref.pin, delayMs, () =>
+      this.advanceToReveal(ref.pin, index, trigger, ref.id),
     );
-    timer.unref?.();
-    this.timers.set(pin, timer);
-  }
-
-  private clearTimer(pin: string): void {
-    const existing = this.timers.get(pin);
-    if (existing) {
-      clearTimeout(existing);
-      this.timers.delete(pin);
-    }
   }
 
   /**
    * ANSWERING → REVEAL. **Idempotente** : seul le 1er appelant qui pose le verrou
    * NX `reveal-lock:{index}` poursuit ; les autres (2e chemin, double-clic) sont
-   * de vrais no-op. Émet l'état REVEAL (les payloads riches arrivent en P3-BACK-7).
+   * de vrais no-op. Émet l'état REVEAL, puis le résultat de chacun et le classement.
    */
   async advanceToReveal(
     pin: string,
@@ -763,17 +731,10 @@ export class GameEngine {
     if (!meta || meta.state !== GameState.Answering || meta.currentIndex !== index) {
       return; // état déjà dépassé, partie finie, ou une autre partie du salon
     }
-    const won = await this.redis.set(
-      gameKeys.revealLock(gameId, index),
-      '1',
-      'EX',
-      GAME_TTL_S,
-      'NX',
-    );
-    if (won !== 'OK') {
+    if (!(await this.firstThrough(gameKeys.revealLock(gameId, index)))) {
       return; // un autre chemin a déjà révélé cette question
     }
-    this.clearTimer(pin);
+    this.timers.cancel('reveal', pin);
     await this.redis.hset(gameKeys.game(gameId), { state: GameState.Reveal });
     this.log.debug(`REVEAL ${pin} q${index} (${trigger})`);
 
@@ -786,7 +747,7 @@ export class GameEngine {
       state: GameState.Reveal,
       questionIndex: index,
       totalQuestions: meta.totalQuestions,
-      nav: snapshot ? this.navFor({ ...meta, state: GameState.Reveal }, snapshot) : undefined,
+      nav: snapshot ? navFor({ ...meta, state: GameState.Reveal }, snapshot) : undefined,
     });
     if (snapshot) {
       await this.emitReveal(ref, snapshot, index);
@@ -808,18 +769,13 @@ export class GameEngine {
     const records = await this.readAnswers(ref.id, index);
     const common = await this.revealCommon(pin, question, records);
 
-    const ranked = await this.rankedPlayers(ref);
-    const rankOf = new Map(ranked.map((p, i) => [p.id, i + 1]));
-    const top = this.topRows(ranked);
+    const ranking = await this.ranking(ref);
 
     const sockets = await this.server.in(pin).fetchSockets();
     for (const socket of sockets) {
       const playerId = (socket.data as { playerId?: string }).playerId;
-      socket.emit(
-        'question:reveal',
-        this.personalReveal(common, records, ranked, rankOf, playerId),
-      );
-      socket.emit('leaderboard', this.personalLeaderboard(top, ranked, rankOf, playerId));
+      socket.emit('question:reveal', personalReveal(common, records, ranking, playerId));
+      socket.emit('leaderboard', personalLeaderboard(ranking, playerId));
     }
     // What comes next, fetched by every device while the leaderboard is up.
     await this.emitPreload(ref, snapshot, firstStepOf(snapshot, index + 1));
@@ -886,55 +842,6 @@ export class GameEngine {
     }
   }
 
-  /** Top 10 du classement (lignes publiques, sans rang personnel). */
-  private topRows(ranked: Pick<RankedPlayer, 'nickname' | 'score' | 'avatar'>[]): LeaderboardRow[] {
-    return ranked
-      .slice(0, 10)
-      .map((p, i) => ({ nickname: p.nickname, score: p.score, rank: i + 1, avatar: p.avatar }));
-  }
-
-  /** Reveal commun + `yourResult` ciblé sur le joueur de ce socket (s'il en a un). */
-  private personalReveal(
-    common: QuestionRevealPayload,
-    records: Map<string, AnswerRecord>,
-    ranked: RankedPlayer[],
-    rankOf: Map<string, number>,
-    playerId: string | undefined,
-  ): QuestionRevealPayload {
-    const me = playerId ? ranked.find((p) => p.id === playerId) : undefined;
-    if (!me) return { ...common };
-    const rec = records.get(playerId!);
-    return {
-      ...common,
-      yourResult: {
-        correct: rec?.isCorrect ?? false,
-        points: rec?.pointsAwarded ?? 0,
-        totalScore: me.score,
-        rank: rankOf.get(playerId!) ?? ranked.length,
-        ...(rec?.credit !== undefined && rec.credit > 0 && rec.credit < 1
-          ? { credit: rec.credit }
-          : {}),
-        ...(rec?.closestRank !== undefined
-          ? { closestRank: rec.closestRank, distance: rec.distance }
-          : {}),
-      },
-    };
-  }
-
-  /** Classement public + `you` ciblé sur le joueur de ce socket (s'il en a un). */
-  private personalLeaderboard(
-    top: LeaderboardRow[],
-    ranked: RankedPlayer[],
-    rankOf: Map<string, number>,
-    playerId: string | undefined,
-  ): LeaderboardPayload {
-    const me = playerId ? ranked.find((p) => p.id === playerId) : undefined;
-    return {
-      top,
-      you: me ? { score: me.score, rank: rankOf.get(me.id) ?? ranked.length } : undefined,
-    };
-  }
-
   /** `host:reveal` : force le passage en REVEAL (idempotent via le verrou). */
   async reveal(pin: string, hostUserId: string): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
@@ -961,18 +868,11 @@ export class GameEngine {
     if (meta.state !== GameState.Reveal && meta.state !== GameState.SlideShow) {
       throw new BadRequestException('session.reveal_required');
     }
-    this.cancelTimer(this.autoNextTimers, pin); // un enchaînement (auto/manuel) annule l'autre
+    this.timers.cancel('autoNext', pin); // un enchaînement (auto/manuel) annule l'autre
     // A slide gets its own lock key: it shares `currentIndex` with the question it precedes.
     const lockStep =
       meta.state === GameState.SlideShow ? `s${meta.slideIndex ?? 0}` : String(meta.currentIndex);
-    const won = await this.redis.set(
-      gameKeys.advanceLock(meta.id, lockStep),
-      '1',
-      'EX',
-      GAME_TTL_S,
-      'NX',
-    );
-    if (won !== 'OK') {
+    if (!(await this.firstThrough(gameKeys.advanceLock(meta.id, lockStep)))) {
       return; // suivant déjà déclenché (double-clic)
     }
     const snapshot = await this.requireSnapshot(meta.id, true);
@@ -1010,14 +910,14 @@ export class GameEngine {
     }
     const snapshot = await this.requireSnapshot(meta.id, true);
     const ref = refOf(pin, meta);
-    const played = this.playedSteps(meta, snapshot);
+    const played = playedSteps(meta, snapshot);
     const key = stepKey(step);
     if (!played.includes(key)) throw new BadRequestException('session.step_not_played');
-    if (key === this.liveStepKey(meta)) {
+    if (key === liveStepKey(meta)) {
       await this.resume(ref);
       return;
     }
-    this.cancelTimer(this.autoNextTimers, pin);
+    this.timers.cancel('autoNext', pin);
     await this.redis.hset(gameKeys.game(meta.id), { reviewStep: key, autoNextAt: '0' });
     const fresh = { ...meta, reviewStep: key, autoNextAt: 0 };
     const sockets = await this.server.in(pin).fetchSockets();
@@ -1044,7 +944,7 @@ export class GameEngine {
   ): Promise<void> {
     const step = parseStepKey(meta.reviewStep ?? '');
     if (!step) return;
-    const nav = this.navFor(meta, snapshot);
+    const nav = navFor(meta, snapshot);
     if ('slideIndex' in step) {
       const slide = snapshot.slides[step.slideIndex];
       if (!slide) return;
@@ -1074,65 +974,22 @@ export class GameEngine {
       totalQuestions: meta.totalQuestions,
       nav,
     });
+    await this.emitRevealTo(socket, ref, snapshot, index);
+  }
+
+  /** The reveal of question `index` to one socket, its own result in it, then the leaderboard. */
+  private async emitRevealTo(
+    socket: Emitter,
+    ref: GameRef,
+    snapshot: QuizSnapshot,
+    index: number,
+  ): Promise<void> {
     const records = await this.readAnswers(ref.id, index);
-    const common = await this.revealCommon(ref.pin, question, records);
-    const ranked = await this.rankedPlayers(ref);
-    const rankOf = new Map(ranked.map((p, i) => [p.id, i + 1]));
+    const common = await this.revealCommon(ref.pin, snapshot.questions[index], records);
+    const ranking = await this.ranking(ref);
     const playerId = socket.data.playerId;
-    socket.emit('question:reveal', this.personalReveal(common, records, ranked, rankOf, playerId));
-    socket.emit(
-      'leaderboard',
-      this.personalLeaderboard(this.topRows(ranked), ranked, rankOf, playerId),
-    );
-  }
-
-  /** The step the live position sits on (`q<i>` / `s<i>`), '' in the lobby or at the podium. */
-  private liveStepKey(meta: GameMeta): string {
-    if (meta.state === GameState.SlideShow) return `s${meta.slideIndex ?? 0}`;
-    if (meta.state === GameState.Reveal || meta.state === GameState.Answering) {
-      return `q${meta.currentIndex}`;
-    }
-    return '';
-  }
-
-  /**
-   * Every step shown so far, in sequence order: slides anchored before a
-   * question come first, then the question once its reveal happened.
-   */
-  private playedSteps(meta: GameMeta, snapshot: QuizSnapshot): string[] {
-    const steps: string[] = [];
-    const liveKey = this.liveStepKey(meta);
-    const reached = (k: string) => steps.push(k);
-    for (let q = 0; q <= snapshot.questions.length; q++) {
-      snapshot.slides.forEach((s, i) => {
-        if (s.beforeQuestionIndex === q) reached(`s${i}`);
-      });
-      if (q < snapshot.questions.length) reached(`q${q}`);
-    }
-    if (meta.state === GameState.Podium) return steps;
-    const at = steps.indexOf(liveKey);
-    if (at < 0) return [];
-    // A question counts as played once revealed; mid-question it is not a target.
-    return steps.slice(
-      0,
-      meta.state === GameState.Reveal ? at + 1 : at + (liveKey.startsWith('s') ? 1 : 0),
-    );
-  }
-
-  /** Previous / next targets for the host, around the reviewed step or the live position. */
-  private navFor(meta: GameMeta, snapshot: QuizSnapshot): NonNullable<GameStatePayload['nav']> {
-    const played = this.playedSteps(meta, snapshot);
-    const review = Boolean(meta.reviewStep);
-    const here = review ? (meta.reviewStep as string) : this.liveStepKey(meta);
-    const at = review || here ? played.indexOf(here) : played.length;
-    const prev =
-      at > 0 ? played[at - 1] : at < 0 && played.length ? played[played.length - 1] : null;
-    const next = review && at >= 0 && at < played.length - 1 ? played[at + 1] : null;
-    return {
-      prev: prev ? parseStepKey(prev) : null,
-      next: next ? parseStepKey(next) : null,
-      review,
-    };
+    socket.emit('question:reveal', personalReveal(common, records, ranking, playerId));
+    socket.emit('leaderboard', personalLeaderboard(ranking, playerId));
   }
 
   /** Dernière question révélée → PODIUM (top 3 + rang perso). */
@@ -1140,27 +997,22 @@ export class GameEngine {
     const { pin } = ref;
     await this.redis.hset(gameKeys.game(ref.id), { state: GameState.Podium });
     await this.foldGame(ref, meta);
-    const ranked = await this.rankedPlayers(ref);
-    const rankOf = new Map(ranked.map((p, i) => [p.id, i + 1]));
-    const podium = ranked
-      .slice(0, 3)
-      .map((p, i) => ({ nickname: p.nickname, score: p.score, rank: i + 1, avatar: p.avatar }));
+    const ranking = await this.ranking(ref);
 
     const snapshot = await this.game.getSnapshot(ref.id);
     this.server.to(pin).emit('game:state', {
       state: GameState.Podium,
       questionIndex: meta.currentIndex,
       totalQuestions: meta.totalQuestions,
-      nav: snapshot ? this.navFor({ ...meta, state: GameState.Podium }, snapshot) : undefined,
+      nav: snapshot ? navFor({ ...meta, state: GameState.Podium }, snapshot) : undefined,
     });
-    const top = this.topRows(ranked);
     const sockets = await this.server.in(pin).fetchSockets();
     for (const socket of sockets) {
       const playerId = (socket.data as { playerId?: string }).playerId;
-      socket.emit('game:podium', this.personalPodium(podium, ranked, rankOf, playerId, snapshot));
+      socket.emit('game:podium', personalPodium(ranking, playerId, snapshot));
       // Classement général (top 10) aussi au podium : alimente l'écran projeté et
       // survit à un rechargement (sendStateTo le ré-émet en PODIUM).
-      socket.emit('leaderboard', this.personalLeaderboard(top, ranked, rankOf, playerId));
+      socket.emit('leaderboard', personalLeaderboard(ranking, playerId));
     }
     await this.emitStandings(pin);
   }
@@ -1182,7 +1034,7 @@ export class GameEngine {
   private async emitStandings(pin: string, only?: Emitter): Promise<void> {
     const { quizzesPlayed, ranked } = await this.game.standings(pin);
     if (quizzesPlayed === 0) return;
-    const top = this.topRows(ranked);
+    const top = topRows(ranked);
     const sockets: Emitter[] = only ? [only] : await this.server.in(pin).fetchSockets();
     for (const socket of sockets) {
       const playerId = socket.data.playerId;
@@ -1208,24 +1060,6 @@ export class GameEngine {
     }
   }
 
-  /** Podium top 3 + `you` ciblé sur le joueur de ce socket (s'il en a un). */
-  private personalPodium(
-    podium: LeaderboardRow[],
-    ranked: RankedPlayer[],
-    rankOf: Map<string, number>,
-    playerId: string | undefined,
-    snapshot: QuizSnapshot | null,
-  ): PodiumPayload {
-    const me = playerId ? ranked.find((p) => p.id === playerId) : undefined;
-    return {
-      podium,
-      ...(snapshot ? { quizId: snapshot.quizId } : {}),
-      feedbackEnabled: snapshot?.feedbackEnabled ?? true,
-      ...(snapshot?.credits?.length ? { credits: snapshot.credits } : {}),
-      you: me ? { score: me.score, rank: rankOf.get(me.id) ?? ranked.length } : undefined,
-    };
-  }
-
   /**
    * Renvoie l'état courant à un **seul** socket (reconnexion / late join §5/§6 /
    * spectateur §3) : `game:state` puis, selon l'état, `question:start` (ANSWERING),
@@ -1243,15 +1077,15 @@ export class GameEngine {
     socket.emit('room:info', { name: meta.roomName || null, hostName: meta.hostName });
     const room = await this.game.getRoom(pin);
     if (room) socket.emit('room:sounds', soundsPayload(room.sounds));
-    const snapshotForNav = await this.game.getSnapshot(meta.id);
-    if (snapshotForNav) {
+    const snapshot = await this.game.getSnapshot(meta.id);
+    if (snapshot) {
       // Every device asks for sound at once when the quiz will need it (a phone too:
       // the next quiz of a room may play sound where the first did not).
       socket.emit('game:media', {
-        title: snapshotForNav.title,
-        hasSound: snapshotHasSound(snapshotForNav),
-        hasMedia: snapshotHasMedia(snapshotForNav),
-        audioTarget: gameAudioTarget(snapshotForNav, meta.audioTarget),
+        title: snapshot.title,
+        hasSound: snapshotHasSound(snapshot),
+        hasMedia: snapshotHasMedia(snapshot),
+        audioTarget: gameAudioTarget(snapshot, meta.audioTarget),
       });
     }
     // A participant back in a lobby: whether they already said they are ready (#104),
@@ -1264,7 +1098,7 @@ export class GameEngine {
       state: meta.state as GameState,
       questionIndex: meta.currentIndex,
       totalQuestions: meta.totalQuestions,
-      nav: snapshotForNav && !meta.reviewStep ? this.navFor(meta, snapshotForNav) : undefined,
+      nav: snapshot && !meta.reviewStep ? navFor(meta, snapshot) : undefined,
     });
     if (saidReady !== null) socket.emit('lobby:you', { ready: saidReady });
     // Instantané du lobby : sans lui, un host/projeté qui (re)charge verrait une
@@ -1279,21 +1113,20 @@ export class GameEngine {
     }
     // In the lobby, every device fetches what the first question needs while people wait;
     // arriving during a wait for media, what the coming question needs, and how long.
-    if (meta.state === GameState.Lobby && snapshotForNav) {
-      await this.emitPreload(ref, snapshotForNav, firstStepOf(snapshotForNav, 0), socket);
-    } else if (meta.state === GameState.MediaLoading && snapshotForNav) {
+    if (meta.state === GameState.Lobby && snapshot) {
+      await this.emitPreload(ref, snapshot, firstStepOf(snapshot, 0), socket);
+    } else if (meta.state === GameState.MediaLoading && snapshot) {
       socket.emit('media:wait', {
         ...stepRef(waitedStep(meta)),
         until: meta.mediaWaitUntil ?? 0,
       });
-      await this.emitPreload(ref, snapshotForNav, waitedStep(meta), socket);
-    } else if (meta.state === GameState.SlideShow && snapshotForNav && !meta.reviewStep) {
+      await this.emitPreload(ref, snapshot, waitedStep(meta), socket);
+    } else if (meta.state === GameState.SlideShow && snapshot && !meta.reviewStep) {
       // On a slide, what comes after it (a device arriving now fetches it too).
-      const next = stepAfterSlide(snapshotForNav, meta.slideIndex ?? -1);
-      await this.emitPreload(ref, snapshotForNav, next, socket);
+      const next = stepAfterSlide(snapshot, meta.slideIndex ?? -1);
+      await this.emitPreload(ref, snapshot, next, socket);
     }
 
-    const snapshot = snapshotForNav;
     if (!snapshot || meta.currentIndex < 0) return;
 
     // Looking back: every (re)attached screen shows the reviewed step, not the live one.
@@ -1306,28 +1139,20 @@ export class GameEngine {
       if (!show) return;
       socket.emit('slide:show', show);
       // Where the host put the slide's media (#125): it wins over the common start.
-      const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+      const step = slideStep(meta);
       const anchor = await this.readAnchor(meta.id, mediaStepKey(step));
       if (anchor) socket.emit('media:control', { ...stepRef(step), ...anchor });
       return;
     }
     if (meta.state === GameState.Answering) {
-      const question = snapshot.questions[meta.currentIndex];
       // Chrono gelé (pause / hôte parti) : recalcule un timing d'affichage cohérent
       // sur le restant figé plutôt que d'envoyer un `endsAt` déjà dépassé.
       const { startedAt, endsAt } = meta.clockFrozen
-        ? this.resumeTimings(meta, Date.now())
+        ? resumeQuestionWindow(meta, Date.now())
         : { startedAt: meta.questionStartedAt, endsAt: meta.questionEndsAt };
       socket.emit(
         'question:start',
-        buildQuestionStart(
-          question,
-          meta.currentIndex,
-          startedAt,
-          endsAt,
-          gameAudioTarget(snapshot, meta.audioTarget),
-          meta.mediaLeadMs ?? null,
-        ),
+        questionStartOf(meta, snapshot, meta.currentIndex, startedAt, endsAt),
       );
       // Compteur courant : sinon un (re)attache mid-question afficherait « 0/N ».
       const { answered, total } = await this.connectedProgress(ref, meta.currentIndex);
@@ -1341,72 +1166,35 @@ export class GameEngine {
       // the reveal has nothing to show the answers against otherwise.
       socket.emit(
         'question:start',
-        buildQuestionStart(
-          snapshot.questions[index],
-          index,
-          meta.questionStartedAt,
-          meta.questionEndsAt,
-          gameAudioTarget(snapshot, meta.audioTarget),
-          meta.mediaLeadMs ?? null,
-        ),
+        questionStartOf(meta, snapshot, index, meta.questionStartedAt, meta.questionEndsAt),
       );
-      const records = await this.readAnswers(meta.id, index);
-      const common = await this.revealCommon(pin, snapshot.questions[index], records);
-      const ranked = await this.rankedPlayers(ref);
-      const rankOf = new Map(ranked.map((p, i) => [p.id, i + 1]));
-      socket.emit(
-        'question:reveal',
-        this.personalReveal(common, records, ranked, rankOf, playerId),
-      );
-      socket.emit(
-        'leaderboard',
-        this.personalLeaderboard(this.topRows(ranked), ranked, rankOf, playerId),
-      );
+      await this.emitRevealTo(socket, ref, snapshot, index);
     } else if (meta.state === GameState.Podium) {
-      const ranked = await this.rankedPlayers(ref);
-      const rankOf = new Map(ranked.map((p, i) => [p.id, i + 1]));
-      const podium = ranked
-        .slice(0, 3)
-        .map((p, i) => ({ nickname: p.nickname, score: p.score, rank: i + 1, avatar: p.avatar }));
-      socket.emit('game:podium', this.personalPodium(podium, ranked, rankOf, playerId, snapshot));
+      const ranking = await this.ranking(ref);
+      socket.emit('game:podium', personalPodium(ranking, playerId, snapshot));
       // Classement général : un projecteur qui (re)charge au podium doit le revoir.
-      socket.emit(
-        'leaderboard',
-        this.personalLeaderboard(this.topRows(ranked), ranked, rankOf, playerId),
-      );
+      socket.emit('leaderboard', personalLeaderboard(ranking, playerId));
     }
   }
 
-  /**
-   * Progression de la question **sur les joueurs connectés** (§8). `answered` et
-   * `total` ne comptent QUE les connectés : une réponse persiste dans le hash après
-   * le départ de son auteur, donc comparer `hlen(answers)` au nombre de connectés
-   * révélerait à tort alors qu'un connecté n'a pas encore répondu. `allAnswered` est
-   * vrai seulement si **aucun connecté n'est en attente**.
-   */
+  /** The room's connected players (playerId, record), whether they play this game or wait. */
+  private async connectedPlayers(pin: string): Promise<[string, PlayerRecord][]> {
+    const players = await this.redis.hgetall(gameKeys.players(pin));
+    return Object.entries(players)
+      .map(([id, json]): [string, PlayerRecord] => [id, JSON.parse(json) as PlayerRecord])
+      .filter(([, rec]) => rec.connected);
+  }
+
   /** Joueurs **connectés** (playerId + pseudo + avatar) pour l'instantané de lobby (§6/§9). */
   private async connectedRoster(
     pin: string,
   ): Promise<{ playerId: string; nickname: string; avatar: string; presence: PlayerPresence }[]> {
-    const players = await this.redis.hgetall(gameKeys.players(pin));
-    const roster: {
-      playerId: string;
-      nickname: string;
-      avatar: string;
-      presence: PlayerPresence;
-    }[] = [];
-    for (const [playerId, json] of Object.entries(players)) {
-      const rec = JSON.parse(json) as PlayerRecord;
-      if (rec.connected) {
-        roster.push({
-          playerId,
-          nickname: rec.nickname,
-          avatar: rec.avatar,
-          presence: rec.presence ?? 'room',
-        });
-      }
-    }
-    return roster;
+    return (await this.connectedPlayers(pin)).map(([playerId, rec]) => ({
+      playerId,
+      nickname: rec.nickname,
+      avatar: rec.avatar,
+      presence: rec.presence ?? 'room',
+    }));
   }
 
   /**
@@ -1420,17 +1208,24 @@ export class GameEngine {
     this.server.to(pin).emit('game:roster', { players: await this.connectedRoster(pin) });
   }
 
+  /**
+   * Progression de la question **sur les joueurs connectés** (§8). `answered` et
+   * `total` ne comptent QUE les connectés : une réponse persiste dans le hash après
+   * le départ de son auteur, donc comparer `hlen(answers)` au nombre de connectés
+   * révélerait à tort alors qu'un connecté n'a pas encore répondu. `allAnswered` est
+   * vrai seulement si **aucun connecté n'est en attente**.
+   */
   private async connectedProgress(
     ref: GameRef,
     questionIndex: number,
   ): Promise<{ answered: number; total: number; allAnswered: boolean }> {
-    const players = await this.redis.hgetall(gameKeys.players(ref.pin));
+    const connected = await this.connectedPlayers(ref.pin);
     const inGame = new Set(await this.redis.hkeys(gameKeys.scores(ref.id)));
     const answeredIds = new Set(await this.redis.hkeys(gameKeys.answers(ref.id, questionIndex)));
     let total = 0;
     let answered = 0;
-    for (const [id, json] of Object.entries(players)) {
-      if (!inGame.has(id) || !(JSON.parse(json) as PlayerRecord).connected) continue;
+    for (const [id] of connected) {
+      if (!inGame.has(id)) continue;
       total++;
       if (answeredIds.has(id)) answered++;
     }
@@ -1508,18 +1303,7 @@ export class GameEngine {
 
     const ref = refOf(pin, meta);
     const graceMs = Number(process.env.GAME_HOST_GRACE_MS ?? HOST_GRACE_MS);
-    this.cancelTimer(this.graceTimers, pin);
-    const timer = setTimeout(
-      () => {
-        this.graceTimers.delete(pin);
-        this.declareHostDisconnected(ref, hostUserId).catch((err: Error) =>
-          this.log.error(`declareHostDisconnected ${pin}: ${err.message}`),
-        );
-      },
-      Math.max(0, graceMs),
-    );
-    timer.unref?.();
-    this.graceTimers.set(pin, timer);
+    this.timers.arm('hostGrace', pin, graceMs, () => this.declareHostDisconnected(ref, hostUserId));
   }
 
   /**
@@ -1537,8 +1321,8 @@ export class GameEngine {
 
     // Gèle le chrono via la primitive partagée (idempotente : si l'hôte avait
     // déjà mis en pause, le restant figé est préservé, pas écrasé).
-    this.cancelTimer(this.autoNextTimers, pin);
-    this.cancelTimer(this.mediaWaitTimers, pin);
+    this.timers.cancel('autoNext', pin);
+    this.timers.cancel('mediaWait', pin);
     await this.freezeClock(pin, meta);
     await this.redis.hset(gameKeys.game(ref.id), {
       state: GameState.HostDisconnected,
@@ -1553,18 +1337,7 @@ export class GameEngine {
     });
 
     const windowMs = Number(process.env.GAME_HOST_WINDOW_MS ?? HOST_RECONNECT_WINDOW_MS);
-    this.cancelTimer(this.endWindowTimers, pin);
-    const timer = setTimeout(
-      () => {
-        this.endWindowTimers.delete(pin);
-        this.endOrphaned(ref, hostUserId).catch((err: Error) =>
-          this.log.error(`endOrphaned ${pin}: ${err.message}`),
-        );
-      },
-      Math.max(0, windowMs),
-    );
-    timer.unref?.();
-    this.endWindowTimers.set(pin, timer);
+    this.timers.arm('hostWindow', pin, windowMs, () => this.endOrphaned(ref, hostUserId));
   }
 
   /** L'hôte n'est pas revenu dans la fenêtre (§7.3) → fin de partie en l'état. */
@@ -1592,8 +1365,8 @@ export class GameEngine {
    * (§7.3) — en ANSWERING avec un `questionEndsAt` recalculé sur le temps restant.
    */
   async onHostAttached(pin: string): Promise<void> {
-    this.cancelTimer(this.graceTimers, pin);
-    this.cancelTimer(this.endWindowTimers, pin);
+    this.timers.cancel('hostGrace', pin);
+    this.timers.cancel('hostWindow', pin);
 
     const meta = await this.game.getMeta(pin);
     if (!meta || meta.state !== GameState.HostDisconnected) return;
@@ -1617,22 +1390,14 @@ export class GameEngine {
       // l'affichage du restant figé passe par `game:mode`. Sinon on dégèle.
       const now = Date.now();
       const { startedAt, endsAt } = meta.paused
-        ? this.resumeTimings(meta, now)
-        : ((await this.thawClock(pin, meta)) ?? this.resumeTimings(meta, now));
+        ? resumeQuestionWindow(meta, now)
+        : ((await this.thawClock(pin, meta)) ?? resumeQuestionWindow(meta, now));
       if (snapshot) {
-        const q = snapshot.questions[meta.currentIndex];
         this.server
           .to(pin)
           .emit(
             'question:start',
-            buildQuestionStart(
-              q,
-              meta.currentIndex,
-              startedAt,
-              endsAt,
-              gameAudioTarget(snapshot, meta.audioTarget),
-              meta.mediaLeadMs ?? null,
-            ),
+            questionStartOf(meta, snapshot, meta.currentIndex, startedAt, endsAt),
           );
       }
     } else {
@@ -1658,20 +1423,12 @@ export class GameEngine {
     }).length;
   }
 
-  private cancelTimer(map: Map<string, NodeJS.Timeout>, pin: string): void {
-    const existing = map.get(pin);
-    if (existing) {
-      clearTimeout(existing);
-      map.delete(pin);
-    }
-  }
-
   /** `host:end` : termine la partie (tout état → ENDED) et invalide le PIN (§7). */
   async end(pin: string, hostUserId: string, archive = false): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
     if (meta.state === GameState.Ended) return; // déjà terminée (ré-entrée / double-clic) → pas de double archive
     if (archive) await this.archiveAsked(pin, meta);
-    this.cancelAllTimers(pin);
+    this.timers.cancelAll(pin);
     await this.redis.hset(gameKeys.game(meta.id), { state: GameState.Ended });
     // After the state: an answer arriving meanwhile can no longer be scored and missed.
     await this.foldGame(refOf(pin, meta), meta);
@@ -1701,18 +1458,18 @@ export class GameEngine {
     // Checked before anything is archived: a quiz that cannot be played changes nothing.
     const snapshot = await this.game.snapshotFor(pin, quizId);
     const lock = gameKeys.advanceLock(meta.id, 'next-quiz');
-    if ((await this.redis.set(lock, '1', 'EX', GAME_TTL_S, 'NX')) !== 'OK') return; // double click
+    if (!(await this.firstThrough(lock))) return; // double click
     try {
       if (archive && meta.state === GameState.Podium) await this.archiveAsked(pin, meta);
       if (midQuiz) {
         // Closed before its end. Archived first: a failed write throws with nothing moved
         // (the quiz goes on, the host can retry); then no answer is scored any more.
         if (archive) await this.archiveAsked(pin, meta, true);
-        this.cancelAllTimers(pin);
+        this.timers.cancelAll(pin);
         await this.redis.hset(gameKeys.game(meta.id), { state: GameState.Ended });
         if (archive) await this.foldGame(refOf(pin, meta), meta);
       }
-      this.cancelAllTimers(pin);
+      this.timers.cancelAll(pin);
       await this.game.openGameWith(pin, snapshot);
     } catch (err) {
       await this.redis.del(lock); // nothing moved: the host can try again
@@ -1778,22 +1535,8 @@ export class GameEngine {
     this.server.to(pin).emit('room:sounds', soundsPayload(sounds));
   }
 
-  /** Every timer of the room: its game is over or replaced. */
-  private cancelAllTimers(pin: string): void {
-    this.clearTimer(pin);
-    this.cancelTimer(this.graceTimers, pin);
-    this.cancelTimer(this.endWindowTimers, pin);
-    this.cancelTimer(this.autoNextTimers, pin);
-    this.cancelTimer(this.mediaWaitTimers, pin);
-  }
-
   // ── Mode / pause / chrono (§8) ─────────────────────────────────────────────
 
-  /**
-   * `host:mode` : bascule manuel ⇄ auto en cours de partie (le présentateur
-   * reprend la main). Passer en manuel annule un enchaînement auto en attente ;
-   * passer en auto ré-arme l'enchaînement si l'on est déjà sur un reveal.
-   */
   /**
    * `host:join-url`: the address the invitations point at (a console opened on
    * localhost would otherwise print localhost on the QR code). Lobby only —
@@ -1810,24 +1553,23 @@ export class GameEngine {
     this.server.to(pin).emit('game:join-url', { baseUrl: clean || null });
   }
 
+  /**
+   * `host:mode` : bascule manuel ⇄ auto en cours de partie (le présentateur
+   * reprend la main). Passer en manuel annule un enchaînement auto en attente ;
+   * passer en auto ré-arme l'enchaînement si l'on est déjà sur un reveal.
+   */
   async setMode(pin: string, hostUserId: string, mode: GameMode): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
     await this.redis.hset(gameKeys.game(meta.id), { mode });
     meta.mode = mode;
     if (mode === 'manual') {
-      this.cancelTimer(this.autoNextTimers, pin);
+      this.timers.cancel('autoNext', pin);
     } else {
       await this.scheduleAutoNextIfNeeded(refOf(pin, meta), meta);
     }
     this.server.to(pin).emit('game:mode', this.buildModePayload(meta));
   }
 
-  /**
-   * `host:pause` : suspend/reprend l'auto-progression. En ANSWERING, gèle aussi
-   * le chrono (primitive partagée avec le `HOST_DISCONNECTED`). La reprise dégèle
-   * le chrono (nouveau timing diffusé) et ré-arme l'enchaînement auto si besoin.
-   * Idempotent : re-pauser/re-reprendre est sans effet (hors diffusion d'état).
-   */
   /**
    * `host:media` : the host steers the current question's media from the console
    * — back to the top, play, pause, or a point in it. The command becomes an
@@ -1876,7 +1618,7 @@ export class GameEngine {
       const slide = snapshot.slides[meta.slideIndex ?? -1];
       const media = slide ? slideSoundMedia(slide) : null;
       if (!media) return null;
-      const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+      const step = slideStep(meta);
       return { step, media, listenFirst: false };
     }
     if (meta.state !== GameState.Answering) return null;
@@ -1959,7 +1701,7 @@ export class GameEngine {
     const now = Date.now();
     await this.redis.hset(gameKeys.game(meta.id), { slidePausedAt: String(now) });
     meta.slidePausedAt = now;
-    const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+    const step = slideStep(meta);
     await this.reanchor(pin, meta, 'freeze', step);
   }
 
@@ -1974,16 +1716,23 @@ export class GameEngine {
     });
     meta.slideMediaStartAt = start;
     meta.slidePausedAt = 0;
-    const step = { questionIndex: meta.currentIndex, slideIndex: meta.slideIndex ?? 0 };
+    const step = slideStep(meta);
     await this.reanchor(pin, meta, 'thaw', step);
   }
 
+  /**
+   * `host:pause` : suspend/reprend l'auto-progression. En ANSWERING, gèle aussi
+   * le chrono (primitive partagée avec le `HOST_DISCONNECTED`), sur une slide qui
+   * joue, ses médias. La reprise dégèle (nouveau timing diffusé) et ré-arme
+   * l'enchaînement auto si besoin. Idempotent : re-pauser/re-reprendre est sans
+   * effet (hors diffusion d'état).
+   */
   async setPaused(pin: string, hostUserId: string, paused: boolean): Promise<void> {
     const meta = await this.requireHost(pin, hostUserId);
     await this.redis.hset(gameKeys.game(meta.id), { paused: paused ? '1' : '0' });
     meta.paused = paused;
     if (paused) {
-      this.cancelTimer(this.autoNextTimers, pin);
+      this.timers.cancel('autoNext', pin);
       await this.freezeClock(pin, meta);
     } else if (meta.state === GameState.SlideShow && meta.slidePausedAt) {
       // A slide's media go on from where they stood (#125); a screen looking back
@@ -2085,7 +1834,7 @@ export class GameEngine {
     if (meta.state === GameState.SlideShow) await this.freezeSlide(pin, meta);
     if (meta.clockFrozen || meta.state !== GameState.Answering) return;
     const remaining = Math.max(0, meta.questionEndsAt - Date.now());
-    this.clearTimer(pin);
+    this.timers.cancel('reveal', pin);
     await this.redis.hset(gameKeys.game(meta.id), {
       clockFrozen: '1',
       pausedRemainingMs: String(remaining),
@@ -2105,7 +1854,7 @@ export class GameEngine {
   ): Promise<{ startedAt: number; endsAt: number } | null> {
     if (!meta.clockFrozen) return null;
     const now = Date.now();
-    const { startedAt, endsAt } = this.resumeTimings(meta, now);
+    const { startedAt, endsAt } = resumeQuestionWindow(meta, now);
     await this.redis.hset(gameKeys.game(meta.id), {
       clockFrozen: '0',
       pausedRemainingMs: '',
@@ -2119,11 +1868,6 @@ export class GameEngine {
     this.scheduleReveal(refOf(pin, meta), meta.currentIndex, endsAt + GRACE_MS - now);
     await this.reanchor(pin, meta, 'thaw');
     return { startedAt, endsAt };
-  }
-
-  /** Timings d'affichage d'un chrono gelé — voir `resumeQuestionWindow`. */
-  private resumeTimings(meta: GameMeta, now: number): { startedAt: number; endsAt: number } {
-    return resumeQuestionWindow(meta, now);
   }
 
   /**
@@ -2155,7 +1899,7 @@ export class GameEngine {
     } else {
       return;
     }
-    this.cancelTimer(this.autoNextTimers, pin);
+    this.timers.cancel('autoNext', pin);
     // Deadline diffusée à la console (compte à rebours + barre de progression).
     const autoNextAt = Date.now() + delay;
     m.autoNextAt = autoNextAt;
@@ -2167,17 +1911,7 @@ export class GameEngine {
     const hostUserId = m.hostUserId;
     // The timer only fires for the exact step it was armed on (question or slide).
     const step = m.state === GameState.SlideShow ? `s${m.slideIndex ?? 0}` : m.currentIndex;
-    const timer = setTimeout(
-      () => {
-        this.autoNextTimers.delete(pin);
-        this.autoAdvance(ref, hostUserId, step).catch((err: Error) =>
-          this.log.error(`autoAdvance ${pin}: ${err.message}`),
-        );
-      },
-      Math.max(0, delay),
-    );
-    timer.unref?.();
-    this.autoNextTimers.set(pin, timer);
+    this.timers.arm('autoNext', pin, delay, () => this.autoAdvance(ref, hostUserId, step));
   }
 
   /** Timer fired: advance only if the game still sits on the step it was armed for. */
@@ -2213,32 +1947,22 @@ export class GameEngine {
     return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord]));
   }
 
-  /**
-   * The players of a game, by score then arrival (§5): those of the room who
-   * play it, with what they scored in it.
-   */
-  private async rankedPlayers(ref: GameRef): Promise<RankedPlayer[]> {
+  /** The game's ranking (see `rankPlayers`), indexed once for every socket of an event. */
+  private async ranking(ref: GameRef): Promise<Ranking> {
     const [players, scores] = await Promise.all([
       this.redis.hgetall(gameKeys.players(ref.pin)),
       this.redis.hgetall(gameKeys.scores(ref.id)),
     ]);
-    return Object.entries(scores)
-      .filter(([id]) => players[id])
-      .map(([id, score]) => ({
-        id,
-        ...(JSON.parse(players[id]) as PlayerRecord),
-        ...(JSON.parse(score) as PlayerScore),
-      }))
-      .sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
+    return rankingOf(rankPlayers(players, scores));
   }
 
   /**
    * `player:submit` : note une réponse avec **timing serveur autoritatif** (§6).
    * Rejette (accepted=false, sans scorer) si hors fenêtre [startedAt, endsAt+grace]
    * ou si le joueur a déjà répondu (unicité atomique `HSETNX`, RG-06). Le résultat
-   * gradé est stocké (REVEAL le relit, pas de re-notation), le score + le ZSet
-   * classement sont mis à jour, et `answer:count` est diffusé. Si tous les joueurs
-   * connectés ont répondu, déclenche le REVEAL anticipé (2e chemin de convergence).
+   * gradé est stocké (REVEAL le relit, pas de re-notation), le score de la partie
+   * est mis à jour, et `answer:count` est diffusé. Si tous les joueurs connectés ont
+   * répondu, arme le REVEAL anticipé (2e chemin de convergence).
    *
    * @returns accusé à renvoyer au socket émetteur (answer:ack).
    */
@@ -2321,6 +2045,15 @@ export class GameEngine {
     return raw ? (JSON.parse(raw) as PlayerRecord) : null;
   }
 
+  /**
+   * Takes a one-time lock (Redis `SET NX`, kept as long as the game): true for
+   * the first caller only. How two ways to one transition — a timer and the
+   * host, a double click — end up with one winner.
+   */
+  private async firstThrough(lock: string): Promise<boolean> {
+    return (await this.redis.set(lock, '1', 'EX', GAME_TTL_S, 'NX')) === 'OK';
+  }
+
   /** The room's game, as long as it is still `ref`'s (null once the room plays another). */
   private async currentMeta(ref: GameRef): Promise<GameMeta | null> {
     const meta = await this.game.getMeta(ref.pin);
@@ -2375,16 +2108,6 @@ function soundsPayload(s: RoomSounds): RoomSoundsPayload {
 
 /** The longest room name kept (the projection shows it as a title). */
 const ROOM_NAME_MAX = 60;
-
-/** `q<i>` / `s<i>` ↔ GameStep. */
-function stepKey(step: GameStep): string {
-  return 'slideIndex' in step ? `s${step.slideIndex}` : `q${step.questionIndex}`;
-}
-function parseStepKey(key: string): GameStep | null {
-  const m = /^([qs])(\d+)$/.exec(key);
-  if (!m) return null;
-  return m[1] === 's' ? { slideIndex: Number(m[2]) } : { questionIndex: Number(m[2]) };
-}
 
 /** `http(s)://host[:port]`, no path, no trailing slash; '' when not a URL. */
 export function normalizeBaseUrl(raw: string): string {
