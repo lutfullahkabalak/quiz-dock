@@ -9,6 +9,8 @@ import { cn } from '@/lib/utils';
 import type { QuizDetailDto } from '../api/generated/model';
 import { useRole } from '../auth/use-role';
 import { useCopyQuiz } from './use-copy-quiz';
+import { ScaledStage, SlideStage } from '../game/slide-stage';
+import { QuestionPreview, slideQuizFieldsOf, slideShowOf } from './quiz-stage-preview';
 
 /**
  * A quiz the caller may read but not change: one another host shares with the
@@ -74,35 +76,48 @@ export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
         ) : null}
       </header>
 
-      <section className="flex max-w-(--container-content-sm) flex-col gap-2">
+      <section className="flex flex-col gap-3">
         <h2 className="text-lg font-semibold">
           {t('questions.title', { count: quiz.questionCount })}
         </h2>
-        <ol className="flex flex-col gap-1">
-          {items.map((item) => {
+        {/* Each step as it will show, still: the slides and the questions on their stage. */}
+        <ol className="grid gap-4 lg:grid-cols-2">
+          {items.map((item, index) => {
             const isSlide = item.kind === 'slide';
             if (!isSlide) questionIndex += 1;
             return (
-              <li key={item.id} className="flex gap-3 rounded-lg px-2 py-1.5">
-                <span
-                  className={cn(
-                    'mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums',
-                    isSlide ? 'text-muted-foreground' : 'bg-muted text-muted-foreground',
-                  )}
-                  aria-label={isSlide ? t('slides.kind') : undefined}
-                >
-                  {isSlide ? <LayoutTemplate className="size-4" /> : questionIndex}
+              <li key={item.id} className="flex flex-col gap-2">
+                <span className="text-muted-foreground flex items-center gap-2 text-sm">
+                  <span
+                    className={cn(
+                      'flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums',
+                      isSlide ? '' : 'bg-muted',
+                    )}
+                    aria-label={isSlide ? t('slides.kind') : undefined}
+                  >
+                    {isSlide ? <LayoutTemplate className="size-4" /> : questionIndex}
+                  </span>
+                  <Markdown profile="inline" className="line-clamp-1 block min-w-0">
+                    {isSlide ? slideLabel(item.slide) : item.question.prompt}
+                  </Markdown>
                 </span>
-                <Markdown profile="inline" className="line-clamp-2 block min-w-0 text-sm">
-                  {isSlide ? slideLabel(item.slide) : item.question.prompt}
-                </Markdown>
+                {isSlide ? (
+                  <SlideStage
+                    className="rounded-xl border"
+                    slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz))}
+                  />
+                ) : (
+                  <ScaledStage className="rounded-xl border">
+                    <QuestionPreview question={item.question} />
+                  </ScaledStage>
+                )}
               </li>
             );
           })}
-          {items.length === 0 ? (
-            <li className="text-muted-foreground text-sm">{t('questions.empty')}</li>
-          ) : null}
         </ol>
+        {items.length === 0 ? (
+          <p className="text-muted-foreground text-sm">{t('questions.empty')}</p>
+        ) : null}
       </section>
     </div>
   );

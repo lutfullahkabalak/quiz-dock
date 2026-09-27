@@ -307,7 +307,8 @@ describe('EditorPage', () => {
       expect(
         await screen.findByText(/Quiz de Alice : vous pouvez le consulter/),
       ).toBeInTheDocument();
-      expect(screen.getByText('Capitale de la France ?')).toBeInTheDocument();
+      // Each step as it shows: its label, and the question on its stage.
+      expect(screen.getAllByText('Capitale de la France ?').length).toBeGreaterThan(0);
       expect(screen.queryByRole('button', { name: 'Exporter' })).toBeNull();
       expect(screen.queryByText('Publier (prêt)')).toBeNull();
       expect(screen.queryByLabelText('Licence')).toBeNull();

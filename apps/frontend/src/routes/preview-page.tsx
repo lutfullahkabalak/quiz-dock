@@ -1,15 +1,13 @@
-import type { SlideBlock, SlideGradient } from '@quiz-dock/contracts';
 import { ChevronLeft, ChevronRight, Maximize, Minimize } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
-import { COLOR_BG, OPTION_BG_FALLBACK, SHAPE_GLYPH } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import { quizItems } from '@/lib/quiz-items';
 import { useFullscreen } from '@/lib/use-fullscreen';
 import { ScaledStage, SlideStage } from '../game/slide-stage';
-import type { QuizDetailDto, QuizDetailDtoQuestionsItem } from '../api/generated/model';
+import type { QuizDetailDto } from '../api/generated/model';
+import { QuestionPreview, slideQuizFieldsOf, slideShowOf } from './quiz-stage-preview';
 import { useQuizzesControllerGet } from '../api/generated/quizzes/quizzes';
 import { previewRoute } from '../router';
 import { useMediaControllerCredits } from '../api/generated/media/media';
@@ -101,19 +99,7 @@ function QuizPreview({ quiz }: { quiz: QuizDetailDto }) {
             ) : (
               <SlideStage
                 className="rounded-xl border"
-                slide={{
-                  slideIndex: index,
-                  questionIndex: 0,
-                  blocks: item.slide.blocks as SlideBlock[],
-                  background: item.slide.mediaId
-                    ? { url: `/api/v1/media/${item.slide.mediaId}` }
-                    : item.slide.gradient
-                      ? { gradient: item.slide.gradient as SlideGradient }
-                      : null,
-                  textTone: item.slide.textTone,
-                  textOutline: item.slide.textOutline,
-                  displayDelayS: item.slide.displayDelayS,
-                }}
+                slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz))}
               />
             )}
           </div>
@@ -121,73 +107,6 @@ function QuizPreview({ quiz }: { quiz: QuizDetailDto }) {
       )}
       <QuizCredits quizId={quiz.id} />
     </div>
-  );
-}
-
-/** A question laid out on the 1280×720 stage: fixed sizes, scaled with the box. */
-function QuestionPreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
-  const { t } = useTranslation('editor');
-  return (
-    <article className="flex h-full w-full flex-col justify-center gap-5 p-12">
-      <div className="text-xs uppercase tracking-wide text-muted-foreground">
-        {t(`questionType.${question.type}`, { defaultValue: question.type })}
-      </div>
-      {question.media.visual?.kind === 'image' && (
-        <img
-          className="max-h-[260px] self-center object-contain"
-          src={`/api/v1/media/${question.media.visual.assetId}`}
-          alt=""
-        />
-      )}
-      <Markdown role="heading" aria-level={2} className="text-4xl font-semibold">
-        {question.prompt}
-      </Markdown>
-      <div className="text-muted-foreground text-xl">⏱ {question.timeLimitS} s</div>
-
-      {question.options.length > 0 && (
-        <ul className="grid grid-cols-2 gap-4">
-          {question.options.map((opt) => (
-            <li
-              key={opt.id}
-              className={cn(
-                'flex items-center gap-3 rounded-lg font-semibold text-white',
-                'px-6 py-4 text-2xl',
-                COLOR_BG[opt.color] ?? OPTION_BG_FALLBACK,
-                opt.isCorrect && 'outline outline-2 outline-offset-2 outline-success',
-              )}
-            >
-              <span className="text-3xl" aria-hidden="true">
-                {SHAPE_GLYPH[opt.shape] ?? '◆'}
-              </span>
-              <span className="flex-1">
-                {opt.text ?? t('preview.optionFallback', { index: opt.orderIndex + 1 })}
-              </span>
-              {question.type === 'ordering' && opt.correctOrderIndex != null && (
-                <span className="rounded-full bg-black/25 px-2">#{opt.correctOrderIndex + 1}</span>
-              )}
-              {opt.isCorrect && <span aria-label={t('preview.correctAnswer')}>✓</span>}
-            </li>
-          ))}
-        </ul>
-      )}
-
-      {question.acceptedAnswers.length > 0 && (
-        <div className="text-lg text-muted-foreground">
-          {t('preview.acceptedAnswers', {
-            answers: question.acceptedAnswers.map((a) => a.text).join(', '),
-          })}
-        </div>
-      )}
-
-      {question.type === 'numeric' && question.numericValue != null && (
-        <div className="text-lg text-muted-foreground">
-          {t('preview.numericTarget', {
-            value: question.numericValue,
-            tolerance: question.numericTolerance ?? 0,
-          })}
-        </div>
-      )}
-    </article>
   );
 }
 

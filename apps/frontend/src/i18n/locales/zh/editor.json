@@ -324,7 +324,9 @@
     "optionFallback": "选项 {{index}}",
     "acceptedAnswers": "可接受的答案：{{answers}}",
     "numericTarget": "目标：{{value}}（± {{tolerance}}）",
-    "credits": "署名"
+    "credits": "署名",
+    "video": "题目视频",
+    "sound": "声音 · {{seconds}} 秒"
   },
   "media": {
     "alt": "题目媒体",

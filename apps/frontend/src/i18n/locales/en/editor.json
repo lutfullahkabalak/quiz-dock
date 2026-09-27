@@ -324,7 +324,9 @@
     "optionFallback": "Option {{index}}",
     "acceptedAnswers": "Accepted answers: {{answers}}",
     "numericTarget": "Target: {{value}} (± {{tolerance}})",
-    "credits": "Credits"
+    "credits": "Credits",
+    "video": "Question video",
+    "sound": "Sound · {{seconds}} s"
   },
   "media": {
     "alt": "question media",

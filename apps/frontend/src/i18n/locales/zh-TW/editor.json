@@ -324,7 +324,9 @@
     "optionFallback": "選項 {{index}}",
     "acceptedAnswers": "可接受的答案：{{answers}}",
     "numericTarget": "目標：{{value}}（± {{tolerance}}）",
-    "credits": "出處"
+    "credits": "出處",
+    "video": "題目影片",
+    "sound": "聲音 · {{seconds}} 秒"
   },
   "media": {
     "alt": "題目媒體",
