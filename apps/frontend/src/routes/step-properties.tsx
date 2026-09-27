@@ -7,6 +7,7 @@ import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import type { QuizDetailDtoQuestionsItem, QuizDetailDtoSlidesItem } from '../api/generated/model';
 import { ShapeIcon } from '@/components/shape-icon';
+import { mediaUrl } from '@/lib/media-url';
 
 /** One property: its name, then what it is set to. */
 function Row({ label, children }: { label: string; children: ReactNode }) {
@@ -63,7 +64,7 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
                   </span>
                   {o.mediaId ? (
                     <img
-                      src={`/api/v1/media/${o.mediaId}`}
+                      src={mediaUrl(o.mediaId)}
                       alt=""
                       className="h-8 shrink-0 rounded object-cover"
                       style={{ aspectRatio: TILE_RATIO }}

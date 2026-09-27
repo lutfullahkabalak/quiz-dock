@@ -23,12 +23,13 @@ import type {
   QuestionTimePayload,
   RoomSoundsPayload,
   RoomStandingsPayload,
+  ServerToClientEvents,
   SessionNotice,
   SlideShowPayload,
 } from '@quiz-dock/contracts';
+import i18next from 'i18next';
 import { useEffect, useRef, useState } from 'react';
 import type { FollowedPosition } from './media/question-media-stage';
-import { useTranslation } from 'react-i18next';
 import {
   type GameSocket,
   clearPlayerSession,
@@ -88,6 +89,8 @@ export interface GameView {
   joinLocked: boolean;
   /** Renseigné si l'hôte a banni ce joueur (durée en minutes) — son client l'affiche. */
   kicked: { minutes: number } | null;
+  /** The live connection is down (reconnecting): what shows may be out of date. */
+  connectionLost: boolean;
   /** Rythme courant (§8) — `manual` par défaut. */
   mode: GameMode;
   /** Auto-progression suspendue par l'hôte (chrono gelé en ANSWERING). */
@@ -169,6 +172,7 @@ const INITIAL: GameView = {
   participantAccess: 'account',
   joinLocked: false,
   kicked: null,
+  connectionLost: false,
   mode: 'manual',
   paused: false,
   pausedRemainingMs: null,
@@ -222,6 +226,12 @@ const PER_QUIZ: Partial<GameView> = {
 };
 
 /**
+ * Read when the error shows, not from `useTranslation`: this hook renders no
+ * text, and a change of language must not subscribe the view again (audit F8).
+ */
+const sessionNotFound = () => i18next.t('live:errors.sessionNotFound');
+
+/**
  * S'abonne à la partie `pin` selon le rôle et expose une vue réactive. Garanties :
  * - **un seul socket** (dédoublonnage `ensureGameSocket`, robuste au StrictMode) ;
  * - **listeners posés AVANT le kick** (`host:attach`/`spectator:join`/`player:reconnect`)
@@ -233,7 +243,6 @@ const PER_QUIZ: Partial<GameView> = {
  */
 export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boolean } = {}) {
   const follow = opts.follow === true;
-  const { t } = useTranslation('live');
   const [view, setView] = useState<GameView>(INITIAL);
   const socketRef = useRef<GameSocket | null>(null);
 
@@ -411,40 +420,55 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       patch({ kicked: p });
     };
 
+    // Every event this view follows, taken on and off together: one list, never two to keep in step.
+    // The connection itself (socket.io's own events, outside the contract): down until it is back.
+    // Letting go of it on purpose (leaving the game) is not a loss.
+    const onDisconnect = (reason: string) => {
+      if (reason !== 'io client disconnect') patch({ connectionLost: true });
+    };
+    const onConnect = () => patch({ connectionLost: false });
+
+    const handlers = {
+      'game:state': onState,
+      'game:roster': onRoster,
+      'player:joined': onJoined,
+      'player:left': onLeft,
+      'question:start': onQuestion,
+      'game:mode': onMode,
+      'game:join-url': onJoinUrl,
+      'game:outline': onOutline,
+      'question:time': onTime,
+      'answer:count': onCount,
+      'answer:ack': onAck,
+      'question:reveal': onReveal,
+      'slide:show': onSlide,
+      leaderboard: onLeaderboard,
+      'media:preload': onPreload,
+      'media:readiness': onReadiness,
+      'media:position': onPosition,
+      'media:wait': onMediaWait,
+      'media:control': onMediaControl,
+      'game:media': onGameMedia,
+      'game:podium': onPodium,
+      'room:standings': onStandings,
+      'room:info': onRoomInfo,
+      'lobby:you': onLobbyYou,
+      'lobby:count': onLobbyCount,
+      'room:sounds': onSounds,
+      'game:ended': onEnded,
+      notice: onNotice,
+      kicked: onKicked,
+    } satisfies Partial<ServerToClientEvents>;
+    const events = Object.entries(handlers) as [keyof ServerToClientEvents, never][];
+
     void ensureGameSocket(role === 'host' ? 'host' : 'guest').then((sock) => {
       if (!active) return;
       s = sock;
       socketRef.current = sock;
 
-      sock.on('game:state', onState);
-      sock.on('game:roster', onRoster);
-      sock.on('player:joined', onJoined);
-      sock.on('player:left', onLeft);
-      sock.on('question:start', onQuestion);
-      sock.on('game:mode', onMode);
-      sock.on('game:join-url', onJoinUrl);
-      sock.on('game:outline', onOutline);
-      sock.on('question:time', onTime);
-      sock.on('answer:count', onCount);
-      sock.on('answer:ack', onAck);
-      sock.on('question:reveal', onReveal);
-      sock.on('slide:show', onSlide);
-      sock.on('leaderboard', onLeaderboard);
-      sock.on('media:preload', onPreload);
-      sock.on('media:readiness', onReadiness);
-      sock.on('media:position', onPosition);
-      sock.on('media:wait', onMediaWait);
-      sock.on('media:control', onMediaControl);
-      sock.on('game:media', onGameMedia);
-      sock.on('game:podium', onPodium);
-      sock.on('room:standings', onStandings);
-      sock.on('room:info', onRoomInfo);
-      sock.on('lobby:you', onLobbyYou);
-      sock.on('lobby:count', onLobbyCount);
-      sock.on('room:sounds', onSounds);
-      sock.on('game:ended', onEnded);
-      sock.on('notice', onNotice);
-      sock.on('kicked', onKicked);
+      for (const [event, handler] of events) sock.on(event, handler);
+      sock.on('disconnect', onDisconnect);
+      sock.on('connect', onConnect);
 
       // Kick — listeners déjà en place : la rafale `sendStateTo` ne peut être ratée.
       // Rejoué à chaque (re)connexion : après un redémarrage du serveur, le socket
@@ -453,11 +477,11 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         if (!active) return;
         if (role === 'host') {
           sock.emit('host:attach', { pin }, (res: { ok: boolean }) => {
-            if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
+            if (active && !res.ok) patch({ status: 'error', error: sessionNotFound() });
           });
         } else if (role === 'spectator') {
           sock.emit('spectator:join', { pin, follow }, (res: { ok: boolean }) => {
-            if (active && !res.ok) patch({ status: 'error', error: t('errors.sessionNotFound') });
+            if (active && !res.ok) patch({ status: 'error', error: sessionNotFound() });
           });
         } else {
           const session = loadPlayerSession();
@@ -488,37 +512,11 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
       active = false;
       if (!s) return;
       if (reconnectHandler) s.io?.off('reconnect', reconnectHandler);
-      s.off('game:state', onState);
-      s.off('game:roster', onRoster);
-      s.off('player:joined', onJoined);
-      s.off('player:left', onLeft);
-      s.off('question:start', onQuestion);
-      s.off('game:mode', onMode);
-      s.off('game:join-url', onJoinUrl);
-      s.off('game:outline', onOutline);
-      s.off('question:time', onTime);
-      s.off('answer:count', onCount);
-      s.off('answer:ack', onAck);
-      s.off('question:reveal', onReveal);
-      s.off('slide:show', onSlide);
-      s.off('leaderboard', onLeaderboard);
-      s.off('media:preload', onPreload);
-      s.off('media:readiness', onReadiness);
-      s.off('media:position', onPosition);
-      s.off('media:wait', onMediaWait);
-      s.off('media:control', onMediaControl);
-      s.off('game:media', onGameMedia);
-      s.off('game:podium', onPodium);
-      s.off('room:standings', onStandings);
-      s.off('room:info', onRoomInfo);
-      s.off('lobby:you', onLobbyYou);
-      s.off('lobby:count', onLobbyCount);
-      s.off('room:sounds', onSounds);
-      s.off('game:ended', onEnded);
-      s.off('notice', onNotice);
-      s.off('kicked', onKicked);
+      for (const [event, handler] of events) s.off(event, handler);
+      s.off('disconnect', onDisconnect);
+      s.off('connect', onConnect);
     };
-  }, [pin, role, follow, t]);
+  }, [pin, role, follow]);
 
   /** Joueur : à appeler après un `player:join` réussi pour quitter `no-session`. */
   const markJoined = () => setView((prev) => ({ ...prev, status: 'ready' }));

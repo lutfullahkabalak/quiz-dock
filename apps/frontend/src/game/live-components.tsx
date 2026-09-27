@@ -24,6 +24,8 @@ import { SlideVariablesContext } from './slide-variables';
 import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
 import { ShapeIcon } from '@/components/shape-icon';
 import { optionLabel } from './image-choice';
+import { mediaUrl } from '@/lib/media-url';
+import type { QuestionClock } from './use-countdown';
 
 /**
  * Typography of the live screens is set **once per surface** and everything
@@ -575,6 +577,27 @@ export function TimerBar({
   );
 }
 
+/** The question's clock as a bar, the same on every surface (see `useQuestionClock`). */
+export function QuestionClockBar({
+  clock,
+  className,
+}: {
+  clock: QuestionClock;
+  className?: string;
+}) {
+  const { t } = useTranslation('live');
+  return (
+    <TimerBar
+      remaining={clock.remaining}
+      totalS={clock.totalS}
+      icon={clock.listening ? '🎧' : clock.paused ? '⏸' : '⏱'}
+      label={clock.listening ? t('screen.listening') : t('screen.timeRemaining')}
+      paused={clock.paused}
+      className={className}
+    />
+  );
+}
+
 export function AnswerRules({
   question,
   className,
@@ -752,7 +775,7 @@ function SlideBlockView({ block }: { block: SlideLeafBlock }) {
     case 'image':
       return (
         <img
-          src={block.url ?? `/api/v1/media/${block.mediaId}`}
+          src={block.url ?? mediaUrl(block.mediaId)}
           alt=""
           className={cn(
             'max-h-[18em] rounded-[0.5em] object-contain',
@@ -837,5 +860,22 @@ export function Podium({ rows }: { rows: LeaderboardRow[] }) {
         ),
       )}
     </div>
+  );
+}
+
+/**
+ * Shown over a live page while its connection is down: what it shows may be out
+ * of date until it is back (the session reconnects by itself).
+ */
+export function ConnectionLost({ lost }: { lost: boolean }) {
+  const { t } = useTranslation('live');
+  if (!lost) return null;
+  return (
+    <p
+      role="status"
+      className="bg-destructive text-destructive-foreground fixed inset-x-0 top-2 z-50 mx-auto w-fit rounded-md px-3 py-1.5 text-sm font-medium shadow"
+    >
+      {t('errors.connectionLost')}
+    </p>
   );
 }

@@ -1,5 +1,5 @@
 import { ExternalLink, Search, Trash2, X } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -16,6 +16,7 @@ import type { MediaLibraryItemDto } from '../api/generated/model';
 import { formatDimensions } from '@/lib/dimensions';
 import { Waveform } from '../game/media/waveform';
 import { Spinner } from '@/components/ui/loading';
+import { Modal } from '@/components/ui/modal';
 
 const SEARCH_DELAY_MS = 250;
 
@@ -32,8 +33,7 @@ const duration = (ms: number | null) => {
 /**
  * The author's media of one kind, to put one to a new use (#53): one entry per
  * file, what it is used by, and the unused ones can go. Below, the free
- * libraries to look in when nothing here fits. A native `<dialog>`, like the
- * confirmations (`m-auto`: Tailwind's reset would pin it to a corner).
+ * libraries to look in when nothing here fits. A `Modal`, like the confirmations.
  */
 export function MediaLibraryDialog({
   open,
@@ -47,7 +47,6 @@ export function MediaLibraryDialog({
   onClose: () => void;
 }) {
   const { t } = useTranslation('editor');
-  const ref = useRef<HTMLDialogElement>(null);
   const [search, setSearch] = useState('');
   const [q, setQ] = useState('');
   const [toDelete, setToDelete] = useState<MediaLibraryItemDto | null>(null);
@@ -57,21 +56,6 @@ export function MediaLibraryDialog({
     const timer = setTimeout(() => setQ(search.trim()), SEARCH_DELAY_MS);
     return () => clearTimeout(timer);
   }, [search]);
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open) {
-      try {
-        if (!d.open) d.showModal();
-      } catch {
-        d.setAttribute('open', ''); // jsdom: showModal is not implemented
-      }
-    } else if (d.open) {
-      if (typeof d.close === 'function') d.close();
-      else d.removeAttribute('open');
-    }
-  }, [open]);
 
   // The author's own media, or the instance's (#62), provided by its administrators.
   const [source, setSource] = useState<'mine' | 'instance'>('mine');
@@ -100,18 +84,11 @@ export function MediaLibraryDialog({
   };
 
   return (
-    <dialog
-      ref={ref}
+    <Modal
+      open={open}
+      onClose={onClose}
       aria-labelledby="media-library-title"
-      onCancel={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
-      }}
-      className="bg-background text-foreground m-auto w-[94vw] max-w-3xl rounded-lg border p-0 shadow-lg backdrop:bg-black/50"
+      className="w-[94vw] max-w-3xl"
     >
       <div className="flex max-h-[85dvh] flex-col gap-4 p-5">
         <header className="flex items-center justify-between gap-2">
@@ -251,7 +228,7 @@ export function MediaLibraryDialog({
         onConfirm={() => void confirmDelete()}
         onCancel={() => setToDelete(null)}
       />
-    </dialog>
+    </Modal>
   );
 }
 

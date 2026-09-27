@@ -38,6 +38,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   participantAccess: 'account',
   joinLocked: false,
   kicked: null,
+  connectionLost: false,
   mode: 'manual',
   paused: false,
   pausedRemainingMs: null,
@@ -97,6 +98,17 @@ describe('ScreenPage (projection)', () => {
     renderApp('/session/482913/projection');
     await screen.findByText('Sur fond ?');
     expect(gradientOnScreen()).toBe(true);
+  });
+
+  it('says over the screen that its connection is lost (audit F9)', async () => {
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      question: withBackground,
+      connectionLost: true,
+    });
+    renderApp('/session/482913/projection');
+    expect(await screen.findByRole('status')).toHaveTextContent('Connexion perdue');
   });
 
   it('never draws the podium on the last question’s background (audit F15)', async () => {

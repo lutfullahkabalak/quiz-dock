@@ -26,7 +26,7 @@ import type {
   SlideTextSize,
   SlideTextTone,
 } from '@quiz-dock/contracts';
-import { SLIDE_VARIABLES, fillSlideBlocks, quizVariables } from '@quiz-dock/contracts';
+import { SLIDE_VARIABLES, type quizVariables } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlignCenter,
@@ -44,18 +44,18 @@ import {
   Text,
   X,
 } from 'lucide-react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
-import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { useUnsavedGuard } from '@/lib/use-unsaved-guard';
-import { clearDraft, loadDraft, saveDraft } from '@/lib/draft-store';
+import { useFormDraft } from '@/lib/use-form-draft';
+import { clearDraft, loadDraft } from '@/lib/draft-store';
+import { FormActionBar } from '@/components/form-action-bar';
 import { DraftNotice } from '@/components/draft-notice';
 import { apiErrorText } from '../api/http';
 import type { QuizDetailDtoSlidesItem } from '../api/generated/model';
@@ -66,6 +66,9 @@ import { SlideStage } from '../game/slide-stage';
 import { BackgroundField } from './background-field';
 import { MediaUpload } from './media-upload';
 import { SlideMediaField, type SlideMediaValue } from './slide-media-field';
+import { mediaUrl } from '@/lib/media-url';
+import { slideShowOf } from './quiz-stage-preview';
+import { Segmented } from '@/components/ui/segmented';
 
 interface FormValues extends SlideMediaValue {
   blocks: SlideBlock[];
@@ -146,7 +149,6 @@ export function SlideForm({
   const add = useSlidesControllerAdd();
   const update = useSlidesControllerUpdate();
   const [error, setError] = useState<string | null>(null);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showStage, setShowStage] = useState(() => {
     try {
       return localStorage.getItem('slide.preview') !== 'hidden';
@@ -168,12 +170,9 @@ export function SlideForm({
   const draftKey = `quiz:${quizId}:slide:${slide?.id ?? 'new'}`;
   const [restored, setRestored] = useState(() => loadDraft<FormValues>(draftKey));
   const [values, setValues] = useState<FormValues>(restored ?? initial);
-  useEffect(() => {
-    if (JSON.stringify(values) === JSON.stringify(initial)) clearDraft(draftKey);
-    else saveDraft(draftKey, values);
-  }, [values, initial, draftKey]);
+  const dirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  // Back to what was loaded: the draft goes with the changes.
   const discardDraft = () => {
-    clearDraft(draftKey);
     setRestored(null);
     setValues(initial);
   };
@@ -181,10 +180,10 @@ export function SlideForm({
   // The sound's waveform, known once a sound is picked here (the size preview draws it).
   const [audioPeaks, setAudioPeaks] = useState<number[] | null>(null);
 
-  const dirty = JSON.stringify(values) !== JSON.stringify(initial);
-  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
-  useUnsavedGuard(dirty);
-  const cancel = () => (dirty ? setConfirmDiscard(true) : onClose());
+  const cancel = () => {
+    clearDraft(draftKey);
+    onClose();
+  };
 
   const submit = async () => {
     setError(null);
@@ -230,36 +229,18 @@ export function SlideForm({
   };
 
   const stage = {
-    slideIndex: 0,
-    questionIndex: 0,
-    blocks: quizFields ? fillSlideBlocks(values.blocks, quizVariables(quizFields)) : values.blocks,
-    background: values.mediaId
-      ? { url: `/api/v1/media/${values.mediaId}` }
-      : values.gradient
-        ? { gradient: values.gradient }
-        : null,
+    ...slideShowOf(values, 0, quizFields),
     // Its media, shown still (#125): the video's first frame, the sound's waveform when known.
-    video: values.videoMediaId
-      ? {
-          url: `/api/v1/media/${values.videoMediaId}`,
-          loop: values.videoLoop,
-          sound: values.videoSound,
-          gainDb: 0,
-        }
-      : null,
     audio:
       values.audioMediaId && audioPeaks && !(values.videoMediaId && values.videoSound)
         ? {
-            url: `/api/v1/media/${values.audioMediaId}`,
+            url: mediaUrl(values.audioMediaId),
             durationMs: 0,
             peaks: audioPeaks,
             gainDb: 0,
             size: values.waveformSize,
           }
         : null,
-    textTone: values.textTone,
-    textOutline: values.textOutline,
-    displayDelayS: values.displayDelayS,
   };
 
   return (
@@ -273,20 +254,16 @@ export function SlideForm({
       {/* Enregistrer est en haut, collant, comme pour une question : l'aperçu, les
           blocs et le média poussent le bas de la page hors d'atteinte. La barre dit
           aussi ce qu'on édite — hors tiroir, le formulaire n'a pas de titre. */}
-      <div className="bg-background/95 sticky top-0 z-20 -mx-1 flex items-center gap-2 px-1 py-2 backdrop-blur">
-        <span className="min-w-0 truncate text-base font-semibold">
-          {slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
-        </span>
-        {/* Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
-            bas de page où plus personne ne regarde. */}
-        <p className="text-destructive mr-auto min-w-0 flex-1 truncate text-xs">{error}</p>
-        <Button type="button" variant="ghost" size="sm" onClick={cancel}>
-          {t('common:cancel')}
-        </Button>
-        <Button type="submit" size="sm" disabled={!dirty || add.isPending || update.isPending}>
-          {slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
-        </Button>
-      </div>
+      <FormActionBar
+        title={slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
+        // Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
+        // bas de page où plus personne ne regarde.
+        error={error}
+        dirty={dirty}
+        busy={add.isPending || update.isPending}
+        submitLabel={slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
+        onCancel={cancel}
+      />
 
       {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
       {/* What the projected screen will show, at slide proportions — foldable, remembered. */}
@@ -350,20 +327,6 @@ export function SlideForm({
       <DisplayTimeField
         value={values.displayDelayS}
         onChange={(v) => patch({ displayDelayS: v })}
-      />
-
-      <ConfirmDialog
-        open={confirmDiscard}
-        destructive
-        title={t('discardConfirm.title')}
-        description={t('discardConfirm.description')}
-        confirmLabel={t('discardConfirm.confirmLabel')}
-        onCancel={() => setConfirmDiscard(false)}
-        onConfirm={() => {
-          setConfirmDiscard(false);
-          clearDraft(draftKey);
-          onClose();
-        }}
       />
     </form>
   );
@@ -538,26 +501,17 @@ function BlockEditor({
   return (
     <div className="flex flex-col gap-2">
       {block.columns.length === 2 ? (
-        <div
-          className="flex items-center gap-1"
-          role="radiogroup"
-          aria-label={t('slideForm.ratio')}
-        >
-          {(['1-1', '1-2', '2-1'] as SlideColumnsRatio[]).map((r) => (
-            <Button
-              key={r}
-              type="button"
-              size="sm"
-              variant={(block.ratio ?? '1-1') === r ? 'default' : 'ghost'}
-              className="h-7 px-2 text-xs"
-              role="radio"
-              aria-checked={(block.ratio ?? '1-1') === r}
-              onClick={() => onChange({ ...block, ratio: r })}
-            >
-              {r.replace('-', ' : ')}
-            </Button>
-          ))}
-        </div>
+        <Segmented
+          size="sm"
+          className="w-fit"
+          label={t('slideForm.ratio')}
+          value={block.ratio ?? '1-1'}
+          onChange={(ratio) => onChange({ ...block, ratio })}
+          options={(['1-1', '1-2', '2-1'] as SlideColumnsRatio[]).map((r) => ({
+            value: r,
+            label: r.replace('-', ' : '),
+          }))}
+        />
       ) : null}
       <div
         className="grid gap-3"
@@ -719,29 +673,24 @@ function AlignPicker({
 }) {
   const { t } = useTranslation('editor');
   const current = value ?? 'center';
-  const items: { align: SlideTextAlign; Icon: typeof AlignLeft }[] = [
-    { align: 'left', Icon: AlignLeft },
-    { align: 'center', Icon: AlignCenter },
-    { align: 'right', Icon: AlignRight },
+  const items: { align: SlideTextAlign; icon: typeof AlignLeft }[] = [
+    { align: 'left', icon: AlignLeft },
+    { align: 'center', icon: AlignCenter },
+    { align: 'right', icon: AlignRight },
   ];
   return (
-    <div className="flex shrink-0 gap-0.5" role="radiogroup" aria-label={t('slideForm.textAlign')}>
-      {items.map(({ align, Icon }) => (
-        <Button
-          key={align}
-          type="button"
-          variant={current === align ? 'default' : 'ghost'}
-          size="icon"
-          className="size-7"
-          role="radio"
-          aria-checked={current === align}
-          aria-label={t(`slideForm.align.${align}`)}
-          onClick={() => onChange(align)}
-        >
-          <Icon className="size-3.5" />
-        </Button>
-      ))}
-    </div>
+    <Segmented
+      size="sm"
+      className="shrink-0"
+      label={t('slideForm.textAlign')}
+      value={current}
+      onChange={onChange}
+      options={items.map(({ align, icon }) => ({
+        value: align,
+        label: t(`slideForm.align.${align}`),
+        icon,
+      }))}
+    />
   );
 }
 
@@ -756,22 +705,17 @@ function SizePicker({
   const { t } = useTranslation('editor');
   const current = value ?? 'medium';
   return (
-    <div className="flex shrink-0 gap-0.5" role="radiogroup" aria-label={t('slideForm.textSize')}>
-      {(['small', 'medium', 'large'] as SlideTextSize[]).map((size) => (
-        <Button
-          key={size}
-          type="button"
-          variant={current === size ? 'default' : 'ghost'}
-          size="sm"
-          className="h-7 px-2 text-xs"
-          role="radio"
-          aria-checked={current === size}
-          title={t(`slideForm.size.${size}`)}
-          onClick={() => onChange(size)}
-        >
-          {t(`slideForm.sizeShort.${size}`)}
-        </Button>
-      ))}
-    </div>
+    <Segmented
+      size="sm"
+      className="shrink-0"
+      label={t('slideForm.textSize')}
+      value={current}
+      onChange={onChange}
+      options={(['small', 'medium', 'large'] as SlideTextSize[]).map((size) => ({
+        value: size,
+        label: t(`slideForm.size.${size}`),
+        short: t(`slideForm.sizeShort.${size}`),
+      }))}
+    />
   );
 }

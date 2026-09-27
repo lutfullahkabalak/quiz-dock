@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { fireEvent, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import { configureDemo, configureStandalone } from '../config';
 import { mockApi, renderApp } from '../test/harness';
@@ -45,6 +45,18 @@ describe('LandingPage — demo limitations', () => {
     mockApi([]);
     renderApp('/');
     expect(await screen.findByText(/Image tout-en-un/i)).toBeInTheDocument();
+  });
+});
+
+describe('LandingPage — the PIN', () => {
+  it('names its field for screen readers, and joins only once a PIN is typed (audit F14)', async () => {
+    mockApi([]);
+    renderApp('/');
+    const field = await screen.findByRole('textbox', { name: 'Rejoindre un salon' });
+    const join = screen.getByRole('button', { name: 'Rejoindre' });
+    expect(join).toBeDisabled();
+    fireEvent.change(field, { target: { value: '771122' } });
+    expect(join).toBeEnabled();
   });
 });
 

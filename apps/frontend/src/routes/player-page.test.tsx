@@ -82,6 +82,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   participantAccess: 'account',
   joinLocked: false,
   kicked: null,
+  connectionLost: false,
   mode: 'manual',
   paused: false,
   pausedRemainingMs: null,
@@ -185,6 +186,38 @@ describe('PlayerPage (client participant)', () => {
     renderApp('/join/771122');
     expect(await screen.findByText(/Écoute jusqu’au bout/)).toBeInTheDocument();
     expect(screen.getByLabelText('Écoute en cours')).toHaveTextContent('🎧');
+  });
+
+  it('listen first, paused: the phone shows what is left of the listening, as the screen (audit F5)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    const startedAt = Date.now() + 10_000;
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      paused: true,
+      // Frozen 4 s before the answers open: the listening's 4 s, then the answers' 20.
+      pausedRemainingMs: 24_000,
+      question: {
+        questionIndex: 0,
+        type: 'single_choice',
+        prompt: 'Quel morceau ?',
+        options: [PARIS],
+        timeLimitS: 20,
+        basePoints: 1000,
+        startedAt,
+        endsAt: startedAt + 20_000,
+        mediaStartAt: startedAt - 30_000,
+        listenFirst: true,
+        media: { visual: null, audio: null },
+      } as never,
+    });
+    renderApp('/join/771122');
+    expect(await screen.findByRole('timer', { name: 'Écoute en cours' })).toHaveTextContent('4');
   });
 
   it('MEDIA_LOADING: the phone says the question is coming', async () => {

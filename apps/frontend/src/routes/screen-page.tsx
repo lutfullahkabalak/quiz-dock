@@ -1,21 +1,22 @@
 import { RoomStandingsPanel, roomLabel } from '../game/room-components';
 import { useParams } from '@tanstack/react-router';
 import { Maximize, Minimize, Users } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import { useFullscreen } from '@/lib/use-fullscreen';
-import { clearRoomPositions } from '../game/media/media-position';
+import { hasGameSounds, useRoomMedia } from '../game/media/use-room-media';
 import { Avatar } from '../game/avatar';
 import {
+  ConnectionLost,
   AnswerExplanation,
   AnswerRules,
   LeaderboardList,
   OptionGrid,
-  TimerBar,
+  QuestionClockBar,
   Podium,
   RevealAnswer,
   SlideView,
@@ -24,8 +25,6 @@ import {
 import { unlockAudio, useAudioUnlocked } from '../game/media/audio-unlock';
 import { useDeviceSound } from '../game/media/audio-mixer';
 import { SoundButton } from '../game/media/sound-button';
-import { useGameSounds } from '../game/media/game-sounds';
-import { preloadMedia, waitedFor } from '../game/media/media-pool';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { SlidePlaybackContext } from '../game/media/slide-media';
 import { RoomVariables } from '../game/slide-variables';
@@ -34,7 +33,7 @@ import { anchorOf, followed } from '../game/media/followed';
 import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
 import { Surface } from '../game/surface';
 import { ImageChoiceGrid } from '../game/image-choice';
-import { useCountdown, useGameRemaining } from '../game/use-countdown';
+import { useQuestionClock } from '../game/use-countdown';
 import { joinHostLabel, joinUrlFor } from '../game/join-url';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import type { GameSocket } from '../game/game-client';
@@ -80,8 +79,9 @@ export function FollowScreenPage() {
 export type ScreenRole = 'lead' | 'preview' | 'follow';
 
 /**
- * The projected screen itself; also embedded in the host console's Projection
- * tab (`preview`) and opened by a participant on a device of their own (`follow`).
+ * The projected screen itself, also opened by a participant on a device of their
+ * own (`follow`). The host console's Projection tab shows `ScreenSurface`
+ * (`preview`) on the console's own session.
  */
 export function ScreenView({
   pin,
@@ -95,13 +95,16 @@ export function ScreenView({
 }) {
   const session = useGameSession(pin, 'spectator', { follow: !!follow });
   return (
-    <ScreenSurface
-      pin={pin}
-      view={session.view}
-      socket={session.socket}
-      role={follow ? 'follow' : playMedia ? 'lead' : 'preview'}
-      sound={follow?.sound ?? true}
-    />
+    <>
+      <ConnectionLost lost={session.view.connectionLost} />
+      <ScreenSurface
+        pin={pin}
+        view={session.view}
+        socket={session.socket}
+        role={follow ? 'follow' : playMedia ? 'lead' : 'preview'}
+        sound={follow?.sound ?? true}
+      />
+    </>
   );
 }
 
@@ -153,56 +156,16 @@ export function ScreenSurface({
   const deviceSound = useDeviceSound();
   // The game's sounds (#93): the projection, and a copy that plays the sound for a
   // remote participant when the room's sound reaches remote devices.
-  const soundsOn =
-    !!view.sounds && (view.sounds.tick || view.sounds.gong || !!view.sounds.musicUrl);
-  // A new lobby, a new game: the media positions of the room's last one are gone
-  // (its PIN stays; a quiz played again would read "played to the end" and stay silent).
-  useEffect(() => {
-    if (view.state === 'LOBBY') clearRoomPositions(pin);
-  }, [view.state, pin]);
-  useGameSounds(
-    view.sounds,
-    {
-      state: view.state,
-      questionIndex: view.questionIndex,
-      answered: view.answerCount?.answered ?? 0,
-      paused: view.paused,
-      media: view.question?.media,
-      mediaStartAt: view.question?.mediaStartAt ?? null,
-      endsAt: view.question?.endsAt ?? null,
-      startedAt: view.question?.startedAt ?? null,
-      anchor: view.question && anchorOf(view, { questionIndex: view.question.questionIndex }),
-    },
-    role === 'lead' || (role === 'follow' && sound && view.gameAudioTarget !== 'projection'),
-  );
-
-  // In the lobby and while the leaderboard is up, what comes next buffers here;
-  // the console hears when it is ready to play.
-  useEffect(() => {
-    const next = view.preload;
-    if (role === 'preview' || !next) return;
-    let cancelled = false;
-    void preloadMedia(next.media, next.images, next.videos).then((loaded) => {
-      // A copy fetches ahead too, but is never waited for: it says nothing.
-      if (!cancelled && loaded && playMedia && waitedFor(next.media, next.videos)) {
-        socket?.emit('media:ready', {
-          pin,
-          questionIndex: next.questionIndex,
-          ...(next.slideIndex !== undefined ? { slideIndex: next.slideIndex } : {}),
-        });
-      }
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [role, playMedia, view.preload, socket, pin]);
+  const soundsOn = hasGameSounds(view.sounds);
+  useRoomMedia(view, pin, socket, {
+    sounds:
+      role === 'lead' || (role === 'follow' && sound && view.gameAudioTarget !== 'projection'),
+    // In the lobby and while the leaderboard is up, what comes next buffers here; the
+    // console hears when the projection is ready to play it, not a copy.
+    preload: role === 'preview' ? 'off' : playMedia ? 'ready' : 'fetch',
+  });
   const { ref, isFullscreen, toggle, supported } = useFullscreen<HTMLDivElement>();
-  const remaining = useGameRemaining(view);
-  // Listen first: until the media has played, the count is to the answers' opening.
-  const listenLeft = useCountdown(
-    view.question?.listenFirst && !view.paused ? view.question.startedAt : null,
-  );
-  const listening = listenLeft !== null && listenLeft > 0;
+  const clock = useQuestionClock(view);
 
   const joinUrl = joinUrlFor(view, pin);
   const joinHost = joinHostLabel(view);
@@ -387,19 +350,9 @@ export function ScreenSurface({
     // their room and the picture takes what is left (#92).
     body = (
       <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center gap-[1em]">
-        {remaining !== null ? (
-          <TimerBar
-            remaining={listening ? (listenLeft ?? 0) : remaining}
-            totalS={
-              listening
-                ? (view.question.startedAt -
-                    (view.question.mediaStartAt ?? view.question.startedAt)) /
-                  1000
-                : (view.question.endsAt - view.question.startedAt) / 1000
-            }
-            icon={listening ? '🎧' : view.paused ? '⏸' : '⏱'}
-            label={listening ? t('screen.listening') : t('screen.timeRemaining')}
-            paused={view.paused}
+        {clock ? (
+          <QuestionClockBar
+            clock={clock}
             // Clear of the fullscreen button, top right, and of the sound button, top left.
             className={cn('shrink-0 pr-[2.5em] text-[1.6em]', soundButton && 'pl-[2.5em]')}
           />

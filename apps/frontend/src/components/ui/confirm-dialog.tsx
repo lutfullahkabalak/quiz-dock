@@ -1,12 +1,12 @@
 import { cn } from '@/lib/utils';
-import { type ReactNode, useEffect, useId, useRef } from 'react';
+import { type ReactNode, useId } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from './button';
+import { Modal } from './modal';
 
 /**
- * Modal de confirmation custom basée sur l'élément natif `<dialog>` (pas `confirm()`).
- * Contrôlée par `open` : ouvre/ferme en modal (focus trap + backdrop natifs). Repli
- * sur l'attribut `open` si `showModal` n'est pas implémenté (jsdom en test).
+ * Modal de confirmation (sur `Modal`, pas `confirm()`) : un titre, un texte, les
+ * deux actions. Contrôlée par `open` ; Échap et le fond valent « annuler ».
  */
 export function ConfirmDialog({
   open,
@@ -37,42 +37,15 @@ export function ConfirmDialog({
   onCancel: () => void;
 }) {
   const { t } = useTranslation('common');
-  const ref = useRef<HTMLDialogElement>(null);
   const titleId = useId();
 
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (open) {
-      try {
-        if (!d.open) d.showModal();
-      } catch {
-        d.setAttribute('open', ''); // jsdom : showModal non implémenté
-      }
-    } else if (d.open) {
-      if (typeof d.close === 'function') d.close();
-      else d.removeAttribute('open'); // jsdom: close non implémenté
-    }
-  }, [open]);
-
   return (
-    <dialog
-      ref={ref}
+    <Modal
+      open={open}
+      onClose={onCancel}
       aria-labelledby={titleId}
-      onCancel={(e) => {
-        e.preventDefault(); // Échap → on passe par onCancel (pas de fermeture brutale)
-        // React bubbles it through the component tree: a dialog opened from another must not close that one too.
-        e.stopPropagation();
-        onCancel();
-      }}
-      onClick={(e) => {
-        if (e.target === ref.current) onCancel(); // clic sur le backdrop
-      }}
-      className={cn(
-        'bg-background text-foreground m-auto w-[90vw] rounded-lg border p-0 shadow-lg backdrop:bg-black/50',
-        // Wide (a list inside): never taller than the viewport; the list takes what is left.
-        wide ? 'max-h-[calc(100dvh-2rem)] max-w-2xl open:flex open:flex-col' : 'max-w-md',
-      )}
+      // Wide (a list inside): never taller than the viewport; the list takes what is left.
+      className={wide ? 'max-h-[calc(100dvh-2rem)] max-w-2xl open:flex open:flex-col' : 'max-w-md'}
     >
       <div className={cn('flex flex-col gap-4 p-6', wide && 'min-h-0 flex-1 overflow-y-auto')}>
         <h2 id={titleId} className="text-lg font-semibold">
@@ -94,6 +67,6 @@ export function ConfirmDialog({
           </Button>
         </div>
       </div>
-    </dialog>
+    </Modal>
   );
 }

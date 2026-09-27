@@ -7,11 +7,15 @@ import { mockApi, renderApp } from '../test/harness';
 const { fakeSocket, hookState } = vi.hoisted(() => ({
   // `once`/`off`: an emit with an ack also listens for the server's `error`.
   fakeSocket: { emit: vi.fn(), once: vi.fn(), off: vi.fn() },
-  hookState: { value: null as unknown },
+  // `roles`: every session the page opened, by role.
+  hookState: { value: null as unknown, roles: new Set<string>() },
 }));
 
 vi.mock('../game/use-game-session', () => ({
-  useGameSession: () => ({ view: hookState.value, socket: fakeSocket, markJoined: vi.fn() }),
+  useGameSession: (_pin: string, role: string) => {
+    hookState.roles.add(role);
+    return { view: hookState.value, socket: fakeSocket, markJoined: vi.fn() };
+  },
 }));
 
 const view = (partial: Partial<GameView>): GameView => ({
@@ -39,6 +43,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   participantAccess: 'account',
   joinLocked: false,
   kicked: null,
+  connectionLost: false,
   mode: 'manual',
   paused: false,
   pausedRemainingMs: null,
@@ -120,6 +125,37 @@ describe('ControlPage: who is ready in the lobby (#104)', () => {
     expect(await screen.findByTestId('readiness')).toHaveTextContent('Prêts : 1 / 3 participants');
     expect(screen.getByLabelText('Prêt')).toBeInTheDocument(); // Ada
     expect(screen.getByLabelText('Prêt, médias en chargement')).toBeInTheDocument(); // Bob
+  });
+});
+
+describe('ControlPage: the Projection tab (audit F9)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.clearAllMocks();
+  });
+
+  it('shows the screen from the console’s own session, without opening a second one', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.roles.clear();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: {
+        questionIndex: 0,
+        type: 'single_choice',
+        prompt: 'Capitale ?',
+        options: [],
+        media: null,
+        startedAt: Date.now(),
+        endsAt: Date.now() + 20_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    renderApp('/session/482913/console');
+    fireEvent.click(await screen.findByRole('tab', { name: /Projection/ }));
+    expect(await screen.findByRole('heading', { name: 'Capitale ?' })).toBeInTheDocument();
+    expect([...hookState.roles]).toEqual(['host']);
   });
 });
 
@@ -303,6 +339,51 @@ describe('ControlPage (console hôte)', () => {
     expect(await screen.findByText('Encore en chargement : Alice')).toBeInTheDocument();
     act(() => screen.getByRole('button', { name: /Lancer quand même/ }).click());
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:next', { pin: '482913' });
+  });
+
+  it('the time bar measures the answers’ window, lengthened by the host too (audit F5)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      // A 20 s question the host gave 10 s more: 15 s left of 30.
+      question: {
+        questionIndex: 0,
+        prompt: 'Capitale ?',
+        timeLimitS: 20,
+        startedAt: now - 15_000,
+        endsAt: now + 15_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    renderApp('/session/482913/console');
+    const bar = await screen.findByRole('progressbar', { name: 'Temps restant' });
+    expect(Number(bar.getAttribute('aria-valuenow'))).toBe(50);
+  });
+
+  it('paused, the chrono stands still with the same sign as the screens (audit F5)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    const now = Date.now();
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      paused: true,
+      pausedRemainingMs: 7_000,
+      question: {
+        questionIndex: 0,
+        prompt: 'Capitale ?',
+        timeLimitS: 20,
+        startedAt: now - 13_000,
+        endsAt: now + 7_000,
+      } as never,
+      answerCount: { answered: 0, total: 3 },
+    });
+    const { container } = renderApp('/session/482913/console');
+    await screen.findByText('Capitale ?');
+    expect(container.querySelector('span[aria-label="Temps restant"]')).toHaveTextContent('⏸ 7');
   });
 
   it('ANSWERING : compteur + « Révéler » émet host:reveal', async () => {

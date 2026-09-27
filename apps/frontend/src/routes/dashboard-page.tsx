@@ -42,6 +42,7 @@ import {
 import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
 import { ListSkeleton } from '@/components/ui/loading';
+import { mediaUrl } from '@/lib/media-url';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
@@ -486,7 +487,7 @@ function StatusBadge({ status }: { status: string }) {
 function QuizCover({ quiz, className }: { quiz: QuizDto; className?: string }) {
   return quiz.coverMediaId ? (
     <img
-      src={`/api/v1/media/${quiz.coverMediaId}`}
+      src={mediaUrl(quiz.coverMediaId)}
       alt=""
       loading="lazy"
       className={cn('object-cover', className)}

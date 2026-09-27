@@ -556,6 +556,21 @@ describe('GameEngine (characterization)', () => {
       expect(await state()).toBe('ANSWERING');
     });
 
+    it('keeps time added while the game resumes: the host’s clock commands run one after the other', async () => {
+      await startedAt(snapshotOf([question()]), { p1: player('Ann') });
+      await engine.setPaused(pin, HOST, true);
+      const frozen = (await meta()).pausedRemainingMs!;
+      // Sent back to back, as a quick "resume, +10 s": the second reads what the first wrote.
+      await Promise.all([engine.setPaused(pin, HOST, false), engine.adjustTime(pin, HOST, 10)]);
+      const m = await meta();
+      expect(m.clockFrozen).toBe(false);
+      expect(m.questionEndsAt - Date.now()).toBeGreaterThan(frozen + 9_000);
+      // And two quick +1 add up.
+      const before = m.questionEndsAt;
+      await Promise.all([engine.adjustTime(pin, HOST, 1), engine.adjustTime(pin, HOST, 1)]);
+      expect((await meta()).questionEndsAt).toBe(before + 2_000);
+    });
+
     it('resuming thaws the chrono on the frozen remainder', async () => {
       await startedAt(snapshotOf([question()]), { p1: player('Ann') });
       await engine.setPaused(pin, HOST, true);

@@ -31,14 +31,15 @@ import {
 } from '@quiz-dock/contracts';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { GripVertical, Image as ImageIcon, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { useUnsavedGuard } from '@/lib/use-unsaved-guard';
-import { clearDraft, loadDraft, saveDraft } from '@/lib/draft-store';
+import { useFormDraft } from '@/lib/use-form-draft';
+import { clearDraft, loadDraft } from '@/lib/draft-store';
+import { FormActionBar } from '@/components/form-action-bar';
 import { DraftNotice } from '@/components/draft-notice';
 import { MarkdownEditor } from '@/components/markdown-editor';
 import { promptImage } from '@/lib/prompt-image';
@@ -61,6 +62,7 @@ import {
 import { getQuizzesControllerGetQueryKey } from '../api/generated/quizzes/quizzes';
 import { ShapeIcon } from '@/components/shape-icon';
 import { ImageChoiceOptions, imageOptionComplete } from './image-choice-options';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 type QType =
   | 'single_choice'
@@ -253,7 +255,6 @@ export function QuestionForm({
   const add = useQuestionsControllerAdd();
   const update = useQuestionsControllerUpdate();
   const [error, setError] = useState<string | null>(null);
-  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [showImageErrors, setShowImageErrors] = useState(false);
   // Computed once: option keys are generated, so a fresh copy per render would reset the form.
   const [initial] = useState(() => initialValues(question));
@@ -300,22 +301,19 @@ export function QuestionForm({
     },
   });
   const values = useStore(form.store, (s) => s.values);
-  useEffect(() => {
-    if (JSON.stringify(values) === JSON.stringify(initial)) clearDraft(draftKey);
-    else saveDraft(draftKey, values);
-  }, [values, initial, draftKey]);
+  // Dirty = values differ from what was loaded (a fresh question is dirty as soon as typed in).
+  const dirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  // Back to what was loaded: the draft goes with the changes.
   const discardDraft = () => {
-    clearDraft(draftKey);
     setRestored(null);
     form.reset(initial);
   };
 
   const type = useStore(form.store, (s) => s.values.type);
-  // Dirty = values differ from what was loaded (a fresh question is dirty as soon as typed in).
-  const dirty = useStore(form.store, (s) => JSON.stringify(s.values) !== JSON.stringify(initial));
-  useEffect(() => onDirtyChange?.(dirty), [dirty, onDirtyChange]);
-  useUnsavedGuard(dirty);
-  const cancel = () => (dirty ? setConfirmDiscard(true) : onClose());
+  const cancel = () => {
+    clearDraft(draftKey);
+    onClose();
+  };
   const media = useStore(form.store, (s) => s.values.media);
   const timeLimitS = useStore(form.store, (s) => s.values.timeLimitS);
   const mediaMs = useMediaDurationMs(media);
@@ -413,18 +411,13 @@ export function QuestionForm({
       {/* Enregistrer est en haut, collant : une question longue (propositions,
           explication, arrière-plan) mettait le bouton hors d'atteinte, et on ne
           devrait jamais avoir à chercher comment garder ce qu'on vient d'écrire. */}
-      <div className="bg-background/95 sticky top-0 z-20 -mx-1 flex items-center gap-2 px-1 py-2 backdrop-blur">
-        {/* Hors tiroir, le formulaire n'a pas de titre : la barre dit ce qu'on édite. */}
-        <span className="mr-auto min-w-0 truncate text-base font-semibold">
-          {question ? t('questionForm.titleEdit') : t('questionForm.titleAdd')}
-        </span>
-        <Button type="button" variant="ghost" size="sm" onClick={cancel}>
-          {t('common:cancel')}
-        </Button>
-        <Button type="submit" size="sm" disabled={!dirty || add.isPending || update.isPending}>
-          {question ? t('questionForm.submitUpdate') : t('questionForm.submitAdd')}
-        </Button>
-      </div>
+      <FormActionBar
+        title={question ? t('questionForm.titleEdit') : t('questionForm.titleAdd')}
+        dirty={dirty}
+        busy={add.isPending || update.isPending}
+        submitLabel={question ? t('questionForm.submitUpdate') : t('questionForm.submitAdd')}
+        onCancel={cancel}
+      />
 
       {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
       <Label>
@@ -478,23 +471,13 @@ export function QuestionForm({
         {canListenFirst ? (
           <form.Field name="timerAfterMedia">
             {(field) => (
-              <label
-                className="flex items-start gap-2 text-sm"
+              <CheckboxField
                 title={t('questionForm.listenFirstHint')}
-              >
-                <input
-                  type="checkbox"
-                  className="accent-primary mt-0.5"
-                  checked={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.checked)}
-                />
-                <span>
-                  <span className="font-medium">{t('questionForm.listenFirstLabel')}</span>
-                  <span className="text-muted-foreground block">
-                    {t('questionForm.listenFirstHint')}
-                  </span>
-                </span>
-              </label>
+                checked={field.state.value}
+                onChange={field.handleChange}
+                label={t('questionForm.listenFirstLabel')}
+                hint={t('questionForm.listenFirstHint')}
+              />
             )}
           </form.Field>
         ) : null}
@@ -916,19 +899,6 @@ export function QuestionForm({
           if (pendingRemoval !== null)
             setOptions(options.filter((_, idx) => idx !== pendingRemoval));
           setPendingRemoval(null);
-        }}
-      />
-      <ConfirmDialog
-        open={confirmDiscard}
-        destructive
-        title={t('discardConfirm.title')}
-        description={t('discardConfirm.description')}
-        confirmLabel={t('discardConfirm.confirmLabel')}
-        onCancel={() => setConfirmDiscard(false)}
-        onConfirm={() => {
-          setConfirmDiscard(false);
-          clearDraft(draftKey);
-          onClose();
         }}
       />
     </form>

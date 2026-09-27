@@ -31,9 +31,13 @@ entry in the PR that pays it back.
   monolingual. The column is a leftover, and its default is wrong on an English instance.
 - **Way out**: drop it in a migration when one is due anyway.
 
-## A test mock short of an export
+## A dark theme nothing turns on
 
-- **Where**: `apps/frontend/src/routes/editor-page.test.tsx`.
-- **What**: its mock of `../game/game-client` has no `ensureGameSocket`; a component under
-  the editor calls it, and Vitest logs the error while the tests still pass.
-- **Way out**: add the export to the mock (or mock the component that uses it).
+- **Where**: `apps/frontend/src/index.css` (`.dark` and its `@custom-variant`), and a few
+  `dark:` classes in the components.
+- **What**: the tokens of a dark theme exist, but no code ever sets the `.dark` class: the
+  app is light only.
+- **Why it is acceptable**: nothing is broken, and removing it would touch many files for
+  no gain (audit 2026-09, F13).
+- **Way out**: either switch it on (`prefers-color-scheme`, a toggle), which is a feature to
+  design and check screen by screen, or delete the tokens and the `dark:` classes.

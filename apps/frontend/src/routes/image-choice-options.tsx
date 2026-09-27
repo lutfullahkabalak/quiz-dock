@@ -11,6 +11,9 @@ import { cn } from '@/lib/utils';
 import { mediaControllerDescribe } from '../api/generated/media/media';
 import { ImageTile } from '../game/image-choice';
 import { MediaUpload } from './media-upload';
+import { mediaUrl } from '@/lib/media-url';
+import { CheckboxField } from '@/components/ui/checkbox-field';
+import { Segmented } from '@/components/ui/segmented';
 
 /** What the editor keeps of an image choice answer. */
 export interface ImageOptionValue {
@@ -110,41 +113,25 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
   return (
     <div className="flex flex-col gap-3">
       <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-        <div
-          role="radiogroup"
-          aria-label={t('questionForm.imageCountLabel')}
-          className="flex gap-1"
-        >
-          <span className="text-muted-foreground mr-2 self-center text-sm">
-            {t('questionForm.imageCountLabel')}
-          </span>
-          {IMAGE_CHOICE_OPTION_COUNTS.map((count) => (
-            <button
-              key={count}
-              type="button"
-              role="radio"
-              aria-checked={options.length === count}
-              onClick={() => setCount(count)}
-              className={cn(
-                'rounded-md border px-3 py-1 text-sm',
-                options.length === count
-                  ? 'bg-primary text-primary-foreground border-primary'
-                  : 'hover:bg-accent',
-              )}
-            >
-              {count}
-            </button>
-          ))}
-        </div>
-        <label className="flex items-start gap-2 text-sm" title={t('questionForm.multiSelectHint')}>
-          <input
-            type="checkbox"
-            className="accent-primary mt-0.5"
-            checked={multiSelect}
-            onChange={(e) => onMultiSelect(e.target.checked)}
+        <div className="flex items-center gap-2">
+          <span className="text-muted-foreground text-sm">{t('questionForm.imageCountLabel')}</span>
+          <Segmented
+            size="sm"
+            label={t('questionForm.imageCountLabel')}
+            value={String(options.length)}
+            onChange={(count) => setCount(Number(count))}
+            options={IMAGE_CHOICE_OPTION_COUNTS.map((count) => ({
+              value: String(count),
+              label: String(count),
+            }))}
           />
-          <span className="font-medium">{t('questionForm.multiSelectLabel')}</span>
-        </label>
+        </div>
+        <CheckboxField
+          title={t('questionForm.multiSelectHint')}
+          checked={multiSelect}
+          onChange={onMultiSelect}
+          label={t('questionForm.multiSelectLabel')}
+        />
       </div>
       <p className="text-muted-foreground -mt-1 text-xs">{t('questionForm.imageCropNote')}</p>
 
@@ -158,7 +145,7 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
                 <SortableTile key={opt.key} id={opt.key}>
                   <div className="text-base">
                     <ImageTile
-                      src={opt.mediaId ? `/api/v1/media/${opt.mediaId}` : null}
+                      src={opt.mediaId ? mediaUrl(opt.mediaId) : null}
                       alt={opt.alt}
                       color={opt.color}
                       shape={opt.shape}
