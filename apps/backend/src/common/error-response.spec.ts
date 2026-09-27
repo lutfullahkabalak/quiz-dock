@@ -1,6 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { WsException } from '@nestjs/websockets';
 import { ZodValidationException } from 'nestjs-zod';
+import { Prisma } from '@prisma/client';
 import { z } from 'zod';
 import { toErrorResponse } from './error-response';
 
@@ -58,6 +59,25 @@ describe('toErrorResponse (enveloppe tokenisée, ADR 0001)', () => {
       status: 400,
       body: { code: 'media.video_with_audio' },
     });
+  });
+
+  it('a database error the user can cause answers with its meaning, not a 500 (audit B5)', () => {
+    const prisma = (code: string) =>
+      new Prisma.PrismaClientKnownRequestError('db', { code, clientVersion: 'test' });
+    expect(toErrorResponse(prisma('P2025'))).toEqual({
+      status: 404,
+      body: { code: 'record.not_found' },
+    });
+    expect(toErrorResponse(prisma('P2002'))).toEqual({
+      status: 409,
+      body: { code: 'record.conflict' },
+    });
+    expect(toErrorResponse(prisma('P2003'))).toEqual({
+      status: 400,
+      body: { code: 'record.invalid_reference' },
+    });
+    // Anything else stays an internal error.
+    expect(toErrorResponse(prisma('P1001')).status).toBe(500);
   });
 
   it('exception inconnue → internal / 500', () => {

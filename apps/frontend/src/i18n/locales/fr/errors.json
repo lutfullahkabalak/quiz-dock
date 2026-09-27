@@ -112,5 +112,10 @@
   },
   "slide": {
     "two_sounds": "Une slide joue un seul son à la fois : coupez le son de sa vidéo ou retirez son son."
+  },
+  "record": {
+    "not_found": "Cet élément n’existe plus : il a été supprimé entre-temps.",
+    "conflict": "Un autre enregistrement a eu lieu au même moment. Réessayez.",
+    "invalid_reference": "Cela fait référence à un élément qui n’existe plus."
   }
 }

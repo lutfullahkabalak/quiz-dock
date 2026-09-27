@@ -1,4 +1,5 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import type { MediaService } from '../media/media.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { QuestionContent } from './dto/question-content.schema';
@@ -25,6 +26,8 @@ function makePrisma() {
     quiz: { findFirst: jest.fn(), update: jest.fn() },
     question: {
       findFirst: jest.fn(),
+      // The question as read back after its creation.
+      findUniqueOrThrow: jest.fn(async () => ({ options: [], acceptedAnswers: [] })),
       findMany: jest.fn(),
       aggregate: jest.fn(),
       create: jest.fn(),
@@ -160,6 +163,21 @@ describe('QuestionsService', () => {
         .map((c) => c[0].data.orderIndex);
       expect(offsets).toEqual([1001, 1000]);
     });
+  });
+
+  it('adds a question once more when another one took its place at the same time (audit B5)', async () => {
+    prisma.quiz.findFirst.mockResolvedValue({ id: 'quiz-1' });
+    prisma.question.aggregate
+      .mockResolvedValueOnce({ _max: { orderIndex: 2 } })
+      .mockResolvedValueOnce({ _max: { orderIndex: 3 } });
+    prisma.question.create.mockResolvedValue({});
+    prisma.$transaction
+      .mockRejectedValueOnce(
+        new Prisma.PrismaClientKnownRequestError('unique', { code: 'P2002', clientVersion: 't' }),
+      )
+      .mockImplementation((ops: Promise<unknown>[]) => Promise.all(ops));
+    await service.add(OWNER, 'quiz-1', content());
+    expect(prisma.question.create.mock.calls.at(-1)[0].data.orderIndex).toBe(4);
   });
 
   describe('the background picture (audit B3)', () => {

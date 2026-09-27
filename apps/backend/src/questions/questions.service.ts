@@ -38,6 +38,17 @@ export class QuestionsService {
   ) {}
 
   async add(ownerId: string, quizId: string, dto: QuestionContent) {
+    try {
+      return await this.addOnce(ownerId, quizId, dto);
+    } catch (err) {
+      // Another question took the last place at the same time (a double click, two
+      // tabs): the next place is free now. A second clash is reported as a conflict.
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') throw err;
+      return this.addOnce(ownerId, quizId, dto);
+    }
+  }
+
+  private async addOnce(ownerId: string, quizId: string, dto: QuestionContent) {
     await this.assertQuizOwned(ownerId, quizId);
     const agg = await this.prisma.question.aggregate({
       where: { quizId },
@@ -51,7 +62,7 @@ export class QuestionsService {
       dto.options.map((o) => o.mediaId),
     );
     await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId));
-    const [question] = await this.prisma.$transaction([
+    const [{ id }] = await this.prisma.$transaction([
       this.prisma.question.create({
         data: {
           quizId,
@@ -61,13 +72,19 @@ export class QuestionsService {
           options: { create: this.optionsCreate(dto) },
           acceptedAnswers: { create: this.answersCreate(dto) },
         },
-        include: QUESTION_INCLUDE,
+        // Its relations are read after: inside the transaction, Prisma would fetch them
+        // at once on the one connection it holds, which pg deprecates.
+        select: { id: true },
       }),
       this.prisma.quiz.update({
         where: { id: quizId },
         data: { questionCount: { increment: 1 } },
       }),
     ]);
+    const question = await this.prisma.question.findUniqueOrThrow({
+      where: { id },
+      include: QUESTION_INCLUDE,
+    });
     return toQuestionOutput(question);
   }
 

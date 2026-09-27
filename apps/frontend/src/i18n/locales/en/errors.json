@@ -112,5 +112,10 @@
   },
   "slide": {
     "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound."
+  },
+  "record": {
+    "not_found": "This item no longer exists: it was deleted meanwhile.",
+    "conflict": "Someone saved at the same time. Try again.",
+    "invalid_reference": "This refers to something that no longer exists."
   }
 }
