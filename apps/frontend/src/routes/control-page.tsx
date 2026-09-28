@@ -59,6 +59,7 @@ import { getAuthMode } from '../auth/auth-context';
 import { APP_NAME } from '../config';
 import { Avatar } from '../game/avatar';
 import {
+  ConnectionLost,
   AnswerExplanation,
   LeaderboardList,
   OptionGrid,
@@ -67,15 +68,16 @@ import {
   SlideView,
   timeTone,
 } from '../game/live-components';
-import { useCountdown, useGameRemaining } from '../game/use-countdown';
+import { type QuestionClock, useQuestionClock } from '../game/use-countdown';
 import { ChromiumNotice } from '@/components/chromium-notice';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { ParticipantPreview } from '../game/participant-preview';
 import { joinBase, joinHostLabel, joinUrlFor } from '../game/join-url';
 import { JoinAddressPicker } from '../game/join-address-picker';
 import { type GameView, type RosterPlayer, useGameSession } from '../game/use-game-session';
-import { ScreenView } from './screen-page';
+import { ScreenSurface } from './screen-page';
 import { PageLoading } from '@/components/ui/loading';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 /** Boutons d'ajustement du chrono (§8) : retire/ajoute des secondes en direct. */
 const CHRONO_STEPS = [-5, -1, 1, 5] as const;
@@ -94,28 +96,44 @@ const CHRONO_STEPS = [-5, -1, 1, 5] as const;
 const CONSOLE_SECTION = 'flex min-h-[calc(100dvh-7rem)] flex-col py-6';
 
 export function ControlPage() {
+  const { pin } = useParams({ from: '/session/$pin/console' });
+  const session = useGameSession(pin, 'host');
+  return (
+    <>
+      <ConnectionLost lost={session.view.connectionLost} />
+      {/* A hook for override.css, with the game's state (no box: the layout is the page's). */}
+      <div className="qd-console contents" data-state={session.view.state ?? 'none'}>
+        <HostConsole pin={pin} session={session} />
+      </div>
+    </>
+  );
+}
+
+/** The console of the session the page follows, in each state of the game. */
+function HostConsole({
+  pin,
+  session,
+}: {
+  pin: string;
+  session: ReturnType<typeof useGameSession>;
+}) {
   const { t } = useTranslation(['live', 'common']);
   // Same explanation as in the editor before switching full capture on (GDPR, archive size).
   const [confirmCapture, setConfirmCapture] = useState(false);
-  const { pin } = useParams({ from: '/session/$pin/console' });
-  const { view, socket } = useGameSession(pin, 'host');
+  const { view, socket } = session;
   const [shareNote, setShareNote] = useState<string | null>(null);
 
   const joinUrl = joinUrlFor(view, pin);
   const screenUrl = `${window.location.origin}/session/${pin}/projection`;
   const emit = (event: 'host:start' | 'host:reveal' | 'host:next') => socket?.emit(event, { pin });
   const [tab, setTab] = useState<HostTab>('control');
-  // The Tab key cycles the three views (Shift+Tab backwards) unless the host is typing.
+  // The Tab key cycles the three views (Shift+Tab backwards) from the page itself;
+  // on a control, Tab keeps moving the focus, so the keyboard reaches every button.
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Tab' || e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
-      if (
-        el &&
-        (el.closest('input, textarea, select, [contenteditable="true"]') || el.closest('dialog'))
-      ) {
-        return;
-      }
+      if (el?.closest(INTERACTIVE)) return;
       e.preventDefault();
       setTab((current) => {
         const i = HOST_TABS.indexOf(current);
@@ -157,13 +175,7 @@ export function ControlPage() {
     const onKey = (e: KeyboardEvent) => {
       if (e.code !== 'Space' || e.repeat || e.ctrlKey || e.metaKey || e.altKey) return;
       const el = e.target as HTMLElement | null;
-      if (
-        el?.closest(
-          'input, textarea, select, button, a, [role="slider"], [role="switch"], [contenteditable="true"], dialog',
-        )
-      ) {
-        return;
-      }
+      if (el?.closest(INTERACTIVE)) return;
       if (!pauseToggle.current) return;
       e.preventDefault();
       pauseToggle.current();
@@ -179,17 +191,11 @@ export function ControlPage() {
       (view.question?.media?.visual?.kind === 'video' &&
         view.question.media.visual.source === 'upload')
     );
-  // A listen-first question before its answers open: the point cannot move. Paused,
-  // the countdown stands still on the server: what is left of the clock says it.
-  const listenLeft = useCountdown(view.question?.listenFirst ? view.question.startedAt : null);
-  const listening =
-    !!view.question?.listenFirst &&
-    (view.paused && view.pausedRemainingMs !== null
-      ? view.pausedRemainingMs > view.question.endsAt - view.question.startedAt
-      : (listenLeft ?? 0) > 0);
+  // The screens' clock: a listen-first question before its answers open (the point
+  // cannot move), or the answers' time, stood still when paused.
+  const clock = useQuestionClock(view);
+  const listening = clock?.listening ?? false;
   const adjustTime = (deltaS: number) => socket?.emit('host:adjust-time', { pin, deltaS });
-
-  const remaining = useGameRemaining(view);
 
   const openScreen = () => window.open(screenUrl, '_blank', 'noopener,noreferrer');
   const screenButton = (
@@ -229,14 +235,7 @@ export function ControlPage() {
     return <PageLoading label={t('control.connecting')} />;
   }
   if (view.status === 'error') {
-    return (
-      <section className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-muted-foreground">{view.error ?? t('control.sessionUnavailable')}</p>
-        <Link to="/quizzes" className="underline">
-          {t('control.backToQuizzes')}
-        </Link>
-      </section>
-    );
+    return <SessionOver message={view.error ?? t('control.sessionUnavailable')} muted />;
   }
 
   // One session, three views: the console, the projected screen, a participant's phone.
@@ -247,7 +246,8 @@ export function ControlPage() {
         {tabs}
         {tab === 'screen' ? (
           <div className="overflow-hidden rounded-xl border">
-            <ScreenView pin={pin} />
+            {/* The console's own session: a second one would re-join the room on the host's socket. */}
+            <ScreenSurface pin={pin} view={view} socket={socket} role="preview" />
           </div>
         ) : (
           <ParticipantPreview view={view} pin={pin} />
@@ -276,6 +276,22 @@ export function ControlPage() {
         }
       />
     </>
+  );
+
+  // While the quiz runs: open the room's next quiz, or end the session.
+  const closeActions = (
+    <>
+      <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+      <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
+    </>
+  );
+  // The quiz's outline, a played question showing its reveal again when picked.
+  const reviewCarousel = (
+    <QuestionCarousel
+      outline={view.outline}
+      currentIndex={view.questionIndex}
+      onSelect={(i) => review({ questionIndex: i })}
+    />
   );
 
   // ── LOBBY ────────────────────────────────────────────────────────────────
@@ -517,12 +533,7 @@ export function ControlPage() {
           ) : null}
         </div>
         <ActionBar
-          end={
-            <>
-              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-            </>
-          }
+          end={closeActions}
           primary={
             <Button type="button" variant="main-action" onClick={() => emit('host:next')}>
               <Play className="size-4" />
@@ -536,14 +547,7 @@ export function ControlPage() {
 
   // ── ENDED ─────────────────────────────────────────────────────────────────
   if (view.state === 'ENDED') {
-    return (
-      <section className="flex flex-col items-center gap-4 py-16 text-center">
-        <p className="text-xl font-semibold">{t('control.sessionEnded')}</p>
-        <Link to="/quizzes" className="underline">
-          {t('control.backToQuizzes')}
-        </Link>
-      </section>
-    );
+    return <SessionOver message={t('control.sessionEnded')} />;
   }
 
   // ── SLIDE_SHOW (#7) ────────────────────────────────────────────────────────
@@ -557,11 +561,7 @@ export function ControlPage() {
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-5')}>
         {controlBar}
-        <QuestionCarousel
-          outline={view.outline}
-          currentIndex={view.questionIndex}
-          onSelect={(i) => review({ questionIndex: i })}
-        />
+        {reviewCarousel}
         {/* Reduced base: the slide is a preview in a card, not the projection. */}
         <div className="bg-card flex rounded-xl border p-5 text-[0.8rem] sm:p-6">
           {/* Shown still, as projected: the projection plays; the transport below draws the sound. */}
@@ -606,12 +606,7 @@ export function ControlPage() {
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={
-            <>
-              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-            </>
-          }
+          end={closeActions}
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -631,11 +626,7 @@ export function ControlPage() {
     return (
       <section className={cn(CONSOLE_SECTION, 'gap-5')}>
         {controlBar}
-        <QuestionCarousel
-          outline={view.outline}
-          currentIndex={view.questionIndex}
-          onSelect={(i) => review({ questionIndex: i })}
-        />
+        {reviewCarousel}
         {view.question && view.reveal ? (
           <RevealAnswer question={view.question} reveal={view.reveal} />
         ) : null}
@@ -654,12 +645,7 @@ export function ControlPage() {
               <AutoAdvanceCountdown deadline={view.autoNextAt} totalMs={view.autoNextMs ?? 0} />
             ) : null
           }
-          end={
-            <>
-              <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-              <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-            </>
-          }
+          end={closeActions}
           nav={navBar}
           primary={
             view.nav?.review ? null : (
@@ -696,10 +682,11 @@ export function ControlPage() {
   }
 
   // ── ANSWERING / QUESTION_SHOW ──────────────────────────────────────────────
-  const timeLimit = view.question?.timeLimitS ?? 0;
   const answered = view.answerCount?.answered ?? 0;
   const totalPlayers = view.answerCount?.total ?? view.players.length;
-  const timePct = remaining != null && timeLimit > 0 ? (remaining / timeLimit) * 100 : 0;
+  // Out of what is being counted, as on the screens: the listening, or the answers'
+  // window as it is now (the host may have lengthened it).
+  const timePct = clock && clock.totalS > 0 ? Math.min(1, clock.remaining / clock.totalS) * 100 : 0;
   const tone = timeTone(timePct / 100, view.paused);
   const answeredPct = totalPlayers > 0 ? (answered / totalPlayers) * 100 : 0;
   // Bonne réponse mise en avant pour l'animateur (clé de correction du sommaire hôte).
@@ -718,10 +705,10 @@ export function ControlPage() {
               total: view.totalQuestions,
             })}
           </span>
-          <ChronoControls remaining={remaining} paused={view.paused} onAdjust={adjustTime} />
+          <ChronoControls clock={clock} onAdjust={adjustTime} />
         </div>
 
-        <ProgressBar pct={timePct} barClassName={tone} />
+        <ProgressBar pct={timePct} barClassName={tone} label={t('control.timeRemaining')} />
 
         {/* Shown still: the projection is the one place that plays the sound; its
             waveform follows where the projection is in it. While the question runs,
@@ -788,12 +775,7 @@ export function ControlPage() {
       <QuestionCarousel outline={view.outline} currentIndex={view.questionIndex} />
 
       <ActionBar
-        end={
-          <>
-            <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
-            <EndGameButton label={t('control.endSession')} offerArchive onConfirm={endGame} />
-          </>
-        }
+        end={closeActions}
         primary={
           <Button type="button" onClick={() => emit('host:reveal')}>
             <Eye className="size-4" />
@@ -860,11 +842,33 @@ function AutoAdvanceCountdown({ deadline, totalMs }: { deadline: number; totalMs
 }
 
 /** Barre de progression générique (piste neutre + remplissage coloré animé). */
-function ProgressBar({ pct, barClassName }: { pct: number; barClassName?: string }) {
+/** Where the console has nothing left to run: why, and the way back to the quizzes. */
+function SessionOver({ message, muted = false }: { message: string; muted?: boolean }) {
+  const { t } = useTranslation('live');
+  return (
+    <section className="flex flex-col items-center gap-4 py-16 text-center">
+      <p className={muted ? 'text-muted-foreground' : 'text-xl font-semibold'}>{message}</p>
+      <Link to="/quizzes" className="underline">
+        {t('control.backToQuizzes')}
+      </Link>
+    </section>
+  );
+}
+
+function ProgressBar({
+  pct,
+  barClassName,
+  label,
+}: {
+  pct: number;
+  barClassName?: string;
+  label?: string;
+}) {
   return (
     <div
       className="bg-muted h-2.5 w-full overflow-hidden rounded-full"
       role="progressbar"
+      aria-label={label}
       aria-valuenow={Math.round(pct)}
       aria-valuemin={0}
       aria-valuemax={100}
@@ -1141,10 +1145,7 @@ function ParticipantsList({
           <span className="max-w-[8rem] truncate">{p.nickname}</span>
           {readiness?.lobby ? (
             waited.get(p.playerId) ? (
-              <Check
-                className="size-3.5 text-green-600"
-                aria-label={t('control.participantReady')}
-              />
+              <Check className="size-3.5 text-success" aria-label={t('control.participantReady')} />
             ) : said.get(p.playerId) ? (
               <Loader2
                 className="text-muted-foreground size-3.5 animate-spin"
@@ -1153,7 +1154,7 @@ function ParticipantsList({
             ) : null
           ) : waited.has(p.playerId) ? (
             waited.get(p.playerId) ? (
-              <Check className="size-3.5 text-green-600" aria-label={t('control.mediaReady')} />
+              <Check className="size-3.5 text-success" aria-label={t('control.mediaReady')} />
             ) : (
               <Loader2
                 className="text-muted-foreground size-3.5 animate-spin"
@@ -1286,18 +1287,13 @@ function EndGameButton({
         onCancel={() => setOpen(false)}
       >
         {offerArchive ? (
-          <label className="flex items-start gap-2 rounded-md border p-3 text-sm">
-            <input
-              type="checkbox"
-              className="mt-0.5"
-              checked={archive}
-              onChange={(e) => setArchive(e.target.checked)}
-            />
-            <span>
-              <span className="font-medium">{t('control.archiveLabel')}</span>
-              <span className="text-muted-foreground block">{t('control.archiveHint')}</span>
-            </span>
-          </label>
+          <CheckboxField
+            className="rounded-md border p-3"
+            checked={archive}
+            onChange={setArchive}
+            label={t('control.archiveLabel')}
+            hint={t('control.archiveHint')}
+          />
         ) : null}
       </ConfirmDialog>
     </>
@@ -1355,17 +1351,15 @@ function LockButton({
 
 /** Ajustement du chrono en direct : [-5 -1 ⏱ +1 +5] (§8). */
 function ChronoControls({
-  remaining,
-  paused,
+  clock,
   onAdjust,
 }: {
-  remaining: number | null;
-  paused: boolean;
+  clock: QuestionClock | null;
   onAdjust: (deltaS: number) => void;
 }) {
   const { t } = useTranslation('live');
   return (
-    <div className="flex items-center gap-1.5">
+    <div className="qd-chrono flex items-center gap-1.5">
       {CHRONO_STEPS.filter((s) => s < 0).map((s) => (
         <Button key={s} type="button" variant="outline" size="sm" onClick={() => onAdjust(s)}>
           {s}
@@ -1374,11 +1368,11 @@ function ChronoControls({
       <span
         className={cn(
           'min-w-14 text-center text-2xl font-bold tabular-nums',
-          paused && 'opacity-60',
+          clock?.paused && 'opacity-60',
         )}
-        aria-label={t('control.timeRemaining')}
+        aria-label={clock?.listening ? t('screen.listening') : t('control.timeRemaining')}
       >
-        ⏱ {remaining ?? '—'}
+        {clock?.listening ? '🎧' : clock?.paused ? '⏸' : '⏱'} {clock?.remaining ?? '—'}
       </span>
       {CHRONO_STEPS.filter((s) => s > 0).map((s) => (
         <Button key={s} type="button" variant="outline" size="sm" onClick={() => onAdjust(s)}>
@@ -1463,6 +1457,10 @@ function QuestionCarousel({
 
 type HostTab = 'control' | 'screen' | 'player';
 const HOST_TABS: HostTab[] = ['control', 'screen', 'player'];
+
+/** Where a key belongs to the element that has the focus, not to the console's shortcuts. */
+const INTERACTIVE =
+  'input, textarea, select, button, a, [role="tab"], [role="slider"], [role="switch"], [contenteditable="true"], dialog';
 
 /** The three views of a running session; the projection can also open in its own window. */
 function HostTabs({

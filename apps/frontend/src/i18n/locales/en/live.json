@@ -338,6 +338,7 @@
   },
   "errors": {
     "sessionNotFound": "Room not found or closed.",
+    "connectionLost": "Connection lost. Reconnecting…",
     "launchFailed": "Failed to open the room.",
     "noResponse": "The server did not respond, please try again."
   },

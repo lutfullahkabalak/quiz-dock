@@ -230,18 +230,22 @@ interface sounds (to come) ───────────────► UI  
 
 ### 9.1 The game's sounds (#93)
 
-- **The tick** plays at each new answer while players answer (from `answer:count`) — the last answer too, whose count
-  arrives with the reveal; **the gong** when a question moves to its reveal — no event of their own. Both are on in a
-  new room; each can take a sound of the library instead of the synthesised one.
+- **The tick** plays at each new answer while players answer (from `answer:count`, sent at most every 100 ms: up to
+  five ticks for the answers of one count) — the last answer too, whose count
+  arrives with the reveal; **the gong** when a question moves to its reveal — no event of their own. Each can take a
+  sound of the library instead of the synthesised one.
+- **Off in a new room** (2026-09-27): the tick, the countdown, the ding and the gong; the host turns on the ones they
+  want from the console. In a large room a tick per answer is noise, and a silent room asks no device to unlock its
+  sound.
 - **The countdown** (2026-09-27): tic… tac… over the last five seconds of the time, on the server's clock — a
   mechanical click (a fixed noise, drawn once from a seed, through a band-pass: 1800 Hz on the second, 1100 Hz on the
   half), the last tac left out so a second of silence leads to **the gong, struck on zero itself** (the reveal comes a
   moment later and does not strike it again). Everyone answered before zero, or a pause: what has not sounded yet is
-  called off, and the reveal strikes the gong. On in a new room (`countdown`), synthesised only.
+  called off, and the reveal strikes the gong. Synthesised only (`countdown`).
 - **The ding** (2026-09-27): a question starts — one clear tone, A5 (880 Hz; the first 1550 Hz pierced), with two discreet
   overtones (1306, 1787 Hz), an 8 ms attack and a faint strike (a noise burst around 1.5 kHz), all through a
   low-pass far under it (300 Hz, 12 dB per octave, Q −3 dB: flat; chosen by ear in a sandbox) and +2.6 dB after it; not over a
-  question with its own sound or video. On in a new room (`ding`).
+  question with its own sound or video (`ding`).
 - **The synthesised gong**: eight inharmonic sine partials (105–890 Hz, slightly detuned), the low ones louder, under a
   low-pass darkening from 7 kHz to 500 Hz over 2.5 s; no mallet noise — after a countdown it reads as one click
   too many.

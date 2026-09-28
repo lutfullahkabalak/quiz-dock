@@ -102,7 +102,8 @@ import { useGameControllerMine } from '../api/generated/games/games';
 import { useQuestionsControllerRemove } from '../api/generated/questions/questions';
 import { getDemo } from '../config';
 import { editorRoute } from '../router';
-import { PageLoading } from '@/components/ui/loading';
+import { LoadFailed, PageLoading } from '@/components/ui/loading';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 /**
  * The page has two columns, and they are the same from top to bottom: the
@@ -118,7 +119,7 @@ export function EditorPage() {
   const { data, isLoading, error } = useQuizzesControllerGet(quizId);
 
   if (isLoading) return <PageLoading />;
-  if (error || !data) return <p className="text-destructive">{t('notFound')}</p>;
+  if (error || !data) return <LoadFailed error={error} notFound={t('notFound')} />;
   // Another host's quiz, opened by a manager: read, never changed (#82).
   if (!data.data.editable) return <QuizReadOnly quiz={data.data} />;
   return <QuizEditor quiz={data.data} />;
@@ -213,13 +214,13 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   const [saveError, setSaveError] = useState<string | null>(null);
   // Title/description draft kept in localStorage until saved or discarded.
   const quizDraftKey = `quiz:${quiz.id}:settings`;
-  type QuizForm = { title: string; description: string; language: string };
+  // Title and description only: the language is saved on its own (see `setLanguage`).
+  type QuizForm = { title: string; description: string };
   const [quizDraft, setQuizDraft] = useState(() => loadDraft<QuizForm>(quizDraftKey));
   const form = useForm({
     defaultValues: {
       title: quiz.title,
       description: quiz.description ?? '',
-      language: quiz.language,
     },
     onSubmit: async ({ value }) => {
       setSaveError(null);
@@ -229,7 +230,6 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           data: {
             title: value.title,
             description: value.description || null,
-            language: value.language,
           },
         });
       } catch (e) {
@@ -627,19 +627,14 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                 ].join(' · ')}
               >
                 {/* Private by default: the other hosts see nothing of it until it is shared. */}
-                <label className="mb-2 flex items-start gap-2 text-sm">
-                  <input
-                    type="checkbox"
-                    className="accent-primary mt-0.5"
-                    checked={quiz.shared}
-                    disabled={update.isPending}
-                    onChange={(e) => void setShared(e.target.checked)}
-                  />
-                  <span>
-                    <span className="font-medium">{t('settings.sharedLabel')}</span>
-                    <span className="text-muted-foreground block">{t('settings.sharedHelp')}</span>
-                  </span>
-                </label>
+                <CheckboxField
+                  className="mb-2"
+                  checked={quiz.shared}
+                  disabled={update.isPending}
+                  onChange={(shared) => void setShared(shared)}
+                  label={t('settings.sharedLabel')}
+                  hint={t('settings.sharedHelp')}
+                />
                 <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                   <label
                     className="flex items-center gap-2 text-sm"

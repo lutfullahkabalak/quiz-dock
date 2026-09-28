@@ -29,10 +29,10 @@ describe('ImageChoiceGrid', () => {
     // The frame carries the answer's colour, position by position (as the text answers).
     const frames = screen.getAllByRole('listitem').map((li) => li.firstElementChild);
     expect(frames.map((f) => [...f!.classList].find((c) => c.startsWith('bg-')))).toEqual([
-      'bg-red-600',
-      'bg-blue-600',
-      'bg-amber-500',
-      'bg-green-600',
+      'bg-answer-red',
+      'bg-answer-blue',
+      'bg-answer-yellow',
+      'bg-answer-green',
     ]);
   });
 

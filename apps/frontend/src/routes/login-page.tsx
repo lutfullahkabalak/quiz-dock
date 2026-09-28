@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select } from '@/components/ui/select';
 import { hostSeatControllerState, useHostSeatControllerState } from '../api/generated/auth/auth';
-import { ApiError } from '../api/http';
+import { ApiError, apiErrorText } from '../api/http';
 import { peekAfterLogin, useAuth } from '../auth/auth-context';
 
 import { SEAT_DEFAULT_EXPIRY, SEAT_EXPIRY_OPTIONS } from '../auth/seat-options';
@@ -23,6 +23,7 @@ export function LoginPage() {
   const [seatTaken, setSeatTaken] = useState(false);
   const [confirming, setConfirming] = useState(false);
   const [claiming, setClaiming] = useState(false);
+  const [claimError, setClaimError] = useState<string | null>(null);
   const [expiry, setExpiry] = useState<number>(SEAT_DEFAULT_EXPIRY);
   const demo = getDemo();
   // A participant sent here by the join guard (RG-15): the page is the host area,
@@ -65,6 +66,7 @@ export function LoginPage() {
 
   const confirmClaim = async () => {
     setClaiming(true);
+    setClaimError(null);
     try {
       await claimHostSeat(expiry === 0 ? null : expiry);
       setConfirming(false);
@@ -72,7 +74,7 @@ export function LoginPage() {
     } catch (err) {
       setConfirming(false);
       if (err instanceof ApiError && err.status === 409) refuse();
-      else throw err;
+      else setClaimError(apiErrorText(err));
     } finally {
       setClaiming(false);
     }
@@ -136,6 +138,11 @@ export function LoginPage() {
             <Button type="submit" disabled={!name.trim()}>
               {t('login.submit')}
             </Button>
+            {claimError ? (
+              <p className="text-sm text-destructive" role="alert">
+                {claimError}
+              </p>
+            ) : null}
             {seatTaken ? (
               <p className="text-sm text-destructive" role="alert">
                 {t('login.seatTaken')}{' '}

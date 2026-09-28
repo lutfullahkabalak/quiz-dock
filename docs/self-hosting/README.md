@@ -14,6 +14,8 @@ infrastructure — for operators and integrators (not contributors).
   image (doctor, host seat, users, quiz export / import, retention purge).
 - **[Configuration](configuration.md)** — how to start it, every environment
   variable, ports and volumes, and the public-demo guards.
+- **[Sizing the VM](sizing.md)** — how many players at once for how many vCPU
+  and how much RAM, as measured.
 - **[Branding (white-label)](branding.md)** — name, language, logo and CSS,
   without rebuilding the image.
 - **[Authentication](auth.md)** — the local host seat, or wiring your own OIDC

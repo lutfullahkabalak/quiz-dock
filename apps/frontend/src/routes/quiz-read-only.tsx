@@ -1,4 +1,5 @@
 import { Link } from '@tanstack/react-router';
+import { apiErrorText } from '../api/http';
 import { CopyPlus, ExternalLink, Eye, History, LayoutTemplate } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -26,7 +27,7 @@ const DEFAULT_SLIDE_SECONDS = 5;
 export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
   const { t } = useTranslation(['editor', 'common']);
   const { isManager, isHost } = useRole();
-  const { copy, copying } = useCopyQuiz();
+  const { copy, copying, copyError } = useCopyQuiz();
   const [selectedIndex, setSelectedIndex] = useState(0);
   const items = quizItems(quiz);
   const selected = items[Math.min(selectedIndex, items.length - 1)] as QuizItem | undefined;
@@ -65,6 +66,11 @@ export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
                 <CopyPlus className="size-4" />
                 {t('readOnly.createFrom')}
               </Button>
+            ) : null}
+            {copyError ? (
+              <p className="text-destructive text-sm" role="alert">
+                {apiErrorText(copyError)}
+              </p>
             ) : null}
           </div>
         </div>

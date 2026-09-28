@@ -102,7 +102,7 @@ export function RatingPanel({
               <Star
                 className={cn(
                   'size-8',
-                  shown >= n ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground',
+                  shown >= n ? 'fill-warning text-warning' : 'text-muted-foreground',
                 )}
               />
             </button>

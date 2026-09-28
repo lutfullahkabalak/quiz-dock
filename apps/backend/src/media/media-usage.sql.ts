@@ -8,10 +8,28 @@ import { Prisma } from '@prisma/client';
 const MEDIA_ID = '([0-9A-HJKMNP-TV-Z]{26})';
 
 /**
+ * Where a media can be used, said once for every reader: the author's library,
+ * the credits, the administration, a deletion and the clean-up. A new place is
+ * added here, to both forms, and to `media-usage.spec.ts`.
+ */
+
+/** The relations through which a quiz holds a media in a slot (its foreign keys). */
+export const MEDIA_SLOTS = [
+  'coverForQuizzes',
+  'questionVisuals',
+  'questionAudios',
+  'questionBackgrounds',
+  'slides',
+  'slideVideos',
+  'slideAudios',
+  'options',
+] as const satisfies readonly (keyof Prisma.MediaAssetCountOutputTypeSelect)[];
+
+/**
  * Every (quiz, media) use, in one pass over the quizzes: the slots, the
- * options, the slides, and the ids found in their texts. The same places
- * `MediaService.isReferenced` looks one media at a time — read here once for a
- * whole page, where a `LIKE` per media would scan every text again for each.
+ * options, the slides, and the ids found in their texts. Read once for a whole
+ * page, where a `LIKE` per media would scan every text again for each (the
+ * library of an author with 2,000 quizzes and 200 media: 28 s, against 0.2 s).
  */
 export const QUIZ_MEDIA_REFS = Prisma.sql`
   SELECT q.id AS quiz_id, q.cover_media_id AS media_id FROM quiz q WHERE q.cover_media_id IS NOT NULL
@@ -37,7 +55,23 @@ export const QUIZ_MEDIA_REFS = Prisma.sql`
   UNION ALL
   SELECT s.quiz_id, r[1] FROM slide s, regexp_matches(s.blocks::text, ${MEDIA_ID}, 'g') r`;
 
-/** The media ids the archived sessions show (their frozen snapshots), in one pass. */
+/** Every (archived session, media) its frozen snapshot shows, in one pass. */
 export const ARCHIVED_MEDIA_REFS = Prisma.sql`
-  SELECT DISTINCT r[1] AS media_id
+  SELECT g.id AS session_id, r[1] AS media_id
   FROM game_session_log g, regexp_matches(g.quiz_snapshot::text, ${MEDIA_ID}, 'g') r`;
+
+/**
+ * Whether a text still shows the media `id`: the text places of the two forms
+ * above, for a single media once its slots are known to be empty. A `LIKE` per
+ * table: ten times faster than reading every id out of every text.
+ */
+export function shownInText(id: string): Prisma.Sql {
+  const pattern = `%${id}%`;
+  return Prisma.sql`(
+    EXISTS (SELECT 1 FROM quiz WHERE description LIKE ${pattern})
+    OR EXISTS (SELECT 1 FROM question WHERE prompt LIKE ${pattern} OR answer_explanation LIKE ${pattern})
+    OR EXISTS (SELECT 1 FROM answer_option WHERE text LIKE ${pattern})
+    OR EXISTS (SELECT 1 FROM slide WHERE blocks::text LIKE ${pattern})
+    OR EXISTS (SELECT 1 FROM game_session_log WHERE quiz_snapshot::text LIKE ${pattern})
+  )`;
+}

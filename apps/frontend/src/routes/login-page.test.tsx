@@ -117,4 +117,21 @@ describe('LoginPage', () => {
     await waitFor(() => expect(screen.getByRole('status')).toHaveTextContent('Alice'));
     expect(screen.getByRole('status')).toHaveTextContent('jusqu’au');
   });
+
+  it('says so when the seat cannot be taken for another reason than someone else (audit E3)', async () => {
+    mockApi([
+      { method: 'GET', path: '/auth/host-seat', body: { holder: null, expiresAt: null } },
+      {
+        method: 'GET',
+        path: '/me',
+        body: { id: 'u1', displayName: 'Marie', email: null, role: 'player' },
+      },
+      { method: 'POST', path: '/auth/host-seat/claim', status: 500, body: {} },
+    ]);
+    renderApp('/login');
+    fireEvent.change(await screen.findByLabelText('Votre nom'), { target: { value: 'Marie' } });
+    fireEvent.click(screen.getByText('Continuer'));
+    fireEvent.click(await screen.findByText('Prendre le siège'));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
 });

@@ -1,7 +1,8 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, type Quiz, QuizStatus } from '@prisma/client';
-import { normalizeAnswer } from '../../questions/dto/question-content.schema';
+import { type Quiz, QuizStatus } from '@prisma/client';
 import { PrismaService } from '../../prisma/prisma.service';
+import { questionCreateData, questionMediaIds } from '../../questions/question-data';
+import { slideData } from '../../slides/slide-data';
 import { SAMPLE_QUIZZES, type SampleQuiz } from './sample-quizzes.data';
 
 /**
@@ -22,12 +23,6 @@ export class SampleQuizzesService {
     return created;
   }
 
-  /** Same, but only when the owner's bank is still empty (first-run welcome kit). */
-  async createIfEmpty(ownerId: string): Promise<Quiz[]> {
-    const count = await this.prisma.quiz.count({ where: { ownerId } });
-    return count === 0 ? this.createFor(ownerId) : [];
-  }
-
   private createOne(ownerId: string, sample: SampleQuiz): Promise<Quiz> {
     return this.prisma.$transaction(async (tx) => {
       const quiz = await tx.quiz.create({
@@ -39,42 +34,9 @@ export class SampleQuizzesService {
           status: QuizStatus.ready,
           questionCount: sample.questions.length,
           questions: {
-            create: sample.questions.map((dto, orderIndex) => {
-              const isNumeric = dto.type === 'numeric';
-              return {
-                orderIndex,
-                type: dto.type,
-                prompt: dto.prompt,
-                answerExplanation: dto.answerExplanation || null,
-                textTone: dto.textTone,
-                textOutline: dto.textOutline,
-                timeLimitS: dto.timeLimitS,
-                revealDelayS: dto.revealDelayS ?? null,
-                audioTarget: dto.audioTarget ?? null,
-                waveformSize: dto.waveformSize,
-                timerAfterMedia: dto.timerAfterMedia,
-                pointsMode: dto.type === 'poll' ? 'none' : dto.pointsMode,
-                scoring: dto.scoring,
-                numericValue: isNumeric ? dto.numericValue : null,
-                numericTolerance: isNumeric ? dto.numericTolerance : null,
-                options: {
-                  create: dto.options.map((o, i) => ({
-                    orderIndex: i,
-                    text: o.text,
-                    color: o.color,
-                    shape: o.shape,
-                    isCorrect: o.isCorrect,
-                    correctOrderIndex: o.correctOrderIndex,
-                  })),
-                },
-                acceptedAnswers: {
-                  create: dto.acceptedAnswers.map((a) => ({
-                    text: a.text,
-                    normalized: normalizeAnswer(a.text),
-                  })),
-                },
-              };
-            }),
+            create: sample.questions.map((dto, orderIndex) =>
+              questionCreateData(dto, orderIndex, questionMediaIds(dto)),
+            ),
           },
         },
       });
@@ -88,12 +50,7 @@ export class SampleQuizzesService {
           quizId: quiz.id,
           beforeQuestionId: first?.id ?? null,
           orderIndex: 0,
-          blocks: intro.blocks as Prisma.InputJsonValue,
-          mediaId: intro.mediaId || null,
-          gradient: intro.gradient ?? Prisma.JsonNull,
-          textTone: intro.textTone,
-          textOutline: intro.textOutline,
-          displayDelayS: intro.displayDelayS ?? null,
+          ...slideData(intro),
         },
       });
       return quiz;

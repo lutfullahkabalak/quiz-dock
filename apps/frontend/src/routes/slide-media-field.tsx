@@ -11,6 +11,7 @@ import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 import { Waveform } from '../game/media/waveform';
 import { MediaUpload } from './media-upload';
+import { CheckboxField } from '@/components/ui/checkbox-field';
 
 export interface SlideMediaValue {
   videoMediaId: string | null;
@@ -67,13 +68,13 @@ export function SlideMediaField({
         {videoMediaId ? (
           <div className="flex flex-col gap-1.5">
             <p className="text-muted-foreground text-xs">{t('slideForm.videoCover')}</p>
-            <Switch
+            <CheckboxField
               checked={value.videoLoop}
               onChange={(v) => onChange({ videoLoop: v })}
               label={t('slideForm.videoLoop')}
               hint={t('slideForm.videoLoopHint')}
             />
-            <Switch
+            <CheckboxField
               checked={videoSound}
               // Its own sound needs the slide's to go; the builder asks before, as for a question.
               disabled={!!audioMediaId && !videoSound}
@@ -162,33 +163,3 @@ export function SlideMediaField({
 
 /** A group of the media section, drawn by a rule down its left side (as a question's). */
 const GROUP = 'flex flex-col gap-1.5 border-l-2 pl-3';
-
-function Switch({
-  checked,
-  onChange,
-  label,
-  hint,
-  disabled = false,
-}: {
-  checked: boolean;
-  onChange: (v: boolean) => void;
-  label: string;
-  hint: string;
-  disabled?: boolean;
-}) {
-  return (
-    <label className={cn('flex items-start gap-2 text-sm', disabled && 'opacity-60')}>
-      <input
-        type="checkbox"
-        className="accent-primary mt-0.5"
-        checked={checked}
-        disabled={disabled}
-        onChange={(e) => onChange(e.target.checked)}
-      />
-      <span>
-        <span className="font-medium">{label}</span>
-        <span className="text-muted-foreground block">{hint}</span>
-      </span>
-    </label>
-  );
-}

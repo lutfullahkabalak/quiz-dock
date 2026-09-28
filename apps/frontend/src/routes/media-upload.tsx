@@ -19,6 +19,7 @@ import {
 import type { MediaLibraryItemDto } from '../api/generated/model';
 import { getDemo } from '../config';
 import { MediaLibraryDialog } from './media-library-dialog';
+import { mediaUrl } from '@/lib/media-url';
 
 /**
  * What the picker offers for each kind — a hint only: whatever this browser can
@@ -142,7 +143,7 @@ export function MediaUpload({
     return <p className="text-muted-foreground text-sm">{t('media.demoDisabled')}</p>;
   }
   const Icon = ADD_ICON[kind];
-  const src = value ? `/api/v1/media/${value}` : null;
+  const src = value ? mediaUrl(value) : null;
   return (
     <div className="flex flex-col gap-1.5">
       {src ? (
@@ -237,6 +238,7 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   const setCredit = useMediaControllerSetCredit();
   const [alt, setAltValue] = useState('');
   const [credit, setCreditValue] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
   const saved = useRef({ alt: '', credit: '' });
 
   useEffect(() => {
@@ -257,15 +259,19 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   const saveAlt = () => {
     if (alt === saved.current.alt) return;
     saved.current.alt = alt;
-    void setAlt.mutateAsync({ id: mediaId, data: { alt } }).catch(() => {
-      saved.current.alt = '';
+    setSaveError(null);
+    void setAlt.mutateAsync({ id: mediaId, data: { alt } }).catch((e: unknown) => {
+      saved.current.alt = ''; // tried again at the next blur
+      setSaveError(apiErrorText(e));
     });
   };
   const saveCredit = () => {
     if (credit === saved.current.credit) return;
     saved.current.credit = credit;
-    void setCredit.mutateAsync({ id: mediaId, data: { credit } }).catch(() => {
+    setSaveError(null);
+    void setCredit.mutateAsync({ id: mediaId, data: { credit } }).catch((e: unknown) => {
       saved.current.credit = '';
+      setSaveError(apiErrorText(e));
     });
   };
 
@@ -295,6 +301,11 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
         />
         <span className="text-xs">{t('media.creditHelp')}</span>
       </Label>
+      {saveError ? (
+        <p role="alert" className="text-sm text-destructive">
+          {saveError}
+        </p>
+      ) : null}
     </div>
   );
 }

@@ -1,4 +1,6 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { act, render, screen, waitFor } from '@testing-library/react';
+import type { ReactNode } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   AuthProvider,
@@ -10,6 +12,14 @@ import {
   useAuth,
 } from './auth-context';
 import { customFetch } from '../api/http';
+import { useRole } from './use-role';
+
+/** The app always has a query cache above the auth provider (see main.tsx). */
+const withQueries = (ui: ReactNode) => (
+  <QueryClientProvider client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}>
+    {ui}
+  </QueryClientProvider>
+);
 
 /** A fetch answering the auth endpoints of the backend (BFF). */
 function authBackend(routes: Record<string, [number, unknown]>) {
@@ -44,9 +54,11 @@ describe('AuthProvider', () => {
 
   it('login/logout met à jour l’état et le stockage local', async () => {
     render(
-      <AuthProvider>
-        <Probe />
-      </AuthProvider>,
+      withQueries(
+        <AuthProvider>
+          <Probe />
+        </AuthProvider>,
+      ),
     );
     expect(screen.getByTestId('who').textContent).toBe('∅');
 
@@ -81,6 +93,49 @@ function OidcProbe() {
   );
 }
 
+describe('AuthProvider: what the account may do follows who it is (audit E4)', () => {
+  afterEach(() => {
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it('reads the roles again once the host seat is taken, not a minute later', async () => {
+    let role = 'player';
+    const fetchMock = vi.fn(async (...[url]: [string, RequestInit?]) => {
+      const body =
+        url === '/api/v1/me'
+          ? { id: 'u1', displayName: 'Marc', email: null, roles: [role] }
+          : { holder: 'Marc', expiresAt: null };
+      return new Response(JSON.stringify(body), {
+        status: 200,
+        headers: { 'content-type': 'application/json' },
+      });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    localStorage.setItem('live.localUser', 'Marc');
+    function Seat() {
+      const { claimHostSeat } = useAuth();
+      const { roles } = useRole();
+      return (
+        <button type="button" onClick={() => void claimHostSeat(null)}>
+          {roles.join(',') || '…'}
+        </button>
+      );
+    }
+    render(
+      withQueries(
+        <AuthProvider>
+          <Seat />
+        </AuthProvider>,
+      ),
+    );
+    await screen.findByText('player');
+    role = 'host'; // what the server says once the seat is held
+    await act(async () => screen.getByText('player').click());
+    expect(await screen.findByText('host')).toBeInTheDocument();
+  });
+});
+
 describe('AuthProvider (mode oidc)', () => {
   afterEach(() => {
     vi.unstubAllGlobals();
@@ -97,9 +152,11 @@ describe('AuthProvider (mode oidc)', () => {
     configureAuth('oidc', false);
 
     render(
-      <AuthProvider mode="oidc">
-        <OidcProbe />
-      </AuthProvider>,
+      withQueries(
+        <AuthProvider mode="oidc">
+          <OidcProbe />
+        </AuthProvider>,
+      ),
     );
     await act(async () => {
       screen.getByText('go').click();
@@ -178,9 +235,11 @@ describe('OIDC session lifecycle', () => {
       );
     }
     render(
-      <AuthProvider mode="oidc" initialUser="Marie">
-        <Out />
-      </AuthProvider>,
+      withQueries(
+        <AuthProvider mode="oidc" initialUser="Marie">
+          <Out />
+        </AuthProvider>,
+      ),
     );
     await act(async () => {
       screen.getByText('Marie').click();

@@ -20,7 +20,7 @@ describe('MediaAdminService (integration)', () => {
   let alice: string;
   let bob: string;
   const env = process.env;
-  const redis = { keys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
+  const redis = { scanKeys: jest.fn(async () => [] as string[]) } as unknown as RedisService;
   const janitor = { last: jest.fn(async () => null), run: jest.fn(async () => null) };
 
   const png = (tag: string) =>
@@ -135,6 +135,23 @@ describe('MediaAdminService (integration)', () => {
     expect((await admin.files({ ownerId: bob, q: 'big' })).total).toBe(0);
   });
 
+  it('gives the same total past the last page, whatever the filter', async () => {
+    await upload(alice, 'harbour.webp');
+    await upload(alice, 'lighthouse.webp');
+    await upload(bob, 'harbour.webp');
+    const total = async (filter: Parameters<MediaAdminService['files']>[0]) => {
+      const first = await admin.files(filter);
+      const past = await admin.files({ ...filter, offset: 50 });
+      expect(past.items).toEqual([]);
+      expect(past.total).toBe(first.total);
+      return first.total;
+    };
+    expect(await total({ ownerId: alice })).toBe(2);
+    expect(await total({ ownerId: alice, q: 'harbour' })).toBe(1);
+    expect(await total({ ownerId: bob, kind: 'image', legacy: true })).toBe(1);
+    expect(await total({ ownerId: bob, kind: 'video' })).toBe(0);
+  });
+
   it('lists what deleting a file breaks, then deletes it for every owner', async () => {
     const bytes = png('moderated');
     const a = await upload(alice, 'moderated.webp', bytes);
@@ -160,7 +177,7 @@ describe('MediaAdminService (integration)', () => {
   it('refuses to delete a file while a session plays it', async () => {
     const a = await upload(alice, 'playing.webp');
     const playing = {
-      keys: jest.fn(async () => ['game:123456:snapshot']),
+      scanKeys: jest.fn(async () => ['game:123456:snapshot']),
       hget: jest.fn(async () => 'ANSWERING'),
       mget: jest.fn(async () => [`{"media":{"url":"/api/v1/media/${a.mediaId}"}}`]),
     } as unknown as RedisService;

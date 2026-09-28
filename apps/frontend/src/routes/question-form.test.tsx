@@ -413,9 +413,9 @@ describe('QuestionForm — image choice', () => {
     expect(screen.queryByLabelText('option 1')).toBeNull();
     // The media section keeps the sound only.
     expect(screen.queryByText('Ajouter une vidéo')).toBeNull();
-    fireEvent.click(screen.getByRole('radio', { name: '4' }));
+    fireEvent.click(screen.getByRole('button', { name: '4' }));
     expect(screen.getAllByLabelText(/Texte alternatif de l’image/)).toHaveLength(4);
-    expect(screen.queryByRole('radio', { name: '3' })).toBeNull();
+    expect(screen.queryByRole('button', { name: '3' })).toBeNull();
   });
 
   it('refuses to save an answer without its alternative text, and says which', async () => {
@@ -493,5 +493,50 @@ describe('QuestionForm — image choice', () => {
       CAT,
       DOG,
     ]);
+  });
+
+  it('never gives two options the same key after a reload (audit E2)', async () => {
+    const option = (key: string, text: string) => ({
+      key,
+      text,
+      color: 'red',
+      shape: 'triangle',
+      isCorrect: text === 'A',
+      mediaId: null,
+      alt: '',
+    });
+    // A draft saved on the previous page load, with three options.
+    localStorage.setItem(
+      'draft:quiz:q1:question:new',
+      JSON.stringify({
+        type: 'single_choice',
+        prompt: 'Q ?',
+        media: { visual: null, audio: null },
+        answerExplanation: '',
+        background: { mediaId: null, gradient: null, textTone: 'light', textOutline: true },
+        timeLimitS: 20,
+        revealDelayS: null,
+        pointsMode: 'standard',
+        scoring: 'standard',
+        numericValue: 0,
+        numericTolerance: 0,
+        multiSelect: false,
+        options: [option('opt-1', 'A'), option('opt-2', 'B'), option('opt-3', 'C')],
+        acceptedAnswers: [],
+      }),
+    );
+    // The page is loaded again: the form's module starts over.
+    vi.resetModules();
+    const { QuestionForm: Fresh } = await import('./question-form');
+    const errors = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <Fresh quizId="q1" onClose={vi.fn()} />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(await screen.findByRole('button', { name: /Ajouter une option/ }));
+    const duplicate = errors.mock.calls.some((c) => String(c[0]).includes('same key'));
+    errors.mockRestore();
+    expect(duplicate).toBe(false);
   });
 });

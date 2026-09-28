@@ -338,6 +338,7 @@
   },
   "errors": {
     "sessionNotFound": "Sala no encontrada o cerrada.",
+    "connectionLost": "Conexión perdida. Reconectando…",
     "launchFailed": "No se pudo abrir la sala.",
     "noResponse": "El servidor no respondió, inténtalo de nuevo."
   },

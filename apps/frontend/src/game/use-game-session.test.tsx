@@ -1,5 +1,6 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import i18n from '../i18n';
 
 // Socket factice : capture les listeners et les ack des emits pour les piloter.
 const { fakeSocket, listeners, emitted, setAckOk, managerListeners } = vi.hoisted(() => {
@@ -60,6 +61,36 @@ describe('useGameSession', () => {
     expect(emitted.filter((e) => e.event === 'host:attach')).toHaveLength(2);
     unmount();
     expect(managerListeners.has('reconnect')).toBe(false);
+  });
+
+  it('takes on every event it follows, and lets every one go on unmount', async () => {
+    const { unmount } = renderHook(() => useGameSession('482913', 'host'));
+    await waitFor(() => expect(emitted.some((e) => e.event === 'host:attach')).toBe(true));
+    expect(listeners.size).toBe(31); // the contract's 29, and the connection's own two
+    unmount();
+    expect([...listeners.keys()]).toEqual([]);
+  });
+
+  it('keeps its subscription and its seat when the language changes (audit F8)', async () => {
+    renderHook(() => useGameSession('482913', 'host'));
+    await waitFor(() => expect(emitted.some((e) => e.event === 'host:attach')).toBe(true));
+    const before = i18n.language;
+    await act(() => i18n.changeLanguage(before === 'en' ? 'fr' : 'en'));
+    await act(() => i18n.changeLanguage(before));
+    expect(emitted.filter((e) => e.event === 'host:attach')).toHaveLength(1);
+    expect(listeners.size).toBe(31); // the contract's 29, and the connection's own two
+  });
+
+  it('says when the connection is lost, until it is back, but not when the page lets it go (audit F9)', async () => {
+    const { result } = renderHook(() => useGameSession('482913', 'host'));
+    await waitFor(() => expect(listeners.has('disconnect')).toBe(true));
+    expect(result.current.view.connectionLost).toBe(false);
+    fire('disconnect', 'transport close');
+    expect(result.current.view.connectionLost).toBe(true);
+    fire('connect', undefined);
+    expect(result.current.view.connectionLost).toBe(false);
+    fire('disconnect', 'io client disconnect');
+    expect(result.current.view.connectionLost).toBe(false);
   });
 
   it('hôte : émet host:attach après avoir posé les listeners, puis suit l’état + le roster', async () => {

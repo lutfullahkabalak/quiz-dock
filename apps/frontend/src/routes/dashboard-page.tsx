@@ -42,6 +42,7 @@ import {
 import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
 import { ListSkeleton } from '@/components/ui/loading';
+import { mediaUrl } from '@/lib/media-url';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
@@ -61,7 +62,7 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const fileInput = useRef<HTMLInputElement>(null);
   const { launch, isLaunching, error: launchError, dialog: launchDialog } = useLaunchSession();
-  const { copy, copying } = useCopyQuiz();
+  const { copy, copying, copyError } = useCopyQuiz();
   // Un gestionnaire lit l'instance ; s'il n'anime pas, il ne crée, n'importe ni ne
   // présente rien. Un compte qui cumule garde tout (RG-14).
   const { isManager, isHost } = useRole();
@@ -206,6 +207,14 @@ export function DashboardPage() {
           {apiErrorText(importQuiz.error, t('importError'))}
         </p>
       ) : null}
+      {/* A quiz that could not be created or copied says why (the server's reason, or a generic one). */}
+      {[create.error, copyError].map((err, i) =>
+        err ? (
+          <p key={i} className="text-destructive text-sm" role="alert">
+            {apiErrorText(err)}
+          </p>
+        ) : null,
+      )}
 
       {isLoading && <ListSkeleton variant={view} rows={view === 'grid' ? 6 : 5} />}
       {error ? (
@@ -478,7 +487,7 @@ function StatusBadge({ status }: { status: string }) {
 function QuizCover({ quiz, className }: { quiz: QuizDto; className?: string }) {
   return quiz.coverMediaId ? (
     <img
-      src={`/api/v1/media/${quiz.coverMediaId}`}
+      src={mediaUrl(quiz.coverMediaId)}
       alt=""
       loading="lazy"
       className={cn('object-cover', className)}

@@ -82,6 +82,19 @@ your phone to play.
   tracking, no ads; interface in English, French, Spanish, Simplified and Traditional
   Chinese; rebrand name, logo and CSS without a rebuild.
 
+## 📈 Performance
+
+Rooms of 30 players playing at once, the engine on one 2.1 GHz core (answers acknowledged, ms):
+
+| Rooms | Players | p95 | p99 |
+|--:|--:|--:|--:|
+| 10 | 300 | 7 | 11 |
+| 30 | 900 | 7 | 12 |
+| 50 | 1500 | 9 | 14 |
+| 60 | 1800 | 25 | 105 |
+
+All measures, method and limits: [`docs/dev/load-results`](https://github.com/quizdock/quiz-dock/tree/main/docs/dev/load-results).
+
 ## 🔑 Two ways to run it
 
 Same image, one switch: `AUTH_MODE` decides who can host.
@@ -136,7 +149,7 @@ docker compose -f docker-compose.prod.yml up -d
 # open http://localhost:18080
 ```
 
-Pin a version with `QUIZDOCK_TAG=0.9.0 docker compose -f docker-compose.prod.yml up -d`.
+Pin a version with `QUIZDOCK_TAG=0.10.0 docker compose -f docker-compose.prod.yml up -d`.
 From source: `git clone https://github.com/quizdock/quiz-dock.git`, then the same command
 with `--build`.
 
@@ -144,7 +157,7 @@ with `--build`.
 
 Migrations run **automatically** on every start: pull the new tag and `up` again.
 **Back up PostgreSQL first**, and **don't roll back** an image once its migrations ran —
-restore the backup instead. With the script: `./quizdock upgrade 0.9.0` (backup → pull →
+restore the backup instead. With the script: `./quizdock upgrade 0.10.0` (backup → pull →
 restart → doctor). Full procedure:
 [self-hosting → Upgrading](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/upgrading.md).
 
@@ -289,6 +302,11 @@ Dependencies and images are scanned on every push, every PR and weekly
 the **Security** tab). Point-in-time audits live in
 [`docs/security/`](https://github.com/quizdock/quiz-dock/tree/main/docs/security); report a
 vulnerability via [`SECURITY.md`](https://github.com/quizdock/quiz-dock/blob/main/SECURITY.md).
+
+## 🙏 Acknowledgements
+
+Thanks to [Anthropic](https://www.anthropic.com) for the Claude Code cloud credits that made
+the optimisation, clean-up and testing work of 0.10.0 much easier.
 
 ## 📄 License
 

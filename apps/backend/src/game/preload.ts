@@ -11,7 +11,13 @@ import {
   slideSoundMedia,
 } from '@quiz-dock/contracts';
 import type { QuizSnapshot, SnapshotSlide } from './game.types';
-import { questionAudioTarget, questionHasSound, slideAudioTarget, slideHasSound } from './snapshot';
+import {
+  hasSoundOrVideo,
+  questionAudioTarget,
+  questionHasSound,
+  slideAudioTarget,
+  slideHasSound,
+} from './snapshot';
 
 /** Who fetches: a screen (projection, console) or a participant, by presence. */
 export type PreloadDevice = 'screen' | PlayerPresence;
@@ -158,11 +164,6 @@ export function preloadFor(
     ...(images.length ? { images } : {}),
     ...(own.videos.length ? { videos: own.videos } : {}),
   };
-}
-
-/** Whether media hold a sound or a video — what a device is waited for (an image is not). */
-export function hasSoundOrVideo(media: LiveQuestionMedia): boolean {
-  return !!media.audio || media.visual?.kind === 'video';
 }
 
 /** Whether anything in the quiz is fetched ahead: a question's media, a slide's image or video. */

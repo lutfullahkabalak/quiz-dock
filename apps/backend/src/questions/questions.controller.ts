@@ -4,6 +4,7 @@ import {
   ApiCreatedResponse,
   ApiNoContentResponse,
   ApiOkResponse,
+  ApiOperation,
   ApiTags,
 } from '@nestjs/swagger';
 import type { User } from '@prisma/client';
@@ -27,6 +28,12 @@ export class QuestionsController {
   }
 
   @Patch('quizzes/:id/questions/reorder')
+  @ApiOperation({
+    summary: 'Reorders the questions alone',
+    deprecated: true,
+    description:
+      'Kept for existing integrations. Use PATCH quizzes/{id}/items/reorder, which also places the slides.',
+  })
   @ApiOkResponse({ type: QuestionDto, isArray: true })
   reorder(
     @CurrentUser() user: User,

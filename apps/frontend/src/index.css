@@ -25,6 +25,24 @@
   --ring: oklch(0.55 0.22 264);
   --success: oklch(0.6 0.17 150);
   --success-foreground: oklch(0.985 0 0);
+  /* Amber: the second half of a question's time, a double-points badge, the rating
+     stars; `--warning-text` for words in it on a light ground. */
+  --warning: oklch(76.9% 0.188 70.08);
+  --warning-text: oklch(55.5% 0.163 48.998);
+  /* An answer's colour, as its author picked it: its identity on every screen. */
+  --answer-red: oklch(57.7% 0.245 27.325);
+  --answer-blue: oklch(54.6% 0.245 262.881);
+  --answer-yellow: oklch(76.9% 0.188 70.08);
+  --answer-green: oklch(62.7% 0.194 149.214);
+  --answer-purple: oklch(55.8% 0.288 302.321);
+  --answer-orange: oklch(70.5% 0.213 47.604);
+  --answer-pink: oklch(59.2% 0.249 0.584);
+  --answer-teal: oklch(60% 0.118 184.704);
+  --answer-none: oklch(44.6% 0.043 257.281);
+  /* The podium's steps: first, second, third. */
+  --podium-1: oklch(76.9% 0.188 70.08);
+  --podium-2: oklch(70.4% 0.04 256.788);
+  --podium-3: oklch(47.3% 0.137 46.201);
 }
 
 .dark {
@@ -73,6 +91,20 @@
   --color-ring: var(--ring);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-text: var(--warning-text);
+  --color-answer-red: var(--answer-red);
+  --color-answer-blue: var(--answer-blue);
+  --color-answer-yellow: var(--answer-yellow);
+  --color-answer-green: var(--answer-green);
+  --color-answer-purple: var(--answer-purple);
+  --color-answer-orange: var(--answer-orange);
+  --color-answer-pink: var(--answer-pink);
+  --color-answer-teal: var(--answer-teal);
+  --color-answer-none: var(--answer-none);
+  --color-podium-1: var(--podium-1);
+  --color-podium-2: var(--podium-2);
+  --color-podium-3: var(--podium-3);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -87,12 +119,7 @@
     margin: 0;
     background-color: var(--background);
     color: var(--foreground);
-    font-family:
-      system-ui,
-      -apple-system,
-      'Segoe UI',
-      Roboto,
-      sans-serif;
+    font-family: var(--font-sans);
   }
 }
 
@@ -108,6 +135,8 @@
  * md: reading and forms (profile); sm: a single card (sign in, join).
  */
 @theme {
+  /* The app's typeface: a font of the brand's goes here (override.css). */
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   --container-shell: 90rem;
   --container-content-lg: 72rem;
   --container-content-md: 48rem;

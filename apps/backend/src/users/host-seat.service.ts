@@ -4,6 +4,7 @@ import { type AuthPrincipal, LOCAL_SUB_PREFIX } from '../auth/auth-provider';
 import { effectiveRoles, isManager, isHost } from '../auth/roles';
 import { isDemoMode } from '../demo/demo.config';
 import { PrismaService } from '../prisma/prisma.service';
+import { saveUser } from './save-user';
 
 /** Arbitrary app-wide advisory lock id serialising concurrent seat claims. */
 const SEAT_LOCK_ID = 714_001;
@@ -60,25 +61,13 @@ export class HostSeatService {
    */
   async provision(principal: AuthPrincipal): Promise<User> {
     const [existing, seat] = await Promise.all([
-      this.prisma.user.findUnique({
-        where: { oidcSubject: principal.sub },
-        select: { id: true, assignedRoles: true },
-      }),
+      this.prisma.user.findUnique({ where: { oidcSubject: principal.sub } }),
       this.prisma.hostSeat.findUnique({ where: { id: SEAT_ID } }),
     ]);
     const isHolder = !!existing && HostSeatService.isLive(seat) && seat.userId === existing.id;
     // Le siège dérive `host` ; l'octroi de l'opérateur s'y ajoute, il ne s'efface pas.
     const roles = effectiveRoles(existing?.assignedRoles ?? [], isHolder ? [UserRole.host] : []);
-    return this.prisma.user.upsert({
-      where: { oidcSubject: principal.sub },
-      create: {
-        oidcSubject: principal.sub,
-        displayName: principal.displayName,
-        email: principal.email,
-        roles,
-      },
-      update: { displayName: principal.displayName, email: principal.email, roles },
-    });
+    return saveUser(this.prisma, principal, roles, existing);
   }
 
   /**
@@ -88,10 +77,9 @@ export class HostSeatService {
    * the shared account holds the seat without expiry.
    */
   async claim(user: User, requestedMinutes: number | null): Promise<HostSeatState> {
-    // Un gestionnaire n'anime pas (RG-14) : le siège reste l'affaire des hôtes.
-    // Il garde `seat:release` pour débloquer un siège abandonné, sans l'occuper.
-    // Un gestionnaire qui n'anime pas ne prend pas le siège (RG-14) ; s'il porte
-    // aussi `host`, il n'en a pas besoin — son octroi lui suffit.
+    // Un gestionnaire n'anime pas (RG-14) : le siège reste l'affaire des hôtes. Il
+    // garde `seat:release` pour débloquer un siège abandonné, sans l'occuper ; s'il
+    // porte aussi `host`, il n'en a pas besoin — son octroi lui suffit.
     if (isManager(user.roles)) {
       throw new ForbiddenException(
         isHost(user.roles) ? 'host_seat.already_host' : 'host_seat.manager_forbidden',

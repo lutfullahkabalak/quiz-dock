@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { LOGO_CANDIDATES } from '@/config';
+import { cn } from '@/lib/utils';
 
 // First candidate still worth trying, shared across mounts: a URL that failed once
 // keeps failing for the whole page life, so later headers skip straight past it.
@@ -23,7 +24,7 @@ export function BrandLogo({ className }: { className?: string }) {
     <img
       src={src}
       alt=""
-      className={className}
+      className={cn('qd-logo', className)}
       onError={() => {
         firstCandidate = Math.max(firstCandidate, index + 1);
         setIndex(index + 1);

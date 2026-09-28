@@ -16,8 +16,9 @@ import {
 /**
  * Demo instance hygiene: every hour, back to a blank install — users, quizzes,
  * media, sessions, seat, live state — then the shared host account is set up
- * again, seat included. Whatever a visitor typed is gone within the hour. A reset waits while a session is being played (a visitor mid-game
- * should not lose it), but not forever: past `DEMO_RESET_MAX_DEFER_MS` it runs
+ * again, seat included. Whatever a visitor typed is gone within the hour.
+ * A reset waits while a session is being played (a visitor mid-game should not
+ * lose it), but not forever: past `DEMO_RESET_MAX_DEFER_MS` it runs
  * regardless.
  */
 @Injectable()

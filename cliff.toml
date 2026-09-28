@@ -48,6 +48,7 @@ filter_unconventional = true
 split_commits = false
 # Regroupe par type conventionnel ; ce qui n'est pas pertinent est ignoré.
 commit_parsers = [
+  { message = "^\\w+\\((bench|load)\\)|^docs?\\(perf\\)", group = "Benchmarks" }, # the load benchmark and its measures
   { message = "^sec|^fix\\(security", group = "Security" },
   { message = "^feat", group = "Features" },
   { message = "^fix", group = "Bug Fixes" },

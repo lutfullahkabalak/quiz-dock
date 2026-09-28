@@ -49,7 +49,8 @@ import type {
   MediaFilesPageDtoItemsItem,
 } from '../api/generated/model';
 import { useRole } from '../auth/use-role';
-import { Spinner } from '@/components/ui/loading';
+import { LoadFailed, Spinner } from '@/components/ui/loading';
+import { Modal } from '@/components/ui/modal';
 
 const PAGE_SIZE = 25;
 /** The owner key of the instance's own media (#62). */
@@ -120,6 +121,7 @@ function Overview() {
     }
   };
 
+  if (overview.isError) return <LoadFailed error={overview.error} />;
   if (!data) return <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />;
   const { cleanup } = data;
   return (
@@ -397,7 +399,9 @@ function Files() {
           {error}
         </p>
       ) : null}
-      {!list ? (
+      {files.isError ? (
+        <LoadFailed error={files.error} />
+      ) : !list ? (
         <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />
       ) : list.items.length === 0 ? (
         <p className="text-muted-foreground text-sm">
@@ -517,7 +521,7 @@ const duration = (ms: number | null) => {
 /**
  * A file seen in full: the image, or the video or sound playing, with what the
  * list says of it. Previous / next (and the arrow keys) walk the page shown.
- * A native `<dialog>` (`m-auto`: Tailwind's reset would pin it to a corner).
+ * A `Modal`, mounted while a file is shown.
  */
 function PreviewDialog({
   files,
@@ -531,19 +535,8 @@ function PreviewDialog({
   onClose: () => void;
 }) {
   const { t, i18n } = useTranslation('dashboard');
-  const ref = useRef<HTMLDialogElement>(null);
   const file = files[index];
   const locale = i18n.language;
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d || d.open) return;
-    try {
-      d.showModal();
-    } catch {
-      d.setAttribute('open', ''); // jsdom: showModal is not implemented
-    }
-  }, []);
 
   const go = (step: number) => {
     const next = index + step;
@@ -569,22 +562,14 @@ function PreviewDialog({
   ];
 
   return (
-    <dialog
-      ref={ref}
+    <Modal
+      onClose={onClose}
       aria-label={file.name ?? file.mime}
-      onCancel={(e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        onClose();
-      }}
-      onClick={(e) => {
-        if (e.target === ref.current) onClose();
-      }}
       onKeyDown={(e) => {
         if (e.key === 'ArrowLeft') go(-1);
         if (e.key === 'ArrowRight') go(1);
       }}
-      className="bg-background text-foreground m-auto w-[96vw] max-w-5xl rounded-lg border p-0 shadow-lg backdrop:bg-black/70"
+      className="w-[96vw] max-w-5xl backdrop:bg-black/70"
     >
       <div className="flex max-h-[90dvh] flex-col gap-3 p-4 md:flex-row">
         <div className="bg-muted flex min-h-48 flex-1 items-center justify-center overflow-hidden rounded-md">
@@ -663,7 +648,7 @@ function PreviewDialog({
           </div>
         </aside>
       </div>
-    </dialog>
+    </Modal>
   );
 }
 

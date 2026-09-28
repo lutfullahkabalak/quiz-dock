@@ -5,6 +5,7 @@ import { AppNav } from '@/components/app-nav';
 import { BrandLogo } from '@/components/brand-logo';
 import { useAuth } from '../auth/auth-context';
 import { APP_NAME, getDemo } from '../config';
+import { cn } from '@/lib/utils';
 
 /** Route id → `titles.*` key in `common`; the document title reads "<page> · <app>". */
 const TITLE_KEYS: Record<string, string> = {
@@ -53,19 +54,19 @@ export function RootLayout() {
 
   if (shell === 'bare') {
     return (
-      <div className="flex min-h-screen flex-col">
+      <div className="qd-shell flex min-h-screen flex-col" data-shell="bare">
         <Outlet />
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen flex-col">
+    <div className="qd-shell flex min-h-screen flex-col" data-shell={shell}>
       {/* La barre traverse l'écran — c'est la limite du cadre — mais son contenu
           suit exactement les marges de `main` : la marque s'aligne sur le titre
           de la page. Le nom s'efface sous `sm` pour laisser la place à la
           navigation sur un téléphone, et revient dès qu'il y a de la place. */}
-      <header className="border-b py-3">
+      <header className="qd-header border-b py-3">
         <div
           className={
             shell === 'participant'
@@ -121,11 +122,12 @@ export function RootLayout() {
       {/* Wide but bounded: ~1440px, the usual ceiling for app layouts. Pages fill it;
           only the ones that would look lost in it narrow themselves (see `content-*`). */}
       <main
-        className={
+        className={cn(
+          'qd-main',
           shell === 'participant'
             ? 'content-phone flex-1 px-4 py-4'
-            : 'content-shell flex-1 px-6 py-6 lg:px-10'
-        }
+            : 'content-shell flex-1 px-6 py-6 lg:px-10',
+        )}
       >
         <Outlet />
       </main>

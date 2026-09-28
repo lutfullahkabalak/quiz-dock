@@ -102,7 +102,7 @@ sequenceDiagram
     else late / duplicate
         API-->>A: answer:ack { accepted:false, reason:late|duplicate }
     end
-    API-->>F: answer:count { answered, total }
+    API-->>F: answer:count { answered, total }  (at most every 100 ms)
 
     alt the timer elapsed OR everyone answered
         API->>R: HSET game:{id} state=REVEAL

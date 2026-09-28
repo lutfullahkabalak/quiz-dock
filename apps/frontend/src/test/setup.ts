@@ -1,5 +1,8 @@
 import '@testing-library/jest-dom/vitest';
-import '../i18n'; // init i18n synchrone — t() renvoie le texte FR réel dans les tests
+import { loadLanguages } from '../i18n';
+
+// The French texts (and English, the fallback) before any test: t() then returns them at once.
+await loadLanguages();
 
 // Node ≥ 25 ships experimental `localStorage`/`sessionStorage` globals (undefined
 // unless --localstorage-file is set); vitest's jsdom env keeps existing globals,

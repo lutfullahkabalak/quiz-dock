@@ -1,58 +1,46 @@
 /**
- * Présentation des options de réponse (couleur + forme), partagée entre l'aperçu
- * animateur (`preview-page`) et les écrans live (`live-components`).
+ * Présentation des options de réponse (couleur), partagée par les écrans live,
+ * l'éditeur, ses aperçus et les modèles.
  *
  * Ce sont des couleurs *métier* (l'identité d'une réponse, façon quadrant Kahoot),
- * pilotées par la donnée `option.color` — pas des états d'UI. Elles restent donc
- * sur la palette Tailwind brute plutôt que sur les tokens sémantiques du thème.
+ * pilotées par la donnée `option.color`, pas des états d'UI : un jeton chacune
+ * (`--answer-red`…, `index.css`), qu'une instance peut changer dans `override.css`.
  */
-
-/** Glyphe par forme — accessibilité couleur + forme (technique §4). */
-export const SHAPE_GLYPH: Record<string, string> = {
-  triangle: '▲',
-  diamond: '◆',
-  circle: '●',
-  square: '■',
-  star: '★',
-  hexagon: '⬢',
-  heart: '♥',
-  cross: '✚',
-};
 
 /** Couleur de fond par option. */
 export const COLOR_BG: Record<string, string> = {
-  red: 'bg-red-600',
-  blue: 'bg-blue-600',
-  yellow: 'bg-amber-500',
-  green: 'bg-green-600',
-  purple: 'bg-purple-600',
-  orange: 'bg-orange-500',
-  pink: 'bg-pink-600',
-  teal: 'bg-teal-600',
+  red: 'bg-answer-red',
+  blue: 'bg-answer-blue',
+  yellow: 'bg-answer-yellow',
+  green: 'bg-answer-green',
+  purple: 'bg-answer-purple',
+  orange: 'bg-answer-orange',
+  pink: 'bg-answer-pink',
+  teal: 'bg-answer-teal',
 };
 
 /** Repli quand l'option n'a pas de couleur connue. */
-export const OPTION_BG_FALLBACK = 'bg-slate-600';
+export const OPTION_BG_FALLBACK = 'bg-answer-none';
 
 /** Text colour matching `COLOR_BG` (glyphs, labels on a neutral ground). */
 export const COLOR_TEXT: Record<string, string> = {
-  red: 'text-red-600',
-  blue: 'text-blue-600',
-  yellow: 'text-amber-500',
-  green: 'text-green-600',
-  purple: 'text-purple-600',
-  orange: 'text-orange-500',
-  pink: 'text-pink-600',
-  teal: 'text-teal-600',
+  red: 'text-answer-red',
+  blue: 'text-answer-blue',
+  yellow: 'text-answer-yellow',
+  green: 'text-answer-green',
+  purple: 'text-answer-purple',
+  orange: 'text-answer-orange',
+  pink: 'text-answer-pink',
+  teal: 'text-answer-teal',
 };
 /** Tinted track behind a distribution bar, same hue at low opacity. */
 export const COLOR_BG_SOFT: Record<string, string> = {
-  red: 'bg-red-600/15',
-  blue: 'bg-blue-600/15',
-  yellow: 'bg-amber-500/15',
-  green: 'bg-green-600/15',
-  purple: 'bg-purple-600/15',
-  orange: 'bg-orange-500/15',
-  pink: 'bg-pink-600/15',
-  teal: 'bg-teal-600/15',
+  red: 'bg-answer-red/15',
+  blue: 'bg-answer-blue/15',
+  yellow: 'bg-answer-yellow/15',
+  green: 'bg-answer-green/15',
+  purple: 'bg-answer-purple/15',
+  orange: 'bg-answer-orange/15',
+  pink: 'bg-answer-pink/15',
+  teal: 'bg-answer-teal/15',
 };

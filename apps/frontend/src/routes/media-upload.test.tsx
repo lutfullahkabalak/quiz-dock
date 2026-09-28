@@ -321,4 +321,17 @@ describe('MediaUpload', () => {
       expect.stringContaining('/media/m-film/reuse'),
     ]);
   });
+
+  it('says so when the alternative text cannot be saved (audit E3)', async () => {
+    mockApi([
+      { method: 'GET', path: '/media/media-123/meta', body: { id: 'media-123', alt: 'Le port' } },
+      { method: 'PUT', path: '/media/media-123/alt', status: 500, body: {} },
+    ]);
+    renderUpload('media-123');
+    const field = await screen.findByLabelText(/Texte alternatif/);
+    await waitFor(() => expect(field).toHaveValue('Le port'));
+    fireEvent.change(field, { target: { value: 'Rotterdam' } });
+    fireEvent.blur(field);
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+  });
 });

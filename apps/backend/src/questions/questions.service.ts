@@ -1,9 +1,16 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { assertAssets, expectImage } from '../media/assert-assets';
 import { Prisma } from '@prisma/client';
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
+import {
+  acceptedAnswersData,
+  optionsData,
+  questionCreateData,
+  questionData,
+  questionMediaHeld,
+} from './question-data';
 import type { QuestionContent } from './dto/question-content.schema';
-import { normalizeAnswer } from './dto/question-content.schema';
 import type { ReorderQuestionsDto } from './dto/reorder-questions.dto';
 import {
   QUESTION_MEDIA_INCLUDE,
@@ -11,6 +18,7 @@ import {
   questionMediaOf,
   resolveQuestionMedia,
 } from './question-media';
+import { requireQuiz } from '../quizzes/quiz-access';
 
 export const QUESTION_INCLUDE = {
   options: { orderBy: { orderIndex: 'asc' } },
@@ -37,7 +45,18 @@ export class QuestionsService {
   ) {}
 
   async add(ownerId: string, quizId: string, dto: QuestionContent) {
-    await this.assertQuizOwned(ownerId, quizId);
+    try {
+      return await this.addOnce(ownerId, quizId, dto);
+    } catch (err) {
+      // Another question took the last place at the same time (a double click, two
+      // tabs): the next place is free now. A second clash is reported as a conflict.
+      if (!(err instanceof Prisma.PrismaClientKnownRequestError) || err.code !== 'P2002') throw err;
+      return this.addOnce(ownerId, quizId, dto);
+    }
+  }
+
+  private async addOnce(ownerId: string, quizId: string, dto: QuestionContent) {
+    await requireQuiz(this.prisma, quizId, ownerId);
     const agg = await this.prisma.question.aggregate({
       where: { quizId },
       _max: { orderIndex: true },
@@ -49,23 +68,23 @@ export class QuestionsService {
       ownerId,
       dto.options.map((o) => o.mediaId),
     );
-    const [question] = await this.prisma.$transaction([
+    await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId));
+    const [{ id }] = await this.prisma.$transaction([
       this.prisma.question.create({
-        data: {
-          quizId,
-          orderIndex,
-          ...this.contentData(dto),
-          ...media,
-          options: { create: this.optionsCreate(dto) },
-          acceptedAnswers: { create: this.answersCreate(dto) },
-        },
-        include: QUESTION_INCLUDE,
+        data: { quizId, ...questionCreateData(dto, orderIndex, media) },
+        // Its relations are read after: inside the transaction, Prisma would fetch them
+        // at once on the one connection it holds, which pg deprecates.
+        select: { id: true },
       }),
       this.prisma.quiz.update({
         where: { id: quizId },
         data: { questionCount: { increment: 1 } },
       }),
     ]);
+    const question = await this.prisma.question.findUniqueOrThrow({
+      where: { id },
+      include: QUESTION_INCLUDE,
+    });
     return toQuestionOutput(question);
   }
 
@@ -83,42 +102,43 @@ export class QuestionsService {
       dto.options.map((o) => o.mediaId),
       current.options.map((o) => o.mediaId),
     );
+    await assertAssets(this.prisma, ownerId, expectImage(dto.backgroundMediaId), [
+      current.backgroundMediaId,
+    ]);
+    const data = questionData(dto);
+    const options = optionsData(dto);
     const question = await this.prisma.question.update({
       where: { id: questionId },
       data: {
-        ...this.contentData(dto),
+        ...data,
         ...media,
-        options: { deleteMany: {}, create: this.optionsCreate(dto) },
-        acceptedAnswers: { deleteMany: {}, create: this.answersCreate(dto) },
+        options: { deleteMany: {}, create: options },
+        acceptedAnswers: { deleteMany: {}, create: acceptedAnswersData(dto) },
       },
       include: QUESTION_INCLUDE,
     });
     // A replaced or removed media leaves with its file, unless something else holds it.
     await this.media.releaseUnused(
-      [current.visualMediaId, current.audioMediaId].filter(
-        (id) => id !== media.visualMediaId && id !== media.audioMediaId,
-      ),
+      questionMediaHeld(current),
+      questionMediaHeld({ ...data, ...media, options }),
     );
     return toQuestionOutput(question);
   }
 
   async remove(ownerId: string, questionId: string): Promise<void> {
-    const { quizId, visualMediaId, audioMediaId } = await this.assertQuestionOwned(
-      ownerId,
-      questionId,
-    );
+    const question = await this.assertQuestionOwned(ownerId, questionId);
     await this.prisma.$transaction([
       this.prisma.question.delete({ where: { id: questionId } }),
       this.prisma.quiz.update({
-        where: { id: quizId },
+        where: { id: question.quizId },
         data: { questionCount: { decrement: 1 } },
       }),
     ]);
-    await this.media.releaseUnused([visualMediaId, audioMediaId]);
+    await this.media.releaseUnused(questionMediaHeld(question));
   }
 
   async reorder(ownerId: string, quizId: string, dto: ReorderQuestionsDto) {
-    await this.assertQuizOwned(ownerId, quizId);
+    await requireQuiz(this.prisma, quizId, ownerId);
     const owned = await this.prisma.question.findMany({
       where: { quizId },
       select: { id: true },
@@ -164,60 +184,6 @@ export class QuestionsService {
     return questions.map(toQuestionOutput);
   }
 
-  private contentData(dto: QuestionContent) {
-    const isNumeric = dto.type === 'numeric';
-    return {
-      type: dto.type,
-      prompt: dto.prompt,
-      answerExplanation: dto.answerExplanation || null,
-      backgroundMediaId: dto.backgroundMediaId || null,
-      backgroundGradient: dto.backgroundGradient ?? Prisma.JsonNull,
-      textTone: dto.textTone,
-      textOutline: dto.textOutline,
-      timeLimitS: dto.timeLimitS,
-      revealDelayS: dto.revealDelayS ?? null,
-      audioTarget: dto.audioTarget ?? null,
-      waveformSize: dto.waveformSize,
-      timerAfterMedia: dto.timerAfterMedia,
-      // Un sondage ne rapporte aucun point (technique §4).
-      pointsMode: dto.type === 'poll' ? 'none' : dto.pointsMode,
-      scoring: dto.scoring,
-      numericValue: isNumeric ? dto.numericValue : null,
-      numericTolerance: isNumeric ? dto.numericTolerance : null,
-      multiSelect: dto.type === 'image_choice' && dto.multiSelect,
-    };
-  }
-
-  private optionsCreate(dto: QuestionContent) {
-    return dto.options.map((o, orderIndex) => ({
-      orderIndex,
-      text: o.text,
-      mediaId: o.mediaId,
-      alt: o.alt || null,
-      color: o.color,
-      shape: o.shape,
-      isCorrect: o.isCorrect,
-      correctOrderIndex: o.correctOrderIndex,
-    }));
-  }
-
-  private answersCreate(dto: QuestionContent) {
-    return dto.acceptedAnswers.map((a) => ({
-      text: a.text,
-      normalized: normalizeAnswer(a.text),
-    }));
-  }
-
-  private async assertQuizOwned(ownerId: string, quizId: string): Promise<void> {
-    const quiz = await this.prisma.quiz.findFirst({
-      where: { id: quizId, ownerId },
-      select: { id: true },
-    });
-    if (!quiz) {
-      throw new NotFoundException('quiz.not_found');
-    }
-  }
-
   /** Isolation des routes /questions/:qid : on remonte au propriétaire via le quiz. */
   private async assertQuestionOwned(ownerId: string, questionId: string) {
     const question = await this.prisma.question.findFirst({
@@ -227,6 +193,7 @@ export class QuestionsService {
         quizId: true,
         visualMediaId: true,
         audioMediaId: true,
+        backgroundMediaId: true,
         options: { select: { mediaId: true } },
       },
     });

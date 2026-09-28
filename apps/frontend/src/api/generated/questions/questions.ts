@@ -125,6 +125,11 @@ export const getQuestionsControllerReorderUrl = (id: string,) => {
   return `/api/v1/quizzes/${id}/questions/reorder`
 }
 
+/**
+ * Kept for existing integrations. Use PATCH quizzes/{id}/items/reorder, which also places the slides.
+ * @deprecated
+ * @summary Reorders the questions alone
+ */
 export const questionsControllerReorder = async (id: string,
     reorderQuestionsDto: ReorderQuestionsDto, options?: RequestInit): Promise<questionsControllerReorderResponse> => {
 
@@ -171,7 +176,11 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
     export type QuestionsControllerReorderMutationBody = ReorderQuestionsDto
     export type QuestionsControllerReorderMutationError = unknown
 
-    export const useQuestionsControllerReorder = <TError = unknown,
+    /**
+ * @deprecated
+ * @summary Reorders the questions alone
+ */
+export const useQuestionsControllerReorder = <TError = unknown,
     TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof questionsControllerReorder>>, TError,{id: string;data: ReorderQuestionsDto}, TContext>, request?: SecondParameter<typeof customFetch>}
  , queryClient?: QueryClient): UseMutationResult<
         Awaited<ReturnType<typeof questionsControllerReorder>>,

@@ -1,4 +1,4 @@
-import { mkdir, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, readdir, rename, rm, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import {
   BadRequestException,
@@ -266,6 +266,8 @@ const MANIFEST = 'quiz.json';
 export class StoreService implements OnModuleInit {
   private readonly log = new Logger(StoreService.name);
   private readonly dir = process.env.STORE_DIR ?? join(process.cwd(), '.store');
+  /** The last change of the index, which the next one waits for (see `updateIndex`). */
+  private indexWrites: Promise<unknown> = Promise.resolve();
 
   constructor(
     private readonly prisma: PrismaService,
@@ -289,7 +291,9 @@ export class StoreService implements OnModuleInit {
    * les voit pas revenir au prochain démarrage.
    */
   private async seedSamples(): Promise<void> {
-    if ((await this.readIndex()).length > 0) return;
+    // An unreadable index is the operator's to repair: seeding over it would lose it.
+    const current = await this.readIndex().catch(() => null);
+    if (current === null || current.length > 0) return;
     const entries: StoreEntry[] = [];
     for (const sample of SAMPLE_QUIZZES) {
       const id = ulid();
@@ -311,7 +315,7 @@ export class StoreService implements OnModuleInit {
         first: firstItemOf((bundle as { items?: BundleItem[] }).items),
       });
     }
-    await this.writeIndex(entries);
+    await this.updateIndex(() => entries);
     this.log.log(`Template catalogue seeded with ${entries.length} sample(s)`);
   }
 
@@ -410,7 +414,7 @@ export class StoreService implements OnModuleInit {
       cover,
       first,
     };
-    await this.writeIndex([...(await this.readIndex()).filter((e) => e.id !== id), entry]);
+    await this.updateIndex((entries) => [...entries.filter((e) => e.id !== id), entry]);
     this.log.log(`Template shared: ${entry.title} (${id}, revision ${entry.revision})`);
     return served(entry, parsed?.items?.[0]);
   }
@@ -447,11 +451,11 @@ export class StoreService implements OnModuleInit {
     if (!entry || !raw) throw new NotFoundException('store.entry_not_found');
     // Le catalogue est un dossier : un manifeste retouché à la main ne doit pas
     // faire tomber l'aperçu, il montre alors ce qu'il a.
-    const bundle = JSON.parse(raw) as {
+    const bundle = parseOr<{
       quiz?: { cover?: string | null };
       media?: Record<string, { alt: string | null }>;
       items?: BundleItem[];
-    };
+    }>(raw, {});
     const urlOf = (path?: string | null) => mediaUrl(id, path);
     const items = (bundle.items ?? []).map((item) => ({
       kind: item.kind,
@@ -504,7 +508,7 @@ export class StoreService implements OnModuleInit {
       throw new ForbiddenException('store.not_yours');
     }
     await rm(join(this.dir, this.safeId(id)), { recursive: true, force: true });
-    await this.writeIndex(entries.filter((e) => e.id !== id));
+    await this.updateIndex((current) => current.filter((e) => e.id !== id));
     this.log.log(`Template withdrawn: ${entry.title} (${id})`);
   }
 
@@ -521,14 +525,37 @@ export class StoreService implements OnModuleInit {
       const parsed = JSON.parse(raw) as { entries?: StoreEntry[] };
       return Array.isArray(parsed.entries) ? parsed.entries : [];
     } catch {
-      // A hand-edited or truncated index must not take the catalogue down.
-      this.log.warn(`${INDEX} is unreadable — the catalogue reads as empty.`);
+      // A hand-edited or truncated index is refused, never read as empty: the next
+      // share would otherwise write an index of one entry over every other.
+      this.log.warn(`${INDEX} is unreadable — the catalogue is refused until it is repaired.`);
       throw new ConflictException('store.index_unreadable');
     }
   }
 
-  private async writeIndex(entries: StoreEntry[]): Promise<void> {
-    await mkdir(this.dir, { recursive: true });
-    await writeFile(join(this.dir, INDEX), JSON.stringify({ entries }, null, 2), 'utf8');
+  /**
+   * Changes the index: one change at a time in this process (a share and a
+   * withdraw at once both stick), written to a temporary file then renamed, so a
+   * crash mid-write leaves the previous index, never a truncated one.
+   */
+  private updateIndex(change: (entries: StoreEntry[]) => StoreEntry[]): Promise<void> {
+    const next = this.indexWrites.then(async () => {
+      const entries = change(await this.readIndex());
+      await mkdir(this.dir, { recursive: true });
+      const tmp = join(this.dir, `${INDEX}.${process.pid}.tmp`);
+      await writeFile(tmp, JSON.stringify({ entries }, null, 2), 'utf8');
+      await rename(tmp, join(this.dir, INDEX));
+    });
+    // The next change waits for this one, whether it succeeded or not.
+    this.indexWrites = next.catch(() => undefined);
+    return next;
+  }
+}
+
+/** A JSON file written by hand: what it holds, or `fallback` when it does not parse. */
+function parseOr<T>(raw: string, fallback: T): T {
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    return fallback;
   }
 }

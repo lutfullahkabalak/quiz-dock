@@ -6,11 +6,15 @@
     <title>QuizDock</title>
     <!-- Config de marque runtime (white-label) : régénérée depuis l'env au démarrage. -->
     <script src="/config.js"></script>
-    <!-- CSS d'override (white-label) : remplaçable par volume, chargée en dernier. -->
-    <link rel="stylesheet" href="/branding/override.css" />
   </head>
   <body>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
+    <!--
+      CSS d'override (white-label) : remplaçable par volume. Dans le body, après
+      l'application : Vite ajoute la feuille de l'application à la fin du head, et à
+      règles égales (`:root`) c'est la dernière chargée qui l'emporte.
+    -->
+    <link rel="stylesheet" href="/branding/override.css" />
   </body>
 </html>

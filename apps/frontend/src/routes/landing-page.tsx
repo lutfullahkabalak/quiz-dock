@@ -1,45 +1,25 @@
-import { useNavigate } from '@tanstack/react-router';
-import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { APP_NAME, APP_VERSION, appConfig, getDemo, isStandalone } from '../config';
 import { feedbackLinks } from '@/lib/feedback';
-import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { PinForm } from '@/components/pin-form';
 
 export function LandingPage() {
   const { t } = useTranslation(['auth', 'common']);
-  const navigate = useNavigate();
-  const [pin, setPin] = useState('');
-
-  const onJoin = (e: FormEvent) => {
-    e.preventDefault();
-    const code = pin.trim();
-    if (code) void navigate({ to: '/join/$pin', params: { pin: code } });
-  };
 
   return (
-    <section className="flex flex-col items-center gap-6 py-8 text-center">
+    <section className="qd-home flex flex-col items-center gap-6 py-8 text-center">
       <h1 className="text-3xl font-bold">{t('landing.title')}</h1>
       <Card className="content-sm">
         <CardHeader>
           <CardTitle>{t('landing.joinTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="flex gap-2" onSubmit={onJoin}>
-            <Input
-              id="pin"
-              value={pin}
-              onChange={(e) => setPin(e.target.value)}
-              inputMode="numeric"
-              placeholder={t('landing.pinPlaceholder')}
-              maxLength={6}
-              className="text-center text-lg tracking-[0.3em]"
-            />
-            <Button type="submit" disabled={!pin.trim()}>
-              {t('landing.join')}
-            </Button>
-          </form>
+          <PinForm
+            label={t('landing.joinTitle')}
+            placeholder={t('landing.pinPlaceholder')}
+            submit={t('landing.join')}
+          />
         </CardContent>
       </Card>
       <DemoLimits />

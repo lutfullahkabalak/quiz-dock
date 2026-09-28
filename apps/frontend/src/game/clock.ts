@@ -45,7 +45,8 @@ const EVERY_MS = 30_000;
  * up; within one, the shortest round trip seen so far keeps winning.
  */
 export function calibrateClock(socket: GameSocket): void {
-  const ping = () => socket.connected && socket.emit('ping', { t0: Date.now() });
+  let closed = false;
+  const ping = () => !closed && socket.connected && socket.emit('ping', { t0: Date.now() });
   socket.on('pong', ({ t0, t1 }) => addClockSample(t0, t1, Date.now()));
   const burst = () => {
     for (let i = 0; i < BURST; i++) window.setTimeout(ping, i * BURST_GAP_MS);
@@ -57,5 +58,12 @@ export function calibrateClock(socket: GameSocket): void {
   };
   socket.on('connect', onConnect);
   if (socket.connected) onConnect();
-  window.setInterval(ping, EVERY_MS);
+  const every = window.setInterval(ping, EVERY_MS);
+  // Closed on purpose (the page left the game): stop pinging for good. A network
+  // drop reconnects the same socket, and the pings go on.
+  socket.on('disconnect', (reason) => {
+    if (reason !== 'io client disconnect') return;
+    closed = true;
+    window.clearInterval(every);
+  });
 }

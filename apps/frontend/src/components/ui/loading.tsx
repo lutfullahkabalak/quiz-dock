@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { ApiError, apiErrorText } from '@/api/http';
 
 /** A turning wheel, with what it waits for said to screen readers (and shown when `label`). */
 export function Spinner({
@@ -84,5 +85,18 @@ export function ListSkeleton({
         ),
       )}
     </div>
+  );
+}
+
+/**
+ * A page whose data could not be read: `notFound` only when the server says so
+ * (404); otherwise why it failed (a server or network error is never "not found").
+ */
+export function LoadFailed({ error, notFound }: { error: unknown; notFound?: string }) {
+  const missing = !error || (error instanceof ApiError && error.status === 404);
+  return (
+    <p className="text-destructive text-sm" role="alert">
+      {missing && notFound ? notFound : apiErrorText(error)}
+    </p>
   );
 }

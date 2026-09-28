@@ -23,7 +23,7 @@ import { useRole } from '../auth/use-role';
 import { getDemo } from '../config';
 import { templateRoute } from '../router';
 import { TemplateSlide } from './templates-page';
-import { PageLoading } from '@/components/ui/loading';
+import { LoadFailed, PageLoading } from '@/components/ui/loading';
 import { ShapeIcon } from '@/components/shape-icon';
 
 /**
@@ -37,7 +37,11 @@ export function TemplatePage() {
   const { templateId } = templateRoute.useParams();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const { data, isPending } = useStoreControllerPreview(templateId, { query: { retry: false } });
+  const {
+    data,
+    isPending,
+    error: loadError,
+  } = useStoreControllerPreview(templateId, { query: { retry: false } });
   const take = useStoreControllerTake();
   const withdraw = useStoreControllerWithdraw();
   const { isHost } = useRole();
@@ -70,7 +74,7 @@ export function TemplatePage() {
   };
 
   if (isPending) return <PageLoading />;
-  if (!template) return <p className="text-destructive">{t('notFound')}</p>;
+  if (!template) return <LoadFailed error={loadError} notFound={t('notFound')} />;
 
   return (
     <section className="flex flex-col gap-6">

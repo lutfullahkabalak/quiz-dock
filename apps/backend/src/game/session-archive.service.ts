@@ -1,11 +1,11 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { Prisma, SessionStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { RedisService } from '../redis/redis.service';
-import { type GameId, gameKeys } from './game.keys';
+import { GameService } from './game.service';
 import { answerStats } from './player-stats';
+import type { RankedPlayer } from './results';
 import { buildRevealCommon } from './reveal';
-import type { AnswerRecord, GameMeta, PlayerRecord, PlayerScore, QuizSnapshot } from './game.types';
+import type { AnswerRecord, GameMeta, QuizSnapshot } from './game.types';
 
 /**
  * Rétention par défaut d'une session archivée (suivi individuel). Valeur de départ
@@ -13,14 +13,13 @@ import type { AnswerRecord, GameMeta, PlayerRecord, PlayerScore, QuizSnapshot } 
  */
 const SESSION_RETENTION_DAYS = 365;
 
-type RankedPlayer = PlayerRecord & PlayerScore & { id: string };
-
 /**
  * Archivage d'une partie terminée (§2.7-2.10) : projette l'état live Redis (résumé,
  * classement, agrégats par question, et — en capture intégrale — réponses
  * individuelles) vers les tables durables, en **une transaction**, AVANT la purge
  * Redis. Suivi individuel coupé (RG-16) : seuls le résumé et les agrégats par
- * question sont écrits — la partie elle-même (classement, podium) n'y perd rien. Déclenché à la demande de l'hôte (`host:end` avec `archive`) ou
+ * question sont écrits — la partie elle-même (classement, podium) n'y perd rien.
+ * Déclenché à la demande de l'hôte (`host:end` avec `archive`) ou
  * automatiquement sur une fin orpheline (§7.3, marquée `interrupted`).
  *
  * Best-effort : une erreur de persistance est journalisée mais n'empêche pas la fin
@@ -33,7 +32,7 @@ export class SessionArchiveService {
 
   constructor(
     private readonly prisma: PrismaService,
-    private readonly redis: RedisService,
+    private readonly game: GameService,
   ) {}
 
   async archive(
@@ -42,23 +41,19 @@ export class SessionArchiveService {
     opts: { interrupted?: boolean; bestEffort?: boolean } = {},
   ): Promise<void> {
     try {
-      const snapshot = await this.readSnapshot(meta.id);
+      const snapshot = await this.game.getSnapshot(meta.id);
       if (!snapshot) return;
 
-      const players = await this.readPlayers(pin, meta.id);
+      const ranked = await this.game.rankedPlayers(pin, meta.id);
       const answersByIndex = new Map<number, Map<string, AnswerRecord>>();
       let totalAnswers = 0;
       for (const q of snapshot.questions) {
-        const recs = await this.readAnswers(meta.id, q.orderIndex);
+        const recs = await this.game.answers(meta.id, q.orderIndex);
         answersByIndex.set(q.orderIndex, recs);
         totalAnswers += recs.size;
       }
       // Rien à archiver : partie arrêtée avant toute réponse (lobby vide, etc.).
-      if (players.size === 0 || totalAnswers === 0) return;
-
-      const ranked = [...players.entries()]
-        .map(([id, p]): RankedPlayer => ({ id, ...p }))
-        .sort((a, b) => b.score - a.score || a.joinedAt - b.joinedAt);
+      if (ranked.length === 0 || totalAnswers === 0) return;
 
       const now = Date.now();
       const status = opts.interrupted ? SessionStatus.interrupted : SessionStatus.ended;
@@ -67,7 +62,7 @@ export class SessionArchiveService {
         meta,
         snapshot,
         status,
-        players.size,
+        ranked.length,
         answersByIndex,
         now,
       );
@@ -77,10 +72,10 @@ export class SessionArchiveService {
       await this.prisma.$transaction(async (tx) => {
         const created = await tx.gameSessionLog.create({ data: session });
 
-        // Suivi individuel coupé (RG-16) : aucune ligne par participant, et donc
-        // aucune réponse individuelle — seuls les agrégats et ce résumé subsistent.
         // Résultats par participant : créés un à un pour récupérer les id (rattachement
-        // des réponses individuelles en capture intégrale).
+        // des réponses individuelles en capture intégrale). Suivi individuel coupé
+        // (RG-16) : aucune ligne par participant, donc aucune réponse individuelle —
+        // seuls les agrégats et ce résumé subsistent.
         const resultIdByPlayer = new Map<string, string>();
         if (meta.personalTracking) {
           for (const agg of playerAgg) {
@@ -110,7 +105,7 @@ export class SessionArchiveService {
         }
       });
 
-      this.log.debug(`Session archivée ${pin} (${status}, ${players.size} joueurs)`);
+      this.log.debug(`Session archivée ${pin} (${status}, ${ranked.length} joueurs)`);
     } catch (err) {
       this.log.error(
         `Échec d'archivage de la session ${pin}: ${err instanceof Error ? err.message : err}`,
@@ -236,34 +231,5 @@ export class SessionArchiveService {
       }
     }
     return rows;
-  }
-
-  private async readSnapshot(gameId: GameId): Promise<QuizSnapshot | null> {
-    const raw = await this.redis.get(gameKeys.snapshot(gameId));
-    return raw ? (JSON.parse(raw) as QuizSnapshot) : null;
-  }
-
-  /** Who played the game (a score in it), with who they are in the room. */
-  private async readPlayers(
-    pin: string,
-    gameId: GameId,
-  ): Promise<Map<string, PlayerRecord & PlayerScore>> {
-    const [players, scores] = await Promise.all([
-      this.redis.hgetall(gameKeys.players(pin)),
-      this.redis.hgetall(gameKeys.scores(gameId)),
-    ]);
-    return new Map(
-      Object.entries(scores)
-        .filter(([id]) => players[id])
-        .map(([id, score]) => [
-          id,
-          { ...(JSON.parse(players[id]) as PlayerRecord), ...(JSON.parse(score) as PlayerScore) },
-        ]),
-    );
-  }
-
-  private async readAnswers(gameId: GameId, index: number): Promise<Map<string, AnswerRecord>> {
-    const raw = await this.redis.hgetall(gameKeys.answers(gameId, index));
-    return new Map(Object.entries(raw).map(([id, json]) => [id, JSON.parse(json) as AnswerRecord]));
   }
 }

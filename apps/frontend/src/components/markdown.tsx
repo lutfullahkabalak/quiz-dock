@@ -1,6 +1,7 @@
 import type { HTMLAttributes } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { cn } from '@/lib/utils';
+import { MEDIA_PATH } from '@/lib/media-url';
 
 /**
  * **Restricted** Markdown rendering for text fields typed in the builder (#4).
@@ -33,7 +34,7 @@ function dom<T extends { node?: unknown }>(props: T): Omit<T, 'node'> {
 const COMPONENTS: Components = {
   // Only media served by this app: no third-party images (tracking pixels, hotlinking).
   img: (p) =>
-    typeof p.src === 'string' && p.src.startsWith('/api/v1/media/') ? (
+    typeof p.src === 'string' && p.src.startsWith(MEDIA_PATH) ? (
       <img {...dom(p)} alt={p.alt ?? ''} className="mx-auto max-h-[60vh] rounded-lg" />
     ) : null,
   ul: (p) => <ul {...dom(p)} className="list-disc pl-6 text-left" />,

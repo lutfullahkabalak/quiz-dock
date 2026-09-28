@@ -7,6 +7,7 @@ import {
   AnswerRules,
   OptionTiles,
   Podium,
+  QuestionClockBar,
   RevealAnswer,
   SlideView,
   TYPE_BASE,
@@ -14,7 +15,7 @@ import {
 import { RoomVariables } from './slide-variables';
 import { Surface } from './surface';
 import { ImageChoiceGrid } from './image-choice';
-import { useGameRemaining } from './use-countdown';
+import { useQuestionClock } from './use-countdown';
 import type { GameView } from './use-game-session';
 
 /**
@@ -24,7 +25,7 @@ import type { GameView } from './use-game-session';
  */
 export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string }) {
   const { t } = useTranslation('live');
-  const remaining = useGameRemaining(view);
+  const clock = useQuestionClock(view);
   const q = view.question;
   let body: React.ReactNode;
   if (view.state === 'SLIDE_SHOW' && view.slide) {
@@ -42,11 +43,11 @@ export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string
   } else if ((view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && q) {
     body = (
       <div className="flex min-h-[32em] w-full flex-col gap-[0.75em] p-[1em] text-center">
-        {remaining !== null ? (
-          <span className="text-[2.5em] font-bold tabular-nums">⏱ {remaining}</span>
-        ) : null}
+        {clock ? <QuestionClockBar clock={clock} className="text-[1.25em]" /> : null}
         <div className="flex flex-1 flex-col justify-center py-[1em]">
-          <Markdown className="text-[1.5em] font-semibold text-balance">{q.prompt}</Markdown>
+          <Markdown className="qd-prompt text-[1.5em] font-semibold text-balance">
+            {q.prompt}
+          </Markdown>
         </div>
         <AnswerRules question={q} />
         {q.type === 'image_choice' ? (

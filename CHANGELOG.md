@@ -4,6 +4,102 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
+## [0.10.0] - 2026-09-28
+
+### Benchmarks
+
+- Several rooms at once measured, the series sampled a second time *(perf)*
+- Several rooms at once, and a results file per measure *(bench)*
+- Additional information on the execution context, the resources allocated *(perf)*
+- Each measure of the day with its code, its machine, its method and its limits *(perf)*
+- The benchmark's full setup, next to its figures *(perf)*
+- The benchmark measured cold, one room holds about 1500 players *(perf)*
+- The answer count's coalescing measured, warm and indicative *(perf)*
+- The sizing series and the A/B of the load benchmark in one script *(bench)*
+- A --rich quiz, as long as the editor lets questions be *(load)*
+- Draft roadmap of the live engine's performance *(perf)*
+- Benchmark a live game from 10 to 700 players *(load)*
+
+### Bug Fixes
+
+- The console's chrono shows the pause sign, as the screens do *(console)*
+- Time the host adds while resuming is kept *(game)*
+- One question clock for the screen, the phones and the console *(live)*
+- No new session when the language changes or the Projection tab opens *(live)*
+- A saved or deleted element releases every media it held *(media)*
+- A copy named in its own language, made whole or not at all *(quizzes)*
+- The background field follows its value after a draft is discarded *(editor)*
+- A page that cannot load says why, not "not found" or nothing *(ui)*
+- What the account may do follows a change of identity at once *(auth)*
+- Failed actions say so instead of failing silently *(ui)*
+- A question's options keep distinct keys after a reload *(editor)*
+- Saving the title no longer writes back the old language *(editor)*
+- A question's background only while the question is on screen *(projection)*
+- Countdowns stop ticking once their deadline is past *(live)*
+- Adjusting the time no longer resets an order being put together *(player)*
+- The Tab key moves the focus again, switching views only from the page *(console)*
+- A phone that leaves can join again, and no connection leaks *(live)*
+- Load override.css after the app's stylesheet *(branding)*
+- A catalogue index that survives a crash and two shares at once *(store)*
+- Answer database errors with their meaning, and stop pg's overlap warning *(api)*
+- Check every place an author puts a media in, in one way *(media)*
+- Keep the room's players and answers right under concurrency *(game)*
+
+### Documentation
+
+- The rooms table only, and the results directory introduced *(readme)*
+- The benchmarks in the changelog, a performance summary in the README
+- Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
+- The answer count coalesced, the sounds off in a new room, the measures to redo cold
+- The benchmark after the lots, and a sizing page for operators
+- What each lot fixed, the profile of the engine, and the unreleased changes
+- Record the decisions taken on the audit's open points *(audit)*
+- Code audit of backend and frontend, to decide lot 4 *(audit)*
+
+### Features
+
+- A new room's game sounds are off, the host turns on the ones they want *(game)*
+- Hooks on the live screens for an instance's override.css *(branding)*
+- Tokens for the answers' colours, warning, podium and typeface *(theme)*
+- The live pages say when their connection is lost *(live)*
+
+### Performance
+
+- The room's answer count sent at most every 100 ms, not on every answer *(game)*
+- The instance's language alone downloaded, not all five *(frontend)*
+- A game's snapshot parsed once, not on every answer *(game)*
+- A joining device's preload reads its own record only *(game)*
+- The join page's peek reads the game once *(game)*
+- One definition of where a media is used, the library 100 times faster *(media)*
+- The auth guard writes the user only when something changed *(auth)*
+- Walk keys with SCAN, never KEYS *(redis)*
+
+### Refactor
+
+- The console's repeated blocks written once *(console)*
+- One hook for a room device's media, projection and phone alike *(live)*
+- One PIN form for the home page and the join page *(join)*
+- Where the device follows from, worked out once *(player)*
+- One draft hook and one action bar for the question and slide forms *(editor)*
+- The editor's five small pickers on Segmented *(editor)*
+- One Modal for the four native dialogs *(frontend)*
+- One checkbox field, label and hint, for six places *(frontend)*
+- The slide being edited previewed by slideShowOf *(editor)*
+- One helper for a library media's address *(frontend)*
+- The session's 29 events, taken on and off from one table *(live)*
+- One encoding for the room and game hashes, field names checked *(game)*
+- One reader of the live players, answers and snapshot *(game)*
+- The questions-only reorder and the samples route marked deprecated *(api)*
+- One host guard, and a player's own room only *(game)*
+- Small duplicates and misplaced comments from the audit *(backend)*
+- One check that a quiz is within reach, one "readable by" *(quizzes)*
+- One way to write a question's and a slide's content *(quizzes)*
+- Split timers, results and steps out of the engine *(game)*
+
+### Contributors
+
+- Claude
+
 ## [0.9.0] - 2026-09-27
 
 ### ⚠️ Breaking changes
@@ -54,6 +150,7 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The 0.7 and 0.8 notes out of the top *(readme)*
 - Ready for 0.9.0 — upgrade between two games, version examples, unreleased
 - Every screen shot again, the new ones and each question type *(screenshots)*
 - The 0.7 and 0.8 notes out of the top *(readme)*
@@ -84,7 +181,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - The multi-quiz room brief, from the model to the ordered pull requests *(spec)*
 - One answer grid in unreleased *(changelog)*
 - Exact OIDC issuer in unreleased *(changelog)*
-- The 0.7 and 0.8 notes out of the top *(readme)*
 - Unreleased before the release *(changelog)*
 - The licence, tags and language of a quiz in the feature list
 - The refactoring plan for the game gateway tests *(dev)*
