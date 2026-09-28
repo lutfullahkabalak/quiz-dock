@@ -1,6 +1,7 @@
 import multiavatar from '@multiavatar/multiavatar';
 import { useMemo } from 'react';
 import { cn } from '@/lib/utils';
+import { BACKDROP_EDGE } from './surface';
 
 /**
  * Avatar déterministe dérivé du pseudo (lib `multiavatar`, METIER §79) : purement
@@ -23,6 +24,7 @@ export function Avatar({
       aria-hidden
       className={cn(
         'inline-block shrink-0 overflow-hidden rounded-full [&_svg]:h-full [&_svg]:w-full',
+        BACKDROP_EDGE,
         className,
       )}
       style={{ width: size, height: size }}

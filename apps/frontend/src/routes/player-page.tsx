@@ -53,7 +53,7 @@ import {
 } from '../game/live-components';
 import { ImageChoiceGrid } from '../game/image-choice';
 import { cn } from '@/lib/utils';
-import { Surface } from '../game/surface';
+import { BACKDROP_EDGE, BACKDROP_PANEL, Surface } from '../game/surface';
 import { unlockAudio } from '../game/media/audio-unlock';
 import { claimMediaElements, mediaElementsClaimed } from '../game/media/media-pool';
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
@@ -68,6 +68,14 @@ import { useCountdown, useQuestionClock } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from '../auth/auth-context';
 import { Spinner } from '@/components/ui/loading';
+
+/**
+ * The answer page's pinned bars (the clock, the tiles) over a question's background:
+ * the local palette's panel, not the page's white, so what scrolls under them stays
+ * hidden without a band across the picture.
+ */
+const STICKY_ON_BACKDROP =
+  'on-backdrop:bg-card on-backdrop:px-[0.75em] on-backdrop:backdrop-blur-md on-backdrop:[text-shadow:none]';
 
 /**
  * Avis de transparence (§2.10, RG-16) : ce que la session enregistre de ce
@@ -327,7 +335,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
         : freeValue.trim() !== '';
       return (
         <form
-          className="flex w-full flex-col gap-3"
+          className={cn('flex w-full flex-col gap-3', BACKDROP_PANEL)}
           onSubmit={(e) => {
             e.preventDefault();
             if (!valid) return;
@@ -358,7 +366,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     if (question.type === 'ordering' && opts.length) {
       const ordered = order.length ? order : opts.map((o) => o.id);
       return (
-        <div className="flex w-full flex-col gap-[0.75em]">
+        <div className={cn('flex w-full flex-col gap-[0.75em]', BACKDROP_PANEL)}>
           <SortableAnswer options={opts} order={ordered} onChange={setOrder} />
           <Button type="button" onClick={() => submit(ordered)}>
             {t('player.submitAnswer')}
@@ -383,7 +391,12 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             <OptionTiles options={opts} onPick={onPick} selectedIds={selected} />
           )}
           {isMulti ? (
-            <Button type="button" disabled={selected.length === 0} onClick={() => submit(selected)}>
+            <Button
+              type="button"
+              className={BACKDROP_EDGE}
+              disabled={selected.length === 0}
+              onClick={() => submit(selected)}
+            >
               {t('player.submitAnswer')}
             </Button>
           ) : null}
@@ -492,23 +505,26 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     </>
   );
 
-  const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) => (
+  // The question's background covers the whole viewport under the header, in every
+  // phase of that question; the phone column is centred inside it.
+  const surface = (children: React.ReactNode) => (
     <Surface
       background={view.question?.background}
       textTone={view.question?.textTone}
       textOutline={view.question?.textOutline}
-      className={cn(
-        '-mx-4 -my-4 min-h-[calc(100dvh-4rem)] px-4 py-4',
-        TYPE_BASE.phone,
-        !view.question?.background && 'bg-transparent',
-      )}
+      className={cn('flex-1', TYPE_BASE.phone)}
     >
       {participantBar}
+      <div className="flex flex-1 flex-col px-4 py-4">{children}</div>
+    </Surface>
+  );
+
+  const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) =>
+    surface(
       <section
         className={cn(
           'mx-auto flex w-full flex-1 flex-col items-center gap-[1.5em] py-[1.5em] text-center',
           opts.wide ? 'max-w-[24em] md:max-w-[36em]' : 'max-w-[24em]',
-          opts.center && 'min-h-[calc(100dvh-6rem)]',
         )}
       >
         {opts.center ? (
@@ -516,9 +532,8 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
         ) : (
           children
         )}
-      </section>
-    </Surface>
-  );
+      </section>,
+    );
 
   // Where this participant stands in the room (#89), once it has played more than one quiz.
   const roomYou = view.standings && view.standings.quizzesPlayed > 1 ? view.standings.you : null;
@@ -592,7 +607,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   // participant's own session — the sound only where it would play here anyway.
   if (showScreen && view.state && view.state !== 'ENDED') {
     return (
-      <div className="-mx-4 -my-4 min-h-[calc(100dvh-4rem)]">
+      <div className="content-phone flex flex-1 flex-col">
         {participantBar}
         <ScreenSurface
           pin={pin}
@@ -607,8 +622,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   }
 
   // ── États de jeu ───────────────────────────────────────────────────────────
-  // A slide is projected, not read: it breaks out of the phone column to the whole
-  // viewport (width and height under the header), content centred.
+  // A slide is projected, not read: it takes the whole viewport under the header, content centred.
   if (view.state === 'SLIDE_SHOW' && view.slide) {
     const slide = view.slide;
     const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
@@ -616,9 +630,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     // the sound meant for them; a phone in the room plays only a sound meant for everyone.
     const slideHears = !!slide.audioTarget && playsSound(slide.audioTarget, presence);
     return (
-      <div
-        className={cn('-my-4 mx-[calc(50%-50vw)] flex min-h-[calc(100dvh-4rem)]', TYPE_BASE.phone)}
-      >
+      <div className={cn('flex flex-1', TYPE_BASE.phone)}>
         {participantBar}
         <SlidePlaybackContext.Provider
           value={{
@@ -792,21 +804,20 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     // Layout en 3 zones, identique d'une question à l'autre (UX first) : le chrono
     // reste en haut, l'énoncé occupe le centre et **défile** s'il est long, la zone
     // de réponse est ancrée en bas (position constante, jamais repoussée hors écran).
-    return (
-      <section
-        className={cn(
-          // Fills the viewport under the header (main padding included): the chrono
-          // on top, the prompt centred in the remaining height, the answer zone at the bottom.
-          'mx-auto flex min-h-[calc(100dvh-6rem)] w-full max-w-[24em] flex-col gap-[0.75em] text-center md:max-w-[36em]',
-          TYPE_BASE.phone,
-        )}
-      >
-        {participantBar}
+    return surface(
+      // Fills the viewport under the header: the chrono on top, the prompt centred in
+      // the remaining height, the answer zone at the bottom.
+      <section className="mx-auto flex w-full max-w-[24em] flex-1 flex-col gap-[0.75em] text-center md:max-w-[36em]">
         {clock ? (
           // Pinned on top while the rest scrolls; above an opened picture too.
           <QuestionClockBar
             clock={clock}
-            className="bg-background sticky top-0 z-50 shrink-0 py-[0.5em] text-[1.25em]"
+            className={cn(
+              'bg-background sticky top-0 z-50 shrink-0 py-[0.5em] text-[1.25em]',
+              // On a background, the page's white would be a band across it: the panel instead.
+              STICKY_ON_BACKDROP,
+              'on-backdrop:rounded-b-[0.75em]',
+            )}
           />
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col justify-center gap-[0.75em] overflow-y-auto py-[0.5em]">
@@ -853,6 +864,8 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             'flex w-full shrink-0 flex-col items-center gap-[0.75em] pb-[0.5em]',
             tiled &&
               'bg-background sticky bottom-0 pt-[0.5em] pb-[max(0.5em,env(safe-area-inset-bottom))]',
+            tiled && STICKY_ON_BACKDROP,
+            tiled && 'on-backdrop:rounded-t-[0.75em]',
           )}
         >
           <AnswerRules question={question} />
@@ -878,7 +891,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             </>
           )}
         </div>
-      </section>
+      </section>,
     );
   }
 
