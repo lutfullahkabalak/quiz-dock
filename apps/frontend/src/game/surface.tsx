@@ -35,7 +35,8 @@ export function Surface({
   return (
     <div
       className={cn(
-        'relative overflow-hidden',
+        // `clip`, not `hidden`: no scroll container, so a sticky bar inside still sticks.
+        'relative flex flex-col overflow-clip',
         has && (light ? 'text-white' : 'text-neutral-900'),
         has &&
           textOutline &&
@@ -65,7 +66,7 @@ export function Surface({
           <div className={cn('absolute inset-0', light ? 'bg-black/40' : 'bg-white/55')} />
         </>
       ) : null}
-      <div className="relative z-10 flex h-full min-h-full w-full flex-col">{children}</div>
+      <div className="relative z-10 flex w-full flex-1 flex-col">{children}</div>
     </div>
   );
 }

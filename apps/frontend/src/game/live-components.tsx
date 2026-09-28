@@ -708,7 +708,7 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
       // No explicit height: a flex parent stretches it (`h-full` would opt out of stretching).
       className="qd-slide w-full flex-1"
     >
-      <article className="flex h-full min-h-full w-full flex-col justify-center gap-[1.5em] p-[2em]">
+      <article className="flex w-full flex-1 flex-col justify-center gap-[1.5em] p-[2em]">
         {blocks.map((b) =>
           b.type === 'columns' ? (
             <div

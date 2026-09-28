@@ -120,12 +120,14 @@ export function RootLayout() {
         </p>
       ) : null}
       {/* Wide but bounded: ~1440px, the usual ceiling for app layouts. Pages fill it;
-          only the ones that would look lost in it narrow themselves (see `content-*`). */}
+          only the ones that would look lost in it narrow themselves (see `content-*`).
+          A participant's page gets the whole viewport under the header: a question's
+          background covers it edge to edge, and the page centres its own phone column. */}
       <main
         className={cn(
           'qd-main',
           shell === 'participant'
-            ? 'content-phone flex-1 px-4 py-4'
+            ? 'flex flex-1 flex-col'
             : 'content-shell flex-1 px-6 py-6 lg:px-10',
         )}
       >

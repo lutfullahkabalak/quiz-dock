@@ -92,7 +92,8 @@ export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string
         )}
       >
         <Surface
-          background={q?.background}
+          // A slide brings its own background; the last question's must not show behind it.
+          background={view.state === 'SLIDE_SHOW' ? null : q?.background}
           textTone={q?.textTone}
           textOutline={q?.textOutline}
           className={cn('flex w-full', !q?.background && 'bg-transparent')}

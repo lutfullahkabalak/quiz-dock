@@ -492,23 +492,26 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     </>
   );
 
-  const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) => (
+  // The question's background covers the whole viewport under the header, in every
+  // phase of that question; the phone column is centred inside it.
+  const surface = (children: React.ReactNode) => (
     <Surface
       background={view.question?.background}
       textTone={view.question?.textTone}
       textOutline={view.question?.textOutline}
-      className={cn(
-        '-mx-4 -my-4 min-h-[calc(100dvh-4rem)] px-4 py-4',
-        TYPE_BASE.phone,
-        !view.question?.background && 'bg-transparent',
-      )}
+      className={cn('flex-1', TYPE_BASE.phone)}
     >
       {participantBar}
+      <div className="flex flex-1 flex-col px-4 py-4">{children}</div>
+    </Surface>
+  );
+
+  const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) =>
+    surface(
       <section
         className={cn(
           'mx-auto flex w-full flex-1 flex-col items-center gap-[1.5em] py-[1.5em] text-center',
           opts.wide ? 'max-w-[24em] md:max-w-[36em]' : 'max-w-[24em]',
-          opts.center && 'min-h-[calc(100dvh-6rem)]',
         )}
       >
         {opts.center ? (
@@ -516,9 +519,8 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
         ) : (
           children
         )}
-      </section>
-    </Surface>
-  );
+      </section>,
+    );
 
   // Where this participant stands in the room (#89), once it has played more than one quiz.
   const roomYou = view.standings && view.standings.quizzesPlayed > 1 ? view.standings.you : null;
@@ -592,7 +594,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   // participant's own session — the sound only where it would play here anyway.
   if (showScreen && view.state && view.state !== 'ENDED') {
     return (
-      <div className="-mx-4 -my-4 min-h-[calc(100dvh-4rem)]">
+      <div className="content-phone flex flex-1 flex-col">
         {participantBar}
         <ScreenSurface
           pin={pin}
@@ -607,8 +609,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   }
 
   // ── États de jeu ───────────────────────────────────────────────────────────
-  // A slide is projected, not read: it breaks out of the phone column to the whole
-  // viewport (width and height under the header), content centred.
+  // A slide is projected, not read: it takes the whole viewport under the header, content centred.
   if (view.state === 'SLIDE_SHOW' && view.slide) {
     const slide = view.slide;
     const step = { questionIndex: slide.questionIndex, slideIndex: slide.slideIndex };
@@ -616,9 +617,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     // the sound meant for them; a phone in the room plays only a sound meant for everyone.
     const slideHears = !!slide.audioTarget && playsSound(slide.audioTarget, presence);
     return (
-      <div
-        className={cn('-my-4 mx-[calc(50%-50vw)] flex min-h-[calc(100dvh-4rem)]', TYPE_BASE.phone)}
-      >
+      <div className={cn('flex flex-1', TYPE_BASE.phone)}>
         {participantBar}
         <SlidePlaybackContext.Provider
           value={{
@@ -792,16 +791,10 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     // Layout en 3 zones, identique d'une question à l'autre (UX first) : le chrono
     // reste en haut, l'énoncé occupe le centre et **défile** s'il est long, la zone
     // de réponse est ancrée en bas (position constante, jamais repoussée hors écran).
-    return (
-      <section
-        className={cn(
-          // Fills the viewport under the header (main padding included): the chrono
-          // on top, the prompt centred in the remaining height, the answer zone at the bottom.
-          'mx-auto flex min-h-[calc(100dvh-6rem)] w-full max-w-[24em] flex-col gap-[0.75em] text-center md:max-w-[36em]',
-          TYPE_BASE.phone,
-        )}
-      >
-        {participantBar}
+    return surface(
+      // Fills the viewport under the header: the chrono on top, the prompt centred in
+      // the remaining height, the answer zone at the bottom.
+      <section className="mx-auto flex w-full max-w-[24em] flex-1 flex-col gap-[0.75em] text-center md:max-w-[36em]">
         {clock ? (
           // Pinned on top while the rest scrolls; above an opened picture too.
           <QuestionClockBar
@@ -878,7 +871,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             </>
           )}
         </div>
-      </section>
+      </section>,
     );
   }
 

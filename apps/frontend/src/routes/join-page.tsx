@@ -10,7 +10,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 export function JoinPage() {
   const { t } = useTranslation(['join', 'common']);
   return (
-    <section className="flex flex-col items-center gap-6 py-8 text-center">
+    <section className="content-phone flex flex-col items-center gap-6 px-4 py-12 text-center">
       <h1 className="text-3xl font-bold">{t('title')}</h1>
       <Card className="content-sm">
         <CardHeader>
