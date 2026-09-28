@@ -305,8 +305,9 @@ vulnerability via [`SECURITY.md`](https://github.com/quizdock/quiz-dock/blob/mai
 
 ## 🙏 Acknowledgements
 
-Thanks to [Anthropic](https://www.anthropic.com) for the Claude Code cloud credits that made
-the optimisation, clean-up and testing work of 0.10.0 much easier.
+Thanks to [Anthropic](https://www.anthropic.com) ([@anthropics](https://github.com/anthropics)) for the
+[Claude Code](https://github.com/anthropics/claude-code) cloud credits that made the optimisation,
+clean-up and testing work of 0.10.0 much easier.
 
 ## 📄 License
 
