@@ -4,7 +4,7 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
-## [0.9.1] - 2026-09-27
+## [0.10.0] - 2026-09-28
 
 ### Benchmarks
 
@@ -47,6 +47,8 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The rooms table only, and the results directory introduced *(readme)*
+- The benchmarks in the changelog, a performance summary in the README
 - Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
 - The answer count coalesced, the sounds off in a new room, the measures to redo cold
 - The benchmark after the lots, and a sizing page for operators
