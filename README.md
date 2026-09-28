@@ -149,7 +149,7 @@ docker compose -f docker-compose.prod.yml up -d
 # open http://localhost:18080
 ```
 
-Pin a version with `QUIZDOCK_TAG=0.9.1 docker compose -f docker-compose.prod.yml up -d`.
+Pin a version with `QUIZDOCK_TAG=0.10.0 docker compose -f docker-compose.prod.yml up -d`.
 From source: `git clone https://github.com/quizdock/quiz-dock.git`, then the same command
 with `--build`.
 
@@ -157,7 +157,7 @@ with `--build`.
 
 Migrations run **automatically** on every start: pull the new tag and `up` again.
 **Back up PostgreSQL first**, and **don't roll back** an image once its migrations ran —
-restore the backup instead. With the script: `./quizdock upgrade 0.9.1` (backup → pull →
+restore the backup instead. With the script: `./quizdock upgrade 0.10.0` (backup → pull →
 restart → doctor). Full procedure:
 [self-hosting → Upgrading](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/upgrading.md).
 
@@ -306,7 +306,7 @@ vulnerability via [`SECURITY.md`](https://github.com/quizdock/quiz-dock/blob/mai
 ## 🙏 Acknowledgements
 
 Thanks to [Anthropic](https://www.anthropic.com) for the Claude Code cloud credits that made
-the optimisation, clean-up and testing work of 0.9.1 much easier.
+the optimisation, clean-up and testing work of 0.10.0 much easier.
 
 ## 📄 License
 
