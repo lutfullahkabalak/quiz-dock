@@ -53,7 +53,7 @@ import {
 } from '../game/live-components';
 import { ImageChoiceGrid } from '../game/image-choice';
 import { cn } from '@/lib/utils';
-import { Surface } from '../game/surface';
+import { BACKDROP_EDGE, BACKDROP_PANEL, Surface } from '../game/surface';
 import { unlockAudio } from '../game/media/audio-unlock';
 import { claimMediaElements, mediaElementsClaimed } from '../game/media/media-pool';
 import { FollowedWaveform, QuestionMediaStage } from '../game/media/question-media-stage';
@@ -68,6 +68,14 @@ import { useCountdown, useQuestionClock } from '../game/use-countdown';
 import { type GameView, useGameSession } from '../game/use-game-session';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from '../auth/auth-context';
 import { Spinner } from '@/components/ui/loading';
+
+/**
+ * The answer page's pinned bars (the clock, the tiles) over a question's background:
+ * the local palette's panel, not the page's white, so what scrolls under them stays
+ * hidden without a band across the picture.
+ */
+const STICKY_ON_BACKDROP =
+  'on-backdrop:bg-card on-backdrop:px-[0.75em] on-backdrop:backdrop-blur-md on-backdrop:[text-shadow:none]';
 
 /**
  * Avis de transparence (§2.10, RG-16) : ce que la session enregistre de ce
@@ -327,7 +335,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
         : freeValue.trim() !== '';
       return (
         <form
-          className="flex w-full flex-col gap-3"
+          className={cn('flex w-full flex-col gap-3', BACKDROP_PANEL)}
           onSubmit={(e) => {
             e.preventDefault();
             if (!valid) return;
@@ -358,7 +366,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
     if (question.type === 'ordering' && opts.length) {
       const ordered = order.length ? order : opts.map((o) => o.id);
       return (
-        <div className="flex w-full flex-col gap-[0.75em]">
+        <div className={cn('flex w-full flex-col gap-[0.75em]', BACKDROP_PANEL)}>
           <SortableAnswer options={opts} order={ordered} onChange={setOrder} />
           <Button type="button" onClick={() => submit(ordered)}>
             {t('player.submitAnswer')}
@@ -383,7 +391,12 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             <OptionTiles options={opts} onPick={onPick} selectedIds={selected} />
           )}
           {isMulti ? (
-            <Button type="button" disabled={selected.length === 0} onClick={() => submit(selected)}>
+            <Button
+              type="button"
+              className={BACKDROP_EDGE}
+              disabled={selected.length === 0}
+              onClick={() => submit(selected)}
+            >
               {t('player.submitAnswer')}
             </Button>
           ) : null}
@@ -799,7 +812,12 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
           // Pinned on top while the rest scrolls; above an opened picture too.
           <QuestionClockBar
             clock={clock}
-            className="bg-background sticky top-0 z-50 shrink-0 py-[0.5em] text-[1.25em]"
+            className={cn(
+              'bg-background sticky top-0 z-50 shrink-0 py-[0.5em] text-[1.25em]',
+              // On a background, the page's white would be a band across it: the panel instead.
+              STICKY_ON_BACKDROP,
+              'on-backdrop:rounded-b-[0.75em]',
+            )}
           />
         ) : null}
         <div className="flex min-h-0 flex-1 flex-col justify-center gap-[0.75em] overflow-y-auto py-[0.5em]">
@@ -846,6 +864,8 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
             'flex w-full shrink-0 flex-col items-center gap-[0.75em] pb-[0.5em]',
             tiled &&
               'bg-background sticky bottom-0 pt-[0.5em] pb-[max(0.5em,env(safe-area-inset-bottom))]',
+            tiled && STICKY_ON_BACKDROP,
+            tiled && 'on-backdrop:rounded-t-[0.75em]',
           )}
         >
           <AnswerRules question={question} />

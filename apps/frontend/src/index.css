@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
+/* Inside a surface that carries a background (question or slide, game/surface.tsx). */
+@custom-variant on-backdrop (&:where([data-scheme] *));
 
 :root {
   --radius: 0.625rem;
@@ -67,6 +69,49 @@
   --ring: oklch(0.7 0.18 264);
   --success: oklch(0.7 0.17 150);
   --success-foreground: oklch(0.145 0 0);
+}
+
+/*
+ * Local palette of a surface that carries a background (game/surface.tsx). The
+ * author's text tone picks it — light text means a dark background, so a dark
+ * palette — and it re-themes that subtree only. Neutrals only: the brand's
+ * colours (primary, answers, success…) stay the instance's. `--card` is the
+ * translucent panel the UI sits on; `--qd-halo` the subtitle-like outline of
+ * text laid on the background.
+ */
+[data-scheme='dark'] {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.2 0 0 / 0.84);
+  --card-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.84 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 25%);
+  --input: oklch(1 0 0 / 45%);
+  --qd-halo: 0 0 2px rgb(0 0 0 / 0.95), 0 0 8px rgb(0 0 0 / 0.9), 0 2px 2px rgb(0 0 0 / 0.9);
+}
+[data-scheme='light'] {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0 / 0.86);
+  --card-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.4 0 0);
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --border: oklch(0 0 0 / 20%);
+  --input: oklch(0 0 0 / 40%);
+  --qd-halo:
+    0 0 2px rgb(255 255 255 / 0.95), 0 0 8px rgb(255 255 255 / 0.9),
+    0 2px 2px rgb(255 255 255 / 0.9);
 }
 
 @theme inline {

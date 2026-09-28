@@ -122,6 +122,12 @@ own**: only yours. States are `data-*` attributes.
 use them to scope a rule (`.qd-player .qd-answer`), and `.qd-shell[data-shell="participant"]`
 for the phone's background.
 
+A question's or a slide's background carries `data-scheme`: `dark` under light text,
+`light` under dark text. Inside it the neutral tokens (`--background`, `--foreground`,
+`--card`, `--muted`, `--muted-foreground`, `--border`, `--input`…) are that local
+palette's, set by QuizDock; your brand colours (`--primary`, `--answer-*`,
+`--success`…) are kept as they are.
+
 Example `branding/override.css`:
 
 ```css
