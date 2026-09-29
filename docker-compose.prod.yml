@@ -32,6 +32,53 @@ services:
       retries: 5
     networks: [internal]
 
+  # Created idempotently, including when the PostgreSQL volume predates this preset.
+  keycloak-db:
+    image: postgres:16-alpine
+    profiles: ['keycloak']
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-live}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-live}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        if ! psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'keycloak'" | grep -qx 1; then
+          createdb keycloak
+        fi
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+    networks: [internal]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0
+    profiles: ['keycloak']
+    command: ['start', '--http-enabled=true', '--import-realm']
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-live}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-live}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me-admin}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-${PUBLIC_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${KEYCLOAK_PORT:-18081}}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      KEYCLOAK_APP_URL: ${KEYCLOAK_APP_URL:-${PUBLIC_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${HTTP_PORT:-18080}}
+      KEYCLOAK_HOST_PASSWORD: ${KEYCLOAK_HOST_PASSWORD:-change-me-host}
+      KEYCLOAK_PLAYER_PASSWORD: ${KEYCLOAK_PLAYER_PASSWORD:-change-me-player}
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/import/quiz-dock-realm.json:ro
+    ports:
+      - '${KEYCLOAK_PORT:-18081}:8080'
+    depends_on:
+      keycloak-db:
+        condition: service_completed_successfully
+    restart: unless-stopped
+    networks: [internal, public]
+
   # Migrations idempotentes (Prisma). One-shot : applique puis sort. L'app attend
   # sa complétion. Même image que `quizdock`, commande surchargée (l'ENTRYPOINT
   # distroless est déjà `node`, donc on passe le chemin du CLI Prisma).
@@ -75,7 +122,7 @@ services:
       GAME_READ_DELAY_MS: ${GAME_READ_DELAY_MS:-3000}
       GAME_MEDIA_WAIT_S: ${GAME_MEDIA_WAIT_S:-10}
       # Adresse des invitations (QR, lien) proposée à l'animateur ; IP LAN si le conteneur ne voit pas l'hôte.
-      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-}
+      APP_PUBLIC_URL: ${APP_PUBLIC_URL:-${PUBLIC_HOST:+${PUBLIC_SCHEME:-http}://${PUBLIC_HOST}:${HTTP_PORT:-18080}}}
       HOST_LAN_IPS: ${HOST_LAN_IPS:-}
       # White-label : nom d'app + langue de l'instance (servis via /config.js).
       APP_NAME: ${APP_NAME:-QuizDock}
@@ -85,8 +132,8 @@ services:
       APP_FEEDBACK_URL: ${APP_FEEDBACK_URL:-}
       CLIENT_DIR: /app/client
       # Auth OIDC (si AUTH_MODE=oidc).
-      OIDC_ISSUER: ${OIDC_ISSUER:-}
-      OIDC_INTERNAL_URL: ${OIDC_INTERNAL_URL:-}
+      OIDC_ISSUER: ${OIDC_ISSUER:-${PUBLIC_HOST:+${KEYCLOAK_PUBLIC_URL:-${PUBLIC_SCHEME:-http}://${PUBLIC_HOST}:${KEYCLOAK_PORT:-18081}}/realms/quiz-dock}}
+      OIDC_INTERNAL_URL: ${OIDC_INTERNAL_URL:-${PUBLIC_HOST:+http://keycloak:8080}}
       OIDC_JWKS_URI: ${OIDC_JWKS_URI:-}
       OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
       OIDC_AUDIENCE: ${OIDC_AUDIENCE:-}

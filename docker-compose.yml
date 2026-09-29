@@ -42,6 +42,9 @@ services:
       # asks; the backend reaches the token endpoint over the internal network.
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-18080}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      KEYCLOAK_APP_URL: ${KEYCLOAK_APP_URL:-http://localhost:15173}
+      KEYCLOAK_HOST_PASSWORD: ${KEYCLOAK_HOST_PASSWORD:-host}
+      KEYCLOAK_PLAYER_PASSWORD: ${KEYCLOAK_PLAYER_PASSWORD:-player}
     ports:
       - '${KEYCLOAK_PORT:-18080}:8080'
     volumes:

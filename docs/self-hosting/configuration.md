@@ -3,6 +3,7 @@
 Operator guide for self-hosting QuizDock: how to start it, and every environment
 variable. Two companion guides cover what deserves its own page:
 
+- **[Choose a setup](setups.md)** — compare the four installation options.
 - **[Branding (white-label)](branding.md)** — name, language, logo, CSS.
 - **[Authentication](auth.md)** — local host seat, or your own OIDC provider.
 
@@ -20,6 +21,7 @@ docker compose -f docker-compose.prod.yml up -d          # reads the .env next t
 
 # The `quizdock` script: guided setup, then start, backup, upgrade
 ./quizdock init && ./quizdock up
+# Or: ./quizdock init --full && ./quizdock up (bundled Keycloak)
 ```
 
 **Start from an example.** Copy the one that fits into `.env` and adjust it — each is
@@ -30,6 +32,7 @@ commented, with only what that setup reads:
 | [`env/standalone.env.example`](../../env/standalone.env.example) | one container (`:standalone`), the database inside; local mode — a first try, a laptop |
 | [`env/local.env.example`](../../env/local.env.example) | Docker Compose with its own PostgreSQL, local mode — a classroom, a trusted network |
 | [`env/oidc.env.example`](../../env/oidc.env.example) | Docker Compose with your identity provider — an organisation |
+| [`env/full.env.example`](../../env/full.env.example) | Docker Compose with bundled Keycloak and sample accounts |
 
 `./quizdock init` writes a `.env` of its own by asking; the root `.env.example` is the
 development stack's, for contributors.

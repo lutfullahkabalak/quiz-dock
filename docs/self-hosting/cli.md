@@ -28,14 +28,16 @@ chmod +x quizdock
 PostgreSQL + Redis, data in the `quizdock` volume) — fine for a demo, not for
 production. The mode is remembered in `.env` (`QUIZDOCK_MODE`), everything else
 reads the same file.
+`init --full` adds a bundled Keycloak and creates random temporary passwords for
+its sample users and admin. See [choose a setup](setups.md).
 
 | Command | Description |
 |---|---|
-| `init [--standalone]` | Create `.env` (guided; generates a PostgreSQL password) and fetch `docker-compose.prod.yml`. |
+| `init [--full\|--standalone]` | Create `.env` (guided; generates passwords) and fetch Compose plus the realm file when needed. |
 | `up` / `down` | Start (and wait for health) / stop. |
 | `status` | Containers and health check. |
 | `logs [service]` | Follow logs (`quizdock`, `postgres`, `redis`, `migrate` in compose mode). |
-| `backup [dir]` | `pg_dump --clean` + media + `.env` → `./backups/quizdock-<date>/`. |
+| `backup [dir]` | `pg_dump --clean` + media + `.env` → `./backups/quizdock-<date>/`; full mode also dumps the Keycloak database. |
 | `restore <dir>` | Replace the database and media from a backup (stops the app first; asks for confirmation). |
 | `upgrade [tag]` | **backup → pull → restart** (migrations run on start) **→ doctor**. Persists the tag in `.env`. |
 | `doctor`, `seat:*`, `user:*`, `samples:load`, `quiz:list`, `sessions:purge` | Relayed to the in-image CLI (below). |

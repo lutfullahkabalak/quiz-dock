@@ -17,32 +17,38 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["http://localhost:18081/*", "http://localhost:15173/*"],
-      "webOrigins": ["http://localhost:18081", "http://localhost:15173"]
+      "redirectUris": ["${KEYCLOAK_APP_URL}/*"],
+      "webOrigins": ["${KEYCLOAK_APP_URL}"]
     }
   ],
   "users": [
     {
       "id": "2bca0877-373c-460c-a37d-6520be91d3b4",
-      "username": "animateur",
+      "username": "host",
       "enabled": true,
-      "email": "animateur@quiz-dock.test",
+      "email": "host@quiz-dock.test",
       "emailVerified": true,
-      "firstName": "Animateur",
-      "lastName": "Démo",
-      "credentials": [{ "type": "password", "value": "animateur", "temporary": false }],
-      "realmRoles": ["host"]
+      "firstName": "Alex",
+      "lastName": "Host",
+      "credentials": [
+        { "type": "password", "value": "${KEYCLOAK_HOST_PASSWORD}", "temporary": true }
+      ],
+      "requiredActions": ["UPDATE_PASSWORD"],
+      "realmRoles": ["host", "admin"]
     },
     {
       "id": "39b95ebf-1a3f-4b7f-a53e-105e57137962",
-      "username": "participant",
+      "username": "player",
       "enabled": true,
-      "email": "participant@quiz-dock.test",
+      "email": "player@quiz-dock.test",
       "emailVerified": true,
-      "firstName": "Participant",
-      "lastName": "Démo",
-      "credentials": [{ "type": "password", "value": "participant", "temporary": false }],
-      "realmRoles": []
+      "firstName": "Sam",
+      "lastName": "Player",
+      "credentials": [
+        { "type": "password", "value": "${KEYCLOAK_PLAYER_PASSWORD}", "temporary": true }
+      ],
+      "requiredActions": ["UPDATE_PASSWORD"],
+      "realmRoles": ["player"]
     }
   ]
 }

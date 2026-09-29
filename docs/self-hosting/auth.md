@@ -28,6 +28,7 @@ glue. Participants sign in too: see
 [who may take part](#who-may-take-part) below.
 
 A commented starting point: [`env/oidc.env.example`](../../env/oidc.env.example).
+To run a bundled Keycloak instead, see the [full setup](setups.md#full-compose-addresses-and-first-sign-in).
 
 ## How it works
 
@@ -203,19 +204,27 @@ The provider must name itself the same whoever asks: tokens obtained over the in
 network must still carry the public issuer. With Keycloak, set `KC_HOSTNAME` to the
 public URL and `KC_HOSTNAME_BACKCHANNEL_DYNAMIC=true`.
 
-## Example IdP for development
+## Bundled Keycloak and the development IdP
 
 The repository ships one worked example so you can try OIDC locally: a Keycloak
 realm in [`keycloak/realm-export.json`](../../keycloak/realm-export.json) (realm
-`quiz-dock`, public client `quiz-dock-frontend`, roles `host`/`player`, exposed under
-`realm_access.roles`). It is only an example — nothing in QuizDock depends on it.
-Two accounts: `animateur` (host) and `participant` (no role), the password being the
-username. In the repository's dev stack (with `docker-compose.override.yml`) it always
-runs, and OIDC is one variable away; elsewhere, start it with the `keycloak` profile:
+`quiz-dock`, public client `quiz-dock-frontend`, roles under
+`realm_access.roles`). The same file is used by the dev stack and the full Compose
+preset. Two accounts: `host` (Alex Host, roles `host` + `admin`) and `player`
+(Sam Player, role `player`). Their initial passwords come from
+`KEYCLOAK_HOST_PASSWORD` and `KEYCLOAK_PLAYER_PASSWORD`; both users must change
+their passwords on first sign-in. In the dev stack the defaults are `host` and
+`player`. The full preset's `init --full` generates random passwords in `.env`.
+Keycloak imports the realm only on a new database; changing these variables after
+first startup does not reset existing accounts.
+
+In the repository's dev stack (with `docker-compose.override.yml`) Keycloak always
+runs, and OIDC is one variable away. For a self-hosted installation, use
+`./quizdock init --full`; the `keycloak` profile is in `docker-compose.prod.yml`:
 
 ```bash
 AUTH_MODE=oidc docker compose up -d backend                  # dev stack
-AUTH_MODE=oidc docker compose --profile keycloak up -d       # base file alone
+./quizdock init --full && ./quizdock up                       # production Compose
 ```
 
 The dev compose file then defaults `OIDC_ISSUER` to `http://localhost:18080/realms/quiz-dock`,

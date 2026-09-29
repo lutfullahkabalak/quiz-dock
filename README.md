@@ -140,6 +140,9 @@ curl -fsSLO https://raw.githubusercontent.com/quizdock/quiz-dock/main/quizdock &
 ```
 
 Every command: [`docs/self-hosting/cli.md`](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/cli.md).
+To compare local, standalone, your own OIDC provider and bundled Keycloak, see
+[choose a setup](docs/self-hosting/setups.md). Use `./quizdock init --full` for the
+bundled Keycloak preset.
 
 ### Docker Compose by hand
 
