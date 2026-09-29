@@ -33,7 +33,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('Histoire')).toBeInTheDocument();
   });
 
-  it('a quiz another host shares: a lock, read-only, and « Créer à partir de ce quiz »', async () => {
+  it('a quiz another host shares: a lock, read-only, and « Créer un quiz à partir de ceci »', async () => {
     const fetchMock = mockApi([
       {
         method: 'POST',
@@ -69,7 +69,7 @@ describe('DashboardPage', () => {
     // Nothing of an owner's: no editing, no presenting.
     expect(screen.queryByRole('button', { name: /Éditer/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Présenter/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Créer à partir de ce quiz/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Créer un quiz à partir de ceci/ }));
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(
@@ -337,7 +337,7 @@ describe('DashboardPage', () => {
     renderApp('/quizzes');
     fireEvent.click((await screen.findAllByRole('button', { name: /Nouveau quiz/ }))[0]);
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Créer à partir de ce quiz/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Créer un quiz à partir de ceci/ }));
     await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2));
   });
 });

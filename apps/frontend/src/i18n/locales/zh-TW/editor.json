@@ -363,7 +363,9 @@
     "numericTarget": "目標：{{value}}（± {{tolerance}}）",
     "credits": "出處",
     "video": "題目影片",
-    "sound": "聲音 · {{seconds}} 秒"
+    "sound": "聲音 · {{seconds}} 秒",
+    "steps": "步驟",
+    "backToEditor": "返回編輯器"
   },
   "media": {
     "alt": "題目媒體",
@@ -508,7 +510,7 @@
   },
   "readOnly": {
     "notice": "{{owner}} 的測驗：你可以檢視，但不能修改。",
-    "createFrom": "以此測驗建立",
+    "createFrom": "以此建立測驗",
     "props": {
       "orderShown": "依正確順序列出。",
       "seconds_one": "{{count}} 秒",

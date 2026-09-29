@@ -6,11 +6,8 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type StorePreviewDtoItemsItemSlideBackground = {
-  url: string;
-} | {
-  gradient: {
-  angle: number;
-  colors: string[];
+export type StorePreviewDtoQuestionsItemAcceptedAnswersItem = {
+  id: string;
+  text: string;
+  normalized: string;
 };
-} | null;

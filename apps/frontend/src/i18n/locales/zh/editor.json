@@ -363,7 +363,9 @@
     "numericTarget": "目标：{{value}}（± {{tolerance}}）",
     "credits": "署名",
     "video": "题目视频",
-    "sound": "声音 · {{seconds}} 秒"
+    "sound": "声音 · {{seconds}} 秒",
+    "steps": "步骤",
+    "backToEditor": "返回编辑器"
   },
   "media": {
     "alt": "题目媒体",
@@ -508,7 +510,7 @@
   },
   "readOnly": {
     "notice": "{{owner}} 的测验：你可以查看，但不能修改。",
-    "createFrom": "基于此测验创建",
+    "createFrom": "以此创建测验",
     "props": {
       "orderShown": "按正确顺序列出。",
       "seconds_one": "{{count}} 秒",

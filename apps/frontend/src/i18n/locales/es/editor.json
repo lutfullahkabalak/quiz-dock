@@ -363,7 +363,9 @@
     "numericTarget": "Objetivo: {{value}} (± {{tolerance}})",
     "credits": "Créditos",
     "video": "Vídeo de la pregunta",
-    "sound": "Sonido · {{seconds}} s"
+    "sound": "Sonido · {{seconds}} s",
+    "steps": "Pasos",
+    "backToEditor": "Volver al editor"
   },
   "media": {
     "alt": "medio de la pregunta",
@@ -508,7 +510,7 @@
   },
   "readOnly": {
     "notice": "Cuestionario de {{owner}}: puedes consultarlo, no modificarlo.",
-    "createFrom": "Crear a partir de este quiz",
+    "createFrom": "Crear un quiz a partir de esto",
     "props": {
       "orderShown": "Listadas en el orden correcto.",
       "seconds_one": "{{count}} segundo",

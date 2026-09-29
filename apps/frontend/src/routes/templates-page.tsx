@@ -1,7 +1,14 @@
 import type { SlideBackground, SlideBlock } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { LayoutGrid, LibraryBig, List as ListIcon, ListChecks, Plus, Search } from 'lucide-react';
+import {
+  CopyPlus,
+  LayoutGrid,
+  LibraryBig,
+  List as ListIcon,
+  ListChecks,
+  Search,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -241,7 +248,7 @@ export function TemplatesPage() {
                   disabled={take.isPending}
                   onClick={() => void onCreate(entry.id)}
                 >
-                  <Plus className="size-4" />
+                  <CopyPlus className="size-4" />
                   {t('createFrom')}
                 </Button>
               </span>

@@ -6,10 +6,4 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type StorePreviewDtoItemsItemOptionsItem = {
-  text: string;
-  color: string;
-  shape: string;
-  /** @nullable */
-  mediaUrl: string | null;
-};
+export type StorePreviewDtoMedia = {[key: string]: string};

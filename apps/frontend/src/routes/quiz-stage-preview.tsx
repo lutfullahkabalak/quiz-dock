@@ -20,15 +20,22 @@ import type { QuizItem } from '@/lib/quiz-items';
 import { ScaledStage, SlideStage } from '../game/slide-stage';
 import { ShapeIcon } from '@/components/shape-icon';
 import { ImageChoiceGrid } from '../game/image-choice';
-import { mediaUrl } from '@/lib/media-url';
+import { type MediaResolver, mediaUrl, useMediaUrl } from '@/lib/media-url';
+import { Surface } from '../game/surface';
 
 /**
  * A quiz's steps as they will show, still: what the preview walks through and
  * the read-only view lays out, each on the 1280×720 stage.
  */
 
+/** What a step's preview reads of its quiz: the fields its slides' variables show. */
+export type StepQuiz = Pick<
+  QuizDetailDto,
+  'title' | 'description' | 'questionCount' | 'ownerName' | 'tags' | 'license'
+>;
+
 /** The quiz's fields its slides' variables read (`{title}`, `{questions}`…). */
-export function slideQuizFieldsOf(quiz: QuizDetailDto) {
+export function slideQuizFieldsOf(quiz: StepQuiz) {
   return {
     title: quiz.title,
     description: quiz.description,
@@ -55,21 +62,22 @@ export function slideShowOf(
   >,
   index: number,
   quizFields?: Parameters<typeof quizVariables>[0],
+  url: MediaResolver = mediaUrl,
 ): SlideShowPayload {
-  const blocks = slide.blocks as SlideBlock[];
+  const blocks = withImageUrls(slide.blocks as SlideBlock[], url);
   return {
     slideIndex: index,
     questionIndex: 0,
     blocks: quizFields ? fillSlideBlocks(blocks, quizVariables(quizFields)) : blocks,
     background: slide.mediaId
-      ? { url: mediaUrl(slide.mediaId) }
+      ? { url: url(slide.mediaId) }
       : slide.gradient
         ? { gradient: slide.gradient as SlideGradient }
         : null,
     // Its video, shown still (its first frame) behind the content.
     video: slide.videoMediaId
       ? {
-          url: mediaUrl(slide.videoMediaId),
+          url: url(slide.videoMediaId),
           loop: slide.videoLoop,
           sound: slide.videoSound,
           gainDb: 0,
@@ -81,10 +89,44 @@ export function slideShowOf(
   };
 }
 
-/** A question laid out on the 1280×720 stage: fixed sizes, scaled with the box. */
+/** Image blocks with the address of their picture, wherever it is served. */
+function withImageUrls(blocks: SlideBlock[], url: MediaResolver): SlideBlock[] {
+  return blocks.map((b) =>
+    b.type === 'columns'
+      ? { ...b, columns: b.columns.map((column) => withImageUrls(column, url) as typeof column) }
+      : b.type === 'image' && b.mediaId && !b.url
+        ? { ...b, url: url(b.mediaId) }
+        : b,
+  );
+}
+
+/** A question on the 1280×720 stage, on its own background as the projection shows it. */
 export function QuestionPreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
+  const url = useMediaUrl();
+  const background = question.backgroundMediaId
+    ? { url: url(question.backgroundMediaId) }
+    : question.backgroundGradient
+      ? { gradient: question.backgroundGradient as SlideGradient }
+      : null;
+  return (
+    <Surface
+      background={background}
+      textTone={question.textTone}
+      textOutline={question.textOutline}
+      className="h-full w-full"
+    >
+      {question.type === 'image_choice' ? (
+        <ImageChoicePreview question={question} />
+      ) : (
+        <QuestionBody question={question} />
+      )}
+    </Surface>
+  );
+}
+
+function QuestionBody({ question }: { question: QuizDetailDtoQuestionsItem }) {
   const { t } = useTranslation('editor');
-  if (question.type === 'image_choice') return <ImageChoicePreview question={question} />;
+  const url = useMediaUrl();
   const markWrong = question.type !== 'ordering' && question.options.some((o) => o.isCorrect);
   return (
     // Centred, as the projection shows a question.
@@ -95,7 +137,7 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
       {question.media?.visual?.kind === 'image' && (
         <img
           className="max-h-[260px] self-center object-contain"
-          src={mediaUrl(question.media?.visual.assetId)}
+          src={url(question.media.visual.assetId)}
           alt=""
         />
       )}
@@ -103,7 +145,7 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
         // Its first frame, still: the preview plays nothing.
         <video
           className="max-h-[260px] self-center rounded-lg object-contain"
-          src={`${mediaUrl(question.media?.visual.assetId)}#t=0.1`}
+          src={`${url(question.media.visual.assetId)}#t=0.1`}
           preload="metadata"
           muted
           aria-label={t('preview.video')}
@@ -175,14 +217,13 @@ export function QuestionPreview({ question }: { question: QuizDetailDtoQuestions
  */
 function ImageChoicePreview({ question }: { question: QuizDetailDtoQuestionsItem }) {
   const { t } = useTranslation('editor');
+  const url = useMediaUrl();
   const options = question.options.map((o) => ({
     id: o.id,
     text: null,
     color: o.color as PublicOption['color'],
     shape: o.shape as PublicOption['shape'],
-    media: o.mediaId
-      ? { url: mediaUrl(o.mediaId), kind: 'image' as const, alt: o.alt ?? null }
-      : null,
+    media: o.mediaId ? { url: url(o.mediaId), kind: 'image' as const, alt: o.alt ?? null } : null,
   }));
   return (
     <article className="flex h-full w-full flex-col gap-4 p-10 text-left">
@@ -226,13 +267,14 @@ export function StepStage({
   item: QuizItem;
   /** Its place in the sequence. */
   index: number;
-  quiz: QuizDetailDto;
+  quiz: StepQuiz;
   className?: string;
 }) {
+  const url = useMediaUrl();
   return item.kind === 'slide' ? (
     <SlideStage
       className={cn('rounded-xl border', className)}
-      slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz))}
+      slide={slideShowOf(item.slide, index, slideQuizFieldsOf(quiz), url)}
     />
   ) : (
     <ScaledStage className={cn('rounded-xl border', className)}>

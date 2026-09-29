@@ -9,7 +9,11 @@
 /**
  * @nullable
  */
-export type StorePreviewDtoItemsItemGradient = {
-  angle: number;
-  colors: string[];
+export type StorePreviewDtoInvalid = {
+  /**
+     * @minimum -9007199254740991
+     * @maximum 9007199254740991
+     * @nullable
+     */
+  item: number | null;
 } | null;

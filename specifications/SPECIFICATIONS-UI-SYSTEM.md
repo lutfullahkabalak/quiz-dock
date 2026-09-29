@@ -86,7 +86,7 @@
 - **Question form**: order *Type · Prompt · Answers*, then folds *Media · Timing · Points · Explanation · Background*, each with a summary that is always filled. A live preview (projection / phone) made of the live components. *Correct* is a readable toggle; changing type resets ticks and says so; *True/False* comes with *True* ticked; ordering positions are chosen as "1st, 2nd…" (1-based, swap on conflict; the players still see the author's order); numeric target and tolerance accept decimals; accepted answers show "n / 20"; the scoring help is written under the choice; alt text and credit of a media are saved with the form.
 - **Slide form**: same error display as the question; alignment as icons for text and image; removing a block offers *Undo*; empty blocks are flagged "empty — skipped when saved".
 - **Preview page**: step list, ← → keys, *Back to the editor*, projection / phone switch.
-- **Templates**: *Create a quiz from this* everywhere with one icon; *Withdraw* only for the author (or an admin), red outline, in `⋯`.
+- **Templates**: *Create a quiz from this* everywhere with one icon; *Withdraw* only for the author (or an admin), red outline, in `⋯`. A template's page **is the preview page**: the server reads the template through the import that makes the copy and returns its steps in the quiz's shape (media under stand-in ids with their catalogue URLs), and the page draws them with the quiz preview; only its header differs (author, licence, *Create a quiz from this*).
 - **Read-only quiz**: same status colours as the editor; "No questions yet".
 
 ---

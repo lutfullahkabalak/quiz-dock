@@ -1,7 +1,7 @@
-import type { HTMLAttributes } from 'react';
+import type { ComponentProps, HTMLAttributes } from 'react';
 import ReactMarkdown, { type Components } from 'react-markdown';
 import { cn } from '@/lib/utils';
-import { MEDIA_PATH } from '@/lib/media-url';
+import { MEDIA_PATH, useMediaUrl } from '@/lib/media-url';
 
 /**
  * **Restricted** Markdown rendering for text fields typed in the builder (#4).
@@ -31,11 +31,19 @@ function dom<T extends { node?: unknown }>(props: T): Omit<T, 'node'> {
   return rest;
 }
 
+/** A media of the app, served where the surrounding resolver says (a template: its catalogue). */
+function MediaImage({ id, alt, ...rest }: ComponentProps<'img'> & { id: string }) {
+  const url = useMediaUrl();
+  return (
+    <img {...rest} src={url(id)} alt={alt ?? ''} className="mx-auto max-h-[60vh] rounded-lg" />
+  );
+}
+
 const COMPONENTS: Components = {
   // Only media served by this app: no third-party images (tracking pixels, hotlinking).
   img: (p) =>
     typeof p.src === 'string' && p.src.startsWith(MEDIA_PATH) ? (
-      <img {...dom(p)} alt={p.alt ?? ''} className="mx-auto max-h-[60vh] rounded-lg" />
+      <MediaImage {...dom(p)} id={p.src.slice(MEDIA_PATH.length)} />
     ) : null,
   ul: (p) => <ul {...dom(p)} className="list-disc pl-6 text-left" />,
   ol: (p) => <ol {...dom(p)} className="list-decimal pl-6 text-left" />,

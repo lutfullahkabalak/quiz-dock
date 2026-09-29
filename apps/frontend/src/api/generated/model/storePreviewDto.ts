@@ -6,7 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { StorePreviewDtoAuthor } from './storePreviewDtoAuthor';
-import type { StorePreviewDtoItemsItem } from './storePreviewDtoItemsItem';
+import type { StorePreviewDtoInvalid } from './storePreviewDtoInvalid';
+import type { StorePreviewDtoMedia } from './storePreviewDtoMedia';
+import type { StorePreviewDtoQuestionsItem } from './storePreviewDtoQuestionsItem';
+import type { StorePreviewDtoSlidesItem } from './storePreviewDtoSlidesItem';
 
 export interface StorePreviewDto {
   id: string;
@@ -36,5 +39,9 @@ export interface StorePreviewDto {
      * @maximum 9007199254740991
      */
   slideCount: number;
-  items: StorePreviewDtoItemsItem[];
+  questions: StorePreviewDtoQuestionsItem[];
+  slides: StorePreviewDtoSlidesItem[];
+  media: StorePreviewDtoMedia;
+  /** @nullable */
+  invalid: StorePreviewDtoInvalid;
 }

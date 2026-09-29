@@ -184,7 +184,7 @@
     "answer1": "Réponse 1",
     "answer2": "Réponse 2"
   },
-  "createFrom": "Créer à partir de ce quiz",
+  "createFrom": "Créer un quiz à partir de ceci",
   "readOnly": "Lecture seule : partagé par un autre animateur",
   "filterOwner": "Propriétaire",
   "ownerAll": "Tous",
