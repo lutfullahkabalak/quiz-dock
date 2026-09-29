@@ -1,0 +1,509 @@
+{
+  "loading": "Yükleniyor…",
+  "notFound": "Quiz bulunamadı.",
+  "questionType": {
+    "single_choice": "Çoktan seçmeli (tek cevaplı)",
+    "multiple_choice": "Çoktan seçmeli (çoklu cevap)",
+    "true_false": "Doğru / Yanlış",
+    "text_input": "Metin girişi",
+    "numeric": "Sayısal",
+    "ordering": "Sıralama",
+    "poll": "Anket",
+    "image_choice": "Resim seçimi"
+  },
+  "header": {
+    "title": "Quiz editörü",
+    "history": "Geçmiş",
+    "deleteQuiz": "Quizi sil",
+    "preview": "Önizleme",
+    "export": "Dışa aktar",
+    "exportError": "Quiz dışa aktarılamadı."
+  },
+  "settings": {
+    "title": "Ayarlar",
+    "titleLabel": "Başlık",
+    "descriptionLabel": "Açıklama",
+    "descriptionPlaceholder": "Açıklama (isteğe bağlı)…",
+    "save": "Kaydet",
+    "soundLegend": "Ses",
+    "soundSummary": "{{lufs}} LUFS · {{target}} · {{tail}} sn duraklama",
+    "mediaTailLabel": "Medyadan sonra duraklatma",
+    "mediaTailHelp": "Bir sorunun ses veya videosu süre sınırından uzun sürerse soru medya bitene kadar devam eder. Ardından belirlenen duraklama süresi eklenir; oynatma yarıda kesilmez.",
+    "seconds": "s",
+    "loudnessLabel": "Ses seviyelendirme",
+    "loudnessHelp": "Quizdeki ses ve videoların oynatma ses seviyesi. Böylece sorular arasında ses düzeyi tutarlı olur; kaynak dosyalar değiştirilmez.",
+    "loudness": {
+      "14": "Yüksek sesle (−14 LUFS, akış)",
+      "16": "Dengeli (−16 LUFS)",
+      "23": "Sakin (−23 LUFS, yayın)"
+    },
+    "audioTargetLabel": "Sesi kim duyar",
+    "audioTargetHelp": "Quizdeki ses ve videolar hangi cihazlarda oynatılsın? Odadaki katılımcılar yansıtma ekranını görür. “Her cihaz” seçilmedikçe telefonları sessiz kalır; aynı odada birden fazla cihazdan ses çalmak yankıya neden olabilir. Sorular ve sunucu bu ayarı değiştirebilir.",
+    "audioTarget": {
+      "projection": "Yalnızca projeksiyon",
+      "projection_remote": "Projeksiyon ve uzak katılımcılar",
+      "everyone": "Her cihaz"
+    },
+    "sharingLegend": "Paylaşım",
+    "sharingSummary_one": "{{license}} · {{count}} etiket",
+    "sharingSummary_other": "{{license}} · {{count}} etiket",
+    "noLicense": "Lisans yok",
+    "languageLabel": "Dil",
+    "languageHelp": "Quizin yazıldığı dil. Katılımcılar bunu şablonlarda görür ve mağaza buna göre filtreler.",
+    "licenseLabel": "Lisans",
+    "licenseHelp": "Başkalarının quizi hangi koşullarla yeniden kullanabileceğini belirler. Şablon paylaşmak için gereklidir. İçerik ve medya haklarının sizde olması gerekir.",
+    "license": {
+      "cc0": "CC0 — koşul yok",
+      "ccBy": "CC BY 4.0 — yazara itibar edin",
+      "ccBySa": "CC BY-SA 4.0 — atıf yapın, aynı koşullarla paylaşın"
+    },
+    "tagsLabel": "Etiketler",
+    "tagsPlaceholder": "Etiket ekleyin…",
+    "tagsHelp": "Quizi şablonlar arasında bulmak için en fazla 5 anahtar kelime. Bir tane eklemek için Enter tuşuna basın.",
+    "removeTag": "{{tag}} etiketini kaldır",
+    "saveError": "Değişiklik kaydedilemedi.",
+    "sharedLabel": "Bu kurulumdaki diğer sunucularla paylaş",
+    "sharedHelp": "Diğer sunucular quizi salt okunur olarak görebilir ve kendi kopyalarını oluşturabilir. Kapalıysa yalnızca siz görebilirsiniz.",
+    "sharedOn": "Paylaşıldı",
+    "sharedOff": "Özel"
+  },
+  "broadcast": {
+    "title": "Yayın",
+    "fullCaptureHelp": "Her katılımcının cevap ayrıntılarını tutar (bireysel izleme). Sunumdan önce etkinleştirin.",
+    "publish": "Yayınla (hazır)",
+    "presenting": "Başlıyor…",
+    "present": "Sun",
+    "backToDraft": "Taslağa geri dön",
+    "archive": "Arşiv",
+    "restore": "Geri yükle",
+    "archiveTitle": "Arşivleme",
+    "archiveHelp": "Arşivlenmiş bir quiz ana listeden çıkar; geri yüklenebilir.",
+    "fullCaptureNext": "Bir sonraki oynatılışında tam yanıt yakalama"
+  },
+  "feedback": {
+    "enableLabel": "Katılımcı geri bildirimine izin ver",
+    "enableHelp": "Quiz tamamlandığında katılımcılara değerlendirme formu gösterilir.",
+    "title": "Katılımcı değerlendirmeleri",
+    "empty": "Henüz geri bildirim yok.",
+    "starsAriaLabel": "5 üzerinden {{value}}",
+    "seeAll_one": "Değerlendirmeyi gör",
+    "seeAll_other": "{{count}} değerlendirmeyi gör",
+    "backToEditor": "Editöre geri dön",
+    "loadError": "İncelemeler yüklenemedi.",
+    "noneForFilter": "Bu derecelendirmeye sahip inceleme yok.",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "pagePosition": "Sayfa {{page}} / {{pages}}",
+    "count_one": "{{count}} değerlendirme",
+    "count_other": "{{count}} değerlendirme"
+  },
+  "questions": {
+    "title": "Sorular ({{count}})",
+    "add": "Ekle",
+    "moveUp": "Yukarı taşı",
+    "moveDown": "Aşağı taşı",
+    "edit": "Düzenle",
+    "deleteQuestion": "Soruyu sil",
+    "dragHandle": "Yeniden sıralamak için sürükleyin",
+    "itemsCount_one": "{{count}} öğe",
+    "itemsCount_other": "{{count}} öğe",
+    "formTitle": "Soru",
+    "empty": "Soru yok. Bir tane ekle!",
+    "collapseList": "Listeyi daralt",
+    "expandList": "Listeyi genişlet"
+  },
+  "slides": {
+    "formTitle": "Slayt",
+    "add": "Slayt ekle",
+    "kind": "Slayt",
+    "deleteSlide": "Slaydı sil",
+    "durationManual": "manuel"
+  },
+  "slideForm": {
+    "bodyPlaceholder": "Görüntülenecek metin…",
+    "contrastLegend": "Metin kontrastı",
+    "tone": {
+      "light": "Koyulaştırılmış bir görüntü üzerinde açık renkli metin",
+      "dark": "Aydınlatılmış bir görüntü üzerinde koyu metin"
+    },
+    "outline": "Metin çevresi (altyazıdaki gibi hale)",
+    "displayLegend": "Otomatik ilerleme (otomatik mod)",
+    "displayDelayLabel": "Süre (sn)",
+    "display": {
+      "default": "Varsayılan süre (5 sn)",
+      "manual": "Manuel: sunucu tıklar",
+      "custom": "Özel süre…"
+    },
+    "displayHint": "Manuel modda sunucu her zaman elle hareket eder.",
+    "invalidError": "Slaytta başlık, içerik veya medya bulunmalıdır.",
+    "submitAdd": "Ekle",
+    "submitUpdate": "Kaydet",
+    "blocksLegend": "İçerik",
+    "block": {
+      "heading": "Başlık",
+      "subheading": "Alt başlık",
+      "text": "Metin",
+      "image": "Resim",
+      "columns2": "2 sütun",
+      "columns3": "3 sütun"
+    },
+    "dragBlock": "Bloğu yeniden sıralamak için sürükleyin",
+    "removeBlock": "Bloğu kaldır",
+    "headingLevel": "Seviye",
+    "headingPlaceholder": "Başlık…",
+    "imageSize": "Boyut",
+    "imageAlign": "Hizalama",
+    "size": {
+      "small": "Küçük",
+      "medium": "Orta",
+      "large": "Büyük",
+      "full": "Tam genişlik"
+    },
+    "align": {
+      "left": "Sol",
+      "center": "Merkez",
+      "right": "Sağ"
+    },
+    "ratio": "Sütun oranı",
+    "textAlign": "Metin hizalaması",
+    "previewLegend": "Önizleme",
+    "hidePreview": "Gizle",
+    "showPreview": "Göster",
+    "textSize": "Metin boyutu",
+    "sizeShort": {
+      "small": "S",
+      "medium": "M",
+      "large": "L"
+    },
+    "titleEdit": "Slaydı düzenle",
+    "titleAdd": "Yeni slayt",
+    "mediaLegend": "Slayt medyası",
+    "videoCover": "Slaydı içeriğinin arkasına doldurur (ekrana kırpılır).",
+    "videoLoop": "Döngü",
+    "videoLoopHint": "Slayt gösterildiği sürece çalışır. Kapalı: bir kez oynatılır ve son karesinde kalır; slayt otomatik modda sonunu bekler.",
+    "videoSound": "Ses",
+    "videoSoundHint": "Videonun kendi sesini çalar. Kapalı: sessizdir ve slaytın kendine ait bir sesi olabilir.",
+    "audioExcludesVideoSound": "Slaytta zaten bir ses var: her seferinde bir ses. Videoyu açmak için onu kaldırın.",
+    "videoSoundExcludesAudio": "Video kendi sesini çalar: ekstra ses yoktur. Eklemek için videoyu sessize alın.",
+    "variablesLegend": "Değişkenler",
+    "variablesHint": "Başlığa veya metne bir değişken ekleyin. Slayt gösterilirken gerçek değeriyle değiştirilir. Önizlemede örnek değerler görünür.",
+    "variables": {
+      "title": "Quizin başlığı",
+      "description": "Quizin açıklaması",
+      "questions": "Kaç soru var",
+      "author": "Yazarı",
+      "tags": "Etiketleri",
+      "license": "Lisansı",
+      "room": "Odanın adı",
+      "host": "Sunucunun adı",
+      "pin": "Odanın PIN'i",
+      "join": "Katılım adresi",
+      "players": "Kaç katılımcı bağlı?",
+      "question": "Slaydı takip eden sorunun numarası",
+      "total": "Quizin kaç sorusu var",
+      "remaining": "Kaç soru kaldı, sonraki soru dahil",
+      "date": "Bugünün tarihi",
+      "time": "Zaman"
+    }
+  },
+  "discardConfirm": {
+    "title": "Değişiklikler silinsin mi?",
+    "description": "Kaydedilmemiş değişiklikler kaybolacaktır.",
+    "confirmLabel": "Vazgeç"
+  },
+  "emptyPane": {
+    "emptyTitle": "Bu quiz boş",
+    "emptyHint": "Bir soruyla veya bir giriş slaytıyla başlayın.",
+    "selectTitle": "Hiçbir şey seçilmedi",
+    "selectHint": "Düzenlemek için listeden bir öğe seçin."
+  },
+  "deleteConfirm": {
+    "hint": "Bu quizi ve tüm geçmişini silin.",
+    "title": "Bu quiz silinsin mi?",
+    "description": "“{{title}}” ve soruları kalıcı olarak silinecek. Bu eylem geri alınamaz.",
+    "confirmLabel": "Sil",
+    "zoneTitle": "Tehlike bölgesi"
+  },
+  "questionForm": {
+    "typeLabel": "Tür",
+    "promptLabel": "Soru metni",
+    "promptPlaceholder": "Sorunuz…",
+    "playbackLegend": "Oynatma",
+    "timingLegend": "Zamanlama",
+    "pointsLegend": "Puanlar",
+    "answerExplanationLabel": "Yanıt açıklaması (yanıtlar gösterildiğinde görünür)",
+    "answerExplanationPlaceholder": "Bu yanıt neden doğru? (isteğe bağlı)",
+    "timeLimitLabel": "Süre (sn)",
+    "revealDelayLabel": "Yanıt gösterme süresi",
+    "revealDelayPlaceholder": "oto",
+    "revealDelayHint": "Otomatik modda, yanıtlar gösterildikten sonra sonraki soruya geçmeden önce beklenecek süre. Boş bırakılırsa varsayılan süre kullanılır.",
+    "audioTargetLabel": "Bu sesi kim duyar",
+    "audioTargetHint": "Bu sorunun sesini veya videosunu hangi cihazlarda oynatıyor? \"Her cihaz\", odadaki telefonları içerir ve paylaştıkları takdirde yankılanır.",
+    "audioTargetDefault": "Quizin odadaki ayarı",
+    "waveformSizeLabel": "Dalga biçimi boyutu",
+    "waveformSizeHint": "Projeksiyon ve telefonlarda sesin dalga biçiminin ne kadar kalın çizildiği.",
+    "waveformPreview": "Dalga formu önizlemesi",
+    "waveformHiddenNote": "Projeksiyonda ve telefonlarda gizli; ses hâlâ çalıyor ve konsolunuz onu hâlâ gösteriyor.",
+    "waveformSize": {
+      "S": "Küçük",
+      "M": "Orta",
+      "L": "Büyük",
+      "hidden": "Gizli"
+    },
+    "pointsLabel": "Puanlar",
+    "pointsMode": {
+      "standard": "Standart",
+      "double": "İki kat puan",
+      "fixed": "Sabit (hız bonusu yok)"
+    },
+    "optionsLegend": "Seçenekler",
+    "optionAriaLabel": "seçenek {{index}}",
+    "dragOption": "Seçeneği yeniden sıralamak için sürükleyin",
+    "optionPlaceholder": "Seçenek {{index}}",
+    "colorAriaLabel": "renk {{index}}",
+    "shapeAriaLabel": "şekil {{index}}",
+    "orderAriaLabel": "sıra {{index}}",
+    "correct": "doğru",
+    "removeOption": "{{index}} seçeneğini kaldır",
+    "addOption": "Bir seçenek ekle",
+    "acceptedAnswersLegend": "Kabul edilen cevaplar",
+    "answerAriaLabel": "cevap {{index}}",
+    "removeAnswer": "{{index}} yanıtını kaldır",
+    "addAnswer": "Yanıt ekleyin",
+    "numericValueLabel": "Hedef değer",
+    "numericToleranceLabel": "Tolerans ±",
+    "submitUpdate": "Kaydet",
+    "submitAdd": "Ekle",
+    "cancel": "İptal",
+    "invalidError": "Geçersiz soru.",
+    "scoringLabel": "Puanlama",
+    "scoring": {
+      "multiple_choice": {
+        "standard": "Ya hep ya hiç",
+        "partial": "Kısmi puan"
+      },
+      "ordering": {
+        "standard": "Ya hep ya hiç",
+        "partial": "Kısmi puan"
+      },
+      "text_input": {
+        "standard": "Tam eşleşme",
+        "lenient": "Yazım hatalarını kabul et"
+      },
+      "numeric": {
+        "standard": "Tolerans dahilinde",
+        "closest": "En yakın yanıt kazanır"
+      },
+      "image_choice": {
+        "standard": "Ya hep ya hiç",
+        "partial": "Kısmi puan"
+      }
+    },
+    "scoringHelp": {
+      "multiple_choice": "Kısmi puan: Her doğru işaretleme puan kazandırır, her yanlış işaretleme bir doğruyu götürür.",
+      "ordering": "Kısmi puan: Doğru konumdaki her öğe puan kazandırır.",
+      "text_input": "Yazım hatalarına tolerans: Beş harfe kadar bir, daha uzun yanıtlarda iki karakterlik hata kabul edilir (büyük/küçük harf ve aksanlar eşitlendikten sonra).",
+      "numeric": "En yakın yanıt kazanır: Hedefe tolerans dahilinde ulaşanlar tam puan, diğerleri yakınlığına göre %75, %50, %30 veya %10 puan alır. Hız bonusu yoktur.",
+      "image_choice": "Kısmi puan: Her doğru görsel puan kazandırır, her yanlış seçim bir doğruyu götürür."
+    },
+    "removeOptionConfirm": {
+      "title": "Bu seçenek kaldırılsın mı?",
+      "description": "“{{label}}” sorudan çıkarılacaktır.",
+      "confirmLabel": "Kaldır"
+    },
+    "titleEdit": "Soruyu düzenle",
+    "titleAdd": "Yeni soru",
+    "stretchedTime": "Medya {{media}} sn sürer; soru toplam {{total}} sn açık kalır (medya süresi + {{tail}} sn duraklama).",
+    "listenFirstLabel": "Medya bittiğinde zamanlayıcıyı başlat",
+    "listenFirstHint": "Önce dinleyin, sonra cevaplayın: Ses veya video oynatılırken kimse cevap veremez ve daha sonra herkesin düşünmek için tam zamanı olur.",
+    "listenFirstTime": "Medya {{media}} sn oynatılır, ardından {{time}} sn yanıtlama süresi başlar.",
+    "promptImageNotice": "Soru metnindeki görseli soru medyasına taşımanız daha iyi olur. Böylece her ekranda uygun boyutta gösterilir, telefonda yakınlaştırılabilir ve önceden yüklenir.",
+    "promptImageMove": "Soru medyasına taşı",
+    "imagesLegend": "Görseller",
+    "imageCountLabel": "Kaç tane",
+    "multiSelectLabel": "Birkaç doğru cevap",
+    "multiSelectHint": "Katılımcılar her doğru resmi işaretler ve çoktan seçmeli olarak puanlanarak gönderirler.",
+    "imageCropNote": "Her resim, projeksiyonun gösterdiği gibi, döşemesini dolduracak şekilde kırpılır.",
+    "imageAdd": "Resim ekle",
+    "imageRequired": "Bu cevap için bir resim seçin.",
+    "imageAltLabel": "Alternatif metin",
+    "imageAltAria": "Resmin alternatif metni {{index}}",
+    "imageAltPlaceholder": "Göremeyenler için resim neyi gösteriyor",
+    "imageAltRequired": "Resmi tanımlayın: göremeyenler için cevap budur.",
+    "imagesIncomplete": "Her cevabın bir resme ve alternatif metnine ihtiyacı vardır.",
+    "imageCountConfirm": {
+      "title": "Yalnızca 2 görsel kalsın mı?",
+      "description": "Son iki cevap ve resimleri kaldırılacaktır.",
+      "confirmLabel": "Kaldır"
+    },
+    "trueOption": "Doğru",
+    "falseOption": "Yanlış"
+  },
+  "preview": {
+    "view": "Önizleme (katılımcı görünümü)",
+    "exitFullscreen": "Tam ekrandan çık",
+    "fullscreen": "Tam ekran",
+    "noQuestions": "Bu quizin henüz sorusu yok.",
+    "previous": "Önceki",
+    "next": "Sonraki",
+    "questionPosition": "{{index}} / {{total}}",
+    "correctAnswer": "doğru cevap",
+    "optionFallback": "Seçenek {{index}}",
+    "acceptedAnswers": "Kabul edilen yanıtlar: {{answers}}",
+    "numericTarget": "Hedef: {{value}} (± {{tolerance}})",
+    "credits": "Kaynaklar",
+    "video": "Soru videosu",
+    "sound": "Ses · {{seconds}} sn"
+  },
+  "media": {
+    "alt": "soru medyası",
+    "remove": "Medyayı kaldır",
+    "uploading": "Yükleniyor…",
+    "add": "Resim ekle",
+    "fileInputLabel": "Medya dosyası",
+    "uploadError": "Yükleme başarısız oldu.",
+    "demoDisabled": "Demo kurulumunda medya yükleme kapalıdır.",
+    "altLabel": "Alternatif metin",
+    "altPlaceholder": "örneğin Kylian Mbappé Fransa formasıyla",
+    "altHelp": "Görselin ne gösterdiğini açıklayın; ekran okuyucu bunu seslendirir. Görsel yalnızca dekor amaçlıysa boş bırakın.",
+    "slotsLegend": "Soru medyası",
+    "visualLabel": "Görsel",
+    "audioLabel": "Ses",
+    "kindImage": "Resim",
+    "kindVideo": "video",
+    "none": "Yok",
+    "addImage": "Resim ekle",
+    "addVideo": "Video ekle",
+    "addAudio": "Ses ekle",
+    "videoExcludesAudio": "Videonun zaten kendi sesi var: ekstra ses parçası yok. Ses eklemek için videoyu kaldırın.",
+    "audioExcludesVideo": "Bir videonun zaten kendi sesi vardır: Bir video seçmek için sesi kaldırın.",
+    "converting": "Dönüştürülüyor…",
+    "convertingPercent": "Dönüştürülüyor… %{{percent}}",
+    "cancelConversion": "İptal",
+    "notice": {
+      "gifFirstFrame": "Animasyonlu GIF: yalnızca ilk karesi korunur."
+    },
+    "library": {
+      "close": "Kapat",
+      "search": "Ada, alternatif metne veya kaynak bilgisine göre ara",
+      "loading": "Yükleniyor…",
+      "empty": "Henüz burada hiçbir şey yok: Yüklediğiniz medya tekrar kullanılmak üzere burada tutuluyor.",
+      "noMatch": "Bu aramayla eşleşen medya yok.",
+      "pick": "{{name}} kullanın",
+      "unused": "Kullanılmayan",
+      "delete": "{{name}}'yi sil",
+      "deleteTitle": "Bu medya silinsin mi?",
+      "deleteDescription": "Hiçbir quiz tarafından kullanılmaz. Dosyası tamamen silinir.",
+      "deleteConfirm": "Sil",
+      "deleteError": "Medya silinemedi.",
+      "findElsewhere": "Başka kaynaklarda ara:",
+      "creditReminder": "CC BY lisanslı medya kullanıyorsanız kaynak bilgisine yazarı ve lisansı ekleyin.",
+      "title": {
+        "image": "Medyam · görseller",
+        "video": "Medyam · videolar",
+        "audio": "Medyam · sesler"
+      },
+      "usedIn_one": "{{count}} quizde kullanıldı",
+      "usedIn_other": "{{count}} quizde kullanıldı",
+      "openKind": {
+        "image": "Resimlerim",
+        "video": "Videolarım",
+        "audio": "Seslerim"
+      },
+      "inHistory": "Geçmiş sonuçlar için tutuldu",
+      "tab": {
+        "mine": "Medyam",
+        "instance": "Ortak medya"
+      },
+      "instanceEmpty": "Yöneticiler henüz bu türde ortak medya eklemedi."
+    },
+    "creditLabel": "Kaynak bilgisi",
+    "creditPlaceholder": "örneğin Fotoğraf: Lin Wei, CC BY 4.0, openverse.org",
+    "creditHelp": "Yazar, lisans ve kaynak. Önizlemede ve quiz sonunda gösterilir; CC BY lisansı bunu gerektirir."
+  },
+  "background": {
+    "legend": "Arka plan",
+    "kind": {
+      "none": "Beyaz",
+      "image": "Resim",
+      "gradient": "Gradyan"
+    },
+    "color": "Renk {{index}}",
+    "removeColor": "{{index}} rengini kaldır",
+    "addColor": "Renk ekle",
+    "angle": "Açı"
+  },
+  "status": {
+    "draft": "Taslak — quizi sunmak için yayınlayın.",
+    "ready": "Sunmaya hazır.",
+    "archived": "Arşivlendi — düzenlemek veya sunmak için geri yükleyin."
+  },
+  "deleteItemConfirm": {
+    "questionTitle": "Bu soru silinsin mi?",
+    "slideTitle": "Bu slayt silinsin mi?",
+    "description": "“{{label}}” kalıcı olarak silinecek.",
+    "confirmLabel": "Sil"
+  },
+  "questionTypeHelp": {
+    "single_choice": "2 ila 8 seçenek arasında bir doğru cevap. Puanlar hıza göre artar, artı bir seri bonusu.",
+    "multiple_choice": "Birkaç doğru cevap; katılımcı işaretler ve ardından gönderir. Ya hep ya hiç: işaretli küme tam olarak eşleşmelidir.",
+    "true_false": "İki sabit seçenek, biri doğru. Oynanması en hızlı olanıdır.",
+    "text_input": "Katılımcı cevabı yazar. Büyük/küçük harf, aksan ve fazladan boşluklar göz ardı edilerek kabul edilen cevaplarla eşleştirildi.",
+    "numeric": "Katılımcı bir sayı girer; Hedefin ± toleransı dahilindeyken doğru.",
+    "ordering": "Katılımcı, seçenekleri konumlara (#) göre belirlenen sıraya göre sıralar. Ya hep ya hiç.",
+    "poll": "Yalnızca görüş: doğru cevap yok, puan yok; dağıtım, gösterimde gösterilmektedir.",
+    "image_choice": "Cevaplar, her biri kendi rengine ve şekline sahip 2 veya 4 resimdir. Bir doğru resim veya ayarlandığında birkaç tane; tek veya çoktan seçmeli olarak puanlanmıştır."
+  },
+  "sessions": {
+    "running_one": "{{count}} oda bunu oynuyor",
+    "running_other": "{{count}} oda bunu oynuyor",
+    "players_one": "{{count}} katılımcı",
+    "players_other": "{{count}} katılımcı",
+    "liveEditsHint": "Düzen ve sunum düzenlemeleri (arka planlar, kontrast, açıklamalar, slaytlar) bir sonraki adımda oynatılan odalara ulaşır; sorular ve cevaplar başlatıldığı gibi kalır."
+  },
+  "publication": {
+    "open": "Yayınlanmak üzere dışa aktar",
+    "title": "Yayınlanmak üzere dışa aktar",
+    "description": "Quizi topluluk kataloğunun koşullarına göre denetler, ardından dosyayı quizdock-quizzes deponuza yükleyebilmeniz için indirir.",
+    "download": "İndir",
+    "checking": "Quiz kontrol ediliyor…",
+    "failed": "Dışa aktarma hazırlanamadı.",
+    "check": {
+      "ready": "Quiz hazır",
+      "notReady": "Quiz hazır değil",
+      "language": "Dil: {{language}}",
+      "license": "Lisans: {{license}}",
+      "noLicense": "Lisans yok",
+      "tags": "Etiketler: {{tags}}",
+      "noTags": "Etiket yok",
+      "size": "Boyut: {{size}} / {{max}}",
+      "uncredited_one": "Kaynak bilgisi eksik {{count}} medya",
+      "uncredited_other": "Kaynak bilgisi eksik {{count}} medya",
+      "credited": "Tüm medyanın kaynak bilgisi var"
+    },
+    "fix": {
+      "ready": "Önce quizi hazır olarak işaretleyin (Yayınla).",
+      "settings": "Bunu quiz ayarlarında Paylaşım altında ayarlayın.",
+      "size": "En ağır medyayı hafifletin veya çıkarın:",
+      "credit": "Yayınladığınız her görsel, ses ve videonun kullanım haklarından siz sorumlusunuz. Medya kitaplığında yazar, lisans ve kaynak bilgisini belirtin."
+    },
+    "kind": {
+      "image": "Resim",
+      "video": "video",
+      "audio": "Ses"
+    },
+    "slugLabel": "Kısa ad",
+    "slugHelp": "Mağazanın deponuzdaki bu quizi nasıl bildiği. Dosya: {{file}}",
+    "slugChanged": "Bunu \"{{previous}}\" olarak değiştirmek mağaza için yeni bir quiz oluşturur: eski dosyayı deponuzdan silin."
+  },
+  "readOnly": {
+    "notice": "{{owner}}'ın quizi: Okuyabilirsiniz, değiştiremezsiniz.",
+    "createFrom": "Bu quizden oluşturun",
+    "props": {
+      "orderShown": "Doğru sırada listelenmiştir.",
+      "seconds_one": "{{count}} saniye",
+      "seconds_other": "{{count}} saniye",
+      "muted": "sessiz"
+    }
+  }
+}

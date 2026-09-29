@@ -1,0 +1,54 @@
+{
+  "loading": "Yükleniyor…",
+  "confirm": "Onayla",
+  "cancel": "İptal",
+  "close": "Kapat",
+  "quizStatus": {
+    "draft": "Taslak",
+    "ready": "Hazır",
+    "archived": "Arşivlendi"
+  },
+  "markdownEditor": {
+    "visual": "Görsel editör",
+    "source": "Markdown",
+    "bold": "Kalın",
+    "italic": "italik",
+    "code": "Kod",
+    "codeBlock": "Kod bloğu",
+    "bulletList": "Madde işaretli liste",
+    "orderedList": "Numaralı liste"
+  },
+  "captureConfirm": {
+    "title": "Tam yanıt yakalama açılsın mı?",
+    "description": "Her katılımcının tüm yanıtları takma adıyla saklanacaktır. Bunlar kişisel verilerdir (KVKK/GDPR): katılımcıları bilgilendirin ve gerektiğinde kayıtları silin. Oturum arşivleri de veritabanında büyür. Yalnızca bireysel takip, değerlendirme veya sertifikasyon gerektiğinde açın.",
+    "confirmLabel": "Aç"
+  },
+  "draft": {
+    "restored": "Taslak geri yüklendi — kaydedilmemiş değişiklikleriniz kurtarıldı.",
+    "discard": "Taslağı sil"
+  },
+  "titles": {
+    "login": "Giriş yap",
+    "dashboard": "Quizlerim",
+    "editor": "Düzenleyici",
+    "preview": "Önizleme",
+    "feedback": "Değerlendirmeler",
+    "sessions": "Geçmiş",
+    "session": "Oda",
+    "player": "Katılımcı",
+    "control": "Kontrol paneli",
+    "screen": "Yansıtma ekranı",
+    "join": "Katıl",
+    "live": "Açık odalar",
+    "templates": "Şablonlar",
+    "profile": "Hesabım",
+    "template": "Şablon"
+  },
+  "demo": {
+    "banner": "Herkese açık demo — tüm ziyaretçiler aynı sunucu hesabını paylaşır; veriler her saat silinir."
+  },
+  "chromiumOnly": "Bu sayfa Chrome, Edge veya başka bir Chromium tarayıcı için oluşturulmuştur. Bu tarayıcıda video ve seslerin yüklenmesi ve oynatılması düzgün çalışmayabilir.",
+  "play": "Oynat",
+  "pause": "Duraklat",
+  "position": "Sesteki konum"
+}
