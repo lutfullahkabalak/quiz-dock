@@ -42,7 +42,8 @@
     "live": "Salas abiertas",
     "templates": "Plantillas",
     "profile": "Mi cuenta",
-    "template": "Plantilla"
+    "template": "Plantilla",
+    "instanceMedia": "Medios de la instancia"
   },
   "demo": {
     "banner": "Demo pública — una sola cuenta de anfitrión compartida por todos los visitantes; todo se borra cada hora."

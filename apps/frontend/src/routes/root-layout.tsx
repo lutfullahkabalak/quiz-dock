@@ -26,6 +26,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/join': 'join',
   '/join/$pin': 'join',
   '/join/$pin/screen': 'screen',
+  '/admin/media': 'instanceMedia',
 };
 
 export function RootLayout() {

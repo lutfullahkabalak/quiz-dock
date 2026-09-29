@@ -42,7 +42,8 @@
     "live": "Open rooms",
     "templates": "Templates",
     "profile": "My account",
-    "template": "Template"
+    "template": "Template",
+    "instanceMedia": "Instance media"
   },
   "demo": {
     "banner": "Public demo — one host account shared by all visitors; everything is wiped every hour."

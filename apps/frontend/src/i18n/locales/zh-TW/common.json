@@ -42,7 +42,8 @@
     "live": "開放的房間",
     "templates": "範本",
     "profile": "我的帳號",
-    "template": "範本"
+    "template": "範本",
+    "instanceMedia": "實例媒體"
   },
   "demo": {
     "banner": "公開示範——所有訪客共用一個主持人帳號；每小時清空一次。"

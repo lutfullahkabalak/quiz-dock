@@ -42,7 +42,8 @@
     "live": "Salons ouverts",
     "templates": "Modèles",
     "profile": "Mon compte",
-    "template": "Modèle"
+    "template": "Modèle",
+    "instanceMedia": "Médias de l’instance"
   },
   "demo": {
     "banner": "Démo publique — un seul compte animateur partagé par tous les visiteurs ; tout est effacé chaque heure."
