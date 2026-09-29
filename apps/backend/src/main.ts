@@ -1,4 +1,6 @@
 import 'reflect-metadata';
+import { json, type Request, type Response, type NextFunction } from 'express';
+import { TEXT_QUIZ_MAX_BYTES } from './quizzes/portable/text-quiz-validation';
 import { NestFactory } from '@nestjs/core';
 import { SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
@@ -20,6 +22,19 @@ async function bootstrap(): Promise<void> {
   // `req.ip` and `req.secure` follow `TRUST_PROXY`, like the sockets.
   app.getHttpAdapter().getInstance().set('trust proxy', trustProxy());
   app.enableCors();
+  const validationParser = json({ limit: 2 * TEXT_QUIZ_MAX_BYTES + 64 * 1024 });
+  app.use('/api/v1/quizzes/validate', (req: Request, res: Response, next: NextFunction) => {
+    validationParser(req, res, (error?: { type?: string }) => {
+      if (!error) {
+        next();
+        return;
+      }
+      const tooLarge = error.type === 'entity.too.large';
+      res
+        .status(tooLarge ? 413 : 400)
+        .json({ code: tooLarge ? 'import.bundle_too_large' : 'import.invalid_bundle' });
+    });
+  });
   // The pages say where their scripts, styles, frames and requests may come from.
   app.use(cspMiddleware());
   // The browser session is a cookie: what changes something comes from our own pages.

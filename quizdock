@@ -340,6 +340,8 @@ Administration (relayed to the CLI inside the container)
   quiz:list [<sub|email>]
   quiz:export <id> <file.zip>       Write a quiz bundle (quiz.json + media/) on the host
   quiz:import <file> <sub|email>    Create a draft from a bundle (zip or quiz.json)
+  quiz:validate <file>              Check text-only JSON without writes
+  mcp [--user=<sub|email>]           Local MCP on stdin/stdout (no TTY)
   quiz:transfer <quiz-id> <sub|email>  Hand a quiz over to another account
   sessions:purge [--dry-run]
   admin <command…>      Any other in-image command (\`admin help\`)
@@ -371,6 +373,11 @@ case "$cmd" in
     [ $# -eq 2 ] || die "usage: $0 quiz:import <file> <sub|email>"
     [ -f "$1" ] || die "no such file: $1"
     need_docker; need_init; admin quiz:import - "$2" <"$1" ;;
+  quiz:validate)
+    [ $# -eq 1 ] || die "usage: $0 quiz:validate <file>"
+    [ -f "$1" ] || die "no such file: $1"
+    need_docker; need_init; admin quiz:validate - <"$1" ;;
+  mcp) need_docker; need_init; admin mcp "$@" ;;
   admin) need_docker; need_init; admin "$@" ;;
   help | -h | --help) cmd_help ;;
   *) die "unknown command \`$cmd\` — see \`$0 help\`." ;;
