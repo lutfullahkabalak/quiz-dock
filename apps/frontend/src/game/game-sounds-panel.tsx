@@ -13,10 +13,10 @@ import { type RoomEffect, previewEffect } from './media/game-sounds';
 import { SimpleDialog } from './media/sound-button';
 
 /**
- * The room's game sounds (#93), in the console's lobby: the tick and the gong
- * (synthesised, or a sound of the library), a background track, and the MUSIC
- * and SFX levels. The console does not play them: the projection and remote
- * participants do (SPECIFICATIONS-MEDIA §9).
+ * The room's sound (#93, #150), in the console's lobby: the projection's master
+ * mute, the MEDIA bus (the quiz's own sound), the background track and the effects
+ * (synthesised, or a sound of the library), with their levels. The console does not
+ * play them: the projection and remote participants do (SPECIFICATIONS-MEDIA §9).
  */
 export function GameSoundsPanel({
   sounds,
@@ -61,16 +61,20 @@ export function RoomSoundsButton({
   if (!sounds) return null;
   return (
     <>
+      {/* The room's sound state stays in view in the control bar: muted, it says so. */}
       <Button
         type="button"
         variant="outline"
         size="sm"
-        aria-label={t('control.sounds.title')}
-        title={t('control.sounds.title')}
+        aria-label={sounds.muted ? t('control.sounds.roomMuted') : t('control.sounds.title')}
+        title={sounds.muted ? t('control.sounds.roomMuted') : t('control.sounds.title')}
+        className={cn(sounds.muted && 'border-destructive text-destructive')}
         onClick={() => setOpen(true)}
       >
-        <SlidersHorizontal className="size-4" />
-        <span className="hidden sm:inline">{t('control.sounds.title')}</span>
+        {sounds.muted ? <VolumeX className="size-4" /> : <SlidersHorizontal className="size-4" />}
+        <span className="hidden sm:inline">
+          {sounds.muted ? t('control.sounds.roomMuted') : t('control.sounds.title')}
+        </span>
       </Button>
       <SimpleDialog open={open} title={t('control.sounds.title')} onClose={() => setOpen(false)}>
         <GameSoundsControls sounds={sounds} onChange={onChange} />
@@ -176,8 +180,8 @@ export function GameSoundsControls({
   const level = (
     label: string,
     value: number,
-    key: 'musicLevel' | 'sfxLevel',
-    muteKey: 'musicMuted' | 'sfxMuted',
+    key: 'musicLevel' | 'sfxLevel' | 'mediaLevel',
+    muteKey: 'musicMuted' | 'sfxMuted' | 'mediaMuted',
   ) => (
     <span className="flex min-w-0 flex-1 items-center gap-2">
       <Button
@@ -211,9 +215,14 @@ export function GameSoundsControls({
         aria-label={label}
         value={Math.round(value * 100)}
         onChange={(e) => onChange({ [key]: Number(e.target.value) / 100 })}
-        className={cn('accent-primary min-w-0 flex-1', sounds[muteKey] && 'opacity-40')}
+        className={cn(
+          'accent-primary min-w-0 flex-1',
+          (sounds[muteKey] || sounds.muted) && 'opacity-40',
+        )}
       />
-      <span className="w-9 text-right text-xs tabular-nums">{Math.round(value * 100)} %</span>
+      <span className="w-11 shrink-0 text-right text-xs whitespace-nowrap tabular-nums">
+        {Math.round(value * 100)} %
+      </span>
     </span>
   );
 
@@ -240,7 +249,43 @@ export function GameSoundsControls({
     <div className="flex flex-col gap-4 text-sm">
       <p className="text-muted-foreground text-xs">{t('control.sounds.hint')}</p>
 
-      <section className="flex flex-col gap-2" aria-labelledby="room-sfx">
+      {/* All of the projection's sound at once (#150): each channel keeps its setting. */}
+      <label className="flex items-center gap-3 rounded-md border px-3 py-2">
+        <Switch
+          checked={!sounds.muted}
+          onCheckedChange={(on) => onChange({ muted: !on })}
+          aria-label={t('control.sounds.roomSound')}
+        />
+        <span className="flex flex-col">
+          <span className="font-semibold">{t('control.sounds.roomSound')}</span>
+          <span className="text-muted-foreground text-xs">
+            {sounds.muted ? t('control.sounds.roomMutedHint') : t('control.sounds.roomSoundHint')}
+          </span>
+        </span>
+      </label>
+
+      <section className="flex flex-col gap-2" aria-labelledby="room-media">
+        <div className="flex items-center gap-3">
+          {heading('room-media', t('control.sounds.media'))}
+          {level(t('control.sounds.mediaLevel'), sounds.mediaLevel, 'mediaLevel', 'mediaMuted')}
+        </div>
+        <p className="text-muted-foreground -mt-1 text-xs">{t('control.sounds.mediaWhen')}</p>
+      </section>
+
+      <section className="flex flex-col gap-2 border-t pt-3" aria-labelledby="room-music">
+        <div className="flex items-center gap-3">
+          {heading('room-music', t('control.sounds.music'))}
+          {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel', 'musicMuted')}
+        </div>
+        <p className="text-muted-foreground -mt-1 text-xs">{t('control.sounds.musicWhen')}</p>
+        {picker(
+          t('control.sounds.musicLabel'),
+          sounds.musicUrl,
+          t('control.sounds.noMusic'),
+          'musicId',
+        )}
+      </section>
+      <section className="flex flex-col gap-2 border-t pt-3" aria-labelledby="room-sfx">
         <div className="flex items-center gap-3">
           {heading('room-sfx', t('control.sounds.effects'))}
           {level(t('control.sounds.sfxLevel'), sounds.sfxLevel, 'sfxLevel', 'sfxMuted')}
@@ -285,20 +330,6 @@ export function GameSoundsControls({
             </Fragment>
           ))}
         </div>
-      </section>
-
-      <section className="flex flex-col gap-2 border-t pt-3" aria-labelledby="room-music">
-        <div className="flex items-center gap-3">
-          {heading('room-music', t('control.sounds.music'))}
-          {level(t('control.sounds.musicLevel'), sounds.musicLevel, 'musicLevel', 'musicMuted')}
-        </div>
-        <p className="text-muted-foreground -mt-1 text-xs">{t('control.sounds.musicWhen')}</p>
-        {picker(
-          t('control.sounds.musicLabel'),
-          sounds.musicUrl,
-          t('control.sounds.noMusic'),
-          'musicId',
-        )}
       </section>
     </div>
   );

@@ -172,8 +172,8 @@
     "participantReady": "Prêt",
     "participantLoading": "Prêt, médias en chargement",
     "sounds": {
-      "title": "Sons du jeu",
-      "hint": "Joués par la projection et par les participants à distance, jamais par les téléphones dans la salle. La musique joue pendant les réponses ; elle se retire pendant le son d’une question, et revient après.",
+      "title": "Son du salon",
+      "hint": "La projection joue tout. Les participants qui suivent à distance entendent aussi la musique et les effets ; les téléphones dans la salle restent muets.",
       "effects": "Effets",
       "tick": "Réponse reçue",
       "ding": "Début de question",
@@ -201,7 +201,14 @@
       "tickWhen": "À chaque réponse reçue.",
       "countdownWhen": "Sur les 5 dernières secondes du chrono : tic à la seconde, tac à la demie ; le dernier tac est omis et le gong tombe à zéro. S’arrête si tout le monde a répondu.",
       "gongWhen": "À la fin de la question : à zéro, ou dès que tout le monde a répondu.",
-      "musicWhen": "Tourne en boucle pendant les réponses, dès qu’elles s’ouvrent. Elle se retire pendant le son ou la vidéo d’une question, et entre les questions, puis reprend là où elle en était."
+      "musicWhen": "Tourne en boucle pendant les réponses, dès qu’elles s’ouvrent. Elle se retire pendant le son ou la vidéo d’une question, et entre les questions, puis reprend là où elle en était.",
+      "roomSound": "Son de la projection",
+      "roomSoundHint": "Activé : la projection joue le quiz, la musique et les effets aux niveaux ci-dessous.",
+      "roomMutedHint": "Coupé : la projection est muette. Les niveaux ci-dessous sont gardés pour son retour.",
+      "roomMuted": "Salon muet",
+      "media": "Médias",
+      "mediaLevel": "Médias",
+      "mediaWhen": "Le son propre du quiz : celui d’une question, d’une diapositive, et des vidéos. Sur la projection seulement : un participant à distance entend toujours la question."
     },
     "slideVideoMuted": "La vidéo de la slide joue sans le son.",
     "phase": {

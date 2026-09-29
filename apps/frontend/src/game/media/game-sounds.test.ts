@@ -75,6 +75,9 @@ const SOUNDS: RoomSoundsPayload = {
   sfxLevel: 0.7,
   musicMuted: false,
   sfxMuted: false,
+  mediaLevel: 1,
+  mediaMuted: false,
+  muted: false,
 };
 const game = (over: Partial<Parameters<typeof useGameSounds>[1]> = {}) => ({
   state: 'ANSWERING',
@@ -99,6 +102,29 @@ describe('game sounds (#93)', () => {
     );
   });
   afterEach(() => vi.unstubAllGlobals());
+
+  it('on the projection, the console sets the media bus and mutes the whole room (#150)', () => {
+    const { rerender } = renderHook(({ s }) => useGameSounds(s, game(), true, true), {
+      initialProps: { s: { ...SOUNDS, mediaLevel: 0.6 } },
+    });
+    expect(levels).toContainEqual(['quiz', 0.6]);
+    levels.length = 0;
+    rerender({ s: { ...SOUNDS, mediaLevel: 0.6, muted: true } });
+    expect(levels).toEqual(
+      expect.arrayContaining([
+        ['music', 0],
+        ['sfx', 0],
+        ['quiz', 0],
+      ]),
+    );
+  });
+
+  it("elsewhere (a remote participant), the room's mute and media bus do not apply", () => {
+    renderHook(() => useGameSounds({ ...SOUNDS, muted: true, mediaLevel: 0.2 }, game(), true));
+    expect(levels.some(([bus]) => bus === 'quiz')).toBe(false);
+    expect(levels).toContainEqual(['music', 0.4]);
+    expect(levels).toContainEqual(['sfx', 0.7]);
+  });
 
   it('ticks at each new answer, and strikes the gong when the question ends', () => {
     const { rerender } = renderHook(({ g }) => useGameSounds(SOUNDS, g, true), {
