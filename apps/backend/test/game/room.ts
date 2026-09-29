@@ -329,6 +329,10 @@ export function roomTests(ctx: GameContext): void {
         sfxLevel: 0.8,
         musicMuted: false,
         sfxMuted: false,
+        // The quiz's own sound at full level, and the room's sound on (#150).
+        mediaLevel: 1,
+        mediaMuted: false,
+        muted: false,
       });
 
       const changed = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
@@ -342,6 +346,10 @@ export function roomTests(ctx: GameContext): void {
       const muted = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
       host.emit('host:sounds', { pin, musicMuted: true, sfxMuted: 'yes' });
       expect(await muted).toMatchObject({ musicMuted: true, sfxMuted: false, musicLevel: 1 });
+      // The console controls all of the projection's sound: its media bus and a master mute.
+      const master = nextEvent<Record<string, unknown>>(screen, 'room:sounds');
+      host.emit('host:sounds', { pin, muted: true, mediaLevel: 0.4, mediaMuted: true });
+      expect(await master).toMatchObject({ muted: true, mediaLevel: 0.4, mediaMuted: true });
       const refused = nextEvent<{ code: string }>(host, 'error');
       host.emit('host:sounds', { pin, gongId: theirs.id });
       expect((await refused).code).toBe('media.not_found');

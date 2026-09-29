@@ -1,7 +1,7 @@
 import { RoomStandingsPanel, roomLabel } from '../game/room-components';
 import { useParams } from '@tanstack/react-router';
 import { Loader2, Maximize, Minimize, Users } from 'lucide-react';
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
 import { Markdown } from '@/components/markdown';
@@ -23,7 +23,7 @@ import {
   TYPE_BASE,
 } from '../game/live-components';
 import { unlockAudio, useAudioUnlocked } from '../game/media/audio-unlock';
-import { useDeviceSound } from '../game/media/audio-mixer';
+import { setDeviceMuted, useDeviceSound } from '../game/media/audio-mixer';
 import { SoundButton } from '../game/media/sound-button';
 import { QuestionMediaStage } from '../game/media/question-media-stage';
 import { SlidePlaybackContext } from '../game/media/slide-media';
@@ -170,15 +170,23 @@ export function ScreenSurface({
     // In the lobby and while the leaderboard is up, what comes next buffers here; the
     // console hears when the projection is ready to play it, not a copy.
     preload: role === 'preview' ? 'off' : playMedia ? 'ready' : 'fetch',
+    // The projection's whole sound is the console's (#150): master mute and MEDIA bus.
+    room: role === 'lead',
   });
+  // The console mutes the room; a mute this window kept from before would be one the
+  // host could not lift (the projection has no sound button of its own).
+  useEffect(() => {
+    if (role === 'lead' && deviceSound.muted) setDeviceMuted(false);
+  }, [role, deviceSound.muted]);
   const { ref, isFullscreen, toggle, supported } = useFullscreen<HTMLDivElement>();
   const clock = useQuestionClock(view);
 
   const joinUrl = joinUrlFor(view, pin);
   const joinHost = joinHostLabel(view);
 
-  // This screen's own sound (#93): the projection, or a copy that plays it.
-  const soundButton = role === 'lead' || (role === 'follow' && sound);
+  // A copy that plays the sound keeps its own button; the projection's sound is the
+  // console's (#150), so it has none.
+  const soundButton = role === 'follow' && sound;
 
   const fullscreenBtn =
     supported && !embedded && !boxed ? (
@@ -188,7 +196,11 @@ export function ScreenSurface({
         size="icon"
         className={cn('bg-background absolute top-4 right-4 z-40', BACKDROP_EDGE)}
         aria-label={isFullscreen ? t('screen.exitFullscreen') : t('screen.fullscreen')}
-        onClick={() => void toggle()}
+        onClick={() => {
+          // The click that fills the screen also lets this window play sound.
+          void unlockAudio();
+          void toggle();
+        }}
       >
         {isFullscreen ? <Minimize className="size-5" /> : <Maximize className="size-5" />}
       </Button>
@@ -673,7 +685,8 @@ export function ScreenSurface({
       !deviceSound.muted &&
       (view.quizHasSound || soundsOn) &&
       view.state !== 'ENDED' ? (
-        <SoundUnlockOverlay />
+        // The projection cannot be muted from here: the console does it.
+        <SoundUnlockOverlay allowSilent={role === 'follow'} />
       ) : null}
       {onBackground &&
       view.question?.background &&

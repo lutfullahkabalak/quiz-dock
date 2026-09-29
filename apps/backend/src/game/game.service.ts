@@ -629,10 +629,13 @@ export class GameService {
     if (typeof patch.ding === 'boolean') next.ding = patch.ding;
     if (typeof patch.musicMuted === 'boolean') next.musicMuted = patch.musicMuted;
     if (typeof patch.sfxMuted === 'boolean') next.sfxMuted = patch.sfxMuted;
+    if (typeof patch.mediaMuted === 'boolean') next.mediaMuted = patch.mediaMuted;
+    if (typeof patch.muted === 'boolean') next.muted = patch.muted;
     const level = (v: unknown, fallback: number) =>
       typeof v === 'number' && Number.isFinite(v) ? Math.min(1, Math.max(0, v)) : fallback;
     next.musicLevel = level(patch.musicLevel, next.musicLevel);
     next.sfxLevel = level(patch.sfxLevel, next.sfxLevel);
+    next.mediaLevel = level(patch.mediaLevel, next.mediaLevel);
     for (const [idKey, urlKey] of [
       ['tickId', 'tickUrl'],
       ['gongId', 'gongUrl'],

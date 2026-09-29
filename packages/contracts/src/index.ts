@@ -552,6 +552,11 @@ export interface RoomSoundsPayload {
   /** A bus the host switched off for the room, its level kept for when it is back. */
   musicMuted: boolean;
   sfxMuted: boolean;
+  /** The MEDIA bus: a question's, a slide's or a video's own sound, 0..1 (#150). */
+  mediaLevel: number;
+  mediaMuted: boolean;
+  /** Every sound of the room off at once, from the console; the buses keep their settings. */
+  muted: boolean;
 }
 
 /** What the host sets (media ids, not URLs); every field optional. */
@@ -570,6 +575,9 @@ export interface RoomSoundsSettings {
   sfxLevel?: number;
   musicMuted?: boolean;
   sfxMuted?: boolean;
+  mediaLevel?: number;
+  mediaMuted?: boolean;
+  muted?: boolean;
 }
 
 export interface RoomStandingsPayload {

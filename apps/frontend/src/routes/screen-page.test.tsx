@@ -160,6 +160,14 @@ describe('ScreenPage: the branding hooks (lot 5)', () => {
     expect($('.qd-answers .qd-answer[data-color="red"]')).toHaveTextContent('Oui');
   });
 
+  it('has no sound button of its own: the console controls its sound (#150)', async () => {
+    hookState.value = view({ state: GameState.Lobby });
+    renderApp('/session/482913/projection');
+    expect(await screen.findByText('482913')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Couper le son' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Rétablir le son' })).toBeNull();
+  });
+
   it('the lobby: how to join, and who is in', async () => {
     hookState.value = view({
       state: GameState.Lobby,

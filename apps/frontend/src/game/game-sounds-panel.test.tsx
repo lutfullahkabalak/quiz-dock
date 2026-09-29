@@ -3,7 +3,7 @@ import { fireEvent, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import '../i18n';
 import { mockApi } from '../test/harness';
-import { GameSoundsPanel } from './game-sounds-panel';
+import { GameSoundsPanel, RoomSoundsButton } from './game-sounds-panel';
 
 const item = (id: string, name: string) => ({
   id,
@@ -36,6 +36,9 @@ const SOUNDS = {
   sfxLevel: 0.8,
   musicMuted: false,
   sfxMuted: false,
+  mediaLevel: 1,
+  mediaMuted: false,
+  muted: false,
 };
 
 describe('GameSoundsPanel (#93)', () => {
@@ -96,5 +99,23 @@ describe('GameSoundsPanel (#93)', () => {
     expect(track).toHaveValue('library');
     fireEvent.click(await screen.findByRole('button', { name: /Retirer/ }));
     expect(onChange).toHaveBeenCalledWith({ musicId: '' });
+  });
+
+  it('the room muted shows in the control bar, and the mixer turns it back on (#150)', () => {
+    mockApi([
+      { method: 'GET', path: /\/media\/instance/, body: [] },
+      { method: 'GET', path: /\/media\?/, body: [] },
+    ]);
+    const onChange = vi.fn();
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <RoomSoundsButton sounds={{ ...SOUNDS, muted: true }} onChange={onChange} />
+      </QueryClientProvider>,
+    );
+    fireEvent.click(screen.getByRole('button', { name: 'Salon muet' }));
+    fireEvent.click(screen.getByRole('switch', { name: 'Son de la projection' }));
+    expect(onChange).toHaveBeenCalledWith({ muted: false });
+    fireEvent.click(screen.getByRole('button', { name: /Couper Médias/ }));
+    expect(onChange).toHaveBeenCalledWith({ mediaMuted: true });
   });
 });

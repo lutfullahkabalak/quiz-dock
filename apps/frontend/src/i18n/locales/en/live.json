@@ -172,8 +172,8 @@
     "participantReady": "Ready",
     "participantLoading": "Ready, loading the media",
     "sounds": {
-      "title": "Game sounds",
-      "hint": "Played by the projection and by participants following from home, never by phones in the room. The track plays while players answer; it makes way while a question plays its own sound, and comes back after.",
+      "title": "Room sound",
+      "hint": "The projection plays all of it. Participants following from home also hear the music and the effects; phones in the room stay silent.",
       "effects": "Effects",
       "tick": "Answer received",
       "ding": "Question start",
@@ -201,7 +201,14 @@
       "tickWhen": "Each time an answer comes in.",
       "countdownWhen": "Over the last five seconds of the time: tic on the second, tac on the half; the last tac is left out and the gong falls on zero. Stops if everyone has answered.",
       "gongWhen": "When the question ends: on zero, or as soon as everyone has answered.",
-      "musicWhen": "Loops while players answer, from the moment the answers open. It steps out while a question plays its own sound or video, and between questions, then comes back where it was."
+      "musicWhen": "Loops while players answer, from the moment the answers open. It steps out while a question plays its own sound or video, and between questions, then comes back where it was.",
+      "roomSound": "Projection sound",
+      "roomSoundHint": "On: the projection plays the quiz, the music and the effects at the levels below.",
+      "roomMutedHint": "Off: the projection is silent. The levels below are kept for when it is back.",
+      "roomMuted": "Room muted",
+      "media": "Media",
+      "mediaLevel": "Media",
+      "mediaWhen": "The quiz's own sound: a question's or a slide's sound, and the videos'. On the projection only: a participant at home still hears the question."
     },
     "slideVideoMuted": "The slide’s video plays muted.",
     "phase": {

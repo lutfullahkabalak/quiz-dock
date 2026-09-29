@@ -258,8 +258,25 @@ another window. No web page can get around this rule.
 
 So when a quiz plays any sound, the projection asks for that click as soon as it
 opens, at any moment of the session: a full-screen **Turn sound on** overlay.
-One click anywhere on it is enough for the whole session. A quiz without any
-sound never asks.
+One click anywhere on it is enough for the whole session — and so is the click on
+its **full screen** button, after which the overlay no longer shows. A quiz
+without any sound never asks.
+
+### The console controls the projection's sound
+
+The projection has no sound button of its own: the console's **Room sound** does
+it all, at any moment of the session.
+
+- **Projection sound**: on or off, all at once; each channel keeps its setting for
+  when it is back.
+- **Media**: the quiz's own sound (a question's or a slide's sound, and the
+  videos'), its level and its mute.
+- **Music** and **Effects**: the background track and the game's effects, their
+  levels and mutes.
+
+When the room is muted, the console's control bar says **Room muted**. Media and
+the master mute apply to the projection only: a remote participant still hears
+the question on their own device (music and effects reach them as set).
 
 If the click was missed (the overlay closed by another click, a window opened
 mid-question), the projection says so instead of staying silent: a video goes

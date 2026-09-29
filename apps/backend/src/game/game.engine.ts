@@ -2208,6 +2208,9 @@ function soundsPayload(s: RoomSounds): RoomSoundsPayload {
     sfxLevel: s.sfxLevel,
     musicMuted: s.musicMuted,
     sfxMuted: s.sfxMuted,
+    mediaLevel: s.mediaLevel,
+    mediaMuted: s.mediaMuted,
+    muted: s.muted,
   };
 }
 
