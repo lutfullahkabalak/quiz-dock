@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { assertAssets, expectImage } from '../media/assert-assets';
-import { Prisma } from '@prisma/client';
+import { Prisma, QuizStatus } from '@prisma/client';
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
 import {
@@ -10,7 +10,7 @@ import {
   questionData,
   questionMediaHeld,
 } from './question-data';
-import type { QuestionContent } from './dto/question-content.schema';
+import { type QuestionContent, questionIssues } from './dto/question-content.schema';
 import type { ReorderQuestionsDto } from './dto/reorder-questions.dto';
 import {
   QUESTION_MEDIA_INCLUDE,
@@ -57,6 +57,7 @@ export class QuestionsService {
 
   private async addOnce(ownerId: string, quizId: string, dto: QuestionContent) {
     await requireQuiz(this.prisma, quizId, ownerId);
+    await this.assertPlayableIfReady(quizId, dto);
     const agg = await this.prisma.question.aggregate({
       where: { quizId },
       _max: { orderIndex: true },
@@ -90,6 +91,7 @@ export class QuestionsService {
 
   async update(ownerId: string, questionId: string, dto: QuestionContent) {
     const current = await this.assertQuestionOwned(ownerId, questionId);
+    await this.assertPlayableIfReady(current.quizId, dto);
     // Remplacement complet des enfants (atomique). OK tant que le quiz n'a pas
     // été joué (les sessions jouées sont figées par snapshot, §2.7).
     const media = await resolveQuestionMedia(this.prisma, ownerId, dto.media, [
@@ -123,6 +125,20 @@ export class QuestionsService {
       questionMediaHeld({ ...data, ...media, options }),
     );
     return toQuestionOutput(question);
+  }
+
+  /**
+   * A ready quiz can be started at any time: a question saved in it must be complete.
+   * A draft saves anything that holds together (UI system §1.5).
+   */
+  private async assertPlayableIfReady(quizId: string, dto: QuestionContent) {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      select: { status: true },
+    });
+    if (quiz?.status === QuizStatus.ready && questionIssues(dto).length > 0) {
+      throw new BadRequestException('question.incomplete_in_ready_quiz');
+    }
   }
 
   async remove(ownerId: string, questionId: string): Promise<void> {

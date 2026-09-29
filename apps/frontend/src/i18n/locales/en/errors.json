@@ -20,7 +20,9 @@
     "transition_forbidden": "Forbidden state transition: {{from}} → {{target}}.",
     "in_use": "This quiz is being played in a room: close the room first.",
     "item_not_in_quiz": "This item does not belong to this quiz any more: reload the page.",
-    "reorder_incomplete": "The order sent is missing some items: reload the page and try again."
+    "reorder_incomplete": "The order sent is missing some items: reload the page and try again.",
+    "incomplete_one": "1 question is unfinished: complete it to publish the quiz.",
+    "incomplete_other": "{{count}} questions are unfinished: complete them to publish the quiz."
   },
   "session": {
     "not_found": "Room not found or closed.",
@@ -91,7 +93,48 @@
     "not_in_quiz": "Question not part of the quiz.",
     "invalid_permutation": "Positions must form a permutation 0..n-1.",
     "reorder_incomplete": "Reordering must list all questions of the quiz.",
-    "not_found": "Question not found."
+    "not_found": "Question not found.",
+    "accepted_answers": {
+      "not_allowed": "Only a typed-answer question takes accepted answers.",
+      "required": "Add at least one accepted answer."
+    },
+    "image": {
+      "alt_required": "Describe this picture for those who cannot see it.",
+      "count": "An image choice takes 2 or 4 pictures.",
+      "no_text": "A picture answer has no text.",
+      "no_visual": "An image choice has no picture or video of its own: its answers are the pictures.",
+      "picture_required": "Choose a picture for this answer."
+    },
+    "incomplete_in_ready_quiz": "This quiz is published: move it back to draft to save an unfinished question.",
+    "multi_select": {
+      "not_allowed": "Several right pictures only apply to an image choice."
+    },
+    "numeric": {
+      "not_allowed": "Only a number question takes a target and a tolerance.",
+      "tolerance_required": "Set the tolerance (0 for the exact number).",
+      "value_required": "Set the number to find."
+    },
+    "options": {
+      "not_allowed": "This type of question has no answers to pick from.",
+      "one_correct": "Tick the right answer.",
+      "some_correct": "Tick at least one right answer.",
+      "too_few": "Add at least 2 answers."
+    },
+    "ordering": {
+      "positions": "Each answer needs its own place in the right order."
+    },
+    "poll": {
+      "no_correct": "A poll has no right answer."
+    },
+    "prompt": {
+      "required": "Write the question, or add a picture or a sound that asks it."
+    },
+    "scoring": {
+      "not_available": "This scoring does not apply to this type of question."
+    },
+    "true_false": {
+      "two_options": "True or false takes exactly 2 answers."
+    }
   },
   "validation": "Some fields are invalid.",
   "internal": "Internal error.",

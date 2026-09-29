@@ -20,7 +20,9 @@
     "transition_forbidden": "禁止的状态转换：{{from}} → {{target}}。",
     "in_use": "此测验正在某个房间中进行：请先关闭房间。",
     "item_not_in_quiz": "此项目已不属于该测验：请刷新页面。",
-    "reorder_incomplete": "提交的顺序缺少部分项目：请刷新页面后重试。"
+    "reorder_incomplete": "提交的顺序缺少部分项目：请刷新页面后重试。",
+    "incomplete_one": "有 1 道题目未完成：请完成后再发布测验。",
+    "incomplete_other": "有 {{count}} 道题目未完成：请完成后再发布测验。"
   },
   "session": {
     "not_found": "未找到房间或房间已关闭。",
@@ -91,7 +93,48 @@
     "not_in_quiz": "该题目不属于本测验。",
     "invalid_permutation": "位置必须构成 0..n-1 的排列。",
     "reorder_incomplete": "重新排序必须包含测验的所有题目。",
-    "not_found": "未找到题目。"
+    "not_found": "未找到题目。",
+    "accepted_answers": {
+      "not_allowed": "只有输入答案的题目才有可接受答案。",
+      "required": "请至少添加一个可接受答案。"
+    },
+    "image": {
+      "alt_required": "请为看不到图片的人描述这张图片。",
+      "count": "图片选择题需要 2 张或 4 张图片。",
+      "no_text": "图片答案不含文字。",
+      "no_visual": "图片选择题没有自己的图片或视频：它的答案就是图片。",
+      "picture_required": "请为这个答案选择一张图片。"
+    },
+    "incomplete_in_ready_quiz": "此测验已发布：请先改回草稿，才能保存未完成的题目。",
+    "multi_select": {
+      "not_allowed": "多张正确图片仅适用于图片选择题。"
+    },
+    "numeric": {
+      "not_allowed": "只有数字题才有目标值和容差。",
+      "tolerance_required": "请设置容差（0 表示精确数字）。",
+      "value_required": "请设置要猜的数字。"
+    },
+    "options": {
+      "not_allowed": "此题型没有可供选择的答案。",
+      "one_correct": "请勾选正确答案。",
+      "some_correct": "请至少勾选一个正确答案。",
+      "too_few": "请至少添加 2 个答案。"
+    },
+    "ordering": {
+      "positions": "每个答案在正确顺序中都需要自己的位置。"
+    },
+    "poll": {
+      "no_correct": "投票没有正确答案。"
+    },
+    "prompt": {
+      "required": "请写下题目，或添加一张提出问题的图片或声音。"
+    },
+    "scoring": {
+      "not_available": "此计分方式不适用于该题型。"
+    },
+    "true_false": {
+      "two_options": "判断题需要恰好 2 个答案。"
+    }
   },
   "validation": "部分字段无效。",
   "internal": "内部错误。",

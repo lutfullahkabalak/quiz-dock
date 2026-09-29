@@ -20,7 +20,9 @@
     "transition_forbidden": "Transición de estado no permitida: {{from}} → {{target}}.",
     "in_use": "Este quiz se está jugando en una sala: cierra primero la sala.",
     "item_not_in_quiz": "Este elemento ya no pertenece a este cuestionario: recarga la página.",
-    "reorder_incomplete": "Al orden enviado le faltan elementos: recarga la página e inténtalo de nuevo."
+    "reorder_incomplete": "Al orden enviado le faltan elementos: recarga la página e inténtalo de nuevo.",
+    "incomplete_one": "1 pregunta está sin terminar: complétala para publicar el cuestionario.",
+    "incomplete_other": "{{count}} preguntas están sin terminar: complétalas para publicar el cuestionario."
   },
   "session": {
     "not_found": "Sala no encontrada o cerrada.",
@@ -91,7 +93,48 @@
     "not_in_quiz": "La pregunta no pertenece al quiz.",
     "invalid_permutation": "Las posiciones deben formar una permutación 0..n-1.",
     "reorder_incomplete": "La reordenación debe incluir todas las preguntas del quiz.",
-    "not_found": "Pregunta no encontrada."
+    "not_found": "Pregunta no encontrada.",
+    "accepted_answers": {
+      "not_allowed": "Solo una pregunta de respuesta escrita admite respuestas aceptadas.",
+      "required": "Añade al menos una respuesta aceptada."
+    },
+    "image": {
+      "alt_required": "Describe esta imagen para quien no pueda verla.",
+      "count": "Una elección de imágenes lleva 2 o 4 imágenes.",
+      "no_text": "Una respuesta de imagen no lleva texto.",
+      "no_visual": "Una elección de imágenes no tiene imagen ni vídeo propios: sus respuestas son las imágenes.",
+      "picture_required": "Elige una imagen para esta respuesta."
+    },
+    "incomplete_in_ready_quiz": "Este cuestionario está publicado: vuelve a pasarlo a borrador para guardar una pregunta sin terminar.",
+    "multi_select": {
+      "not_allowed": "Varias imágenes correctas solo se aplican a una elección de imágenes."
+    },
+    "numeric": {
+      "not_allowed": "Solo una pregunta numérica lleva un objetivo y una tolerancia.",
+      "tolerance_required": "Indica la tolerancia (0 para el número exacto).",
+      "value_required": "Indica el número que hay que encontrar."
+    },
+    "options": {
+      "not_allowed": "Este tipo de pregunta no tiene respuestas para elegir.",
+      "one_correct": "Marca la respuesta correcta.",
+      "some_correct": "Marca al menos una respuesta correcta.",
+      "too_few": "Añade al menos 2 respuestas."
+    },
+    "ordering": {
+      "positions": "Cada respuesta necesita su propio lugar en el orden correcto."
+    },
+    "poll": {
+      "no_correct": "Una encuesta no tiene respuesta correcta."
+    },
+    "prompt": {
+      "required": "Escribe la pregunta, o añade una imagen o un sonido que la plantee."
+    },
+    "scoring": {
+      "not_available": "Esta puntuación no se aplica a este tipo de pregunta."
+    },
+    "true_false": {
+      "two_options": "Verdadero o falso lleva exactamente 2 respuestas."
+    }
   },
   "validation": "Algunos campos no son válidos.",
   "internal": "Error interno.",

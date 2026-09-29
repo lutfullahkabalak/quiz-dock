@@ -3,7 +3,8 @@ import { cn } from '@/lib/utils';
 
 /**
  * A panel that opens under its trigger and closes on a click outside or Escape.
- * The trigger is rendered by the caller (any button), given `open` and `toggle`.
+ * The trigger is rendered by the caller (any button), given `open` and `toggle`;
+ * the content may take `close` (a list whose items lead somewhere).
  */
 export function Popover({
   trigger,
@@ -12,7 +13,7 @@ export function Popover({
   className,
 }: {
   trigger: (props: { open: boolean; toggle: () => void }) => ReactNode;
-  children: ReactNode;
+  children: ReactNode | ((close: () => void) => ReactNode);
   align?: 'start' | 'end';
   className?: string;
 }) {
@@ -42,7 +43,7 @@ export function Popover({
             className,
           )}
         >
-          {children}
+          {typeof children === 'function' ? children(() => setOpen(false)) : children}
         </div>
       ) : null}
     </div>

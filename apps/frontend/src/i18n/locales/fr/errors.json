@@ -20,7 +20,9 @@
     "transition_forbidden": "Transition d’état interdite : {{from}} → {{target}}.",
     "in_use": "Ce quiz est en cours dans un salon : fermez d’abord le salon.",
     "item_not_in_quiz": "Cet élément n’appartient plus à ce quiz : rechargez la page.",
-    "reorder_incomplete": "L’ordre envoyé ne contient pas tous les éléments : rechargez la page et réessayez."
+    "reorder_incomplete": "L’ordre envoyé ne contient pas tous les éléments : rechargez la page et réessayez.",
+    "incomplete_one": "1 question est inachevée : complétez-la pour publier le quiz.",
+    "incomplete_other": "{{count}} questions sont inachevées : complétez-les pour publier le quiz."
   },
   "session": {
     "not_found": "Salon introuvable ou fermé.",
@@ -91,7 +93,48 @@
     "not_in_quiz": "Question hors du quiz.",
     "invalid_permutation": "Les positions doivent former une permutation 0..n-1.",
     "reorder_incomplete": "Le réordonnancement doit lister toutes les questions du quiz.",
-    "not_found": "Question introuvable."
+    "not_found": "Question introuvable.",
+    "accepted_answers": {
+      "not_allowed": "Seule une question à réponse tapée prend des réponses acceptées.",
+      "required": "Ajoutez au moins une réponse acceptée."
+    },
+    "image": {
+      "alt_required": "Décrivez cette image pour qui ne peut pas la voir.",
+      "count": "Un choix d’images prend 2 ou 4 images.",
+      "no_text": "Une réponse image n’a pas de texte.",
+      "no_visual": "Un choix d’images n’a ni image ni vidéo propre : ses réponses sont les images.",
+      "picture_required": "Choisissez une image pour cette réponse."
+    },
+    "incomplete_in_ready_quiz": "Ce quiz est publié : repassez-le en brouillon pour enregistrer une question inachevée.",
+    "multi_select": {
+      "not_allowed": "Plusieurs bonnes images ne concernent qu’un choix d’images."
+    },
+    "numeric": {
+      "not_allowed": "Seule une question numérique prend une cible et une tolérance.",
+      "tolerance_required": "Indiquez la tolérance (0 pour le nombre exact).",
+      "value_required": "Indiquez le nombre à trouver."
+    },
+    "options": {
+      "not_allowed": "Ce type de question n’a pas de réponses à choisir.",
+      "one_correct": "Cochez la bonne réponse.",
+      "some_correct": "Cochez au moins une bonne réponse.",
+      "too_few": "Ajoutez au moins 2 réponses."
+    },
+    "ordering": {
+      "positions": "Chaque réponse doit avoir sa propre place dans le bon ordre."
+    },
+    "poll": {
+      "no_correct": "Un sondage n’a pas de bonne réponse."
+    },
+    "prompt": {
+      "required": "Écrivez la question, ou ajoutez une image ou un son qui la pose."
+    },
+    "scoring": {
+      "not_available": "Ce barème ne s’applique pas à ce type de question."
+    },
+    "true_false": {
+      "two_options": "Vrai ou faux prend exactement 2 réponses."
+    }
   },
   "validation": "Certains champs sont invalides.",
   "internal": "Erreur interne.",

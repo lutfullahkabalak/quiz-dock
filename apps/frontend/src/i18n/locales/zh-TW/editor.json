@@ -110,7 +110,8 @@
     "formTitle": "題目",
     "empty": "還沒有題目。新增一道吧！",
     "collapseList": "收起清單",
-    "expandList": "展開清單"
+    "expandList": "展開清單",
+    "unfinished": "未完成"
   },
   "slides": {
     "formTitle": "簡報",
@@ -262,7 +263,7 @@
     "optionPlaceholder": "選項 {{index}}",
     "colorAriaLabel": "顏色 {{index}}",
     "shapeAriaLabel": "形狀 {{index}}",
-    "orderAriaLabel": "位置 {{index}}",
+    "orderAriaLabel": "答案 {{index}} 在正確順序中的位置",
     "correct": "正確",
     "removeOption": "移除選項 {{index}}",
     "addOption": "新增選項",
@@ -330,14 +331,23 @@
     "imageAltAria": "圖片 {{index}} 的替代文字",
     "imageAltPlaceholder": "圖片內容，供看不到圖片的人使用",
     "imageAltRequired": "請描述圖片：對看不到它的人來說，這就是答案。",
-    "imagesIncomplete": "每個答案都需要一張圖片及其替代文字。",
     "imageCountConfirm": {
       "title": "只保留 2 張圖片？",
       "description": "最後兩個答案及其圖片將被移除。",
       "confirmLabel": "移除"
     },
     "trueOption": "正確",
-    "falseOption": "錯誤"
+    "falseOption": "錯誤",
+    "clampedTime": "已調整為 {{value}} 秒：題目時長為 {{min}} 到 {{max}} 秒。",
+    "clampedReveal": "已調整為 {{value}} 秒：停頓時長為 {{min}} 到 {{max}} 秒。",
+    "addOptionMax": "最多 {{max}} 個答案",
+    "addAnswerMax": "最多 {{max}} 個答案",
+    "moveToDraft": {
+      "title": "儲存這道未完成的題目？",
+      "description": "此測驗已發布，隨時可以演示，只接受完整的題目。改回草稿即可照原樣儲存這道題，或繼續編輯。",
+      "confirmLabel": "改回草稿並儲存",
+      "cancelLabel": "繼續編輯"
+    }
   },
   "preview": {
     "view": "預覽（玩家視角）",
@@ -505,5 +515,18 @@
       "seconds_other": "{{count}} 秒",
       "muted": "靜音"
     }
+  },
+  "publishChecklist": {
+    "title_one": "發布前還有 1 個步驟要完成",
+    "title_other": "發布前還有 {{count}} 個步驟要完成",
+    "description": "已發布的測驗隨時可以演示，因此每道題都必須完整。草稿會保留你儲存的任何內容。",
+    "untitled": "沒有文字的題目",
+    "open": "開啟"
+  },
+  "formIssues": {
+    "errors_one": "1 個錯誤",
+    "errors_other": "{{count}} 個錯誤",
+    "toFinish_one": "還有 1 項要完成",
+    "toFinish_other": "還有 {{count}} 項要完成"
   }
 }

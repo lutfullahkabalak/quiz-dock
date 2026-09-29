@@ -110,7 +110,8 @@
     "formTitle": "Question",
     "empty": "Aucune question. Ajoutez-en une !",
     "collapseList": "Réduire la liste",
-    "expandList": "Déplier la liste"
+    "expandList": "Déplier la liste",
+    "unfinished": "Inachevée"
   },
   "slides": {
     "formTitle": "Slide",
@@ -262,7 +263,7 @@
     "optionPlaceholder": "Option {{index}}",
     "colorAriaLabel": "couleur {{index}}",
     "shapeAriaLabel": "forme {{index}}",
-    "orderAriaLabel": "rang {{index}}",
+    "orderAriaLabel": "Place de la réponse {{index}} dans le bon ordre",
     "correct": "correcte",
     "removeOption": "Retirer l’option {{index}}",
     "addOption": "Ajouter une option",
@@ -330,14 +331,23 @@
     "imageAltAria": "Texte alternatif de l’image {{index}}",
     "imageAltPlaceholder": "Ce que montre l’image, pour qui ne la voit pas",
     "imageAltRequired": "Décrivez l’image : c’est la réponse pour qui ne la voit pas.",
-    "imagesIncomplete": "Chaque réponse demande une image et son texte alternatif.",
     "imageCountConfirm": {
       "title": "Garder seulement 2 images ?",
       "description": "Les deux dernières réponses et leurs images seront retirées.",
       "confirmLabel": "Retirer"
     },
     "trueOption": "Vrai",
-    "falseOption": "Faux"
+    "falseOption": "Faux",
+    "clampedTime": "Ramené à {{value}} s : une question dure de {{min}} à {{max}} s.",
+    "clampedReveal": "Ramené à {{value}} s : la pause dure de {{min}} à {{max}} s.",
+    "addOptionMax": "{{max}} réponses max",
+    "addAnswerMax": "{{max}} réponses max",
+    "moveToDraft": {
+      "title": "Enregistrer cette question inachevée ?",
+      "description": "Ce quiz est publié : il peut être présenté à tout moment et n’accepte que des questions complètes. Repassez-le en brouillon pour enregistrer celle-ci telle quelle, ou continuez à la modifier.",
+      "confirmLabel": "Passer en brouillon et enregistrer",
+      "cancelLabel": "Continuer à modifier"
+    }
   },
   "preview": {
     "view": "Aperçu (vue participant)",
@@ -505,5 +515,18 @@
       "seconds_other": "{{count}} secondes",
       "muted": "sans le son"
     }
+  },
+  "publishChecklist": {
+    "title_one": "1 étape à finir avant de publier",
+    "title_other": "{{count}} étapes à finir avant de publier",
+    "description": "Un quiz publié peut être présenté à tout moment : chaque question doit donc être complète. Un brouillon garde tout ce que vous enregistrez.",
+    "untitled": "Question sans texte",
+    "open": "Ouvrir"
+  },
+  "formIssues": {
+    "errors_one": "1 erreur",
+    "errors_other": "{{count}} erreurs",
+    "toFinish_one": "1 point à finir",
+    "toFinish_other": "{{count}} points à finir"
   }
 }

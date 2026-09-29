@@ -110,7 +110,8 @@
     "formTitle": "题目",
     "empty": "还没有题目。添加一道吧！",
     "collapseList": "收起列表",
-    "expandList": "展开列表"
+    "expandList": "展开列表",
+    "unfinished": "未完成"
   },
   "slides": {
     "formTitle": "幻灯片",
@@ -262,7 +263,7 @@
     "optionPlaceholder": "选项 {{index}}",
     "colorAriaLabel": "颜色 {{index}}",
     "shapeAriaLabel": "形状 {{index}}",
-    "orderAriaLabel": "位置 {{index}}",
+    "orderAriaLabel": "答案 {{index}} 在正确顺序中的位置",
     "correct": "正确",
     "removeOption": "移除选项 {{index}}",
     "addOption": "添加选项",
@@ -330,14 +331,23 @@
     "imageAltAria": "图片 {{index}} 的替代文字",
     "imageAltPlaceholder": "图片内容，供看不到图片的人使用",
     "imageAltRequired": "请描述图片：对看不到它的人来说，这就是答案。",
-    "imagesIncomplete": "每个答案都需要一张图片及其替代文字。",
     "imageCountConfirm": {
       "title": "只保留 2 张图片？",
       "description": "最后两个答案及其图片将被移除。",
       "confirmLabel": "移除"
     },
     "trueOption": "正确",
-    "falseOption": "错误"
+    "falseOption": "错误",
+    "clampedTime": "已调整为 {{value}} 秒：题目时长为 {{min}} 到 {{max}} 秒。",
+    "clampedReveal": "已调整为 {{value}} 秒：停顿时长为 {{min}} 到 {{max}} 秒。",
+    "addOptionMax": "最多 {{max}} 个答案",
+    "addAnswerMax": "最多 {{max}} 个答案",
+    "moveToDraft": {
+      "title": "保存这道未完成的题目？",
+      "description": "此测验已发布，随时可以演示，只接受完整的题目。改回草稿即可按原样保存这道题，或继续编辑。",
+      "confirmLabel": "改回草稿并保存",
+      "cancelLabel": "继续编辑"
+    }
   },
   "preview": {
     "view": "预览（玩家视图）",
@@ -505,5 +515,18 @@
       "seconds_other": "{{count}} 秒",
       "muted": "静音"
     }
+  },
+  "publishChecklist": {
+    "title_one": "发布前还有 1 个步骤要完成",
+    "title_other": "发布前还有 {{count}} 个步骤要完成",
+    "description": "已发布的测验随时可以演示，因此每道题都必须完整。草稿会保留你保存的任何内容。",
+    "untitled": "没有文字的题目",
+    "open": "打开"
+  },
+  "formIssues": {
+    "errors_one": "1 个错误",
+    "errors_other": "{{count}} 个错误",
+    "toFinish_one": "还有 1 项要完成",
+    "toFinish_other": "还有 {{count}} 项要完成"
   }
 }

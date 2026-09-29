@@ -41,6 +41,8 @@ describe('server error codes', () => {
       for (const match of readFileSync(file, 'utf8').matchAll(CODE)) codes.add(match[1]);
     }
     expect(codes.size).toBeGreaterThan(50);
-    expect([...codes].filter((c) => !translated(c)).sort()).toEqual([]);
+    // A counted message is said in its plural forms (`quiz.incomplete_other`).
+    const said = (c: string) => translated(c) || translated(`${c}_other`);
+    expect([...codes].filter((c) => !said(c)).sort()).toEqual([]);
   });
 });

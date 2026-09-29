@@ -9,10 +9,12 @@
  * (maps `ClientToServerEvents`/`ServerToClientEvents`) du contrat temps réel.
  */
 
+export * from './background';
 export * from './image-choice';
 export * from './media-sniff';
 export * from './preferences';
 export * from './question-media';
+export * from './question-content';
 export * from './quiz-terms';
 export * from './slide-media';
 import type { ParticipantAccess } from './preferences';

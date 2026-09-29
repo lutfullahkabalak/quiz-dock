@@ -110,7 +110,8 @@
     "formTitle": "Question",
     "empty": "No questions. Add one!",
     "collapseList": "Collapse the list",
-    "expandList": "Expand the list"
+    "expandList": "Expand the list",
+    "unfinished": "Unfinished"
   },
   "slides": {
     "formTitle": "Slide",
@@ -262,7 +263,7 @@
     "optionPlaceholder": "Option {{index}}",
     "colorAriaLabel": "color {{index}}",
     "shapeAriaLabel": "shape {{index}}",
-    "orderAriaLabel": "rank {{index}}",
+    "orderAriaLabel": "Place of answer {{index}} in the right order",
     "correct": "correct",
     "removeOption": "Remove option {{index}}",
     "addOption": "Add an option",
@@ -330,14 +331,23 @@
     "imageAltAria": "Alternative text of picture {{index}}",
     "imageAltPlaceholder": "What the picture shows, for whoever cannot see it",
     "imageAltRequired": "Describe the picture: it is the answer for whoever cannot see it.",
-    "imagesIncomplete": "Every answer needs a picture and its alternative text.",
     "imageCountConfirm": {
       "title": "Keep only 2 pictures?",
       "description": "The last two answers and their pictures will be removed.",
       "confirmLabel": "Remove"
     },
     "trueOption": "True",
-    "falseOption": "False"
+    "falseOption": "False",
+    "clampedTime": "Set to {{value}} s: a question lasts {{min}} to {{max}} s.",
+    "clampedReveal": "Set to {{value}} s: the pause lasts {{min}} to {{max}} s.",
+    "addOptionMax": "{{max}} answers max",
+    "addAnswerMax": "{{max}} answers max",
+    "moveToDraft": {
+      "title": "Save this unfinished question?",
+      "description": "This quiz is published, so it can be presented at any time: it only takes complete questions. Move it back to draft to save this one as it is, or keep editing.",
+      "confirmLabel": "Move to draft and save",
+      "cancelLabel": "Keep editing"
+    }
   },
   "preview": {
     "view": "Preview (player view)",
@@ -505,5 +515,18 @@
       "seconds_other": "{{count}} seconds",
       "muted": "muted"
     }
+  },
+  "publishChecklist": {
+    "title_one": "1 step to finish before publishing",
+    "title_other": "{{count}} steps to finish before publishing",
+    "description": "A published quiz can be presented at any time, so every question must be complete. Drafts keep whatever you save.",
+    "untitled": "Question without text",
+    "open": "Open"
+  },
+  "formIssues": {
+    "errors_one": "1 error",
+    "errors_other": "{{count}} errors",
+    "toFinish_one": "1 thing to finish",
+    "toFinish_other": "{{count}} things to finish"
   }
 }

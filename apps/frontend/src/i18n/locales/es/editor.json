@@ -110,7 +110,8 @@
     "formTitle": "Pregunta",
     "empty": "No hay preguntas. ¡Añade una!",
     "collapseList": "Reducir la lista",
-    "expandList": "Desplegar la lista"
+    "expandList": "Desplegar la lista",
+    "unfinished": "Sin terminar"
   },
   "slides": {
     "formTitle": "Diapositiva",
@@ -262,7 +263,7 @@
     "optionPlaceholder": "Opción {{index}}",
     "colorAriaLabel": "color {{index}}",
     "shapeAriaLabel": "forma {{index}}",
-    "orderAriaLabel": "posición {{index}}",
+    "orderAriaLabel": "Lugar de la respuesta {{index}} en el orden correcto",
     "correct": "correcta",
     "removeOption": "Quitar la opción {{index}}",
     "addOption": "Añadir una opción",
@@ -330,14 +331,23 @@
     "imageAltAria": "Texto alternativo de la imagen {{index}}",
     "imageAltPlaceholder": "Lo que muestra la imagen, para quien no la ve",
     "imageAltRequired": "Describe la imagen: es la respuesta para quien no la ve.",
-    "imagesIncomplete": "Cada respuesta necesita una imagen y su texto alternativo.",
     "imageCountConfirm": {
       "title": "¿Conservar solo 2 imágenes?",
       "description": "Se quitarán las dos últimas respuestas y sus imágenes.",
       "confirmLabel": "Quitar"
     },
     "trueOption": "Verdadero",
-    "falseOption": "Falso"
+    "falseOption": "Falso",
+    "clampedTime": "Ajustado a {{value}} s: una pregunta dura de {{min}} a {{max}} s.",
+    "clampedReveal": "Ajustado a {{value}} s: la pausa dura de {{min}} a {{max}} s.",
+    "addOptionMax": "{{max}} respuestas máx.",
+    "addAnswerMax": "{{max}} respuestas máx.",
+    "moveToDraft": {
+      "title": "¿Guardar esta pregunta sin terminar?",
+      "description": "Este cuestionario está publicado: puede presentarse en cualquier momento y solo admite preguntas completas. Vuelve a pasarlo a borrador para guardar esta tal cual, o sigue editándola.",
+      "confirmLabel": "Pasar a borrador y guardar",
+      "cancelLabel": "Seguir editando"
+    }
   },
   "preview": {
     "view": "Vista previa (vista del jugador)",
@@ -505,5 +515,18 @@
       "seconds_other": "{{count}} segundos",
       "muted": "silenciado"
     }
+  },
+  "publishChecklist": {
+    "title_one": "1 paso por terminar antes de publicar",
+    "title_other": "{{count}} pasos por terminar antes de publicar",
+    "description": "Un cuestionario publicado puede presentarse en cualquier momento, así que cada pregunta debe estar completa. Un borrador guarda todo lo que guardes.",
+    "untitled": "Pregunta sin texto",
+    "open": "Abrir"
+  },
+  "formIssues": {
+    "errors_one": "1 error",
+    "errors_other": "{{count}} errores",
+    "toFinish_one": "1 cosa por terminar",
+    "toFinish_other": "{{count}} cosas por terminar"
   }
 }

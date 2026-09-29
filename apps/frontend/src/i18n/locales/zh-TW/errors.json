@@ -20,7 +20,9 @@
     "transition_forbidden": "禁止的狀態轉換：{{from}} → {{target}}。",
     "in_use": "此測驗正在某個房間中進行：請先關閉房間。",
     "item_not_in_quiz": "此項目已不屬於該測驗：請重新整理頁面。",
-    "reorder_incomplete": "送出的順序缺少部分項目：請重新整理頁面後再試。"
+    "reorder_incomplete": "送出的順序缺少部分項目：請重新整理頁面後再試。",
+    "incomplete_one": "有 1 道題目未完成：請完成後再發布測驗。",
+    "incomplete_other": "有 {{count}} 道題目未完成：請完成後再發布測驗。"
   },
   "session": {
     "not_found": "未找到房間或房間已關閉。",
@@ -91,7 +93,48 @@
     "not_in_quiz": "該題目不屬於本測驗。",
     "invalid_permutation": "位置必須構成 0..n-1 的排列。",
     "reorder_incomplete": "重新排序必須包含測驗的所有題目。",
-    "not_found": "未找到題目。"
+    "not_found": "未找到題目。",
+    "accepted_answers": {
+      "not_allowed": "只有輸入答案的題目才有可接受答案。",
+      "required": "請至少新增一個可接受答案。"
+    },
+    "image": {
+      "alt_required": "請為看不到圖片的人描述這張圖片。",
+      "count": "圖片選擇題需要 2 張或 4 張圖片。",
+      "no_text": "圖片答案不含文字。",
+      "no_visual": "圖片選擇題沒有自己的圖片或影片：它的答案就是圖片。",
+      "picture_required": "請為這個答案選擇一張圖片。"
+    },
+    "incomplete_in_ready_quiz": "此測驗已發布：請先改回草稿，才能儲存未完成的題目。",
+    "multi_select": {
+      "not_allowed": "多張正確圖片僅適用於圖片選擇題。"
+    },
+    "numeric": {
+      "not_allowed": "只有數字題才有目標值和容許誤差。",
+      "tolerance_required": "請設定容許誤差（0 表示精確數字）。",
+      "value_required": "請設定要猜的數字。"
+    },
+    "options": {
+      "not_allowed": "此題型沒有可供選擇的答案。",
+      "one_correct": "請勾選正確答案。",
+      "some_correct": "請至少勾選一個正確答案。",
+      "too_few": "請至少新增 2 個答案。"
+    },
+    "ordering": {
+      "positions": "每個答案在正確順序中都需要自己的位置。"
+    },
+    "poll": {
+      "no_correct": "投票沒有正確答案。"
+    },
+    "prompt": {
+      "required": "請寫下題目，或新增一張提出問題的圖片或聲音。"
+    },
+    "scoring": {
+      "not_available": "此計分方式不適用於該題型。"
+    },
+    "true_false": {
+      "two_options": "是非題需要恰好 2 個答案。"
+    }
   },
   "validation": "部分欄位無效。",
   "internal": "內部錯誤。",

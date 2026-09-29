@@ -19,6 +19,7 @@ import { useForm, useStore } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
+  AlertTriangle,
   Archive,
   ArrowDown,
   ArrowUp,
@@ -60,6 +61,9 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Modal } from '@/components/ui/modal';
+import { savedQuestionIssues } from '@/lib/question-issues';
+import { validationText } from '../api/error-text';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -288,6 +292,12 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       await invalidate();
     });
 
+  // Called by a form saving an unfinished question in a published quiz; it says what fails.
+  const moveToDraft = async () => {
+    await transition.mutateAsync({ id: quiz.id, data: { status: 'draft' } });
+    await invalidate();
+  };
+
   const onPresent = () => launch(quiz.id, { fullCapture });
 
   const onDeleteQuiz = () =>
@@ -311,6 +321,18 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
 
   // Questions and slides share one sequence (#7): the server re-anchors slides from it.
   const items = quizItems(quiz);
+  // What each question still misses: the steps a quiz must finish to be published.
+  const unfinished = items
+    .flatMap((item, i) =>
+      item.kind === 'question'
+        ? [{ item, number: questionNumber(items, i), issues: savedQuestionIssues(item.question) }]
+        : [],
+    )
+    .filter((u) => u.issues.length > 0);
+  const [checklist, setChecklist] = useState(false);
+  // Publishing an unfinished quiz lists what is missing, each line opening its step.
+  const onPublish = () => (unfinished.length > 0 ? setChecklist(true) : void changeStatus('ready'));
+
   const persistOrder = (next: QuizItem[]) =>
     guarded(async () => {
       await reorder.mutateAsync({
@@ -352,6 +374,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         key="new"
         quizId={quiz.id}
         mediaTailS={quiz.mediaTailS}
+        quizStatus={quiz.status}
+        onMoveToDraft={moveToDraft}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
       />
@@ -370,6 +394,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         quizId={quiz.id}
         question={editingItem.question}
         mediaTailS={quiz.mediaTailS}
+        quizStatus={quiz.status}
+        onMoveToDraft={moveToDraft}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
       />
@@ -699,7 +725,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
             presentError={presentError ?? exportError}
             fullCapture={fullCapture}
             onFullCapture={setFullCapture}
-            onPublish={() => void changeStatus('ready')}
+            onPublish={onPublish}
             onPresent={() => void onPresent()}
             onBackToDraft={() => void changeStatus('draft')}
             onRestore={() => void changeStatus('draft')}
@@ -827,6 +853,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                       {(handle) => (
                         <ItemRow
                           item={item}
+                          unfinished={unfinished.some((u) => u.item.id === item.id)}
                           active={editing === item.id}
                           number={questionNumber(items, i)}
                           handle={handle}
@@ -931,6 +958,20 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           setFormDirty(false);
           setEditing(next);
         }}
+      />
+      <PublishChecklist
+        open={checklist}
+        steps={unfinished.map((u) => ({
+          id: u.item.id,
+          number: u.number,
+          label: u.item.kind === 'question' ? u.item.question.prompt : '',
+          texts: [...new Set(u.issues.map((i) => validationText(i.code)))],
+        }))}
+        onOpenStep={(id) => {
+          setChecklist(false);
+          requestEditing(id);
+        }}
+        onClose={() => setChecklist(false)}
       />
       <ConfirmDialog
         open={confirmDelete}
@@ -1048,6 +1089,7 @@ function SortableRow({ id, children }: { id: string; children: (handle: ReactNod
  */
 function ItemRow({
   item,
+  unfinished,
   number,
   handle,
   active,
@@ -1058,6 +1100,8 @@ function ItemRow({
   onDelete,
 }: {
   item: QuizItem;
+  /** Misses something to be played: publishing waits for it. */
+  unfinished?: boolean;
   number: number | null;
   handle?: ReactNode;
   /** Currently open in the editing pane. */
@@ -1109,7 +1153,15 @@ function ItemRow({
           <Markdown profile="inline" className="line-clamp-2 block text-sm font-medium">
             {label}
           </Markdown>
-          <span className="text-muted-foreground mt-0.5 block truncate text-xs">{meta}</span>
+          <span className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
+            {unfinished ? (
+              <span className="text-warning-text flex items-center gap-1 font-medium">
+                <AlertTriangle className="size-3.5" aria-hidden />
+                {t('questions.unfinished')} ·
+              </span>
+            ) : null}
+            {meta}
+          </span>
         </span>
       </button>
       <div className={cn('flex items-center gap-0.5 pr-1', hover)}>
@@ -1147,6 +1199,66 @@ function ItemRow({
         </Button>
       </div>
     </div>
+  );
+}
+
+/**
+ * What a quiz misses to be published (UI system §1.5): each unfinished step with
+ * what it lacks, and a way straight to it.
+ */
+function PublishChecklist({
+  open,
+  steps,
+  onOpenStep,
+  onClose,
+}: {
+  open: boolean;
+  steps: { id: string; number: number | null; label: string; texts: string[] }[];
+  onOpenStep: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation(['editor', 'common']);
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="publish-checklist-title"
+      className="max-h-[calc(100dvh-2rem)] max-w-lg open:flex open:flex-col"
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+        <h2 id="publish-checklist-title" className="text-lg font-semibold">
+          {t('publishChecklist.title', { count: steps.length })}
+        </h2>
+        <p className="text-muted-foreground text-sm">{t('publishChecklist.description')}</p>
+        <ul className="flex flex-col divide-y rounded-lg border">
+          {steps.map((step) => (
+            <li key={step.id} className="flex items-start gap-3 px-3 py-2">
+              <span className="bg-muted text-muted-foreground mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums">
+                {step.number}
+              </span>
+              <div className="min-w-0 flex-1">
+                <Markdown profile="inline" className="line-clamp-1 block text-sm font-medium">
+                  {step.label || t('publishChecklist.untitled')}
+                </Markdown>
+                {step.texts.map((text) => (
+                  <p key={text} className="text-warning-text text-xs">
+                    {text}
+                  </p>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => onOpenStep(step.id)}>
+                {t('publishChecklist.open')}
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t('common:close')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 

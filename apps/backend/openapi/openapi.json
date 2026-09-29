@@ -5677,7 +5677,6 @@
           },
           "prompt": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 1000
           },
           "answerExplanation": {
@@ -6476,7 +6475,6 @@
           },
           "prompt": {
             "type": "string",
-            "minLength": 1,
             "maxLength": 1000
           },
           "answerExplanation": {

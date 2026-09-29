@@ -75,6 +75,8 @@
   --ring: oklch(0.7 0.18 264);
   --success: oklch(0.7 0.17 150);
   --success-foreground: oklch(0.145 0 0);
+  /* Amber words on a dark ground: the light one would sink into it. */
+  --warning-text: oklch(0.82 0.15 75);
 }
 
 /*

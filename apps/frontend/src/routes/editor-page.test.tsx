@@ -8,6 +8,28 @@ vi.mock('../game/game-client', () => ({
   ensureGameSocket: vi.fn(() => new Promise(() => undefined)),
 }));
 
+/** Two answers, the first right: a complete question. */
+const OPTIONS = [
+  {
+    id: 'o1',
+    text: 'Paris',
+    color: 'red',
+    shape: 'triangle',
+    isCorrect: true,
+    mediaId: null,
+    alt: null,
+  },
+  {
+    id: 'o2',
+    text: 'Lyon',
+    color: 'blue',
+    shape: 'diamond',
+    isCorrect: false,
+    mediaId: null,
+    alt: null,
+  },
+];
+
 const detail = (over: Record<string, unknown> = {}) => ({
   id: 'q1',
   ownerId: 'o',
@@ -35,7 +57,7 @@ const detail = (over: Record<string, unknown> = {}) => ({
       pointsMode: 'standard',
       numericValue: null,
       numericTolerance: null,
-      options: [],
+      options: OPTIONS,
       acceptedAnswers: [],
     },
   ],
@@ -55,7 +77,7 @@ describe('EditorPage', () => {
     pointsMode: 'standard',
     numericValue: null,
     numericTolerance: null,
-    options: [],
+    options: OPTIONS,
     acceptedAnswers: [],
   });
   beforeEach(() => localStorage.setItem('live.localUser', 'Marc'));
@@ -245,6 +267,33 @@ describe('EditorPage', () => {
       );
       expect(patched).toBe(true);
     });
+  });
+
+  it('publishing an unfinished quiz lists what is missing, each step one click away', async () => {
+    const fetchMock = mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/q1',
+        body: detail({
+          questionCount: 2,
+          questions: [q('a', 'Première', 0), { ...q('b', 'Seconde', 1), options: [] }],
+        }),
+      },
+    ]);
+    renderApp('/quizzes/q1');
+
+    fireEvent.click(await screen.findByText('Publier (prêt)'));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('1 étape à finir avant de publier')).toBeInTheDocument();
+    expect(within(dialog).getByText('Ajoutez au moins 2 réponses.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Cochez la bonne réponse.')).toBeInTheDocument();
+    // Nothing was sent: the list says what to do first.
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/status'))).toBe(false);
+    // The unfinished step says so in the list too.
+    expect(screen.getAllByText(/Inachevée/).length).toBeGreaterThan(0);
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ouvrir' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
   it('sets the licence and the tags of the quiz (PUT), a typed tag turned into kebab-case', async () => {
