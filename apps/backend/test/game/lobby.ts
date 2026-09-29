@@ -166,9 +166,14 @@ export function lobbyTests(ctx: GameContext): void {
       const host = connect({ localUser: 'Animateur' });
       const { pin } = await host.emitWithAck('host:create', { quizId });
       const player = connect();
+      // Whose room it is and what it plays, said as the PIN is typed (UI system §4).
       expect(await player.emitWithAck('player:peek', { pin })).toEqual({
         hasSound: false,
         participantAccess: 'account',
+        roomName: null,
+        hostName: 'Animateur',
+        quizTitle: 'Quiz live test',
+        joinLocked: false,
       });
     }, 15_000);
 

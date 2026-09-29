@@ -390,11 +390,11 @@ export function mediaTests(ctx: GameContext): void {
       const loud = await host.emitWithAck('host:create', { quizId: withSound.id });
 
       const guest = connect();
-      expect(await guest.emitWithAck('player:peek', { pin: silent.pin })).toEqual({
+      expect(await guest.emitWithAck('player:peek', { pin: silent.pin })).toMatchObject({
         hasSound: false,
         participantAccess: 'account',
       });
-      expect(await guest.emitWithAck('player:peek', { pin: loud.pin })).toEqual({
+      expect(await guest.emitWithAck('player:peek', { pin: loud.pin })).toMatchObject({
         hasSound: true,
         participantAccess: 'account',
       });

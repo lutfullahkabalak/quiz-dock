@@ -466,8 +466,8 @@ export class GameService {
       hasSound: !!snapshot && snapshotHasSound(snapshot),
       participantAccess: meta.participantAccess,
       // Whose room it is and what it plays: the join form says it as the PIN is typed.
-      roomName: meta.roomName ?? null,
-      hostName: meta.hostName ?? null,
+      roomName: meta.roomName || null,
+      hostName: meta.hostName || null,
       quizTitle: snapshot?.title ?? null,
       joinLocked: meta.joinLocked,
     };
