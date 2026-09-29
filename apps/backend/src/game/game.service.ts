@@ -11,6 +11,7 @@ import {
 import {
   GameState,
   type ParticipantAccess,
+  type PlayerPeek,
   type PlayerPresence,
   type RoomSoundsSettings,
 } from '@quiz-dock/contracts';
@@ -455,7 +456,7 @@ export class GameService {
    * whether an account is needed to get in (#57). Throws for a game that does not
    * exist or is over.
    */
-  async peek(pin: string): Promise<{ hasSound: boolean; participantAccess: ParticipantAccess }> {
+  async peek(pin: string): Promise<PlayerPeek> {
     const meta = await this.getMeta(pin);
     if (!meta) throw new NotFoundException('session.not_found');
     if (meta.state === GameState.Ended) throw new BadRequestException('session.ended');
@@ -464,6 +465,11 @@ export class GameService {
     return {
       hasSound: !!snapshot && snapshotHasSound(snapshot),
       participantAccess: meta.participantAccess,
+      // Whose room it is and what it plays: the join form says it as the PIN is typed.
+      roomName: meta.roomName ?? null,
+      hostName: meta.hostName ?? null,
+      quizTitle: snapshot?.title ?? null,
+      joinLocked: meta.joinLocked,
     };
   }
 

@@ -49,14 +49,24 @@ describe('LandingPage — demo limitations', () => {
 });
 
 describe('LandingPage — the PIN', () => {
-  it('names its field for screen readers, and joins only once a PIN is typed (audit F14)', async () => {
+  it('names its field for screen readers, and checks the PIN at its 6th digit (audit F14)', async () => {
     mockApi([]);
     renderApp('/');
-    const field = await screen.findByRole('textbox', { name: 'Rejoindre un salon' });
-    const join = screen.getByRole('button', { name: 'Rejoindre' });
-    expect(join).toBeDisabled();
-    fireEvent.change(field, { target: { value: '771122' } });
-    expect(join).toBeEnabled();
+    const field = await screen.findByRole('textbox', { name: 'PIN, 6 chiffres' });
+    fireEvent.change(field, { target: { value: '77a1' } });
+    // Digits only; nothing to join until the PIN is whole.
+    expect(field).toHaveValue('771');
+    expect(screen.queryByRole('button', { name: 'Continuer' })).toBeNull();
+    expect(screen.getByText('Vérifié dès le 6ᵉ chiffre.')).toBeInTheDocument();
+  });
+
+  it('offers the host area to one who is not signed in', async () => {
+    mockApi([]);
+    renderApp('/');
+    expect(await screen.findByRole('link', { name: 'Se connecter' })).toHaveAttribute(
+      'href',
+      '/login',
+    );
   });
 });
 

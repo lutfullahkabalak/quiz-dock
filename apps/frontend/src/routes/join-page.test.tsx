@@ -13,7 +13,19 @@ vi.mock('../game/use-game-session', () => ({
 }));
 vi.mock('../game/game-client', () => ({
   joinSession: vi.fn(),
-  peekSession: () => Promise.resolve({ hasSound: false }),
+  peekSession: (pin: string) =>
+    pin === '771122'
+      ? Promise.resolve({
+          hasSound: false,
+          participantAccess: 'open',
+          roomName: null,
+          hostName: 'Claire',
+          quizTitle: 'Histoire',
+          joinLocked: false,
+        })
+      : Promise.reject(
+          Object.assign(new Error('Salon introuvable'), { code: 'session.not_found' }),
+        ),
   loadPlayerSession: () => null,
   loadAvatarSeed: () => null,
   loadNickname: () => '',
@@ -23,13 +35,28 @@ vi.mock('../game/game-client', () => ({
 }));
 
 describe('JoinPage (saisie du PIN)', () => {
-  it('navigue vers /join/$pin après saisie du PIN', async () => {
+  it('names the room at the 6th digit, then goes to /join/$pin', async () => {
     renderApp('/join');
 
-    fireEvent.change(await screen.findByPlaceholderText('123456'), { target: { value: '771122' } });
+    fireEvent.change(await screen.findByRole('textbox', { name: 'PIN, 6 chiffres' }), {
+      target: { value: '771122' },
+    });
+    expect(await screen.findByText(/Claire/)).toBeInTheDocument();
+    expect(screen.getByText(/Histoire/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /Continuer/ }));
 
     // PlayerPage (no-session) demande alors le pseudo.
     expect(await screen.findByPlaceholderText('Votre pseudo')).toBeInTheDocument();
+  });
+
+  it('says a wrong PIN at once, under the boxes', async () => {
+    renderApp('/join');
+    fireEvent.change(await screen.findByRole('textbox', { name: 'PIN, 6 chiffres' }), {
+      target: { value: '000000' },
+    });
+    expect(
+      await screen.findByText('Aucun salon ouvert avec ce PIN. Vérifiez le grand écran.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Continuer/ })).toBeNull();
   });
 });

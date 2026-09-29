@@ -205,6 +205,21 @@ export interface PublicOption {
   media?: { url: string; kind: 'image'; alt?: string | null } | null;
 }
 
+/**
+ * What a player learns of a room before joining (#57): whether the quiz plays
+ * sound (the form then asks where they are), whether an account is needed, and
+ * whose room it is — said as soon as the PIN is typed.
+ */
+export interface PlayerPeek {
+  hasSound: boolean;
+  participantAccess: ParticipantAccess;
+  roomName: string | null;
+  hostName: string | null;
+  quizTitle: string | null;
+  /** Closed to newcomers by the host: a place taken back still works. */
+  joinLocked: boolean;
+}
+
 export interface QuestionStartPayload {
   questionIndex: number;
   type: QuestionType;
@@ -683,10 +698,7 @@ export interface ClientToServerEvents {
    * Before joining: whether the quiz plays sound, so the join form offers the
    * presence choice, and whether an account is needed to get in.
    */
-  'player:peek': (
-    p: { pin: string },
-    ack: (res: { hasSound: boolean; participantAccess: ParticipantAccess }) => void,
-  ) => void;
+  'player:peek': (p: { pin: string }, ack: (res: PlayerPeek) => void) => void;
   'player:join': (
     p: {
       pin: string;

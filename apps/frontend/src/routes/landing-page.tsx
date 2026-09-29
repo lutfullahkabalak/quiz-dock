@@ -2,11 +2,14 @@ import { useTranslation } from 'react-i18next';
 import { APP_NAME, APP_VERSION, appConfig, getDemo, isStandalone } from '../config';
 import { feedbackLinks } from '@/lib/feedback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { PinForm } from '@/components/pin-form';
+import { Link } from '@tanstack/react-router';
+import { JoinPin } from '@/components/join-pin';
+import { useRole } from '../auth/use-role';
 import { PageTitle } from '@/components/ui/page-title';
 
 export function LandingPage() {
   const { t } = useTranslation(['auth', 'common']);
+  const { isHost } = useRole();
 
   return (
     <section className="qd-home flex flex-col items-center gap-6 py-8 text-center">
@@ -16,13 +19,22 @@ export function LandingPage() {
           <CardTitle>{t('landing.joinTitle')}</CardTitle>
         </CardHeader>
         <CardContent>
-          <PinForm
-            label={t('landing.joinTitle')}
-            placeholder={t('landing.pinPlaceholder')}
-            submit={t('landing.join')}
-          />
+          <JoinPin />
         </CardContent>
       </Card>
+      {/* A host lands here too: their way on, or the way in for one who is not signed in. */}
+      {isHost ? (
+        <Link to="/quizzes" className="text-primary text-sm font-medium">
+          {t('landing.continueToQuizzes')} →
+        </Link>
+      ) : (
+        <p className="text-muted-foreground text-sm">
+          {t('landing.hosting')}{' '}
+          <Link to="/login" className="text-foreground underline">
+            {t('landing.signIn')}
+          </Link>
+        </p>
+      )}
       <DemoLimits />
 
       <small className="text-muted-foreground">

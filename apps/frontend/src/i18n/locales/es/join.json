@@ -1,7 +1,10 @@
 {
-  "title": "Unirse a una sesión",
-  "pinCardTitle": "Tu código PIN",
-  "pinLabel": "Código PIN",
-  "pinPlaceholder": "123456",
-  "continue": "Continuar"
+  "title": "Unirse a una sala",
+  "pinLabel": "PIN, 6 cifras",
+  "continue": "Continuar",
+  "hint": "Escribe el PIN que aparece en la pantalla grande",
+  "checking": "Buscando la sala…",
+  "notFound": "No hay ninguna sala abierta con este PIN. Mira la pantalla grande.",
+  "locked": "Esta sala ya no acepta participantes nuevos; quien vuelve sigue pudiendo entrar.",
+  "checkedAt6": "Se comprueba al teclear la 6.ª cifra."
 }

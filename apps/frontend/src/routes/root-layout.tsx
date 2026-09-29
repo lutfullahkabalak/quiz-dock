@@ -61,7 +61,14 @@ export function RootLayout() {
   }
 
   return (
-    <div className="qd-shell flex min-h-screen flex-col" data-shell={shell}>
+    <div
+      className={cn(
+        'qd-shell flex min-h-screen flex-col',
+        // A phone is read outdoors: its hints a step darker (light theme; the dark one keeps its own).
+        shell === 'participant' && 'not-dark:[--muted-foreground:oklch(0.45_0_0)]',
+      )}
+      data-shell={shell}
+    >
       {/* La barre traverse l'écran — c'est la limite du cadre — mais son contenu
           suit exactement les marges de `main` : la marque s'aligne sur le titre
           de la page. Le nom s'efface sous `sm` pour laisser la place à la
