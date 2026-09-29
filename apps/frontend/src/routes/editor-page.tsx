@@ -375,6 +375,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         quizId={quiz.id}
         mediaTailS={quiz.mediaTailS}
         quizStatus={quiz.status}
+        position={{ index: quiz.questionCount, total: quiz.questionCount + 1 }}
         onMoveToDraft={moveToDraft}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
@@ -395,6 +396,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         question={editingItem.question}
         mediaTailS={quiz.mediaTailS}
         quizStatus={quiz.status}
+        position={{ index: editingItem.question.orderIndex, total: quiz.questionCount }}
         onMoveToDraft={moveToDraft}
         onClose={closeForm}
         onDirtyChange={onFormDirty}

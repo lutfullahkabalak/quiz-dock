@@ -124,8 +124,8 @@
     "bodyPlaceholder": "Text to display…",
     "contrastLegend": "Text contrast",
     "tone": {
-      "light": "Light text on a darkened image",
-      "dark": "Dark text on a lightened image"
+      "light": "Light text",
+      "dark": "Dark text"
     },
     "outline": "Outline (halo, like subtitles)",
     "displayLegend": "Auto-advance (automatic mode)",
@@ -264,7 +264,7 @@
     "colorAriaLabel": "color {{index}}",
     "shapeAriaLabel": "shape {{index}}",
     "orderAriaLabel": "Place of answer {{index}} in the right order",
-    "correct": "correct",
+    "correct": "Correct",
     "removeOption": "Remove option {{index}}",
     "addOption": "Add an option",
     "acceptedAnswersLegend": "Accepted answers",
@@ -301,11 +301,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "Partial credit: each right tick earns its share, each wrong tick cancels one.",
-      "ordering": "Partial credit: share of the elements at the right position.",
-      "text_input": "Tolerate typos: one edit up to 5 letters, two beyond (after case/accent normalisation).",
-      "numeric": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus.",
-      "image_choice": "Partial credit (several right pictures): each right tick earns its share, each wrong tick cancels one."
+      "multiple_choice": {
+        "standard": "All or nothing: every right answer ticked, and no wrong one.",
+        "partial": "Partial credit: each right tick earns its share, each wrong tick cancels one."
+      },
+      "ordering": {
+        "standard": "All or nothing: every item in its place.",
+        "partial": "Partial credit: share of the elements at the right position."
+      },
+      "text_input": {
+        "standard": "Exact match, once case and accents are set aside.",
+        "lenient": "Tolerate typos: one edit up to 5 letters, two beyond (after case/accent normalisation)."
+      },
+      "numeric": {
+        "standard": "Within the tolerance counts as right; points scale with speed.",
+        "closest": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus."
+      },
+      "image_choice": {
+        "standard": "All or nothing: every right picture ticked, and no wrong one.",
+        "partial": "Partial credit (several right pictures): each right tick earns its share, each wrong tick cancels one."
+      }
     },
     "removeOptionConfirm": {
       "title": "Remove this option?",
@@ -347,7 +362,22 @@
       "description": "This quiz is published, so it can be presented at any time: it only takes complete questions. Move it back to draft to save this one as it is, or keep editing.",
       "confirmLabel": "Move to draft and save",
       "cancelLabel": "Keep editing"
-    }
+    },
+    "optionActions": "Actions for option {{index}}",
+    "removeOptionShort": "Remove",
+    "ticksCleared": "The type changed: the right answers were cleared. Tick them again under the new rules.",
+    "explanationWritten": "Written",
+    "explanationEmpty": "Empty",
+    "numericLegend": "Answer",
+    "decimalsAllowed": "Decimals are fine: 3.14, 0.5…",
+    "timingSummary": "{{time}} s",
+    "timingSummaryStretched": "{{time}} s ({{total}} s with the media)",
+    "revealDelayAuto": "reveal delay auto",
+    "revealDelaySummary": "reveal after {{seconds}} s",
+    "place_ordinal_one": "{{count}}st",
+    "place_ordinal_two": "{{count}}nd",
+    "place_ordinal_few": "{{count}}rd",
+    "place_ordinal_other": "{{count}}th"
   },
   "preview": {
     "view": "Preview (player view)",
@@ -369,7 +399,8 @@
     "device": "Device",
     "projection": "Projection",
     "phone": "Phone",
-    "showAnswer": "Show the answer"
+    "showAnswer": "Show the answer",
+    "title": "Preview"
   },
   "media": {
     "alt": "question media",

@@ -124,8 +124,8 @@
     "bodyPlaceholder": "Texte à afficher…",
     "contrastLegend": "Contraste du texte",
     "tone": {
-      "light": "Texte clair sur image assombrie",
-      "dark": "Texte sombre sur image éclaircie"
+      "light": "Texte clair",
+      "dark": "Texte sombre"
     },
     "outline": "Contour (halo, comme des sous-titres)",
     "displayLegend": "Enchaînement (mode automatique)",
@@ -264,7 +264,7 @@
     "colorAriaLabel": "couleur {{index}}",
     "shapeAriaLabel": "forme {{index}}",
     "orderAriaLabel": "Place de la réponse {{index}} dans le bon ordre",
-    "correct": "correcte",
+    "correct": "Correcte",
     "removeOption": "Retirer l’option {{index}}",
     "addOption": "Ajouter une option",
     "acceptedAnswersLegend": "Réponses acceptées",
@@ -301,11 +301,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "Crédit partiel : chaque bonne case rapporte sa part, chaque mauvaise en annule une.",
-      "ordering": "Crédit partiel : part des éléments à la bonne position.",
-      "text_input": "Tolérant aux fautes : 1 lettre jusqu’à 5 lettres, 2 au-delà (après normalisation casse/accents).",
-      "numeric": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse.",
-      "image_choice": "Crédit partiel (plusieurs bonnes images) : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
+      "multiple_choice": {
+        "standard": "Tout ou rien : toutes les bonnes réponses cochées, et aucune mauvaise.",
+        "partial": "Crédit partiel : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
+      },
+      "ordering": {
+        "standard": "Tout ou rien : chaque élément à sa place.",
+        "partial": "Crédit partiel : part des éléments à la bonne position."
+      },
+      "text_input": {
+        "standard": "Réponse exacte, sans tenir compte de la casse ni des accents.",
+        "lenient": "Tolérant aux fautes : 1 lettre jusqu’à 5 lettres, 2 au-delà (après normalisation casse/accents)."
+      },
+      "numeric": {
+        "standard": "Dans la tolérance, la réponse est juste ; les points suivent la rapidité.",
+        "closest": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse."
+      },
+      "image_choice": {
+        "standard": "Tout ou rien : toutes les bonnes images cochées, et aucune mauvaise.",
+        "partial": "Crédit partiel (plusieurs bonnes images) : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
+      }
     },
     "removeOptionConfirm": {
       "title": "Supprimer cette option ?",
@@ -347,7 +362,22 @@
       "description": "Ce quiz est publié : il peut être présenté à tout moment et n’accepte que des questions complètes. Repassez-le en brouillon pour enregistrer celle-ci telle quelle, ou continuez à la modifier.",
       "confirmLabel": "Passer en brouillon et enregistrer",
       "cancelLabel": "Continuer à modifier"
-    }
+    },
+    "optionActions": "Actions de l’option {{index}}",
+    "removeOptionShort": "Retirer",
+    "ticksCleared": "Le type a changé : les bonnes réponses ont été décochées. Cochez-les à nouveau selon les nouvelles règles.",
+    "explanationWritten": "Rédigée",
+    "explanationEmpty": "Vide",
+    "numericLegend": "Réponse",
+    "decimalsAllowed": "Les décimales sont acceptées : 3,14, 0,5…",
+    "timingSummary": "{{time}} s",
+    "timingSummaryStretched": "{{time}} s ({{total}} s avec le média)",
+    "revealDelayAuto": "délai de révélation auto",
+    "revealDelaySummary": "révélation après {{seconds}} s",
+    "place_ordinal_one": "{{count}}er",
+    "place_ordinal_two": "{{count}}e",
+    "place_ordinal_few": "{{count}}e",
+    "place_ordinal_other": "{{count}}e"
   },
   "preview": {
     "view": "Aperçu (vue participant)",
@@ -369,7 +399,8 @@
     "device": "Appareil",
     "projection": "Projection",
     "phone": "Téléphone",
-    "showAnswer": "Montrer la réponse"
+    "showAnswer": "Montrer la réponse",
+    "title": "Aperçu"
   },
   "media": {
     "alt": "média de la question",

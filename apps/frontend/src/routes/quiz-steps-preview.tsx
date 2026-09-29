@@ -23,6 +23,7 @@ import { ScaledStage } from '../game/slide-stage';
 import type { StepQuiz } from './quiz-stage-preview';
 import { ScreenSurface } from './screen-page';
 import { stepView } from './step-view';
+import type { GameView } from '../game/use-game-session';
 
 /** What the preview walks: a quiz, or a template read as the quiz a copy would make. */
 export type PreviewQuiz = StepQuiz & {
@@ -165,19 +166,20 @@ export function QuizStepsPreview({
                 </label>
               ) : null}
             </div>
-            {view === null ? null : device === 'projection' ? (
+            {view === null ? null : (
               // 16:9 like the projection, as wide as the window's height allows: the whole
               // stage stays in view under the buttons.
               <div
                 className="mx-auto w-full"
-                style={{ maxWidth: `calc((100dvh - ${isFullscreen ? 10 : 16}rem) * 16 / 9)` }}
+                style={{
+                  maxWidth:
+                    device === 'projection'
+                      ? `calc((100dvh - ${isFullscreen ? 10 : 16}rem) * 16 / 9)`
+                      : undefined,
+                }}
               >
-                <ScaledStage className="rounded-xl border">
-                  <ScreenSurface pin="" view={view} socket={null} role="preview" fit="box" />
-                </ScaledStage>
+                <RoomScreen view={view} device={device} />
               </div>
-            ) : (
-              <ParticipantPreview view={view} note={false} />
             )}
           </div>
         </div>
@@ -240,5 +242,19 @@ function StepList({
         );
       })}
     </ol>
+  );
+}
+
+/**
+ * A view as the room would see it: the projection on its 16:9 stage, or a
+ * participant's phone — the live components themselves.
+ */
+export function RoomScreen({ view, device }: { view: GameView; device: 'projection' | 'phone' }) {
+  return device === 'projection' ? (
+    <ScaledStage className="rounded-xl border">
+      <ScreenSurface pin="" view={view} socket={null} role="preview" fit="box" />
+    </ScaledStage>
+  ) : (
+    <ParticipantPreview view={view} note={false} />
   );
 }

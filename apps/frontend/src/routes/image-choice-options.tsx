@@ -5,6 +5,7 @@ import { IMAGE_CHOICE_OPTION_COUNTS, OPTION_ALT_MAX } from '@quiz-dock/contracts
 import { GripVertical } from 'lucide-react';
 import { useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { CorrectToggle } from '@/components/ui/correct-toggle';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { cn } from '@/lib/utils';
@@ -181,15 +182,12 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
                       </span>
                     ) : null}
                   </label>
-                  <label className="flex items-center gap-1.5 text-sm">
-                    <input
-                      type={multiSelect ? 'checkbox' : 'radio'}
-                      name="correct"
-                      checked={opt.isCorrect}
-                      onChange={(e) => onCorrect(i, e.target.checked)}
-                    />
-                    {t('questionForm.correct')}
-                  </label>
+                  <CorrectToggle
+                    single={!multiSelect}
+                    checked={opt.isCorrect}
+                    label={t('questionForm.correct')}
+                    onChange={(checked) => onCorrect(i, checked)}
+                  />
                 </SortableTile>
               );
             })}

@@ -76,7 +76,7 @@ describe('QuestionForm', () => {
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'true_false' } });
     expect(screen.getAllByRole('radio')[0]).toBeChecked();
     fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'multiple_choice' } });
-    for (const box of screen.getAllByRole('checkbox', { name: 'correcte' })) {
+    for (const box of screen.getAllByRole('checkbox', { name: 'Correcte' })) {
       expect(box).not.toBeChecked();
     }
   });
@@ -526,7 +526,7 @@ describe('QuestionForm — image choice', () => {
     });
     fireEvent.click(screen.getByLabelText('Plusieurs bonnes réponses'));
     // Now checkboxes: tick the second picture too.
-    fireEvent.click(screen.getAllByRole('checkbox', { name: 'correcte' })[1]);
+    fireEvent.click(screen.getAllByRole('checkbox', { name: 'Correcte' })[1]);
     fireEvent.change(screen.getByLabelText('Barème'), { target: { value: 'partial' } });
     fireEvent.click(screen.getByText('Enregistrer'));
     await waitFor(() => expect(onClose).toHaveBeenCalled());

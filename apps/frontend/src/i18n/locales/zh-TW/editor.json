@@ -124,8 +124,8 @@
     "bodyPlaceholder": "要顯示的文字…",
     "contrastLegend": "文字對比度",
     "tone": {
-      "light": "淺色文字，較暗圖片",
-      "dark": "深色文字，較亮圖片"
+      "light": "淺色文字",
+      "dark": "深色文字"
     },
     "outline": "描邊（光暈，如字幕）",
     "displayLegend": "自動切換（自動模式）",
@@ -301,11 +301,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "部分得分：每個正確勾選得其份額，每個錯誤勾選抵消一個。",
-      "ordering": "部分得分：位置正確的元素所占比例。",
-      "text_input": "容忍拼字錯誤：5 個字母內允許 1 處，之外允許 2 處（大小寫/重音正規化後）。",
-      "numeric": "最接近者勝：揭曉時計分——精確（在誤差內）= 滿分，其後 75 / 50 / 30 %，再往後 10 %；無速度加分。",
-      "image_choice": "部分得分（多張正確圖片）：每勾對一項得相應分數，每勾錯一項抵銷一項。"
+      "multiple_choice": {
+        "standard": "全對才得分：勾選所有正確答案，且不勾選錯誤答案。",
+        "partial": "部分得分：每個正確勾選得其份額，每個錯誤勾選抵消一個。"
+      },
+      "ordering": {
+        "standard": "全對才得分：每一項都在正確位置。",
+        "partial": "部分得分：位置正確的元素所占比例。"
+      },
+      "text_input": {
+        "standard": "完全相符，忽略大小寫和重音。",
+        "lenient": "容忍拼字錯誤：5 個字母內允許 1 處，之外允許 2 處（大小寫/重音正規化後）。"
+      },
+      "numeric": {
+        "standard": "在容許誤差內即為正確；得分隨速度而定。",
+        "closest": "最接近者勝：揭曉時計分——精確（在誤差內）= 滿分，其後 75 / 50 / 30 %，再往後 10 %；無速度加分。"
+      },
+      "image_choice": {
+        "standard": "全對才得分：勾選所有正確圖片，且不勾選錯誤圖片。",
+        "partial": "部分得分（多張正確圖片）：每勾對一項得相應分數，每勾錯一項抵銷一項。"
+      }
     },
     "removeOptionConfirm": {
       "title": "刪除此選項？",
@@ -347,7 +362,22 @@
       "description": "此測驗已發布，隨時可以演示，只接受完整的題目。改回草稿即可照原樣儲存這道題，或繼續編輯。",
       "confirmLabel": "改回草稿並儲存",
       "cancelLabel": "繼續編輯"
-    }
+    },
+    "optionActions": "選項 {{index}} 的操作",
+    "removeOptionShort": "移除",
+    "ticksCleared": "題型已變更：正確答案已取消勾選。請依新規則重新勾選。",
+    "explanationWritten": "已填寫",
+    "explanationEmpty": "未填寫",
+    "numericLegend": "答案",
+    "decimalsAllowed": "可以使用小數：3.14、0.5…",
+    "timingSummary": "{{time}} 秒",
+    "timingSummaryStretched": "{{time}} 秒（含媒體 {{total}} 秒）",
+    "revealDelayAuto": "揭曉延遲自動",
+    "revealDelaySummary": "{{seconds}} 秒後揭曉",
+    "place_ordinal_one": "第{{count}}",
+    "place_ordinal_two": "第{{count}}",
+    "place_ordinal_few": "第{{count}}",
+    "place_ordinal_other": "第{{count}}"
   },
   "preview": {
     "view": "預覽（玩家視角）",
@@ -369,7 +399,8 @@
     "device": "裝置",
     "projection": "投影",
     "phone": "手機",
-    "showAnswer": "顯示答案"
+    "showAnswer": "顯示答案",
+    "title": "預覽"
   },
   "media": {
     "alt": "題目媒體",

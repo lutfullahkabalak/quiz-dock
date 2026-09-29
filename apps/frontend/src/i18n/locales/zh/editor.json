@@ -124,8 +124,8 @@
     "bodyPlaceholder": "要显示的文字…",
     "contrastLegend": "文字对比度",
     "tone": {
-      "light": "浅色文字，图片压暗",
-      "dark": "深色文字，图片提亮"
+      "light": "浅色文字",
+      "dark": "深色文字"
     },
     "outline": "描边（光晕，如字幕）",
     "displayLegend": "自动切换（自动模式）",
@@ -301,11 +301,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "部分得分：每个正确勾选得其份额，每个错误勾选抵消一个。",
-      "ordering": "部分得分：位置正确的元素所占比例。",
-      "text_input": "容忍拼写错误：5 个字母内允许 1 处，之外允许 2 处（大小写/重音归一后）。",
-      "numeric": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。",
-      "image_choice": "部分得分（多张正确图片）：每勾对一项得相应分数，每勾错一项抵消一项。"
+      "multiple_choice": {
+        "standard": "全对才得分：勾选所有正确答案，且不勾选错误答案。",
+        "partial": "部分得分：每个正确勾选得其份额，每个错误勾选抵消一个。"
+      },
+      "ordering": {
+        "standard": "全对才得分：每一项都在正确位置。",
+        "partial": "部分得分：位置正确的元素所占比例。"
+      },
+      "text_input": {
+        "standard": "完全匹配，忽略大小写和重音。",
+        "lenient": "容忍拼写错误：5 个字母内允许 1 处，之外允许 2 处（大小写/重音归一后）。"
+      },
+      "numeric": {
+        "standard": "在容差内即为正确；得分随速度而定。",
+        "closest": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。"
+      },
+      "image_choice": {
+        "standard": "全对才得分：勾选所有正确图片，且不勾选错误图片。",
+        "partial": "部分得分（多张正确图片）：每勾对一项得相应分数，每勾错一项抵消一项。"
+      }
     },
     "removeOptionConfirm": {
       "title": "删除此选项？",
@@ -347,7 +362,22 @@
       "description": "此测验已发布，随时可以演示，只接受完整的题目。改回草稿即可按原样保存这道题，或继续编辑。",
       "confirmLabel": "改回草稿并保存",
       "cancelLabel": "继续编辑"
-    }
+    },
+    "optionActions": "选项 {{index}} 的操作",
+    "removeOptionShort": "移除",
+    "ticksCleared": "题型已更改：正确答案已取消勾选。请按新规则重新勾选。",
+    "explanationWritten": "已填写",
+    "explanationEmpty": "未填写",
+    "numericLegend": "答案",
+    "decimalsAllowed": "可以使用小数：3.14、0.5…",
+    "timingSummary": "{{time}} 秒",
+    "timingSummaryStretched": "{{time}} 秒（含媒体 {{total}} 秒）",
+    "revealDelayAuto": "揭晓延迟自动",
+    "revealDelaySummary": "{{seconds}} 秒后揭晓",
+    "place_ordinal_one": "第{{count}}",
+    "place_ordinal_two": "第{{count}}",
+    "place_ordinal_few": "第{{count}}",
+    "place_ordinal_other": "第{{count}}"
   },
   "preview": {
     "view": "预览（玩家视图）",
@@ -369,7 +399,8 @@
     "device": "设备",
     "projection": "投影",
     "phone": "手机",
-    "showAnswer": "显示答案"
+    "showAnswer": "显示答案",
+    "title": "预览"
   },
   "media": {
     "alt": "题目媒体",
