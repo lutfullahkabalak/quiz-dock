@@ -112,6 +112,9 @@ export const editorRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/quizzes/$quizId',
   beforeLoad: requireAuth,
+  // `publish`: arrived from « Publish to present » — publish, or list what is missing.
+  validateSearch: (search: Record<string, unknown>): { publish?: boolean } =>
+    search.publish === true || search.publish === 'true' ? { publish: true } : {},
   component: EditorPage,
 });
 

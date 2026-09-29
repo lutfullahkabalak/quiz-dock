@@ -18,7 +18,6 @@
   "empty": "还没有测验。创建一个吧！",
   "questionCount_one": "{{count}} 道题",
   "questionCount_other": "{{count}} 道题",
-  "edit": "编辑",
   "present": "演示",
   "running_one": "{{count}} 个房间开放中",
   "running_other": "{{count}} 个房间开放中",
@@ -63,7 +62,6 @@
   "seeAllSessions": "查看所有房间",
   "allQuizzes": "全部测验",
   "ownedBy": "来自 {{name}}",
-  "view": "查看",
   "browseTemplates": "浏览模板库",
   "browseTemplatesHint": "现成的测验，可据此创建自己的；不主动取用则不会进入你的题库。",
   "mediaAdmin": {
@@ -191,5 +189,7 @@
   "ownerMe": "我",
   "ownerNone": "没有该所有者",
   "statusCount_one": "{{count}} 个状态",
-  "statusCount_other": "{{count}} 个状态"
+  "statusCount_other": "{{count}} 个状态",
+  "publishToPresent": "发布后演示",
+  "quizActions": "“{{title}}”的操作"
 }

@@ -328,6 +328,19 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   const [checklist, setChecklist] = useState(false);
   // Publishing an unfinished quiz lists what is missing, each line opening its step.
   const onPublish = () => (unfinished.length > 0 ? setChecklist(true) : void changeStatus('ready'));
+  // Arrived from the dashboard's « Publish to present »: done once, then the address is clean.
+  const { publish: publishOnArrival } = editorRoute.useSearch();
+  useEffect(() => {
+    if (!publishOnArrival) return;
+    if (quiz.status === 'draft') onPublish();
+    void navigate({
+      to: '/quizzes/$quizId',
+      params: { quizId: quiz.id },
+      search: {},
+      replace: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishOnArrival]);
 
   const persistOrder = (next: QuizItem[]) =>
     guarded(async () => {

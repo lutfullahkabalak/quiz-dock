@@ -314,6 +314,20 @@ describe('EditorPage', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
   });
 
+  it('arriving to publish (from the dashboard) lists what is missing first', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/q1',
+        body: detail({ questions: [{ ...q('a', 'Première', 0), options: [] }] }),
+      },
+    ]);
+    const { router } = renderApp('/quizzes/q1?publish=true');
+    expect(await screen.findByText('1 étape à finir avant de publier')).toBeInTheDocument();
+    // Done once: the address is clean again.
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
+  });
+
   it('sets the licence and the tags of the quiz (PUT), a typed tag turned into kebab-case', async () => {
     const fetchMock = mockApi([
       { method: 'GET', path: '/quizzes/q1', body: detail({ tags: ['histoire'] }) },

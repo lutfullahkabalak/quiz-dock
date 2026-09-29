@@ -18,7 +18,6 @@
   "empty": "還沒有測驗。創建一個吧！",
   "questionCount_one": "{{count}} 道題",
   "questionCount_other": "{{count}} 道題",
-  "edit": "編輯",
   "present": "示範",
   "running_one": "{{count}} 個房間開放中",
   "running_other": "{{count}} 個房間開放中",
@@ -63,7 +62,6 @@
   "seeAllSessions": "查看所有房間",
   "allQuizzes": "全部測驗",
   "ownedBy": "來自 {{name}}",
-  "view": "檢視",
   "browseTemplates": "瀏覽範本庫",
   "browseTemplatesHint": "現成的測驗，可據此建立自己的；不主動取用則不會進入你的題庫。",
   "mediaAdmin": {
@@ -191,5 +189,7 @@
   "ownerMe": "我",
   "ownerNone": "沒有該擁有者",
   "statusCount_one": "{{count}} 個狀態",
-  "statusCount_other": "{{count}} 個狀態"
+  "statusCount_other": "{{count}} 個狀態",
+  "publishToPresent": "發布後演示",
+  "quizActions": "「{{title}}」的操作"
 }
