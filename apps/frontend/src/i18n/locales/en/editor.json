@@ -94,9 +94,6 @@
     "backToEditor": "Back to the editor",
     "loadError": "Could not load the reviews.",
     "noneForFilter": "No review with this rating.",
-    "previous": "Previous",
-    "next": "Next",
-    "pagePosition": "Page {{page}} / {{pages}}",
     "count_one": "{{count}} review",
     "count_other": "{{count}} reviews"
   },

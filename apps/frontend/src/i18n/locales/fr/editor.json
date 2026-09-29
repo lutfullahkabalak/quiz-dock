@@ -94,9 +94,6 @@
     "backToEditor": "Retour à l’éditeur",
     "loadError": "Impossible de charger les avis.",
     "noneForFilter": "Aucun avis avec cette note.",
-    "previous": "Précédent",
-    "next": "Suivant",
-    "pagePosition": "Page {{page}} / {{pages}}",
     "count_one": "{{count}} avis",
     "count_other": "{{count}} avis"
   },

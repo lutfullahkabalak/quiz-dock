@@ -1,14 +1,15 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowLeft, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { QuizFeedbackSummaryDto } from '../api/generated/model';
 import { useQuizzesControllerFeedback } from '../api/generated/quizzes/quizzes';
 import { feedbackRoute } from '../router';
 import { ListSkeleton } from '@/components/ui/loading';
 import { PageTitle } from '@/components/ui/page-title';
+import { Pagination } from '@/components/ui/pagination';
 
 const PAGE_SIZE = 20;
 
@@ -165,33 +166,8 @@ export function FeedbackPage() {
               ) : null}
             </ul>
           )}
-          {pages > 1 ? (
-            <nav className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="size-4" />
-                {t('feedback.previous')}
-              </Button>
-              <span className="text-muted-foreground text-sm">
-                {t('feedback.pagePosition', { page, pages })}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                {t('feedback.next')}
-                <ChevronRight className="size-4" />
-              </Button>
-            </nav>
-          ) : null}
+          {/* The app's one pagination, as on every other list. */}
+          <Pagination page={page} pages={pages} onChange={setPage} />
         </>
       ) : null}
     </section>

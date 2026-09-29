@@ -94,9 +94,6 @@
     "backToEditor": "Volver al editor",
     "loadError": "No se pudieron cargar las opiniones.",
     "noneForFilter": "Ninguna opinión con esta nota.",
-    "previous": "Anterior",
-    "next": "Siguiente",
-    "pagePosition": "Página {{page}} / {{pages}}",
     "count_one": "{{count}} opinión",
     "count_other": "{{count}} opiniones"
   },
