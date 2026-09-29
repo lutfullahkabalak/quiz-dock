@@ -46,8 +46,9 @@ import {
 } from '@quiz-dock/contracts';
 import { useForm, useStore } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
-import { useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MediaEditsContext, useMediaEdits } from '@/lib/media-edits';
 import {
   ArrowDown,
   ArrowUp,
@@ -297,6 +298,8 @@ export function QuestionForm({
   });
   const save = async (data: ReturnType<typeof buildPayload>) => {
     try {
+      // The media's alt and credit, edited here, are saved with the question.
+      await mediaEdits.flush();
       if (question) {
         await update.mutateAsync({ qid: question.id, data });
       } else {
@@ -335,7 +338,13 @@ export function QuestionForm({
   };
   const values = useStore(form.store, (s) => s.values);
   // Dirty = values differ from what was loaded (a fresh question is dirty as soon as typed in).
-  const dirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  const formDirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  // Alt texts and credits typed here wait for the Save, and count as changes.
+  const mediaEdits = useMediaEdits();
+  const dirty = formDirty || mediaEdits.dirty;
+  useEffect(() => {
+    if (mediaEdits.dirty) onDirtyChange?.(true);
+  }, [mediaEdits.dirty, onDirtyChange]);
   // Back to what was loaded: the draft goes with the changes.
   const discardDraft = () => {
     setRestored(null);
@@ -452,646 +461,655 @@ export function QuestionForm({
   };
 
   return (
-    <form
-      className="flex flex-col gap-5"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void form.handleSubmit();
-      }}
-    >
-      {/* Enregistrer est en haut, collant : une question longue (propositions,
+    <MediaEditsContext.Provider value={mediaEdits.edits}>
+      <form
+        className="flex flex-col gap-5"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void form.handleSubmit();
+        }}
+      >
+        {/* Enregistrer est en haut, collant : une question longue (propositions,
           explication, arrière-plan) mettait le bouton hors d'atteinte, et on ne
           devrait jamais avoir à chercher comment garder ce qu'on vient d'écrire. */}
-      <FormActionBar
-        title={question ? t('questionForm.titleEdit') : t('questionForm.titleAdd')}
-        dirty={dirty}
-        busy={add.isPending || update.isPending}
-        submitLabel={question ? t('questionForm.submitUpdate') : t('questionForm.submitAdd')}
-        issues={issues}
-        onIssue={focusField}
-        onCancel={cancel}
-      />
+        <FormActionBar
+          title={question ? t('questionForm.titleEdit') : t('questionForm.titleAdd')}
+          dirty={dirty}
+          busy={add.isPending || update.isPending}
+          submitLabel={question ? t('questionForm.submitUpdate') : t('questionForm.submitAdd')}
+          issues={issues}
+          onIssue={focusField}
+          onCancel={cancel}
+        />
 
-      {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
-      <LivePreview values={values} position={position} />
-      <Label>
-        {t('questionForm.typeLabel')}
-        <Select value={type} onChange={(e) => onTypeChange(e.target.value as QType)}>
-          {TYPES.map((value) => (
-            <option key={value} value={value}>
-              {t(`questionType.${value}`)}
-            </option>
-          ))}
-        </Select>
-      </Label>
-      {/* What this type does on screen and how it scores — the rules are not obvious. */}
-      <p className="text-muted-foreground -mt-3 text-xs leading-snug">
-        {t(`questionTypeHelp.${type}`)}
-      </p>
-      {ticksCleared ? <Notice tone="info">{t('questionForm.ticksCleared')}</Notice> : null}
+        {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
+        <LivePreview values={values} position={position} />
+        <Label>
+          {t('questionForm.typeLabel')}
+          <Select value={type} onChange={(e) => onTypeChange(e.target.value as QType)}>
+            {TYPES.map((value) => (
+              <option key={value} value={value}>
+                {t(`questionType.${value}`)}
+              </option>
+            ))}
+          </Select>
+        </Label>
+        {/* What this type does on screen and how it scores — the rules are not obvious. */}
+        <p className="text-muted-foreground -mt-3 text-xs leading-snug">
+          {t(`questionTypeHelp.${type}`)}
+        </p>
+        {ticksCleared ? <Notice tone="info">{t('questionForm.ticksCleared')}</Notice> : null}
 
-      <form.Field name="prompt">
-        {(field) => (
-          <div id="qf-prompt" className="flex flex-col gap-1.5">
-            <span className="text-sm font-medium leading-none">
-              {t('questionForm.promptLabel')}
-            </span>
-            <MarkdownEditor
-              aria-label={t('questionForm.promptLabel')}
-              value={field.state.value}
-              onChange={field.handleChange}
-              placeholder={t('questionForm.promptPlaceholder')}
-            />
-            <FieldMessage issues={issuesAt('prompt')} />
-            {type === 'image_choice' ? null : (
-              <PromptImageNotice
-                prompt={field.state.value}
-                media={media}
-                onMove={(rest, next) => {
-                  field.handleChange(rest);
-                  form.setFieldValue('media', next);
-                }}
+        <form.Field name="prompt">
+          {(field) => (
+            <div id="qf-prompt" className="flex flex-col gap-1.5">
+              <span className="text-sm font-medium leading-none">
+                {t('questionForm.promptLabel')}
+              </span>
+              <MarkdownEditor
+                aria-label={t('questionForm.promptLabel')}
+                value={field.state.value}
+                onChange={field.handleChange}
+                placeholder={t('questionForm.promptPlaceholder')}
               />
-            )}
-          </div>
+              <FieldMessage issues={issuesAt('prompt')} />
+              {type === 'image_choice' ? null : (
+                <PromptImageNotice
+                  prompt={field.state.value}
+                  media={media}
+                  onMove={(rest, next) => {
+                    field.handleChange(rest);
+                    form.setFieldValue('media', next);
+                  }}
+                />
+              )}
+            </div>
+          )}
+        </form.Field>
+
+        {type === 'image_choice' && (
+          <fieldset id="qf-options" className="flex flex-col gap-2">
+            <legend className={LEGEND}>{t('questionForm.imagesLegend')}</legend>
+            <ImageChoiceOptions
+              options={options}
+              currentOptions={() => form.getFieldValue('options')}
+              multiSelect={multiSelect}
+              showErrors={checked}
+              sensors={sensors}
+              setOptions={setOptions}
+              newOption={newOption}
+              onCorrect={setCorrect}
+              onMultiSelect={(multi) => {
+                form.setFieldValue('multiSelect', multi);
+                // Back to one right picture: the first one ticked stays.
+                if (!multi) {
+                  const first = options.findIndex((o) => o.isCorrect);
+                  setOptions(options.map((o, i) => ({ ...o, isCorrect: i === first })));
+                }
+              }}
+            />
+            {/* Each picture says what it misses; here, what the whole question does. */}
+            <FieldMessage issues={issues.filter((i) => i.field === 'options')} />
+          </fieldset>
         )}
-      </form.Field>
 
-      {type === 'image_choice' && (
-        <fieldset id="qf-options" className="flex flex-col gap-2">
-          <legend className={LEGEND}>{t('questionForm.imagesLegend')}</legend>
-          <ImageChoiceOptions
-            options={options}
-            currentOptions={() => form.getFieldValue('options')}
-            multiSelect={multiSelect}
-            showErrors={checked}
-            sensors={sensors}
-            setOptions={setOptions}
-            newOption={newOption}
-            onCorrect={setCorrect}
-            onMultiSelect={(multi) => {
-              form.setFieldValue('multiSelect', multi);
-              // Back to one right picture: the first one ticked stays.
-              if (!multi) {
-                const first = options.findIndex((o) => o.isCorrect);
-                setOptions(options.map((o, i) => ({ ...o, isCorrect: i === first })));
-              }
-            }}
-          />
-          {/* Each picture says what it misses; here, what the whole question does. */}
-          <FieldMessage issues={issues.filter((i) => i.field === 'options')} />
-        </fieldset>
-      )}
-
-      {OPTION_TYPES.includes(type) && type !== 'image_choice' && (
-        <fieldset id="qf-options" className="flex flex-col gap-2">
-          <legend className={LEGEND}>{t('questionForm.optionsLegend')}</legend>
-          <DndContext
-            sensors={sensors}
-            collisionDetection={closestCenter}
-            onDragEnd={onOptionDragEnd}
-          >
-            <SortableContext
-              items={options.map((o) => o.key)}
-              strategy={verticalListSortingStrategy}
+        {OPTION_TYPES.includes(type) && type !== 'image_choice' && (
+          <fieldset id="qf-options" className="flex flex-col gap-2">
+            <legend className={LEGEND}>{t('questionForm.optionsLegend')}</legend>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={onOptionDragEnd}
             >
-              {options.map((opt, i) => (
-                <SortableOption key={opt.key} id={opt.key}>
-                  <span
-                    aria-hidden
-                    className={cn(
-                      'flex size-9 shrink-0 items-center justify-center rounded-md text-lg text-white',
-                      COLOR_BG[opt.color] ?? OPTION_BG_FALLBACK,
-                    )}
-                  >
-                    <ShapeIcon shape={opt.shape} />
-                  </span>
-                  <MarkdownEditor
-                    profile="inline"
-                    aria-label={t('questionForm.optionAriaLabel', { index: i + 1 })}
-                    className="min-w-48 flex-1"
-                    value={opt.text}
-                    onChange={(text) =>
-                      setOptions(options.map((o, idx) => (idx === i ? { ...o, text } : o)))
-                    }
-                    placeholder={t('questionForm.optionPlaceholder', { index: i + 1 })}
-                  />
-
-                  {type === 'ordering' ? (
-                    // Its place in the right order, from 1: taking a place swaps with its holder.
-                    <Select
-                      aria-label={t('questionForm.orderAriaLabel', { index: i + 1 })}
-                      className="w-24"
-                      value={opt.correctOrderIndex}
-                      onChange={(e) => setOptions(swapPlace(options, i, Number(e.target.value)))}
+              <SortableContext
+                items={options.map((o) => o.key)}
+                strategy={verticalListSortingStrategy}
+              >
+                {options.map((opt, i) => (
+                  <SortableOption key={opt.key} id={opt.key}>
+                    <span
+                      aria-hidden
+                      className={cn(
+                        'flex size-9 shrink-0 items-center justify-center rounded-md text-lg text-white',
+                        COLOR_BG[opt.color] ?? OPTION_BG_FALLBACK,
+                      )}
                     >
-                      {options.map((_, place) => (
-                        <option key={place} value={place}>
-                          {t('questionForm.place', { count: place + 1, ordinal: true })}
-                        </option>
-                      ))}
-                    </Select>
-                  ) : type === 'poll' ? null : (
-                    <CorrectToggle
-                      single={SINGLE_CORRECT.includes(type)}
-                      checked={opt.isCorrect}
-                      label={t('questionForm.correct')}
-                      onChange={(checked) => setCorrect(i, checked)}
+                      <ShapeIcon shape={opt.shape} />
+                    </span>
+                    <MarkdownEditor
+                      profile="inline"
+                      aria-label={t('questionForm.optionAriaLabel', { index: i + 1 })}
+                      className="min-w-48 flex-1"
+                      value={opt.text}
+                      onChange={(text) =>
+                        setOptions(options.map((o, idx) => (idx === i ? { ...o, text } : o)))
+                      }
+                      placeholder={t('questionForm.optionPlaceholder', { index: i + 1 })}
                     />
-                  )}
 
-                  {/* Moving and removing, in reach without a mouse or a hover. */}
-                  <Popover
-                    align="end"
-                    trigger={({ open, toggle }) => (
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="text-muted-foreground size-8"
-                        aria-label={t('questionForm.optionActions', { index: i + 1 })}
-                        aria-expanded={open}
-                        onClick={toggle}
+                    {type === 'ordering' ? (
+                      // Its place in the right order, from 1: taking a place swaps with its holder.
+                      <Select
+                        aria-label={t('questionForm.orderAriaLabel', { index: i + 1 })}
+                        className="w-24"
+                        value={opt.correctOrderIndex}
+                        onChange={(e) => setOptions(swapPlace(options, i, Number(e.target.value)))}
                       >
-                        <EllipsisVertical className="size-4" />
-                      </Button>
+                        {options.map((_, place) => (
+                          <option key={place} value={place}>
+                            {t('questionForm.place', { count: place + 1, ordinal: true })}
+                          </option>
+                        ))}
+                      </Select>
+                    ) : type === 'poll' ? null : (
+                      <CorrectToggle
+                        single={SINGLE_CORRECT.includes(type)}
+                        checked={opt.isCorrect}
+                        label={t('questionForm.correct')}
+                        onChange={(checked) => setCorrect(i, checked)}
+                      />
                     )}
-                  >
-                    {(close) => (
-                      <div className="flex w-44 flex-col gap-0.5">
-                        <MenuItem
-                          disabled={i === 0}
-                          onClick={() => {
-                            close();
-                            setOptions(arrayMove(options, i, i - 1));
-                          }}
+
+                    {/* Moving and removing, in reach without a mouse or a hover. */}
+                    <Popover
+                      align="end"
+                      trigger={({ open, toggle }) => (
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground size-8"
+                          aria-label={t('questionForm.optionActions', { index: i + 1 })}
+                          aria-expanded={open}
+                          onClick={toggle}
                         >
-                          <ArrowUp className="size-4" />
-                          {t('questions.moveUp')}
-                        </MenuItem>
-                        <MenuItem
-                          disabled={i === options.length - 1}
-                          onClick={() => {
-                            close();
-                            setOptions(arrayMove(options, i, i + 1));
-                          }}
-                        >
-                          <ArrowDown className="size-4" />
-                          {t('questions.moveDown')}
-                        </MenuItem>
-                        {type !== 'true_false' ? (
+                          <EllipsisVertical className="size-4" />
+                        </Button>
+                      )}
+                    >
+                      {(close) => (
+                        <div className="flex w-44 flex-col gap-0.5">
                           <MenuItem
-                            destructive
-                            disabled={options.length <= 2}
+                            disabled={i === 0}
                             onClick={() => {
                               close();
-                              // An empty option goes without asking; a typed one is worth a confirmation.
-                              if ((opt.text ?? '').trim()) setPendingRemoval(i);
-                              else setOptions(options.filter((_, idx) => idx !== i));
+                              setOptions(arrayMove(options, i, i - 1));
                             }}
                           >
-                            <Trash2 className="size-4" />
-                            {t('questionForm.removeOptionShort')}
+                            <ArrowUp className="size-4" />
+                            {t('questions.moveUp')}
                           </MenuItem>
-                        ) : null}
-                      </div>
-                    )}
-                  </Popover>
-                </SortableOption>
-              ))}
-            </SortableContext>
-          </DndContext>
-          <FieldMessage issues={issuesAt('options')} />
-          {type !== 'true_false' && (
-            // At the limit the button stays, and says it.
+                          <MenuItem
+                            disabled={i === options.length - 1}
+                            onClick={() => {
+                              close();
+                              setOptions(arrayMove(options, i, i + 1));
+                            }}
+                          >
+                            <ArrowDown className="size-4" />
+                            {t('questions.moveDown')}
+                          </MenuItem>
+                          {type !== 'true_false' ? (
+                            <MenuItem
+                              destructive
+                              disabled={options.length <= 2}
+                              onClick={() => {
+                                close();
+                                // An empty option goes without asking; a typed one is worth a confirmation.
+                                if ((opt.text ?? '').trim()) setPendingRemoval(i);
+                                else setOptions(options.filter((_, idx) => idx !== i));
+                              }}
+                            >
+                              <Trash2 className="size-4" />
+                              {t('questionForm.removeOptionShort')}
+                            </MenuItem>
+                          ) : null}
+                        </div>
+                      )}
+                    </Popover>
+                  </SortableOption>
+                ))}
+              </SortableContext>
+            </DndContext>
+            <FieldMessage issues={issuesAt('options')} />
+            {type !== 'true_false' && (
+              // At the limit the button stays, and says it.
+              <Button
+                type="button"
+                variant="ghost"
+                size="sm"
+                className="self-start"
+                disabled={options.length >= OPTIONS_MAX}
+                onClick={() => setOptions([...options, newOption(options.length)])}
+              >
+                <Plus className="size-4" />
+                {options.length >= OPTIONS_MAX
+                  ? t('questionForm.addOptionMax', { max: OPTIONS_MAX })
+                  : t('questionForm.addOption')}
+              </Button>
+            )}
+          </fieldset>
+        )}
+
+        {type === 'text_input' && (
+          <fieldset id="qf-acceptedAnswers" className="flex flex-col gap-2">
+            <legend className={LEGEND}>
+              {t('questionForm.acceptedAnswersLegend')}{' '}
+              <span className="tabular-nums">
+                {answers.length}/{ACCEPTED_ANSWERS_MAX}
+              </span>
+            </legend>
+            {answers.map((a, i) => (
+              <div key={i} className="flex items-center gap-2">
+                <Input
+                  aria-label={t('questionForm.answerAriaLabel', { index: i + 1 })}
+                  value={a.text}
+                  onChange={(e) =>
+                    form.setFieldValue(
+                      'acceptedAnswers',
+                      answers.map((x, idx) => (idx === i ? { text: e.target.value } : x)),
+                    )
+                  }
+                />
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="text-muted-foreground hover:text-destructive"
+                  aria-label={t('questionForm.removeAnswer', { index: i + 1 })}
+                  onClick={() =>
+                    form.setFieldValue(
+                      'acceptedAnswers',
+                      answers.filter((_, idx) => idx !== i),
+                    )
+                  }
+                >
+                  <Trash2 className="size-4" />
+                </Button>
+              </div>
+            ))}
+            <FieldMessage issues={issuesAt('acceptedAnswers')} />
             <Button
               type="button"
               variant="ghost"
               size="sm"
               className="self-start"
-              disabled={options.length >= OPTIONS_MAX}
-              onClick={() => setOptions([...options, newOption(options.length)])}
+              disabled={answers.length >= ACCEPTED_ANSWERS_MAX}
+              onClick={() => form.setFieldValue('acceptedAnswers', [...answers, { text: '' }])}
             >
               <Plus className="size-4" />
-              {options.length >= OPTIONS_MAX
-                ? t('questionForm.addOptionMax', { max: OPTIONS_MAX })
-                : t('questionForm.addOption')}
+              {answers.length >= ACCEPTED_ANSWERS_MAX
+                ? t('questionForm.addAnswerMax', { max: ACCEPTED_ANSWERS_MAX })
+                : t('questionForm.addAnswer')}
             </Button>
-          )}
-        </fieldset>
-      )}
+          </fieldset>
+        )}
 
-      {type === 'text_input' && (
-        <fieldset id="qf-acceptedAnswers" className="flex flex-col gap-2">
-          <legend className={LEGEND}>
-            {t('questionForm.acceptedAnswersLegend')}{' '}
-            <span className="tabular-nums">
-              {answers.length}/{ACCEPTED_ANSWERS_MAX}
-            </span>
-          </legend>
-          {answers.map((a, i) => (
-            <div key={i} className="flex items-center gap-2">
-              <Input
-                aria-label={t('questionForm.answerAriaLabel', { index: i + 1 })}
-                value={a.text}
-                onChange={(e) =>
-                  form.setFieldValue(
-                    'acceptedAnswers',
-                    answers.map((x, idx) => (idx === i ? { text: e.target.value } : x)),
-                  )
-                }
-              />
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive"
-                aria-label={t('questionForm.removeAnswer', { index: i + 1 })}
-                onClick={() =>
-                  form.setFieldValue(
-                    'acceptedAnswers',
-                    answers.filter((_, idx) => idx !== i),
-                  )
-                }
-              >
-                <Trash2 className="size-4" />
-              </Button>
-            </div>
-          ))}
-          <FieldMessage issues={issuesAt('acceptedAnswers')} />
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="self-start"
-            disabled={answers.length >= ACCEPTED_ANSWERS_MAX}
-            onClick={() => form.setFieldValue('acceptedAnswers', [...answers, { text: '' }])}
-          >
-            <Plus className="size-4" />
-            {answers.length >= ACCEPTED_ANSWERS_MAX
-              ? t('questionForm.addAnswerMax', { max: ACCEPTED_ANSWERS_MAX })
-              : t('questionForm.addAnswer')}
-          </Button>
-        </fieldset>
-      )}
-
-      {type === 'numeric' && (
-        <fieldset className="flex flex-col gap-2">
-          <legend className={LEGEND}>{t('questionForm.numericLegend')}</legend>
-          <div className="flex flex-wrap gap-4">
-            <form.Field name="numericValue">
-              {(field) => (
-                <div id="qf-numericValue" className="flex flex-col gap-1.5">
-                  <Label>
-                    {t('questionForm.numericValueLabel')}
-                    {/* Any number, decimals included. */}
-                    <Input
-                      type="number"
-                      step="any"
-                      className="w-32"
-                      value={field.state.value ?? ''}
-                      onChange={(e) =>
-                        field.handleChange(e.target.value === '' ? null : Number(e.target.value))
-                      }
-                    />
-                  </Label>
-                  <FieldMessage issues={issuesAt('numericValue')} />
-                </div>
-              )}
-            </form.Field>
-            <form.Field name="numericTolerance">
-              {(field) => (
-                <div id="qf-numericTolerance" className="flex flex-col gap-1.5">
-                  <Label>
-                    {t('questionForm.numericToleranceLabel')}
-                    <Input
-                      type="number"
-                      step="any"
-                      min={0}
-                      className="w-32"
-                      value={field.state.value ?? ''}
-                      onChange={(e) =>
-                        field.handleChange(e.target.value === '' ? null : Number(e.target.value))
-                      }
-                      // A tolerance below 0 means none: 0.
-                      onBlur={() => {
-                        if ((field.state.value ?? 0) < 0) field.handleChange(0);
-                      }}
-                    />
-                  </Label>
-                  <FieldMessage issues={issuesAt('numericTolerance')} />
-                </div>
-              )}
-            </form.Field>
-          </div>
-          <p className="text-muted-foreground text-xs">{t('questionForm.decimalsAllowed')}</p>
-        </fieldset>
-      )}
-
-      {/* Les médias, repliés en un seul bloc ; écouter d'abord et la lecture ferment le
-          groupe du son. */}
-      <div id="qf-media" className="flex flex-col gap-1.5">
-        <QuestionMediaField
-          value={media}
-          onChange={(m) => form.setFieldValue('media', m)}
-          withVisual={type !== 'image_choice'}
-        >
-          {canListenFirst ? (
-            <form.Field name="timerAfterMedia">
-              {(field) => (
-                <CheckboxField
-                  title={t('questionForm.listenFirstHint')}
-                  checked={field.state.value}
-                  onChange={field.handleChange}
-                  label={t('questionForm.listenFirstLabel')}
-                  hint={t('questionForm.listenFirstHint')}
-                />
-              )}
-            </form.Field>
-          ) : null}
-          {mediaHasSound(media) ? (
-            <Disclosure
-              title={t('questionForm.playbackLegend')}
-              value={[
-                audioTarget
-                  ? t(`settings.audioTarget.${audioTarget}`)
-                  : t('questionForm.audioTargetDefault'),
-                media.audio ? t(`questionForm.waveformSize.${waveformSize}`) : null,
-              ]
-                .filter(Boolean)
-                .join(' · ')}
-            >
-              <form.Field name="audioTarget">
+        {type === 'numeric' && (
+          <fieldset className="flex flex-col gap-2">
+            <legend className={LEGEND}>{t('questionForm.numericLegend')}</legend>
+            <div className="flex flex-wrap gap-4">
+              <form.Field name="numericValue">
                 {(field) => (
-                  <Label title={t('questionForm.audioTargetHint')}>
-                    {t('questionForm.audioTargetLabel')}
-                    <Select
-                      value={field.state.value ?? ''}
-                      onChange={(e) =>
-                        field.handleChange(
-                          e.target.value === '' ? null : (e.target.value as AudioTarget),
-                        )
-                      }
-                    >
-                      <option value="">{t('questionForm.audioTargetDefault')}</option>
-                      {AUDIO_TARGETS.map((target) => (
-                        <option key={target} value={target}>
-                          {t(`settings.audioTarget.${target}`)}
-                        </option>
-                      ))}
-                    </Select>
-                  </Label>
+                  <div id="qf-numericValue" className="flex flex-col gap-1.5">
+                    <Label>
+                      {t('questionForm.numericValueLabel')}
+                      {/* Any number, decimals included. */}
+                      <Input
+                        type="number"
+                        step="any"
+                        className="w-32"
+                        value={field.state.value ?? ''}
+                        onChange={(e) =>
+                          field.handleChange(e.target.value === '' ? null : Number(e.target.value))
+                        }
+                      />
+                    </Label>
+                    <FieldMessage issues={issuesAt('numericValue')} />
+                  </div>
                 )}
               </form.Field>
-              {media.audio ? (
-                <form.Field name="waveformSize">
-                  {(field) => (
-                    <div className="flex flex-col gap-1.5">
-                      <Label title={t('questionForm.waveformSizeHint')}>
-                        {t('questionForm.waveformSizeLabel')}
-                        <Select
-                          value={field.state.value}
-                          onChange={(e) => field.handleChange(e.target.value as WaveformSize)}
-                        >
-                          {WAVEFORM_SIZES.map((size) => (
-                            <option key={size} value={size}>
-                              {t(`questionForm.waveformSize.${size}`)}
-                            </option>
-                          ))}
-                        </Select>
-                      </Label>
-                      {/* As the screens will draw it, at their type size — or, hidden,
-                        the one place it still shows (faded, with why). */}
-                      {field.state.value === 'hidden' ? (
-                        <p className="text-muted-foreground text-xs">
-                          {t('questionForm.waveformHiddenNote')}
-                        </p>
-                      ) : null}
-                      <Waveform
-                        peaks={media.audio?.peaks ?? []}
-                        progress={0}
-                        size={field.state.value}
-                        className={cn('text-base', field.state.value === 'hidden' && 'opacity-40')}
-                        label={t('questionForm.waveformPreview')}
+              <form.Field name="numericTolerance">
+                {(field) => (
+                  <div id="qf-numericTolerance" className="flex flex-col gap-1.5">
+                    <Label>
+                      {t('questionForm.numericToleranceLabel')}
+                      <Input
+                        type="number"
+                        step="any"
+                        min={0}
+                        className="w-32"
+                        value={field.state.value ?? ''}
+                        onChange={(e) =>
+                          field.handleChange(e.target.value === '' ? null : Number(e.target.value))
+                        }
+                        // A tolerance below 0 means none: 0.
+                        onBlur={() => {
+                          if ((field.state.value ?? 0) < 0) field.handleChange(0);
+                        }}
                       />
-                    </div>
+                    </Label>
+                    <FieldMessage issues={issuesAt('numericTolerance')} />
+                  </div>
+                )}
+              </form.Field>
+            </div>
+            <p className="text-muted-foreground text-xs">{t('questionForm.decimalsAllowed')}</p>
+          </fieldset>
+        )}
+
+        {/* Les médias, repliés en un seul bloc ; écouter d'abord et la lecture ferment le
+          groupe du son. */}
+        <div id="qf-media" className="flex flex-col gap-1.5">
+          <QuestionMediaField
+            value={media}
+            onChange={(m) => form.setFieldValue('media', m)}
+            withVisual={type !== 'image_choice'}
+          >
+            {canListenFirst ? (
+              <form.Field name="timerAfterMedia">
+                {(field) => (
+                  <CheckboxField
+                    title={t('questionForm.listenFirstHint')}
+                    checked={field.state.value}
+                    onChange={field.handleChange}
+                    label={t('questionForm.listenFirstLabel')}
+                    hint={t('questionForm.listenFirstHint')}
+                  />
+                )}
+              </form.Field>
+            ) : null}
+            {mediaHasSound(media) ? (
+              <Disclosure
+                title={t('questionForm.playbackLegend')}
+                value={[
+                  audioTarget
+                    ? t(`settings.audioTarget.${audioTarget}`)
+                    : t('questionForm.audioTargetDefault'),
+                  media.audio ? t(`questionForm.waveformSize.${waveformSize}`) : null,
+                ]
+                  .filter(Boolean)
+                  .join(' · ')}
+              >
+                <form.Field name="audioTarget">
+                  {(field) => (
+                    <Label title={t('questionForm.audioTargetHint')}>
+                      {t('questionForm.audioTargetLabel')}
+                      <Select
+                        value={field.state.value ?? ''}
+                        onChange={(e) =>
+                          field.handleChange(
+                            e.target.value === '' ? null : (e.target.value as AudioTarget),
+                          )
+                        }
+                      >
+                        <option value="">{t('questionForm.audioTargetDefault')}</option>
+                        {AUDIO_TARGETS.map((target) => (
+                          <option key={target} value={target}>
+                            {t(`settings.audioTarget.${target}`)}
+                          </option>
+                        ))}
+                      </Select>
+                    </Label>
                   )}
                 </form.Field>
-              ) : null}
-            </Disclosure>
-          ) : null}
-        </QuestionMediaField>
-        <FieldMessage issues={issuesAt('media')} />
-      </div>
-
-      {/* Folded like every setting; its summary says the time the room will really get. */}
-      <Disclosure
-        title={t('questionForm.timingLegend')}
-        value={[
-          stretchedS > timeLimitS && !(canListenFirst && listenFirst)
-            ? t('questionForm.timingSummaryStretched', { time: timeLimitS, total: stretchedS })
-            : t('questionForm.timingSummary', { time: timeLimitS }),
-          revealDelayS == null
-            ? t('questionForm.revealDelayAuto')
-            : t('questionForm.revealDelaySummary', { seconds: revealDelayS }),
-        ].join(' · ')}
-      >
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-          <form.Field name="timeLimitS">
-            {(field) => (
-              <Label>
-                {t('questionForm.timeLimitLabel')}
-                <Input
-                  type="number"
-                  min={TIME_LIMIT_S.min}
-                  max={TIME_LIMIT_S.max}
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(Number(e.target.value))}
-                  // Out of bounds, the nearest bound — and a note, not an error.
-                  onBlur={() => {
-                    const next = clampTime(field.state.value);
-                    setClamped(next === field.state.value ? null : 'time');
-                    field.handleChange(next);
-                  }}
-                />
-              </Label>
-            )}
-          </form.Field>
-          <form.Field name="revealDelayS">
-            {(field) => (
-              <Label title={t('questionForm.revealDelayHint')}>
-                {t('questionForm.revealDelayLabel')}
-                <Input
-                  type="number"
-                  min={REVEAL_DELAY_S.min}
-                  max={REVEAL_DELAY_S.max}
-                  placeholder={t('questionForm.revealDelayPlaceholder')}
-                  value={field.state.value ?? ''}
-                  onChange={(e) =>
-                    field.handleChange(e.target.value === '' ? null : Number(e.target.value))
-                  }
-                  onBlur={() => {
-                    const next = clampReveal(field.state.value);
-                    setClamped(next === field.state.value ? null : 'reveal');
-                    field.handleChange(next);
-                  }}
-                />
-              </Label>
-            )}
-          </form.Field>
+                {media.audio ? (
+                  <form.Field name="waveformSize">
+                    {(field) => (
+                      <div className="flex flex-col gap-1.5">
+                        <Label title={t('questionForm.waveformSizeHint')}>
+                          {t('questionForm.waveformSizeLabel')}
+                          <Select
+                            value={field.state.value}
+                            onChange={(e) => field.handleChange(e.target.value as WaveformSize)}
+                          >
+                            {WAVEFORM_SIZES.map((size) => (
+                              <option key={size} value={size}>
+                                {t(`questionForm.waveformSize.${size}`)}
+                              </option>
+                            ))}
+                          </Select>
+                        </Label>
+                        {/* As the screens will draw it, at their type size — or, hidden,
+                        the one place it still shows (faded, with why). */}
+                        {field.state.value === 'hidden' ? (
+                          <p className="text-muted-foreground text-xs">
+                            {t('questionForm.waveformHiddenNote')}
+                          </p>
+                        ) : null}
+                        <Waveform
+                          peaks={media.audio?.peaks ?? []}
+                          progress={0}
+                          size={field.state.value}
+                          className={cn(
+                            'text-base',
+                            field.state.value === 'hidden' && 'opacity-40',
+                          )}
+                          label={t('questionForm.waveformPreview')}
+                        />
+                      </div>
+                    )}
+                  </form.Field>
+                ) : null}
+              </Disclosure>
+            ) : null}
+          </QuestionMediaField>
+          <FieldMessage issues={issuesAt('media')} />
         </div>
-        {clamped ? (
-          <p className="text-muted-foreground text-sm" role="note">
-            {clamped === 'time'
-              ? t('questionForm.clampedTime', { ...TIME_LIMIT_S, value: timeLimitS })
-              : t('questionForm.clampedReveal', {
-                  ...REVEAL_DELAY_S,
-                  value: form.getFieldValue('revealDelayS'),
-                })}
-          </p>
-        ) : null}
-        {canListenFirst && listenFirst ? (
-          <p className="text-muted-foreground text-sm" role="note">
-            {t('questionForm.listenFirstTime', {
-              media: Math.ceil((mediaMs ?? 0) / 1000),
-              time: timeLimitS,
-            })}
-          </p>
-        ) : stretchedS > timeLimitS ? (
-          <p className="text-muted-foreground text-sm" role="note">
-            {t('questionForm.stretchedTime', {
-              media: Math.ceil((mediaMs ?? 0) / 1000),
-              total: stretchedS,
-              tail: mediaTailS,
-            })}
-          </p>
-        ) : null}
-      </Disclosure>
 
-      {/* Le barème par défaut convient presque toujours : il se lit replié. */}
-      {type !== 'poll' && (
+        {/* Folded like every setting; its summary says the time the room will really get. */}
         <Disclosure
-          title={t('questionForm.pointsLegend')}
+          title={t('questionForm.timingLegend')}
           value={[
-            t(`questionForm.pointsMode.${pointsMode}`, { defaultValue: pointsMode }),
-            scorings.length > 0
-              ? t(
-                  `questionForm.scoring.${type}.${scorings.includes(scoring) ? scoring : 'standard'}`,
-                )
-              : null,
-          ]
-            .filter(Boolean)
-            .join(' · ')}
+            stretchedS > timeLimitS && !(canListenFirst && listenFirst)
+              ? t('questionForm.timingSummaryStretched', { time: timeLimitS, total: stretchedS })
+              : t('questionForm.timingSummary', { time: timeLimitS }),
+            revealDelayS == null
+              ? t('questionForm.revealDelayAuto')
+              : t('questionForm.revealDelaySummary', { seconds: revealDelayS }),
+          ].join(' · ')}
         >
-          <div className="grid gap-3 sm:grid-cols-2">
-            <form.Field name="pointsMode">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <form.Field name="timeLimitS">
               {(field) => (
                 <Label>
-                  {t('questionForm.pointsLabel')}
-                  <Select
+                  {t('questionForm.timeLimitLabel')}
+                  <Input
+                    type="number"
+                    min={TIME_LIMIT_S.min}
+                    max={TIME_LIMIT_S.max}
                     value={field.state.value}
-                    onChange={(e) => field.handleChange(e.target.value as FormValues['pointsMode'])}
-                  >
-                    <option value="standard">{t('questionForm.pointsMode.standard')}</option>
-                    <option value="double">{t('questionForm.pointsMode.double')}</option>
-                    <option value="fixed">{t('questionForm.pointsMode.fixed')}</option>
-                  </Select>
+                    onChange={(e) => field.handleChange(Number(e.target.value))}
+                    // Out of bounds, the nearest bound — and a note, not an error.
+                    onBlur={() => {
+                      const next = clampTime(field.state.value);
+                      setClamped(next === field.state.value ? null : 'time');
+                      field.handleChange(next);
+                    }}
+                  />
                 </Label>
               )}
             </form.Field>
-            {scorings.length > 0 && (
-              <form.Field name="scoring">
+            <form.Field name="revealDelayS">
+              {(field) => (
+                <Label title={t('questionForm.revealDelayHint')}>
+                  {t('questionForm.revealDelayLabel')}
+                  <Input
+                    type="number"
+                    min={REVEAL_DELAY_S.min}
+                    max={REVEAL_DELAY_S.max}
+                    placeholder={t('questionForm.revealDelayPlaceholder')}
+                    value={field.state.value ?? ''}
+                    onChange={(e) =>
+                      field.handleChange(e.target.value === '' ? null : Number(e.target.value))
+                    }
+                    onBlur={() => {
+                      const next = clampReveal(field.state.value);
+                      setClamped(next === field.state.value ? null : 'reveal');
+                      field.handleChange(next);
+                    }}
+                  />
+                </Label>
+              )}
+            </form.Field>
+          </div>
+          {clamped ? (
+            <p className="text-muted-foreground text-sm" role="note">
+              {clamped === 'time'
+                ? t('questionForm.clampedTime', { ...TIME_LIMIT_S, value: timeLimitS })
+                : t('questionForm.clampedReveal', {
+                    ...REVEAL_DELAY_S,
+                    value: form.getFieldValue('revealDelayS'),
+                  })}
+            </p>
+          ) : null}
+          {canListenFirst && listenFirst ? (
+            <p className="text-muted-foreground text-sm" role="note">
+              {t('questionForm.listenFirstTime', {
+                media: Math.ceil((mediaMs ?? 0) / 1000),
+                time: timeLimitS,
+              })}
+            </p>
+          ) : stretchedS > timeLimitS ? (
+            <p className="text-muted-foreground text-sm" role="note">
+              {t('questionForm.stretchedTime', {
+                media: Math.ceil((mediaMs ?? 0) / 1000),
+                total: stretchedS,
+                tail: mediaTailS,
+              })}
+            </p>
+          ) : null}
+        </Disclosure>
+
+        {/* Le barème par défaut convient presque toujours : il se lit replié. */}
+        {type !== 'poll' && (
+          <Disclosure
+            title={t('questionForm.pointsLegend')}
+            value={[
+              t(`questionForm.pointsMode.${pointsMode}`, { defaultValue: pointsMode }),
+              scorings.length > 0
+                ? t(
+                    `questionForm.scoring.${type}.${scorings.includes(scoring) ? scoring : 'standard'}`,
+                  )
+                : null,
+            ]
+              .filter(Boolean)
+              .join(' · ')}
+          >
+            <div className="grid gap-3 sm:grid-cols-2">
+              <form.Field name="pointsMode">
                 {(field) => (
                   <Label>
-                    {t('questionForm.scoringLabel')}
+                    {t('questionForm.pointsLabel')}
                     <Select
                       value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value as Scoring)}
+                      onChange={(e) =>
+                        field.handleChange(e.target.value as FormValues['pointsMode'])
+                      }
                     >
-                      <option value="standard">{t(`questionForm.scoring.${type}.standard`)}</option>
-                      {scorings.map((v) => (
-                        <option key={v} value={v}>
-                          {t(`questionForm.scoring.${type}.${v}`)}
-                        </option>
-                      ))}
+                      <option value="standard">{t('questionForm.pointsMode.standard')}</option>
+                      <option value="double">{t('questionForm.pointsMode.double')}</option>
+                      <option value="fixed">{t('questionForm.pointsMode.fixed')}</option>
                     </Select>
                   </Label>
                 )}
               </form.Field>
-            )}
-          </div>
-          {/* The rule chosen, in words, where the choice is made. */}
-          {scorings.length > 0 ? (
-            <p className="text-muted-foreground text-xs leading-snug">
-              {t(
-                `questionForm.scoringHelp.${type}.${scorings.includes(scoring) ? scoring : 'standard'}`,
+              {scorings.length > 0 && (
+                <form.Field name="scoring">
+                  {(field) => (
+                    <Label>
+                      {t('questionForm.scoringLabel')}
+                      <Select
+                        value={field.state.value}
+                        onChange={(e) => field.handleChange(e.target.value as Scoring)}
+                      >
+                        <option value="standard">
+                          {t(`questionForm.scoring.${type}.standard`)}
+                        </option>
+                        {scorings.map((v) => (
+                          <option key={v} value={v}>
+                            {t(`questionForm.scoring.${type}.${v}`)}
+                          </option>
+                        ))}
+                      </Select>
+                    </Label>
+                  )}
+                </form.Field>
               )}
-            </p>
-          ) : null}
-        </Disclosure>
-      )}
+            </div>
+            {/* The rule chosen, in words, where the choice is made. */}
+            {scorings.length > 0 ? (
+              <p className="text-muted-foreground text-xs leading-snug">
+                {t(
+                  `questionForm.scoringHelp.${type}.${scorings.includes(scoring) ? scoring : 'standard'}`,
+                )}
+              </p>
+            ) : null}
+          </Disclosure>
+        )}
 
-      {/* Facultative : repliée, comme tout ce qui est secondaire. */}
-      {type !== 'poll' && (
-        <form.Field name="answerExplanation">
+        {/* Facultative : repliée, comme tout ce qui est secondaire. */}
+        {type !== 'poll' && (
+          <form.Field name="answerExplanation">
+            {(field) => (
+              <Disclosure
+                title={t('questionForm.answerExplanationLabel')}
+                value={
+                  field.state.value.trim()
+                    ? t('questionForm.explanationWritten')
+                    : t('questionForm.explanationEmpty')
+                }
+              >
+                <MarkdownEditor
+                  aria-label={t('questionForm.answerExplanationLabel')}
+                  value={field.state.value}
+                  onChange={field.handleChange}
+                  placeholder={t('questionForm.answerExplanationPlaceholder')}
+                />
+              </Disclosure>
+            )}
+          </form.Field>
+        )}
+
+        <form.Field name="background">
           {(field) => (
-            <Disclosure
-              title={t('questionForm.answerExplanationLabel')}
-              value={
-                field.state.value.trim()
-                  ? t('questionForm.explanationWritten')
-                  : t('questionForm.explanationEmpty')
-              }
-            >
-              <MarkdownEditor
-                aria-label={t('questionForm.answerExplanationLabel')}
-                value={field.state.value}
-                onChange={field.handleChange}
-                placeholder={t('questionForm.answerExplanationPlaceholder')}
-              />
-            </Disclosure>
+            <div id="qf-backgroundGradient" className="flex flex-col gap-1.5">
+              <BackgroundField value={field.state.value} onChange={field.handleChange} />
+              <FieldMessage issues={issuesAt('backgroundGradient')} />
+            </div>
           )}
         </form.Field>
-      )}
 
-      <form.Field name="background">
-        {(field) => (
-          <div id="qf-backgroundGradient" className="flex flex-col gap-1.5">
-            <BackgroundField value={field.state.value} onChange={field.handleChange} />
-            <FieldMessage issues={issuesAt('backgroundGradient')} />
-          </div>
-        )}
-      </form.Field>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      <ConfirmDialog
-        open={askDraft}
-        title={t('questionForm.moveToDraft.title')}
-        description={t('questionForm.moveToDraft.description')}
-        confirmLabel={t('questionForm.moveToDraft.confirmLabel')}
-        cancelLabel={t('questionForm.moveToDraft.cancelLabel')}
-        onCancel={() => setAskDraft(false)}
-        onConfirm={() => void moveToDraftAndSave()}
-      />
-      <ConfirmDialog
-        open={pendingRemoval !== null}
-        destructive
-        title={t('questionForm.removeOptionConfirm.title')}
-        description={t('questionForm.removeOptionConfirm.description', {
-          label:
-            pendingRemoval !== null
-              ? options[pendingRemoval]?.text || `#${pendingRemoval + 1}`
-              : '',
-        })}
-        confirmLabel={t('questionForm.removeOptionConfirm.confirmLabel')}
-        onCancel={() => setPendingRemoval(null)}
-        onConfirm={() => {
-          if (pendingRemoval !== null)
-            setOptions(options.filter((_, idx) => idx !== pendingRemoval));
-          setPendingRemoval(null);
-        }}
-      />
-    </form>
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <ConfirmDialog
+          open={askDraft}
+          title={t('questionForm.moveToDraft.title')}
+          description={t('questionForm.moveToDraft.description')}
+          confirmLabel={t('questionForm.moveToDraft.confirmLabel')}
+          cancelLabel={t('questionForm.moveToDraft.cancelLabel')}
+          onCancel={() => setAskDraft(false)}
+          onConfirm={() => void moveToDraftAndSave()}
+        />
+        <ConfirmDialog
+          open={pendingRemoval !== null}
+          destructive
+          title={t('questionForm.removeOptionConfirm.title')}
+          description={t('questionForm.removeOptionConfirm.description', {
+            label:
+              pendingRemoval !== null
+                ? options[pendingRemoval]?.text || `#${pendingRemoval + 1}`
+                : '',
+          })}
+          confirmLabel={t('questionForm.removeOptionConfirm.confirmLabel')}
+          onCancel={() => setPendingRemoval(null)}
+          onConfirm={() => {
+            if (pendingRemoval !== null)
+              setOptions(options.filter((_, idx) => idx !== pendingRemoval));
+            setPendingRemoval(null);
+          }}
+        />
+      </form>
+    </MediaEditsContext.Provider>
   );
 }
 

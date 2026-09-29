@@ -44,8 +44,9 @@ import {
   Text,
   X,
 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MediaEditsContext, useMediaEdits } from '@/lib/media-edits';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { Input } from '@/components/ui/input';
@@ -170,7 +171,13 @@ export function SlideForm({
   const draftKey = `quiz:${quizId}:slide:${slide?.id ?? 'new'}`;
   const [restored, setRestored] = useState(() => loadDraft<FormValues>(draftKey));
   const [values, setValues] = useState<FormValues>(restored ?? initial);
-  const dirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  const formDirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  // Alt texts and credits typed here wait for the Save, and count as changes.
+  const mediaEdits = useMediaEdits();
+  const dirty = formDirty || mediaEdits.dirty;
+  useEffect(() => {
+    if (mediaEdits.dirty) onDirtyChange?.(true);
+  }, [mediaEdits.dirty, onDirtyChange]);
   // Back to what was loaded: the draft goes with the changes.
   const discardDraft = () => {
     setRestored(null);
@@ -202,6 +209,8 @@ export function SlideForm({
       displayDelayS: values.displayDelayS,
     };
     try {
+      // The media's alt and credit, edited here, are saved with the slide.
+      await mediaEdits.flush();
       if (slide) await update.mutateAsync({ sid: slide.id, data });
       else await add.mutateAsync({ id: quizId, data });
       await queryClient.invalidateQueries({ queryKey: getQuizzesControllerGetQueryKey(quizId) });
@@ -244,91 +253,93 @@ export function SlideForm({
   };
 
   return (
-    <form
-      className="flex flex-col gap-6"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-    >
-      {/* Enregistrer est en haut, collant, comme pour une question : l'aperçu, les
+    <MediaEditsContext.Provider value={mediaEdits.edits}>
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        {/* Enregistrer est en haut, collant, comme pour une question : l'aperçu, les
           blocs et le média poussent le bas de la page hors d'atteinte. La barre dit
           aussi ce qu'on édite — hors tiroir, le formulaire n'a pas de titre. */}
-      <FormActionBar
-        title={slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
-        // Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
-        // bas de page où plus personne ne regarde.
-        error={error}
-        dirty={dirty}
-        busy={add.isPending || update.isPending}
-        submitLabel={slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
-        onCancel={cancel}
-      />
+        <FormActionBar
+          title={slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
+          // Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
+          // bas de page où plus personne ne regarde.
+          error={error}
+          dirty={dirty}
+          busy={add.isPending || update.isPending}
+          submitLabel={slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
+          onCancel={cancel}
+        />
 
-      {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
-      {/* What the projected screen will show, at slide proportions — foldable, remembered. */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-            {t('slideForm.previewLegend')}
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            aria-pressed={showStage}
-            onClick={toggleStage}
-          >
-            {showStage ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-            {showStage ? t('slideForm.hidePreview') : t('slideForm.showPreview')}
-          </Button>
+        {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
+        {/* What the projected screen will show, at slide proportions — foldable, remembered. */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+              {t('slideForm.previewLegend')}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              aria-pressed={showStage}
+              onClick={toggleStage}
+            >
+              {showStage ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              {showStage ? t('slideForm.hidePreview') : t('slideForm.showPreview')}
+            </Button>
+          </div>
+          {showStage ? <SlideStage className="rounded-xl border" slide={stage} /> : null}
         </div>
-        {showStage ? <SlideStage className="rounded-xl border" slide={stage} /> : null}
-      </div>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-          {t('slideForm.blocksLegend')}
-        </legend>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext
-            items={values.blocks.map((b) => b.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {values.blocks.map((b) => (
-              <SortableBlock key={b.id} id={b.id} onRemove={() => removeBlock(b.id)}>
-                <BlockEditor block={b} onChange={(next) => setBlock(b.id, next)} />
-              </SortableBlock>
-            ))}
-          </SortableContext>
-        </DndContext>
-        <AddBlockBar onAdd={addBlock} />
-        <VariablesHelp />
-      </fieldset>
+        <fieldset className="flex flex-col gap-3">
+          <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+            {t('slideForm.blocksLegend')}
+          </legend>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext
+              items={values.blocks.map((b) => b.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {values.blocks.map((b) => (
+                <SortableBlock key={b.id} id={b.id} onRemove={() => removeBlock(b.id)}>
+                  <BlockEditor block={b} onChange={(next) => setBlock(b.id, next)} />
+                </SortableBlock>
+              ))}
+            </SortableContext>
+          </DndContext>
+          <AddBlockBar onAdd={addBlock} />
+          <VariablesHelp />
+        </fieldset>
 
-      <SlideMediaField
-        value={values}
-        onChange={(p) => patch(p)}
-        peaks={audioPeaks}
-        onPeaks={setAudioPeaks}
-      />
+        <SlideMediaField
+          value={values}
+          onChange={(p) => patch(p)}
+          peaks={audioPeaks}
+          onPeaks={setAudioPeaks}
+        />
 
-      <BackgroundField
-        value={{
-          mediaId: values.mediaId,
-          gradient: values.gradient,
-          textTone: values.textTone,
-          textOutline: values.textOutline,
-        }}
-        onChange={(b) => patch(b)}
-      />
+        <BackgroundField
+          value={{
+            mediaId: values.mediaId,
+            gradient: values.gradient,
+            textTone: values.textTone,
+            textOutline: values.textOutline,
+          }}
+          onChange={(b) => patch(b)}
+        />
 
-      <DisplayTimeField
-        value={values.displayDelayS}
-        onChange={(v) => patch({ displayDelayS: v })}
-      />
-    </form>
+        <DisplayTimeField
+          value={values.displayDelayS}
+          onChange={(v) => patch({ displayDelayS: v })}
+        />
+      </form>
+    </MediaEditsContext.Provider>
   );
 }
 

@@ -488,6 +488,57 @@ describe('QuestionForm — image choice', () => {
     expect(screen.queryByRole('button', { name: '3' })).toBeNull();
   });
 
+  it('a media credit typed in the form is saved with it, not before', async () => {
+    const fetchMock = mockApi([
+      { method: 'GET', path: `/media/${CAT}/meta`, body: { id: CAT, alt: null, credit: null } },
+      { method: 'PUT', path: `/media/${CAT}/credit`, body: { id: CAT, credit: 'Photo : Ana' } },
+      { method: 'PUT', path: '/questions/qi', body: {} },
+    ]);
+    const onClose = renderEdit(
+      pictureQuestion({
+        type: 'single_choice',
+        media: { visual: { kind: 'image', assetId: CAT }, audio: null },
+        options: [
+          {
+            id: 'o1',
+            orderIndex: 0,
+            text: 'Oui',
+            mediaId: null,
+            alt: null,
+            color: 'red',
+            shape: 'triangle',
+            isCorrect: true,
+            correctOrderIndex: null,
+          },
+          {
+            id: 'o2',
+            orderIndex: 1,
+            text: 'Non',
+            mediaId: null,
+            alt: null,
+            color: 'blue',
+            shape: 'diamond',
+            isCorrect: false,
+            correctOrderIndex: null,
+          },
+        ],
+      } as never),
+    );
+    const methodCalls = (method: string, path: string) =>
+      fetchMock.mock.calls.filter(
+        ([url, opts]) => String(url).includes(path) && (opts as RequestInit)?.method === method,
+      );
+    const credit = await screen.findByLabelText(/^Crédit/);
+    fireEvent.change(credit, { target: { value: 'Photo : Ana' } });
+    fireEvent.blur(credit);
+    expect(methodCalls('PUT', '/credit')).toHaveLength(0);
+    // The change alone makes the form savable.
+    fireEvent.click(screen.getByText('Enregistrer'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(methodCalls('PUT', '/credit')).toHaveLength(1);
+    expect(methodCalls('PUT', '/questions/qi')).toHaveLength(1);
+  });
+
   it('says which picture misses its alt; a draft saves it anyway (UI system §1.5)', async () => {
     const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
     const onClose = renderEdit(pictureQuestion());
