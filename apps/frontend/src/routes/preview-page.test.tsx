@@ -72,6 +72,10 @@ describe('PreviewPage', () => {
     expect(within(projection()).getByText('Capitale de la France ?')).toBeInTheDocument();
     expect(within(projection()).getByText('Paris')).toBeInTheDocument();
     expect(container.querySelector('[data-correct="true"]')).toBeNull();
+    // Its clock stands at the full time: not counting, not paused.
+    const timer = projection().querySelector('.qd-timer') as HTMLElement;
+    expect(timer.dataset.tone).toBe('ok');
+    expect(timer).toHaveTextContent('20');
 
     // The answer, as the room sees it once revealed.
     fireEvent.click(screen.getByRole('switch', { name: 'Montrer la réponse' }));

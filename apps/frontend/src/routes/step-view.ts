@@ -40,6 +40,8 @@ export function stepView(
     quizDescription: quiz.description,
     // Not a room: no way in to show.
     joinLocked: true,
+    // Its clock stands at the question's full time.
+    still: true,
   };
   if (item.kind === 'slide') {
     const slide = slideShowOf(item.slide, index, slideQuizFieldsOf(quiz), url);

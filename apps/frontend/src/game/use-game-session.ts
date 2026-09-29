@@ -96,6 +96,8 @@ export interface GameView {
   mode: GameMode;
   /** Auto-progression suspendue par l'hôte (chrono gelé en ANSWERING). */
   paused: boolean;
+  /** Drawn with no game (a preview): the clock stands at its full time, nothing plays. */
+  still: boolean;
   /** Restant figé (ms) quand le chrono est gelé, sinon `null`. */
   pausedRemainingMs: number | null;
   /** Deadline (ms epoch) de l'enchaînement auto en cours, sinon `null`. */
@@ -179,6 +181,7 @@ export const INITIAL_VIEW: GameView = {
   connectionLost: false,
   mode: 'manual',
   paused: false,
+  still: false,
   pausedRemainingMs: null,
   autoNextAt: null,
   autoNextMs: null,

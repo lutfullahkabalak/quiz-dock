@@ -85,6 +85,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   connectionLost: false,
   mode: 'manual',
   paused: false,
+  still: false,
   pausedRemainingMs: null,
   autoNextAt: null,
   autoNextMs: null,
