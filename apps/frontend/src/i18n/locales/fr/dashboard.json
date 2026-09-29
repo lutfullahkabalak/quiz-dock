@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} participant",
   "playerCount_other": "{{count}} participants",
   "resume": "Reprendre",
-  "stop": "Arrêter",
+  "stop": "Fermer le salon…",
   "stopConfirmTitle": "Fermer le salon ?",
   "stopConfirmDescription": "Le salon sera fermé pour tous les participants connectés.",
   "stopConfirmLabel": "Fermer le salon",

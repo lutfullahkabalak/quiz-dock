@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} 名玩家",
   "playerCount_other": "{{count}} 名玩家",
   "resume": "继续",
-  "stop": "停止",
+  "stop": "关闭房间…",
   "stopConfirmTitle": "关闭房间？",
   "stopConfirmDescription": "房间将对所有已连接的参与者关闭。",
   "stopConfirmLabel": "关闭房间",

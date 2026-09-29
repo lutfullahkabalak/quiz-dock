@@ -58,7 +58,7 @@ describe('LivePage', () => {
     ]);
     renderApp('/live');
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Arrêter' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Fermer le salon…' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Fermer le salon' }));
 
     await waitFor(() =>
@@ -70,6 +70,17 @@ describe('LivePage', () => {
         ),
       ).toBe(true),
     );
+  });
+
+  it('a room that would not close says so', async () => {
+    mockApi([
+      { method: 'GET', path: '/games/mine', body: [session()] },
+      { method: 'POST', path: '/games/482913/end', status: 500, body: { code: 'internal' } },
+    ]);
+    renderApp('/live');
+    fireEvent.click(await screen.findByRole('button', { name: 'Fermer le salon…' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Fermer le salon' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
   });
 
   it('le dit quand rien ne tourne', async () => {

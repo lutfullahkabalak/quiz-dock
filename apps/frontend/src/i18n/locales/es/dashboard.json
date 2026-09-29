@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} jugador",
   "playerCount_other": "{{count}} jugadores",
   "resume": "Reanudar",
-  "stop": "Detener",
+  "stop": "Cerrar la sala…",
   "stopConfirmTitle": "¿Cerrar la sala?",
   "stopConfirmDescription": "La sala se cerrará para todos los participantes conectados.",
   "stopConfirmLabel": "Cerrar la sala",
