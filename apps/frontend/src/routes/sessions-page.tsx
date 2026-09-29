@@ -16,6 +16,7 @@ import {
 import type { SessionDetailDtoRoom, SessionListDtoSessionsItem } from '../api/generated/model';
 import { sessionDetailRoute, sessionPlayerRoute, sessionsRoute } from '../router';
 import { ListSkeleton, LoadFailed, PageLoading } from '@/components/ui/loading';
+import { PageTitle } from '@/components/ui/page-title';
 
 function statusLabel(t: TFunction, status: string): string {
   return t(`status.${status}`, { defaultValue: status });
@@ -63,7 +64,7 @@ export function SessionsPage() {
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{t('list.title')}</h1>
+        <PageTitle>{t('list.title')}</PageTitle>
         <Link
           to="/quizzes/$quizId"
           params={{ quizId }}
@@ -185,7 +186,7 @@ export function SessionDetailPage() {
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold">{s.quizTitle || t('detail.fallbackTitle')}</h1>
+          <PageTitle>{s.quizTitle || t('detail.fallbackTitle')}</PageTitle>
           <p className="text-muted-foreground text-sm">
             {fmtDate(s.startedAt)} · PIN {s.pin} · {fmtDuration(t, s.startedAt, s.endedAt)}
           </p>
@@ -490,7 +491,7 @@ export function SessionPlayerPage() {
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center gap-3">
         <div className="min-w-0">
-          <h1 className="text-2xl font-bold">{p.nickname}</h1>
+          <PageTitle>{p.nickname}</PageTitle>
           <p className="text-muted-foreground text-sm">
             {t('player.summary', {
               rank: p.finalRank,

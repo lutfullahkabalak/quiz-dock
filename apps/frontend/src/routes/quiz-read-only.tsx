@@ -13,6 +13,7 @@ import { useRole } from '../auth/use-role';
 import { useCopyQuiz } from './use-copy-quiz';
 import { StepStage } from './quiz-stage-preview';
 import { QuestionProperties, SlideProperties } from './step-properties';
+import { PageTitle } from '@/components/ui/page-title';
 
 /**
  * A quiz the caller may read but not change: one another host shares with the
@@ -37,7 +38,7 @@ export function QuizReadOnly({ quiz }: { quiz: QuizDetailDto }) {
     <div className="flex w-full flex-col gap-6">
       <header className="flex flex-col gap-3">
         <div className="flex flex-wrap items-center justify-between gap-3">
-          <h1 className="text-3xl font-bold tracking-tight">{quiz.title}</h1>
+          <PageTitle>{quiz.title}</PageTitle>
           <div className="flex flex-wrap items-center gap-1">
             <Badge variant="muted" className="mr-2">
               {t(`common:quizStatus.${quiz.status}`, { defaultValue: quiz.status })}

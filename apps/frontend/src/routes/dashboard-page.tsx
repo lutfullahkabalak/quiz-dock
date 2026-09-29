@@ -43,6 +43,7 @@ import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
 import { ListSkeleton } from '@/components/ui/loading';
 import { mediaUrl } from '@/lib/media-url';
+import { PageTitle } from '@/components/ui/page-title';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
@@ -174,7 +175,7 @@ export function DashboardPage() {
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{isManager ? t('allQuizzes') : t('title')}</h1>
+        <PageTitle>{isManager ? t('allQuizzes') : t('title')}</PageTitle>
         <div className={cn('flex flex-wrap items-center gap-2', managerOnly && 'hidden')}>
           <input
             ref={fileInput}

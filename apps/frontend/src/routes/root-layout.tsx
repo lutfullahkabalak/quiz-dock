@@ -114,7 +114,7 @@ export function RootLayout() {
       {demo ? (
         <p
           role="note"
-          className="border-b bg-amber-500/15 px-6 py-1.5 text-center text-xs text-amber-700 dark:text-amber-400"
+          className="bg-warning/15 text-warning-text border-b px-6 py-1.5 text-center text-xs"
         >
           {t('common:demo.banner', { user: demo.user })}
         </p>

@@ -50,5 +50,13 @@
   "chromiumOnly": "This page is built for Chrome, Edge or another Chromium browser. In this browser, uploading and playing videos and sounds may not work well.",
   "play": "Play",
   "pause": "Pause",
-  "position": "Position in the sound"
+  "position": "Position in the sound",
+  "fallback": {
+    "notFoundTitle": "This page doesn't exist",
+    "notFoundText": "The link may be old, or what it pointed to was deleted.",
+    "errorTitle": "Something went wrong",
+    "errorText": "This page stopped working. What you saved is safe.",
+    "backHome": "Back to home",
+    "tryAgain": "Try again"
+  }
 }

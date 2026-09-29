@@ -21,6 +21,7 @@ import { apiErrorText } from '../api/http';
 import { useRole } from '../auth/use-role';
 import { SlideStage } from '../game/slide-stage';
 import { ListSkeleton, LoadFailed } from '@/components/ui/loading';
+import { PageTitle } from '@/components/ui/page-title';
 
 const PAGE_SIZE = 20;
 
@@ -82,7 +83,7 @@ export function TemplatesPage() {
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <PageTitle>{t('title')}</PageTitle>
         <p className="text-muted-foreground max-w-prose text-sm">{t('intro')}</p>
       </header>
 

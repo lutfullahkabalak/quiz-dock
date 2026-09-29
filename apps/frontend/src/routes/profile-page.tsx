@@ -15,6 +15,7 @@ import {
 import { useAuth } from '../auth/auth-context';
 import { APP_NAME, allowsAnonymousParticipants, getDemo } from '../config';
 import { PageLoading } from '@/components/ui/loading';
+import { PageTitle } from '@/components/ui/page-title';
 
 /**
  * Le compte, vu par la personne à qui il appartient : qui elle est pour cette
@@ -34,7 +35,7 @@ export function ProfilePage() {
 
   return (
     <section className="content-md flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">{s('profile.title')}</h1>
+      <PageTitle>{s('profile.title')}</PageTitle>
 
       {isPending ? <PageLoading /> : null}
 

@@ -25,6 +25,7 @@ import { templateRoute } from '../router';
 import { TemplateSlide } from './templates-page';
 import { LoadFailed, PageLoading } from '@/components/ui/loading';
 import { ShapeIcon } from '@/components/shape-icon';
+import { PageTitle } from '@/components/ui/page-title';
 
 /**
  * Un modèle, vu **avant** d'en prendre une copie (#39) : ce qu'il contient,
@@ -84,7 +85,7 @@ export function TemplatePage() {
       </Link>
 
       <header className="flex flex-col gap-3">
-        <h1 className="text-2xl font-bold">{template.title}</h1>
+        <PageTitle>{template.title}</PageTitle>
         {template.description ? <p className="max-w-prose">{template.description}</p> : null}
         <p className="text-muted-foreground flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
           <Badge variant="muted">{template.language}</Badge>

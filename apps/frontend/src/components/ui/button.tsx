@@ -9,10 +9,14 @@ export const buttonVariants = cva(
       variant: {
         default: 'bg-primary text-primary-foreground hover:bg-primary/90',
         destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
+        // A destructive action that must not outweigh the primary one: red outline, never filled.
+        'destructive-outline':
+          'border border-destructive/50 bg-background text-destructive hover:bg-destructive/10',
         // Action principale affirmative (ex. « Présenter » → mise en live). Vert
         // dérivé du token --success, pas d'une couleur de palette en dur.
         'main-action': 'bg-success text-success-foreground hover:bg-success/90',
-        outline: 'border border-input bg-background hover:bg-accent hover:text-accent-foreground',
+        // A button is identified by its label: the light separator line, not a field's outline.
+        outline: 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
         secondary: 'bg-secondary text-secondary-foreground hover:bg-secondary/80',
         ghost: 'hover:bg-accent hover:text-accent-foreground',
       },

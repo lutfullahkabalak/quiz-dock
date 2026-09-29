@@ -23,7 +23,9 @@
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  /* A field's outline must reach 3:1 against the page (WCAG 1.4.11); --border stays for
+     decorative separators. */
+  --input: oklch(0.6 0 0);
   --ring: oklch(0.55 0.22 264);
   --success: oklch(0.6 0.17 150);
   --success-foreground: oklch(0.985 0 0);

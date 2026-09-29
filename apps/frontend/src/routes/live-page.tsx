@@ -16,6 +16,7 @@ import {
   useGameControllerMine,
 } from '../api/generated/games/games';
 import { ListSkeleton } from '@/components/ui/loading';
+import { PageTitle } from '@/components/ui/page-title';
 
 /** Same page size as the quiz bank: enough to scan, short enough to stay on screen. */
 const PAGE_SIZE = 20;
@@ -82,7 +83,7 @@ export function LivePage() {
 
   return (
     <section className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">{overview ? t('allSessions') : t('activeSessions')}</h1>
+      <PageTitle>{overview ? t('allSessions') : t('activeSessions')}</PageTitle>
 
       {isPending ? <ListSkeleton rows={2} /> : null}
 

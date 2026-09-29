@@ -3,13 +3,14 @@ import { APP_NAME, APP_VERSION, appConfig, getDemo, isStandalone } from '../conf
 import { feedbackLinks } from '@/lib/feedback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PinForm } from '@/components/pin-form';
+import { PageTitle } from '@/components/ui/page-title';
 
 export function LandingPage() {
   const { t } = useTranslation(['auth', 'common']);
 
   return (
     <section className="qd-home flex flex-col items-center gap-6 py-8 text-center">
-      <h1 className="text-3xl font-bold">{t('landing.title')}</h1>
+      <PageTitle>{t('landing.title')}</PageTitle>
       <Card className="content-sm">
         <CardHeader>
           <CardTitle>{t('landing.joinTitle')}</CardTitle>

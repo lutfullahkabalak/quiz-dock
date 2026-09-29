@@ -193,7 +193,7 @@ function Row({
   children?: ReactNode;
 }) {
   const Icon = warn ? AlertTriangle : ok ? Check : X;
-  const tone = warn ? 'text-amber-600' : ok ? 'text-green-600' : 'text-destructive';
+  const tone = warn ? 'text-warning-text' : ok ? 'text-success' : 'text-destructive';
   return (
     <li className="flex gap-2">
       <Icon className={`mt-0.5 size-4 shrink-0 ${tone}`} aria-hidden />
@@ -238,7 +238,7 @@ function SlugField({
         {t('publication.slugHelp', { file: `${value || '…'}.quizdock.zip` })}
       </span>
       {changed ? (
-        <span className="text-xs text-amber-700" role="status">
+        <span className="text-warning-text text-xs" role="status">
           {t('publication.slugChanged', { previous: report.slug })}
         </span>
       ) : null}

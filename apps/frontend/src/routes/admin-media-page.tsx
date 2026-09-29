@@ -51,6 +51,7 @@ import type {
 import { useRole } from '../auth/use-role';
 import { LoadFailed, Spinner } from '@/components/ui/loading';
 import { Modal } from '@/components/ui/modal';
+import { PageTitle } from '@/components/ui/page-title';
 
 const PAGE_SIZE = 25;
 /** The owner key of the instance's own media (#62). */
@@ -90,7 +91,7 @@ export function AdminMediaPage() {
   }
   return (
     <div className="content-lg flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">{t('mediaAdmin.title')}</h1>
+      <PageTitle>{t('mediaAdmin.title')}</PageTitle>
       <Overview />
       <Files />
     </div>
@@ -185,7 +186,7 @@ function Overview() {
           })}
         </p>
         {cleanup.guard ? (
-          <p className="flex items-start gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+          <p className="text-warning-text flex items-start gap-1.5 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             {t(`mediaAdmin.cleanup.guard.${cleanup.guard}`)}
           </p>
@@ -836,7 +837,7 @@ function DeleteFileDialog({
             <p className="text-destructive">{t('mediaAdmin.delete.playing')}</p>
           ) : null}
           {file.inCatalog ? (
-            <p className="text-amber-700 dark:text-amber-400">{t('mediaAdmin.delete.inCatalog')}</p>
+            <p className="text-warning-text">{t('mediaAdmin.delete.inCatalog')}</p>
           ) : null}
           {info.quizzes.length > 0 || info.archivedSessions > 0 ? (
             <>
