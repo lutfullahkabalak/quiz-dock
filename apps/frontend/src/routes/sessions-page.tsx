@@ -1,5 +1,5 @@
-import { Link } from '@tanstack/react-router';
-import { ArrowLeft, Check, ChevronRight, Download, Layers, Radio, X } from 'lucide-react';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { ArrowLeft, Check, Download, History, Layers, Play, Radio, Send, X } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import { Markdown } from '@/components/markdown';
@@ -11,8 +11,11 @@ import { csvFilename, downloadCsv, toCsv } from '@/lib/csv';
 import {
   useQuizzesControllerSessionDetail,
   useQuizzesControllerSessionPlayer,
+  useQuizzesControllerGet,
   useQuizzesControllerSessions,
 } from '../api/generated/quizzes/quizzes';
+import { DataTable, type DataColumn, ShareBar } from '@/components/ui/data-table';
+import { useLaunchSession } from '../game/use-launch-session';
 import type { SessionDetailDtoRoom, SessionListDtoSessionsItem } from '../api/generated/model';
 import { sessionDetailRoute, sessionPlayerRoute, sessionsRoute } from '../router';
 import { ListSkeleton, LoadFailed, PageLoading } from '@/components/ui/loading';
@@ -28,9 +31,9 @@ function statusVariant(status: string): 'success' | 'muted' | 'default' {
   return 'default';
 }
 
-/** Date + heure courtes (fr). */
-function fmtDate(iso: string): string {
-  return new Date(iso).toLocaleString('fr-FR', {
+/** Date + heure courtes, in the interface's language. */
+function fmtDate(iso: string, language: string): string {
+  return new Date(iso).toLocaleString(language, {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
@@ -56,10 +59,82 @@ const seconds = (ms: number | null) => (ms === null ? '—' : `${(ms / 1000).toF
 
 // ── Liste de l'historique ────────────────────────────────────────────────────
 export function SessionsPage() {
-  const { t } = useTranslation(['sessions', 'common']);
+  const { t, i18n } = useTranslation(['sessions', 'common']);
   const { quizId } = sessionsRoute.useParams();
-  const { data, isLoading, error } = useQuizzesControllerSessions(quizId);
+  const navigate = useNavigate();
+  const { data, isLoading, error, refetch } = useQuizzesControllerSessions(quizId);
   const sessions = data?.data.sessions;
+  const open = (s: SessionListDtoSessionsItem) =>
+    void navigate({
+      to: '/quizzes/$quizId/history/$sessionId',
+      params: { quizId, sessionId: s.id },
+    });
+
+  const columns: DataColumn<SessionListDtoSessionsItem>[] = [
+    {
+      id: 'date',
+      accessorFn: (s) => s.startedAt,
+      header: t('list.thDate'),
+      sortFn: 'datetime',
+      cell: ({ row }) => {
+        const s = row.original;
+        return (
+          <div className="min-w-0">
+            {/* The row leads to the session; the link is the keyboard's way there. */}
+            <Link
+              to="/quizzes/$quizId/history/$sessionId"
+              params={{ quizId, sessionId: s.id }}
+              className="font-medium hover:underline"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {fmtDate(s.startedAt, i18n.language)}
+            </Link>
+            <p className="text-muted-foreground text-xs">
+              {t('list.pin', { pin: s.pin })} · {fmtDuration(t, s.startedAt, s.endedAt)}
+            </p>
+          </div>
+        );
+      },
+    },
+    {
+      id: 'status',
+      accessorFn: (s) => s.status,
+      header: t('list.thStatus'),
+      cell: ({ row }) => {
+        const s = row.original;
+        return (
+          <span className="flex flex-wrap gap-1">
+            <Badge variant={statusVariant(s.status)}>{statusLabel(t, s.status)}</Badge>
+            {s.roomSize ? (
+              <Badge variant="default" className="gap-1">
+                <Layers className="size-3" />
+                {t('list.inRoom', { count: s.roomSize })}
+              </Badge>
+            ) : null}
+            {s.fullCapture ? (
+              <Badge variant="default" className="gap-1">
+                <Radio className="size-3" />
+                {t('list.capture')}
+              </Badge>
+            ) : null}
+          </span>
+        );
+      },
+    },
+    {
+      id: 'players',
+      accessorFn: (s) => s.playerCount,
+      header: t('list.thPlayers'),
+      meta: { align: 'right' },
+    },
+    {
+      id: 'success',
+      accessorFn: (s) => s.successRate ?? -1,
+      header: t('list.thSuccess'),
+      meta: { align: 'right' },
+      cell: ({ row }) => <ShareBar value={row.original.successRate} />,
+    },
+  ];
 
   return (
     <section className="flex flex-col gap-6">
@@ -76,78 +151,64 @@ export function SessionsPage() {
       </header>
 
       {isLoading ? <ListSkeleton rows={4} /> : null}
-      {error ? <p className="text-destructive">{t('list.loadError')}</p> : null}
-      {sessions && sessions.length === 0 ? (
-        <Card>
-          <CardContent className="text-muted-foreground py-10 text-center text-sm">
-            {t('list.empty')}
-          </CardContent>
-        </Card>
-      ) : null}
+      {error ? <LoadFailed error={error} onRetry={() => void refetch()} /> : null}
+      {sessions && sessions.length === 0 ? <NoSessionYet quizId={quizId} /> : null}
 
       {sessions && sessions.length > 0 ? (
-        <ul className="flex flex-col gap-2">
-          {sessions.map((s) => (
-            <SessionRow key={s.id} quizId={quizId} session={s} />
-          ))}
-        </ul>
+        <Card>
+          <CardContent className="pt-4">
+            <DataTable
+              columns={columns}
+              data={sessions}
+              initialSort={[{ id: 'date', desc: true }]}
+              onRowClick={open}
+            />
+          </CardContent>
+        </Card>
       ) : null}
     </section>
   );
 }
 
-function SessionRow({
-  quizId,
-  session: s,
-}: {
-  quizId: string;
-  session: SessionListDtoSessionsItem;
-}) {
-  const { t } = useTranslation(['sessions', 'common']);
+/** No session yet: the way to one (present it, or publish it to present it). */
+function NoSessionYet({ quizId }: { quizId: string }) {
+  const { t } = useTranslation(['sessions', 'dashboard']);
+  const navigate = useNavigate();
+  const { data } = useQuizzesControllerGet(quizId);
+  const { launch, isLaunching, error, dialog } = useLaunchSession();
+  const status = data?.data.status;
   return (
-    <li>
-      <Link
-        to="/quizzes/$quizId/history/$sessionId"
-        params={{ quizId, sessionId: s.id }}
-        className="bg-card hover:bg-accent/40 flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border p-4 transition-colors"
-      >
-        <div className="min-w-0 flex-1">
-          <p className="font-medium">{fmtDate(s.startedAt)}</p>
-          <p className="text-muted-foreground text-xs">
-            PIN {s.pin} · {fmtDuration(t, s.startedAt, s.endedAt)}
-          </p>
-        </div>
-        <Badge variant={statusVariant(s.status)}>{statusLabel(t, s.status)}</Badge>
-        {s.roomSize ? (
-          <Badge variant="default" className="gap-1">
-            <Layers className="size-3" />
-            {t('list.inRoom', { count: s.roomSize })}
-          </Badge>
-        ) : null}
-        {s.fullCapture ? (
-          <Badge variant="default" className="gap-1">
-            <Radio className="size-3" />
-            {t('list.capture')}
-          </Badge>
-        ) : null}
-        <div className="text-right">
-          <p className="font-semibold tabular-nums">
-            {t('list.participantCount', { count: s.playerCount })}
-          </p>
-          <p className="text-muted-foreground text-xs">
-            {t('list.successRate', { rate: pct(s.successRate) })}
-          </p>
-        </div>
-        <ChevronRight className="text-muted-foreground size-5" />
-      </Link>
-    </li>
+    <div className="flex flex-col items-center gap-3 rounded-lg border border-dashed p-10 text-center">
+      <span className="bg-muted flex size-12 items-center justify-center rounded-full">
+        <History className="text-muted-foreground size-6" aria-hidden />
+      </span>
+      <p className="text-muted-foreground text-sm">{t('list.empty')}</p>
+      {status === 'ready' ? (
+        <Button variant="main-action" disabled={isLaunching} onClick={() => void launch(quizId)}>
+          <Play className="size-4" />
+          {t('list.presentIt')}
+        </Button>
+      ) : status === 'draft' ? (
+        <Button
+          onClick={() =>
+            void navigate({ to: '/quizzes/$quizId', params: { quizId }, search: { publish: true } })
+          }
+        >
+          <Send className="size-4" />
+          {t('dashboard:publishToPresent')}
+        </Button>
+      ) : null}
+      {error ? <p className="text-destructive text-sm">{error}</p> : null}
+      {dialog}
+    </div>
   );
 }
 
 // ── Détail d'une session ─────────────────────────────────────────────────────
 export function SessionDetailPage() {
-  const { t } = useTranslation(['sessions', 'common']);
+  const { t, i18n } = useTranslation(['sessions', 'common']);
   const { quizId, sessionId } = sessionDetailRoute.useParams();
+  const navigate = useNavigate();
   const { data, isLoading, error } = useQuizzesControllerSessionDetail(quizId, sessionId);
   const s = data?.data;
 
@@ -182,13 +243,97 @@ export function SessionDetailPage() {
     );
   };
 
+  type QuestionRow = (typeof s.questions)[number];
+  type PlayerRow = (typeof s.players)[number];
+  const questionColumns: DataColumn<QuestionRow>[] = [
+    {
+      id: 'number',
+      accessorFn: (q) => q.orderIndex + 1,
+      header: t('detail.thNumber'),
+    },
+    {
+      id: 'question',
+      accessorFn: (q) => q.prompt,
+      header: t('detail.thQuestion'),
+      enableSorting: false,
+      meta: { className: 'max-w-xs truncate' },
+      cell: ({ row }) => <Markdown profile="inline">{row.original.prompt}</Markdown>,
+    },
+    {
+      id: 'answers',
+      accessorFn: (q) => q.answerCount,
+      header: t('detail.thAnswers'),
+      meta: { align: 'right' },
+    },
+    {
+      id: 'success',
+      accessorFn: (q) => q.successRate ?? -1,
+      header: t('detail.thSuccessRate'),
+      meta: { align: 'right' },
+      cell: ({ row }) => <ShareBar value={row.original.successRate} />,
+    },
+    {
+      id: 'time',
+      accessorFn: (q) => q.avgResponseMs ?? Number.POSITIVE_INFINITY,
+      header: t('detail.thAvgTime'),
+      meta: { align: 'right' },
+      cell: ({ row }) => seconds(row.original.avgResponseMs),
+    },
+  ];
+  const playerColumns: DataColumn<PlayerRow>[] = [
+    { id: 'rank', accessorFn: (p) => p.finalRank, header: t('detail.thRank') },
+    {
+      id: 'nickname',
+      accessorFn: (p) => p.nickname,
+      header: t('detail.thNickname'),
+      sortFn: 'alphanumeric',
+      cell: ({ row }) => (
+        <Link
+          to="/quizzes/$quizId/history/$sessionId/players/$playerResultId"
+          params={{ quizId, sessionId, playerResultId: row.original.id }}
+          className="font-medium hover:underline"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {row.original.nickname}
+        </Link>
+      ),
+    },
+    {
+      id: 'score',
+      accessorFn: (p) => p.finalScore,
+      header: t('detail.thScore'),
+      meta: { align: 'right' },
+    },
+    {
+      id: 'correct',
+      accessorFn: (p) => (p.answeredCount ? p.correctCount / p.answeredCount : 0),
+      header: t('detail.thCorrect'),
+      meta: { align: 'right' },
+      cell: ({ row }) => `${row.original.correctCount}/${row.original.answeredCount}`,
+    },
+    {
+      id: 'streak',
+      accessorFn: (p) => p.maxStreak,
+      header: t('detail.thStreak'),
+      meta: { align: 'right' },
+    },
+    {
+      id: 'time',
+      accessorFn: (p) => p.avgResponseMs ?? Number.POSITIVE_INFINITY,
+      header: t('detail.thAvgTime'),
+      meta: { align: 'right' },
+      cell: ({ row }) => seconds(row.original.avgResponseMs),
+    },
+  ];
+
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center gap-3">
         <div className="min-w-0">
           <PageTitle>{s.quizTitle || t('detail.fallbackTitle')}</PageTitle>
           <p className="text-muted-foreground text-sm">
-            {fmtDate(s.startedAt)} · PIN {s.pin} · {fmtDuration(t, s.startedAt, s.endedAt)}
+            {fmtDate(s.startedAt, i18n.language)} · {t('list.pin', { pin: s.pin })} ·{' '}
+            {fmtDuration(t, s.startedAt, s.endedAt)}
           </p>
         </div>
         <Badge variant={statusVariant(s.status)}>{statusLabel(t, s.status)}</Badge>
@@ -223,34 +368,8 @@ export function SessionDetailPage() {
         <CardHeader>
           <CardTitle>{t('detail.questionResultsTitle')}</CardTitle>
         </CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="text-muted-foreground border-b text-left">
-              <tr>
-                <th className="py-2 pr-2 font-medium">{t('detail.thNumber')}</th>
-                <th className="py-2 pr-2 font-medium">{t('detail.thQuestion')}</th>
-                <th className="py-2 pr-2 text-right font-medium">{t('detail.thAnswers')}</th>
-                <th className="py-2 pr-2 text-right font-medium">{t('detail.thSuccessRate')}</th>
-                <th className="py-2 text-right font-medium">{t('detail.thAvgTime')}</th>
-              </tr>
-            </thead>
-            <tbody>
-              {s.questions.map((q) => (
-                <tr key={q.orderIndex} className="border-b last:border-0">
-                  <td className="py-2 pr-2 tabular-nums">{q.orderIndex + 1}</td>
-                  <td className="max-w-xs truncate py-2 pr-2">
-                    <Markdown profile="inline">{q.prompt}</Markdown>
-                  </td>
-                  <td className="py-2 pr-2 text-right tabular-nums">{q.answerCount}</td>
-                  <td className="py-2 pr-2 text-right tabular-nums">
-                    {pct(q.successRate)}{' '}
-                    <span className="text-muted-foreground">({q.correctCount})</span>
-                  </td>
-                  <td className="py-2 text-right tabular-nums">{seconds(q.avgResponseMs)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <CardContent>
+          <DataTable columns={questionColumns} data={s.questions} />
         </CardContent>
       </Card>
 
@@ -265,53 +384,17 @@ export function SessionDetailPage() {
           </CardContent>
         ) : (
           <CardContent className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead className="text-muted-foreground border-b text-left">
-                <tr>
-                  <th className="py-2 pr-2 font-medium">{t('detail.thRank')}</th>
-                  <th className="py-2 pr-2 font-medium">{t('detail.thNickname')}</th>
-                  <th className="py-2 pr-2 text-right font-medium">{t('detail.thScore')}</th>
-                  <th className="py-2 pr-2 text-right font-medium">{t('detail.thCorrect')}</th>
-                  <th className="py-2 pr-2 text-right font-medium">{t('detail.thStreak')}</th>
-                  <th className="py-2 pr-2 text-right font-medium">{t('detail.thAvgTime')}</th>
-                  <th className="py-2" />
-                </tr>
-              </thead>
-              <tbody>
-                {s.players.map((p) => (
-                  <tr key={p.id} className="hover:bg-accent/40 border-b last:border-0">
-                    <td className="py-2 pr-2 tabular-nums">{p.finalRank}</td>
-                    <td className="py-2 pr-2 font-medium">
-                      <Link
-                        to="/quizzes/$quizId/history/$sessionId/players/$playerResultId"
-                        params={{ quizId, sessionId, playerResultId: p.id }}
-                        className="hover:underline"
-                      >
-                        {p.nickname}
-                      </Link>
-                    </td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{p.finalScore}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">
-                      {p.correctCount}/{p.answeredCount}
-                    </td>
-                    <td className="py-2 pr-2 text-right tabular-nums">{p.maxStreak}</td>
-                    <td className="py-2 pr-2 text-right tabular-nums">
-                      {seconds(p.avgResponseMs)}
-                    </td>
-                    <td className="py-2 text-right">
-                      <Link
-                        to="/quizzes/$quizId/history/$sessionId/players/$playerResultId"
-                        params={{ quizId, sessionId, playerResultId: p.id }}
-                        aria-label={t('detail.participantDetailAria', { nickname: p.nickname })}
-                        className="text-muted-foreground hover:text-foreground inline-flex"
-                      >
-                        <ChevronRight className="size-4" />
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable
+              columns={playerColumns}
+              data={s.players}
+              initialSort={[{ id: 'rank', desc: false }]}
+              onRowClick={(p) =>
+                void navigate({
+                  to: '/quizzes/$quizId/history/$sessionId/players/$playerResultId',
+                  params: { quizId, sessionId, playerResultId: p.id },
+                })
+              }
+            />
           </CardContent>
         )}
       </Card>
@@ -326,7 +409,7 @@ export function SessionDetailPage() {
  * the standings summed over them — read from those sessions, nothing kept twice.
  */
 function RoomCard({ room, pin }: { room: NonNullable<SessionDetailDtoRoom>; pin: string }) {
-  const { t } = useTranslation(['sessions', 'common']);
+  const { t, i18n } = useTranslation(['sessions', 'common']);
   const standings = room.standings;
   const exportStandings = () => {
     if (!standings) return;
@@ -400,7 +483,9 @@ function RoomCard({ room, pin }: { room: NonNullable<SessionDetailDtoRoom>; pin:
                   {r.quizTitle || t('detail.fallbackTitle')}
                 </Link>
               )}
-              <span className="text-muted-foreground text-xs">{fmtDate(r.startedAt)}</span>
+              <span className="text-muted-foreground text-xs">
+                {fmtDate(r.startedAt, i18n.language)}
+              </span>
             </li>
           ))}
         </ol>
