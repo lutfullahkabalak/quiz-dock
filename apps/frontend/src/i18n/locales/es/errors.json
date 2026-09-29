@@ -5,7 +5,8 @@
     "cross_origin": "Esta solicitud no procede de una página de la aplicación.",
     "host_required": "Se requiere el rol de anfitrión.",
     "host_only": "Acción reservada a los anfitriones: un administrador gestiona la instancia, no presenta.",
-    "admin_required": "Se requiere el rol de administrador."
+    "admin_required": "Se requiere el rol de administrador.",
+    "oidc_disabled": "El inicio de sesión con un proveedor de identidad no está activado en esta instancia."
   },
   "host": {
     "auth_required": "Se requiere autenticación del anfitrión.",
@@ -17,7 +18,9 @@
     "empty": "El quiz no tiene preguntas.",
     "requires_question": "Un quiz debe tener al menos una pregunta para pasar a «listo» (RG-02).",
     "transition_forbidden": "Transición de estado no permitida: {{from}} → {{target}}.",
-    "in_use": "Este quiz se está jugando en una sala: cierra primero la sala."
+    "in_use": "Este quiz se está jugando en una sala: cierra primero la sala.",
+    "item_not_in_quiz": "Este elemento ya no pertenece a este cuestionario: recarga la página.",
+    "reorder_incomplete": "Al orden enviado le faltan elementos: recarga la página e inténtalo de nuevo."
   },
   "session": {
     "not_found": "Sala no encontrada o cerrada.",
@@ -34,7 +37,10 @@
     "archive_quiz_gone": "El quiz se eliminó mientras se jugaba: terminó sin archivo.",
     "locked": "Esta sala ya no acepta nuevos participantes.",
     "open_access_forbidden": "El acceso libre no está permitido en este servidor.",
-    "open_access_guests_only": "En acceso libre los participantes no tienen cuenta: ni seguimiento individual ni nombre tomado de una cuenta."
+    "open_access_guests_only": "En acceso libre los participantes no tienen cuenta: ni seguimiento individual ni nombre tomado de una cuenta.",
+    "next_quiz_unavailable": "Este cuestionario no se puede jugar a continuación en esta sala.",
+    "review_unavailable": "Solo se puede volver a un paso entre dos preguntas.",
+    "step_not_played": "Este paso aún no se ha jugado."
   },
   "participant": {
     "not_found": "Jugador no encontrado."
@@ -70,7 +76,8 @@
     "canceled": "Conversión cancelada.",
     "in_use": "Este medio aún lo usa un quiz o una partida: quítalo primero de ahí.",
     "playing": "Una sala está reproduciendo este medio ahora mismo: vuelve a intentarlo cuando se cierre.",
-    "not_adopted_yet": "Este archivo se está moviendo al almacenamiento compartido: vuelve a intentarlo en un momento."
+    "not_adopted_yet": "Este archivo se está moviendo al almacenamiento compartido: vuelve a intentarlo en un momento.",
+    "embed_bounds": "El inicio y el final del vídeo no encajan: el final debe ir después del inicio."
   },
   "import": {
     "file_missing": "Falta el archivo (campo “file”).",
@@ -111,7 +118,10 @@
     "too_large": "El cuestionario es demasiado grande para el catálogo comunitario."
   },
   "slide": {
-    "two_sounds": "Una diapositiva reproduce un solo sonido a la vez: silencia su vídeo o quita su sonido."
+    "two_sounds": "Una diapositiva reproduce un solo sonido a la vez: silencia su vídeo o quita su sonido.",
+    "background_conflict": "Un fondo es una imagen o un degradado, no ambos.",
+    "empty": "La diapositiva no muestra nada: añade un título, un texto, una imagen, un fondo o un vídeo.",
+    "not_found": "Esta diapositiva ya no existe: se eliminó mientras tanto."
   },
   "record": {
     "not_found": "Este elemento ya no existe: se eliminó mientras tanto.",

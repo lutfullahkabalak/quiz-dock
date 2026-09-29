@@ -5,7 +5,8 @@
     "cross_origin": "This request did not come from the application's own page.",
     "host_required": "Host role required.",
     "host_only": "This is a host action; an administrator manages the instance, they do not present.",
-    "admin_required": "Administrator role required."
+    "admin_required": "Administrator role required.",
+    "oidc_disabled": "Sign-in with an identity provider is not enabled on this instance."
   },
   "host": {
     "auth_required": "Host authentication required.",
@@ -17,7 +18,9 @@
     "empty": "The quiz has no questions.",
     "requires_question": "A quiz must have at least one question to become “ready” (RG-02).",
     "transition_forbidden": "Forbidden state transition: {{from}} → {{target}}.",
-    "in_use": "This quiz is being played in a room: close the room first."
+    "in_use": "This quiz is being played in a room: close the room first.",
+    "item_not_in_quiz": "This item does not belong to this quiz any more: reload the page.",
+    "reorder_incomplete": "The order sent is missing some items: reload the page and try again."
   },
   "session": {
     "not_found": "Room not found or closed.",
@@ -34,7 +37,10 @@
     "archive_quiz_gone": "The quiz was deleted while it was played: it ended without an archive.",
     "locked": "This room no longer accepts new participants.",
     "open_access_forbidden": "Open access is not allowed on this server.",
-    "open_access_guests_only": "In open access participants have no account: no personal tracking, no name taken from an account."
+    "open_access_guests_only": "In open access participants have no account: no personal tracking, no name taken from an account.",
+    "next_quiz_unavailable": "This quiz cannot be played next in this room.",
+    "review_unavailable": "You can only look back at a step between two questions.",
+    "step_not_played": "This step has not been played yet."
   },
   "participant": {
     "not_found": "Player not found."
@@ -70,7 +76,8 @@
     "canceled": "Conversion cancelled.",
     "in_use": "This media is still used by a quiz or a session: remove it from there first.",
     "playing": "A room is playing this media right now: try again once it closes.",
-    "not_adopted_yet": "This file is being moved to shared storage: try again in a moment."
+    "not_adopted_yet": "This file is being moved to shared storage: try again in a moment.",
+    "embed_bounds": "The video's start and end don't fit: the end must come after the start."
   },
   "import": {
     "file_missing": "Missing file (“file” field).",
@@ -111,7 +118,10 @@
     "too_large": "The quiz is too large for the community store."
   },
   "slide": {
-    "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound."
+    "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound.",
+    "background_conflict": "A background is an image or a gradient, not both.",
+    "empty": "The slide shows nothing: add a heading, a text, an image, a background or a video.",
+    "not_found": "This slide no longer exists: it was deleted meanwhile."
   },
   "record": {
     "not_found": "This item no longer exists: it was deleted meanwhile.",

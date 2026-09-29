@@ -5,7 +5,8 @@
     "cross_origin": "此請求並非來自本應用程式的頁面。",
     "host_required": "需要主持人角色。",
     "host_only": "此操作僅限主持人：管理員管理執行個體，不進行主持。",
-    "admin_required": "需要管理員角色。"
+    "admin_required": "需要管理員角色。",
+    "oidc_disabled": "此執行個體未啟用身分提供者登入。"
   },
   "host": {
     "auth_required": "需要主持人身份驗證。",
@@ -17,7 +18,9 @@
     "empty": "測驗沒有任何題目。",
     "requires_question": "測驗至少需要一道題目才能變為「就緒」（RG-02）。",
     "transition_forbidden": "禁止的狀態轉換：{{from}} → {{target}}。",
-    "in_use": "此測驗正在某個房間中進行：請先關閉房間。"
+    "in_use": "此測驗正在某個房間中進行：請先關閉房間。",
+    "item_not_in_quiz": "此項目已不屬於該測驗：請重新整理頁面。",
+    "reorder_incomplete": "送出的順序缺少部分項目：請重新整理頁面後再試。"
   },
   "session": {
     "not_found": "未找到房間或房間已關閉。",
@@ -34,7 +37,10 @@
     "archive_quiz_gone": "測驗在進行中被刪除：結束時沒有歸檔。",
     "locked": "此房間不再接受新的參與者。",
     "open_access_forbidden": "此伺服器不允許開放存取。",
-    "open_access_guests_only": "開放存取時參與者沒有帳號：沒有個人追蹤，也不使用帳號名稱。"
+    "open_access_guests_only": "開放存取時參與者沒有帳號：沒有個人追蹤，也不使用帳號名稱。",
+    "next_quiz_unavailable": "此測驗不能作為本房間的下一個測驗。",
+    "review_unavailable": "只能在兩道題之間回看已進行的步驟。",
+    "step_not_played": "此步驟尚未進行。"
   },
   "participant": {
     "not_found": "未找到玩家。"
@@ -70,7 +76,8 @@
     "canceled": "已取消轉換。",
     "in_use": "這個媒體仍被測驗或遊戲使用：請先從那裡移除。",
     "playing": "某個房間正在播放此媒體：請在其關閉後重試。",
-    "not_adopted_yet": "這個檔案正在移至共用儲存空間：請稍後再試。"
+    "not_adopted_yet": "這個檔案正在移至共用儲存空間：請稍後再試。",
+    "embed_bounds": "影片的開始與結束時間不符：結束必須在開始之後。"
   },
   "import": {
     "file_missing": "缺少檔案（「file」欄位）。",
@@ -111,7 +118,10 @@
     "too_large": "測驗對社群目錄來說過大。"
   },
   "slide": {
-    "two_sounds": "一張簡報一次只播放一個聲音：請將影片靜音或移除其聲音。"
+    "two_sounds": "一張簡報一次只播放一個聲音：請將影片靜音或移除其聲音。",
+    "background_conflict": "背景只能是圖片或漸層，不能同時使用。",
+    "empty": "投影片沒有任何內容：請加入標題、文字、圖片、背景或影片。",
+    "not_found": "此投影片已不存在：它已被刪除。"
   },
   "record": {
     "not_found": "此項目已不存在：在此期間已被刪除。",
