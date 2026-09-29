@@ -34,13 +34,17 @@ export async function downloadStore(
   let url = allowedUrl(value, hosts);
   for (let redirect = 0; redirect <= 4; redirect++) {
     if (Date.now() >= deadline) throw new Error('Store timeout');
+    let dnsTimer: ReturnType<typeof setTimeout> | undefined;
     const addresses = await Promise.race([
       lookup(url.hostname, { all: true, verbatim: true }),
       new Promise<never>((_, reject) => {
-        const timer = setTimeout(() => reject(new Error('Store DNS timeout')), 3000);
-        timer.unref();
+        dnsTimer = setTimeout(
+          () => reject(new Error('Store DNS timeout')),
+          Math.max(1, Math.min(3000, deadline - Date.now())),
+        );
+        dnsTimer.unref();
       }),
-    ]);
+    ]).finally(() => clearTimeout(dnsTimer));
     if (!addresses.length || addresses.some((a) => !publicAddress(a.address)))
       throw new Error('Non-public store address');
     const address = addresses[0];

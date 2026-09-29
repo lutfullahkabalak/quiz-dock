@@ -61,6 +61,19 @@ describe('store downloads', () => {
     '2001:db8::1',
     'not-an-ip',
   ])('refuses non-public address %s', (address) => expect(publicAddress(address)).toBe(false));
+  it('keeps DNS lookup within the remaining download deadline', async () => {
+    jest.useFakeTimers();
+    try {
+      dns.mockImplementation(() => new Promise(() => {}));
+      const request = downloadStore('https://store.example/a', hosts, 10, 20);
+      const refused = expect(request).rejects.toThrow('Store DNS timeout');
+      await jest.advanceTimersByTimeAsync(20);
+      await refused;
+      expect(http).not.toHaveBeenCalled();
+    } finally {
+      jest.useRealTimers();
+    }
+  });
   it('pins the checked DNS result to the socket', async () => {
     respond(200, 'quiz');
     expect((await downloadStore('https://store.example/a', hosts, 10)).toString()).toBe('quiz');
