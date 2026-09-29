@@ -80,6 +80,7 @@ import {
   type FieldIssue,
   issuesAsErrors,
   issuesAsWarnings,
+  focusField,
   issuesFor,
 } from '@/lib/question-issues';
 import { ApiError, apiErrorText, apiFieldErrors } from '../api/http';
@@ -1159,24 +1160,6 @@ export function swapPlace<T extends { correctOrderIndex: number }>(
         ? { ...o, correctOrderIndex: from }
         : o,
   );
-}
-
-/** Scrolls to a field the author must see (`options.1.alt` → the options) and focuses it. */
-function focusField(field: string) {
-  const box = document.getElementById(`qf-${field.split('.')[0]}`);
-  if (!box) return;
-  // A folded setting opens: the field must be seen.
-  for (
-    let fold = box.closest('details');
-    fold;
-    fold = fold.parentElement?.closest('details') ?? null
-  ) {
-    fold.open = true;
-  }
-  box.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
-  box
-    .querySelector<HTMLElement>('input, select, textarea, [contenteditable="true"], button')
-    ?.focus({ preventScroll: true });
 }
 
 /** Legend of a primary section of the form; secondary groups fold in a `Disclosure`. */

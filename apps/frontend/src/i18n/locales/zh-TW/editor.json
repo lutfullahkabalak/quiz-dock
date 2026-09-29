@@ -209,6 +209,13 @@
       "remaining": "剩餘題目數（含下一題）",
       "date": "今天的日期",
       "time": "時間"
+    },
+    "blockRemoved": "已移除區塊。",
+    "undo": "復原",
+    "emptySkipped": "空白——儲存時略過。",
+    "moveToDraft": {
+      "title": "儲存這張空白投影片？",
+      "description": "此測驗已發布，隨時可以演示，投影片必須顯示內容。改回草稿即可照原樣儲存，或繼續編輯。"
     }
   },
   "discardConfirm": {

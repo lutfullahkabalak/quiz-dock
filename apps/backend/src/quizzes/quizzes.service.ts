@@ -11,6 +11,7 @@ import { MediaService } from '../media/media.service';
 import { assertAssets, expectImage } from '../media/assert-assets';
 import { PrismaService } from '../prisma/prisma.service';
 import { questionMediaHeld, storedQuestionIssues } from '../questions/question-data';
+import { slideIssues } from '../slides/dto/slide-content.schema';
 import { QUESTION_INCLUDE, toQuestionOutput } from '../questions/questions.service';
 import { RedisService } from '../redis/redis.service';
 import { slideMediaIds } from '../slides/slide-media';
@@ -560,7 +561,7 @@ export class QuizzesService {
     });
   }
 
-  /** How many of the quiz's questions miss something to be played. */
+  /** How many of the quiz's steps (questions and slides) miss something to be played. */
   private async incompleteQuestions(quizId: string): Promise<number> {
     const questions = await this.prisma.question.findMany({
       where: { quizId },
@@ -569,7 +570,14 @@ export class QuizzesService {
         acceptedAnswers: { select: { text: true } },
       },
     });
-    return questions.filter((q) => storedQuestionIssues(q).length > 0).length;
+    const slides = await this.prisma.slide.findMany({
+      where: { quizId },
+      select: { blocks: true, mediaId: true, gradient: true, videoMediaId: true },
+    });
+    return (
+      questions.filter((q) => storedQuestionIssues(q).length > 0).length +
+      slides.filter((s) => slideIssues({ ...s, blocks: s.blocks as unknown[] }).length > 0).length
+    );
   }
 
   /** Récupère un quiz en garantissant l'appartenance au animateur (sinon 404). */

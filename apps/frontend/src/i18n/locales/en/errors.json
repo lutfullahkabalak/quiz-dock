@@ -21,8 +21,8 @@
     "in_use": "This quiz is being played in a room: close the room first.",
     "item_not_in_quiz": "This item does not belong to this quiz any more: reload the page.",
     "reorder_incomplete": "The order sent is missing some items: reload the page and try again.",
-    "incomplete_one": "1 question is unfinished: complete it to publish the quiz.",
-    "incomplete_other": "{{count}} questions are unfinished: complete them to publish the quiz."
+    "incomplete_one": "1 step is unfinished: complete it to publish the quiz.",
+    "incomplete_other": "{{count}} steps are unfinished: complete them to publish the quiz."
   },
   "session": {
     "not_found": "Room not found or closed.",
@@ -164,7 +164,8 @@
     "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound.",
     "background_conflict": "A background is an image or a gradient, not both.",
     "empty": "The slide shows nothing: add a heading, a text, an image, a background or a video.",
-    "not_found": "This slide no longer exists: it was deleted meanwhile."
+    "not_found": "This slide no longer exists: it was deleted meanwhile.",
+    "incomplete_in_ready_quiz": "This quiz is published: move it back to draft to save a slide that shows nothing."
   },
   "record": {
     "not_found": "This item no longer exists: it was deleted meanwhile.",

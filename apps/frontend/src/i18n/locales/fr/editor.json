@@ -209,6 +209,13 @@
       "remaining": "Le nombre de questions restantes, la suivante comprise",
       "date": "La date du jour",
       "time": "L’heure"
+    },
+    "blockRemoved": "Bloc retiré.",
+    "undo": "Rétablir",
+    "emptySkipped": "Vide — ignoré à l’enregistrement.",
+    "moveToDraft": {
+      "title": "Enregistrer cette diapositive vide ?",
+      "description": "Ce quiz est publié : il peut être présenté à tout moment, et une diapositive doit montrer quelque chose. Repassez le quiz en brouillon pour enregistrer celle-ci telle quelle, ou continuez à la modifier."
     }
   },
   "discardConfirm": {

@@ -48,9 +48,9 @@ function makePrisma() {
       findFirst: jest.fn(),
     },
     mediaAsset: { findMany: jest.fn(async (): Promise<{ id: string; kind: string }[]> => []) },
-    slide: { createMany: jest.fn() },
     // The quiz's questions, read to check they are complete (none by default).
     question: { findMany: jest.fn(async (): Promise<unknown[]> => []) },
+    slide: { createMany: jest.fn(), findMany: jest.fn(async (): Promise<unknown[]> => []) },
     $transaction: jest.fn(),
   };
   // A transaction runs its steps on the same client.
@@ -548,6 +548,18 @@ describe('QuizzesService', () => {
         response: { code: 'quiz.incomplete', params: { count: 1 } },
       });
       expect(prisma.quiz.update).not.toHaveBeenCalled();
+    });
+
+    it('an empty slide counts among what is missing', async () => {
+      prisma.quiz.findFirst.mockResolvedValue(
+        makeQuiz({ status: QuizStatus.draft, questionCount: 1 }),
+      );
+      prisma.slide.findMany.mockResolvedValue([
+        { blocks: [], mediaId: null, gradient: null, videoMediaId: null },
+      ]);
+      await expect(service.transition(OWNER, 'q1', { status: 'ready' })).rejects.toMatchObject({
+        response: { code: 'quiz.incomplete', params: { count: 1 } },
+      });
     });
 
     it('refuse une transition illégale (ready→archived autorisée, archived→ready non)', async () => {

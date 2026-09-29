@@ -209,6 +209,13 @@
       "remaining": "Cuántas preguntas quedan, la siguiente incluida",
       "date": "La fecha de hoy",
       "time": "La hora"
+    },
+    "blockRemoved": "Bloque quitado.",
+    "undo": "Deshacer",
+    "emptySkipped": "Vacío — se omite al guardar.",
+    "moveToDraft": {
+      "title": "¿Guardar esta diapositiva vacía?",
+      "description": "Este cuestionario está publicado: puede presentarse en cualquier momento y una diapositiva debe mostrar algo. Vuelve a pasarlo a borrador para guardar esta tal cual, o sigue editándola."
     }
   },
   "discardConfirm": {

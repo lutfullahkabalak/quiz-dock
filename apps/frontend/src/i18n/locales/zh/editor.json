@@ -209,6 +209,13 @@
       "remaining": "剩余题目数（含下一题）",
       "date": "今天的日期",
       "time": "时间"
+    },
+    "blockRemoved": "已移除区块。",
+    "undo": "撤销",
+    "emptySkipped": "空白——保存时忽略。",
+    "moveToDraft": {
+      "title": "保存这张空白幻灯片？",
+      "description": "此测验已发布，随时可以演示，幻灯片必须显示内容。改回草稿即可按原样保存，或继续编辑。"
     }
   },
   "discardConfirm": {

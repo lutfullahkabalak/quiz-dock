@@ -209,6 +209,13 @@
       "remaining": "How many questions are left, the next one included",
       "date": "Today’s date",
       "time": "The time"
+    },
+    "blockRemoved": "Block removed.",
+    "undo": "Undo",
+    "emptySkipped": "Empty — skipped when saved.",
+    "moveToDraft": {
+      "title": "Save this empty slide?",
+      "description": "This quiz is published, so it can be presented at any time: a slide must show something. Move the quiz back to draft to save this one as it is, or keep editing."
     }
   },
   "discardConfirm": {

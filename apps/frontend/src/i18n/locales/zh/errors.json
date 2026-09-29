@@ -21,8 +21,8 @@
     "in_use": "此测验正在某个房间中进行：请先关闭房间。",
     "item_not_in_quiz": "此项目已不属于该测验：请刷新页面。",
     "reorder_incomplete": "提交的顺序缺少部分项目：请刷新页面后重试。",
-    "incomplete_one": "有 1 道题目未完成：请完成后再发布测验。",
-    "incomplete_other": "有 {{count}} 道题目未完成：请完成后再发布测验。"
+    "incomplete_one": "有 1 个步骤未完成：请完成后再发布测验。",
+    "incomplete_other": "有 {{count}} 个步骤未完成：请完成后再发布测验。"
   },
   "session": {
     "not_found": "未找到房间或房间已关闭。",
@@ -164,7 +164,8 @@
     "two_sounds": "一张幻灯片一次只播放一个声音：请将视频静音或移除其声音。",
     "background_conflict": "背景只能是图片或渐变，不能同时使用。",
     "empty": "幻灯片没有任何内容：请添加标题、文字、图片、背景或视频。",
-    "not_found": "此幻灯片已不存在：它已被删除。"
+    "not_found": "此幻灯片已不存在：它已被删除。",
+    "incomplete_in_ready_quiz": "此测验已发布：请先改回草稿，才能保存不显示任何内容的幻灯片。"
   },
   "record": {
     "not_found": "该项目已不存在：在此期间已被删除。",

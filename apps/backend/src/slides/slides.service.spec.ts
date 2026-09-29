@@ -8,7 +8,8 @@ const id = (n: string) => n.padEnd(26, '0');
 
 function makePrisma() {
   return {
-    quiz: { findFirst: jest.fn() },
+    // The quiz's status: a draft unless a test says otherwise.
+    quiz: { findFirst: jest.fn(), findUnique: jest.fn(async () => ({ status: 'draft' })) },
     mediaAsset: { findMany: jest.fn() },
     question: { findMany: jest.fn(), update: jest.fn((args: unknown) => args) },
     slide: {
@@ -58,6 +59,26 @@ describe('SlidesService', () => {
         mediaId: null,
         displayDelayS: null,
       });
+    });
+
+    it('an empty slide waits in a draft, never in a published quiz (UI system §1.5)', async () => {
+      prisma.slide.aggregate.mockResolvedValue({ _max: { orderIndex: null } });
+      const empty = {
+        blocks: [],
+        textTone: 'light' as const,
+        textOutline: true,
+        videoLoop: true,
+        videoSound: true,
+        waveformSize: 'hidden' as const,
+      };
+      await service.add(OWNER, 'quiz-1', empty);
+      expect(prisma.slide.create).toHaveBeenCalled();
+      prisma.slide.create.mockClear();
+      prisma.quiz.findUnique.mockResolvedValueOnce({ status: 'ready' });
+      await expect(service.add(OWNER, 'quiz-1', empty)).rejects.toMatchObject({
+        response: { message: 'slide.incomplete_in_ready_quiz' },
+      });
+      expect(prisma.slide.create).not.toHaveBeenCalled();
     });
 
     it('404 when the quiz is not owned', async () => {

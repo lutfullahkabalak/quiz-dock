@@ -66,6 +66,7 @@ import { MenuItem, MenuSeparator } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Modal } from '@/components/ui/modal';
 import { savedQuestionIssues } from '@/lib/question-issues';
+import { slideIssues } from '@quiz-dock/contracts';
 import { validationText } from '../api/error-text';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -317,13 +318,17 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
 
   // Questions and slides share one sequence (#7): the server re-anchors slides from it.
   const items = quizItems(quiz);
-  // What each question still misses: the steps a quiz must finish to be published.
+  // What each step still misses (a question its answers, a slide something to show):
+  // what a quiz must finish to be published.
   const unfinished = items
-    .flatMap((item, i) =>
-      item.kind === 'question'
-        ? [{ item, number: questionNumber(items, i), issues: savedQuestionIssues(item.question) }]
-        : [],
-    )
+    .map((item, i) => ({
+      item,
+      number: questionNumber(items, i),
+      issues:
+        item.kind === 'question'
+          ? savedQuestionIssues(item.question)
+          : slideIssues({ ...item.slide, blocks: item.slide.blocks as unknown[] }),
+    }))
     .filter((u) => u.issues.length > 0);
   const [checklist, setChecklist] = useState(false);
   // Publishing an unfinished quiz lists what is missing, each line opening its step.
@@ -394,6 +399,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       <SlideForm
         key="new-slide"
         quizId={quiz.id}
+        quizStatus={quiz.status}
+        onMoveToDraft={moveToDraft}
         quizFields={slideQuizFields}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
@@ -416,6 +423,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         key={editingItem.id}
         quizId={quiz.id}
         slide={editingItem.slide}
+        quizStatus={quiz.status}
+        onMoveToDraft={moveToDraft}
         quizFields={slideQuizFields}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
@@ -999,7 +1008,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         steps={unfinished.map((u) => ({
           id: u.item.id,
           number: u.number,
-          label: u.item.kind === 'question' ? u.item.question.prompt : '',
+          label: u.item.kind === 'question' ? u.item.question.prompt : slideLabel(u.item.slide),
+          slide: u.item.kind === 'slide',
           texts: [...new Set(u.issues.map((i) => validationText(i.code)))],
         }))}
         onOpenStep={(id) => {
@@ -1331,7 +1341,7 @@ function PublishChecklist({
   onClose,
 }: {
   open: boolean;
-  steps: { id: string; number: number | null; label: string; texts: string[] }[];
+  steps: { id: string; number: number | null; label: string; slide: boolean; texts: string[] }[];
   onOpenStep: (id: string) => void;
   onClose: () => void;
 }) {
@@ -1352,7 +1362,11 @@ function PublishChecklist({
           {steps.map((step) => (
             <li key={step.id} className="flex items-start gap-3 px-3 py-2">
               <span className="bg-muted text-muted-foreground mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums">
-                {step.number}
+                {step.slide ? (
+                  <LayoutTemplate className="size-4" aria-label={t('slides.kind')} />
+                ) : (
+                  step.number
+                )}
               </span>
               <div className="min-w-0 flex-1">
                 <Markdown profile="inline" className="line-clamp-1 block text-sm font-medium">

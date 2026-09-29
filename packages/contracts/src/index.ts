@@ -16,6 +16,7 @@ export * from './preferences';
 export * from './question-media';
 export * from './question-content';
 export * from './quiz-terms';
+export * from './slide-content';
 export * from './slide-media';
 import type { ParticipantAccess } from './preferences';
 import type { AudioTarget, LiveAudio, LiveQuestionMedia } from './question-media';

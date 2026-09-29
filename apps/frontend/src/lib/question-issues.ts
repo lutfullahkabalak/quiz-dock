@@ -42,3 +42,21 @@ export const issuesAsErrors = (
 /** The issues about `field` or anything under it (`options` → `options.1.alt`). */
 export const issuesFor = (issues: FieldIssue[], field: string): FieldIssue[] =>
   issues.filter((i) => i.field === field || i.field.startsWith(`${field}.`));
+
+/** Scrolls to a field the author must see (`options.1.alt` → the options) and focuses it. */
+export function focusField(field: string) {
+  const box = document.getElementById(`qf-${field.split('.')[0]}`);
+  if (!box) return;
+  // A folded setting opens: the field must be seen.
+  for (
+    let fold = box.closest('details');
+    fold;
+    fold = fold.parentElement?.closest('details') ?? null
+  ) {
+    fold.open = true;
+  }
+  box.scrollIntoView?.({ block: 'center', behavior: 'smooth' });
+  box
+    .querySelector<HTMLElement>('input, select, textarea, [contenteditable="true"], button')
+    ?.focus({ preventScroll: true });
+}

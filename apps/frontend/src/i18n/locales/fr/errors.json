@@ -21,8 +21,8 @@
     "in_use": "Ce quiz est en cours dans un salon : fermez d’abord le salon.",
     "item_not_in_quiz": "Cet élément n’appartient plus à ce quiz : rechargez la page.",
     "reorder_incomplete": "L’ordre envoyé ne contient pas tous les éléments : rechargez la page et réessayez.",
-    "incomplete_one": "1 question est inachevée : complétez-la pour publier le quiz.",
-    "incomplete_other": "{{count}} questions sont inachevées : complétez-les pour publier le quiz."
+    "incomplete_one": "1 étape est inachevée : complétez-la pour publier le quiz.",
+    "incomplete_other": "{{count}} étapes sont inachevées : complétez-les pour publier le quiz."
   },
   "session": {
     "not_found": "Salon introuvable ou fermé.",
@@ -164,7 +164,8 @@
     "two_sounds": "Une slide joue un seul son à la fois : coupez le son de sa vidéo ou retirez son son.",
     "background_conflict": "Un fond est une image ou un dégradé, pas les deux.",
     "empty": "La diapositive n’affiche rien : ajoutez un titre, un texte, une image, un fond ou une vidéo.",
-    "not_found": "Cette diapositive n’existe plus : elle a été supprimée entre-temps."
+    "not_found": "Cette diapositive n’existe plus : elle a été supprimée entre-temps.",
+    "incomplete_in_ready_quiz": "Ce quiz est publié : repassez-le en brouillon pour enregistrer une diapositive qui ne montre rien."
   },
   "record": {
     "not_found": "Cet élément n’existe plus : il a été supprimé entre-temps.",

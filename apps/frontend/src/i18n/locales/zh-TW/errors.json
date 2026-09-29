@@ -21,8 +21,8 @@
     "in_use": "此測驗正在某個房間中進行：請先關閉房間。",
     "item_not_in_quiz": "此項目已不屬於該測驗：請重新整理頁面。",
     "reorder_incomplete": "送出的順序缺少部分項目：請重新整理頁面後再試。",
-    "incomplete_one": "有 1 道題目未完成：請完成後再發布測驗。",
-    "incomplete_other": "有 {{count}} 道題目未完成：請完成後再發布測驗。"
+    "incomplete_one": "有 1 個步驟未完成：請完成後再發布測驗。",
+    "incomplete_other": "有 {{count}} 個步驟未完成：請完成後再發布測驗。"
   },
   "session": {
     "not_found": "未找到房間或房間已關閉。",
@@ -164,7 +164,8 @@
     "two_sounds": "一張簡報一次只播放一個聲音：請將影片靜音或移除其聲音。",
     "background_conflict": "背景只能是圖片或漸層，不能同時使用。",
     "empty": "投影片沒有任何內容：請加入標題、文字、圖片、背景或影片。",
-    "not_found": "此投影片已不存在：它已被刪除。"
+    "not_found": "此投影片已不存在：它已被刪除。",
+    "incomplete_in_ready_quiz": "此測驗已發布：請先改回草稿，才能儲存不顯示任何內容的投影片。"
   },
   "record": {
     "not_found": "此項目已不存在：在此期間已被刪除。",

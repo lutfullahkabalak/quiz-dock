@@ -21,8 +21,8 @@
     "in_use": "Este quiz se está jugando en una sala: cierra primero la sala.",
     "item_not_in_quiz": "Este elemento ya no pertenece a este cuestionario: recarga la página.",
     "reorder_incomplete": "Al orden enviado le faltan elementos: recarga la página e inténtalo de nuevo.",
-    "incomplete_one": "1 pregunta está sin terminar: complétala para publicar el cuestionario.",
-    "incomplete_other": "{{count}} preguntas están sin terminar: complétalas para publicar el cuestionario."
+    "incomplete_one": "1 paso está sin terminar: complétalo para publicar el cuestionario.",
+    "incomplete_other": "{{count}} pasos están sin terminar: complétalos para publicar el cuestionario."
   },
   "session": {
     "not_found": "Sala no encontrada o cerrada.",
@@ -164,7 +164,8 @@
     "two_sounds": "Una diapositiva reproduce un solo sonido a la vez: silencia su vídeo o quita su sonido.",
     "background_conflict": "Un fondo es una imagen o un degradado, no ambos.",
     "empty": "La diapositiva no muestra nada: añade un título, un texto, una imagen, un fondo o un vídeo.",
-    "not_found": "Esta diapositiva ya no existe: se eliminó mientras tanto."
+    "not_found": "Esta diapositiva ya no existe: se eliminó mientras tanto.",
+    "incomplete_in_ready_quiz": "Este cuestionario está publicado: vuelve a pasarlo a borrador para guardar una diapositiva que no muestra nada."
   },
   "record": {
     "not_found": "Este elemento ya no existe: se eliminó mientras tanto.",
