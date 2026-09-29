@@ -1,13 +1,15 @@
 import { Link } from '@tanstack/react-router';
-import { ArrowLeft, ChevronLeft, ChevronRight, Star } from 'lucide-react';
+import { ArrowLeft, Star } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button, buttonVariants } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 import type { QuizFeedbackSummaryDto } from '../api/generated/model';
 import { useQuizzesControllerFeedback } from '../api/generated/quizzes/quizzes';
 import { feedbackRoute } from '../router';
 import { ListSkeleton } from '@/components/ui/loading';
+import { PageTitle } from '@/components/ui/page-title';
+import { Pagination } from '@/components/ui/pagination';
 
 const PAGE_SIZE = 20;
 
@@ -22,10 +24,7 @@ export function StarRow({ value, size = 'size-4' }: { value: number; size?: stri
       {[0, 1, 2, 3, 4].map((i) => (
         <Star
           key={i}
-          className={cn(
-            size,
-            i < value ? 'fill-amber-400 text-amber-400' : 'text-muted-foreground/40',
-          )}
+          className={cn(size, i < value ? 'fill-warning text-warning' : 'text-muted-foreground/40')}
         />
       ))}
     </span>
@@ -66,10 +65,10 @@ export function FeedbackSummary({
               <span className="text-muted-foreground w-3 text-right text-xs tabular-nums">
                 {star}
               </span>
-              <Star className="size-3 fill-amber-400 text-amber-400" />
+              <Star className="fill-warning text-warning size-3" />
               <span className="bg-muted h-2 flex-1 overflow-hidden rounded-full">
                 <span
-                  className="bg-amber-400 block h-full rounded-full"
+                  className="bg-warning block h-full rounded-full"
                   style={{ width: `${(n / max) * 100}%` }}
                 />
               </span>
@@ -118,7 +117,7 @@ export function FeedbackPage() {
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-wrap items-center gap-3">
-        <h1 className="text-2xl font-bold">{t('feedback.title')}</h1>
+        <PageTitle>{t('feedback.title')}</PageTitle>
         <Link
           to="/quizzes/$quizId"
           params={{ quizId }}
@@ -167,33 +166,8 @@ export function FeedbackPage() {
               ) : null}
             </ul>
           )}
-          {pages > 1 ? (
-            <nav className="flex items-center justify-between">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page <= 1}
-                onClick={() => setPage((p) => p - 1)}
-              >
-                <ChevronLeft className="size-4" />
-                {t('feedback.previous')}
-              </Button>
-              <span className="text-muted-foreground text-sm">
-                {t('feedback.pagePosition', { page, pages })}
-              </span>
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                disabled={page >= pages}
-                onClick={() => setPage((p) => p + 1)}
-              >
-                {t('feedback.next')}
-                <ChevronRight className="size-4" />
-              </Button>
-            </nav>
-          ) : null}
+          {/* The app's one pagination, as on every other list. */}
+          <Pagination page={page} pages={pages} onChange={setPage} />
         </>
       ) : null}
     </section>

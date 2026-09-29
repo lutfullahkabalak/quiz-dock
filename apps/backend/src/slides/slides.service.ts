@@ -2,7 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { MediaService } from '../media/media.service';
 import { PrismaService } from '../prisma/prisma.service';
 import type { ReorderItemsDto } from './dto/reorder-items.dto';
-import type { SlideContent } from './dto/slide-content.schema';
+import { QuizStatus } from '@prisma/client';
+import { type SlideContent, slideIssues } from './dto/slide-content.schema';
 import { checkSlideMedia, slideMediaIds } from './slide-media';
 import { slideData } from './slide-data';
 import { requireQuiz } from '../quizzes/quiz-access';
@@ -25,6 +26,7 @@ export class SlidesService {
   /** Appends a slide at the very end of the quiz (after the last question). */
   async add(ownerId: string, quizId: string, dto: SlideContent) {
     await requireQuiz(this.prisma, quizId, ownerId);
+    await this.assertPlayableIfReady(quizId, dto);
     await checkSlideMedia(this.prisma, ownerId, dto);
     const agg = await this.prisma.slide.aggregate({
       where: { quizId, beforeQuestionId: null },
@@ -42,6 +44,7 @@ export class SlidesService {
 
   async update(ownerId: string, slideId: string, dto: SlideContent) {
     const slide = await this.assertSlideOwned(ownerId, slideId);
+    await this.assertPlayableIfReady(slide.quizId, dto);
     const held = slideMediaIds(slide);
     await checkSlideMedia(this.prisma, ownerId, dto, held);
     const data = slideData(dto);
@@ -49,6 +52,17 @@ export class SlidesService {
     // What the slide no longer shows leaves with its file, unless something else holds it.
     await this.media.releaseUnused(held, slideMediaIds(data));
     return saved;
+  }
+
+  /** A ready quiz can be started at any time: a slide saved in it must show something. */
+  private async assertPlayableIfReady(quizId: string, dto: SlideContent) {
+    const quiz = await this.prisma.quiz.findUnique({
+      where: { id: quizId },
+      select: { status: true },
+    });
+    if (quiz?.status === QuizStatus.ready && slideIssues(dto).length > 0) {
+      throw new BadRequestException('slide.incomplete_in_ready_quiz');
+    }
   }
 
   async remove(ownerId: string, slideId: string): Promise<void> {

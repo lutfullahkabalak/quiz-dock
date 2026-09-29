@@ -18,6 +18,7 @@ import { TemplatePage } from './routes/template-page';
 import { TemplatesPage } from './routes/templates-page';
 import { FeedbackPage } from './routes/feedback-page';
 import { RootLayout } from './routes/root-layout';
+import { ErrorPage, NotFoundPage } from './routes/fallback-pages';
 import { AdminMediaPage } from './routes/admin-media-page';
 
 const requireAuth = () => {
@@ -40,7 +41,12 @@ const requireAuthWhenOidc = ({ location }: { location: { href: string } }) => {
   }
 };
 
-const rootRoute = createRootRoute({ component: RootLayout });
+// No dead end (UI system §1.3): an unknown address and a crashed page each get a way on.
+const rootRoute = createRootRoute({
+  component: RootLayout,
+  notFoundComponent: NotFoundPage,
+  errorComponent: ErrorPage,
+});
 
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -106,6 +112,9 @@ export const editorRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/quizzes/$quizId',
   beforeLoad: requireAuth,
+  // `publish`: arrived from « Publish to present » — publish, or list what is missing.
+  validateSearch: (search: Record<string, unknown>): { publish?: boolean } =>
+    search.publish === true || search.publish === 'true' ? { publish: true } : {},
   component: EditorPage,
 });
 

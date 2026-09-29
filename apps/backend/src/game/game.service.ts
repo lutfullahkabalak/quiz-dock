@@ -11,6 +11,9 @@ import {
 import {
   GameState,
   type ParticipantAccess,
+  NICKNAME_MAX,
+  NICKNAME_MIN,
+  type PlayerPeek,
   type PlayerPresence,
   type RoomSoundsSettings,
 } from '@quiz-dock/contracts';
@@ -44,8 +47,6 @@ import {
 const PIN_ALLOC_ATTEMPTS = 10;
 /** Games whose snapshot stays parsed in memory (a room plays one at a time). */
 const SNAPSHOT_CACHE_MAX = 50;
-const NICKNAME_MIN = 2;
-const NICKNAME_MAX = 20;
 /** Homonymes distingués par un suffixe avant de refuser (noms venus des comptes). */
 const NICKNAME_HOMONYM_MAX = 20;
 /** Borne de la graine d'avatar (client-fournie, stockée Redis + diffusée). */
@@ -455,7 +456,7 @@ export class GameService {
    * whether an account is needed to get in (#57). Throws for a game that does not
    * exist or is over.
    */
-  async peek(pin: string): Promise<{ hasSound: boolean; participantAccess: ParticipantAccess }> {
+  async peek(pin: string): Promise<PlayerPeek> {
     const meta = await this.getMeta(pin);
     if (!meta) throw new NotFoundException('session.not_found');
     if (meta.state === GameState.Ended) throw new BadRequestException('session.ended');
@@ -464,6 +465,11 @@ export class GameService {
     return {
       hasSound: !!snapshot && snapshotHasSound(snapshot),
       participantAccess: meta.participantAccess,
+      // Whose room it is and what it plays: the join form says it as the PIN is typed.
+      roomName: meta.roomName || null,
+      hostName: meta.hostName || null,
+      quizTitle: snapshot?.title ?? null,
+      joinLocked: meta.joinLocked,
     };
   }
 

@@ -18,10 +18,7 @@ import type { CreateQuestionDtoWaveformSize } from './createQuestionDtoWaveformS
 
 export interface CreateQuestionDto {
   type: CreateQuestionDtoType;
-  /**
-     * @minLength 1
-     * @maxLength 1000
-     */
+  /** @maxLength 1000 */
   prompt: string;
   /**
      * @maxLength 2000

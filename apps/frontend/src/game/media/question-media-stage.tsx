@@ -355,7 +355,7 @@ function SoundNotice({ onEnable, kind }: { onEnable: () => void; kind: 'video' |
   return (
     <div
       role="alert"
-      className="flex items-center gap-[0.5em] rounded-full bg-amber-500/15 px-[0.8em] py-[0.3em] text-[0.8em]"
+      className="flex items-center gap-[0.5em] rounded-full bg-warning/15 px-[0.8em] py-[0.3em] text-[0.8em]"
     >
       <VolumeX className="size-[1.1em] shrink-0" />
       <span>{kind === 'video' ? t('media.videoMuted') : t('media.soundBlocked')}</span>

@@ -122,9 +122,7 @@ export function QuestionProperties({ question: q }: { question: QuizDetailDtoQue
           {scoringLabel ? (
             <span className="text-muted-foreground block text-xs">
               {t('questionForm.scoringLabel')} : {scoringLabel}
-              {q.scoring !== 'standard'
-                ? ` — ${t(`questionForm.scoringHelp.${q.type}`, { defaultValue: '' })}`
-                : ''}
+              {` — ${t(`questionForm.scoringHelp.${q.type}.${q.scoring}`, { defaultValue: '' })}`}
             </span>
           ) : null}
         </Row>

@@ -13,14 +13,16 @@
   "list": {
     "title": "會話歷史",
     "backToEditor": "返回編輯器",
-    "loadError": "歷史記錄不可用。",
     "empty": "該測驗沒有已歸檔的會話。會話結束時，選擇「歸檔結果」即可在此找到。",
     "capture": "記錄",
-    "participantCount_one": "{{count}} 名玩家",
-    "participantCount_other": "{{count}} 名玩家",
-    "successRate": "正確率 {{rate}}",
     "inRoom_one": "房間 · {{count}} 個測驗",
-    "inRoom_other": "房間 · {{count}} 個測驗"
+    "inRoom_other": "房間 · {{count}} 個測驗",
+    "pin": "PIN {{pin}}",
+    "thDate": "日期",
+    "thStatus": "狀態",
+    "thPlayers": "參與者",
+    "thSuccess": "正確率",
+    "presentIt": "演示此測驗"
   },
   "detail": {
     "notFound": "未找到會話。",
@@ -43,7 +45,6 @@
     "thScore": "分數",
     "thCorrect": "正確數",
     "thStreak": "連勝",
-    "participantDetailAria": "{{nickname}} 的詳細資訊",
     "csvGlobal": {
       "rank": "名次",
       "nickname": "匿稱",

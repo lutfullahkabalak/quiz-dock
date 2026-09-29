@@ -120,7 +120,9 @@ describe('TemplatesPage (galerie)', () => {
     ]);
     renderApp('/templates');
 
-    expect(await screen.findByRole('button', { name: /Créer à partir/ })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('button', { name: /Créer un quiz à partir de ceci/ }),
+    ).toBeInTheDocument();
     localStorage.clear();
   });
 
@@ -144,57 +146,152 @@ describe('TemplatesPage (galerie)', () => {
 });
 
 describe('TemplatePage (aperçu)', () => {
+  const Q = `${ENTRY.id}-q0`;
+  const BG = 'BGBGBGBGBGBGBGBGBGBGBGBGBG';
+  // What a copy would create, in the shape of a quiz (the server reads it through the import).
   const PREVIEW = {
     ...ENTRY,
     coverUrl: null,
+    questionCount: 1,
     slideCount: 1,
-    items: [
+    invalid: null,
+    media: { [BG]: `/api/v1/store/${ENTRY.id}/media/bg.webp` },
+    questions: [
       {
-        kind: 'question',
-        text: 'Quel est le plus grand port d’Europe ?',
+        id: Q,
+        quizId: ENTRY.id,
+        orderIndex: 0,
         type: 'single_choice',
+        prompt: 'Quel est le plus grand port d’Europe ?',
+        media: { visual: null, audio: null },
+        answerExplanation: null,
+        backgroundMediaId: null,
+        backgroundGradient: null,
+        textTone: 'light',
+        textOutline: true,
         timeLimitS: 20,
-        mediaUrl: null,
-        mediaAlt: null,
+        revealDelayS: null,
+        audioTarget: null,
+        waveformSize: 'M',
+        timerAfterMedia: false,
+        pointsMode: 'standard',
+        scoring: 'standard',
+        numericValue: null,
+        numericTolerance: null,
+        multiSelect: false,
         options: [
-          { text: 'Rotterdam', color: 'red', shape: 'triangle' },
-          { text: 'Anvers', color: 'blue', shape: 'diamond' },
+          {
+            id: 'o1',
+            orderIndex: 0,
+            text: 'Rotterdam',
+            mediaId: null,
+            alt: null,
+            color: 'red',
+            shape: 'triangle',
+            isCorrect: true,
+            correctOrderIndex: null,
+          },
+          {
+            id: 'o2',
+            orderIndex: 1,
+            text: 'Anvers',
+            mediaId: null,
+            alt: null,
+            color: 'blue',
+            shape: 'diamond',
+            isCorrect: false,
+            correctOrderIndex: null,
+          },
         ],
+        acceptedAnswers: [],
       },
+    ],
+    slides: [
       {
-        kind: 'slide',
-        text: 'Bienvenue',
-        type: null,
-        timeLimitS: null,
-        mediaUrl: null,
-        mediaAlt: null,
-        options: [],
+        id: `${ENTRY.id}-s0`,
+        quizId: ENTRY.id,
+        beforeQuestionId: Q,
+        orderIndex: 0,
+        blocks: [{ type: 'heading', id: 'h', text: 'Bienvenue', level: 1 }],
+        mediaId: BG,
+        gradient: null,
+        videoMediaId: null,
+        videoLoop: true,
+        videoSound: true,
+        audioMediaId: null,
+        waveformSize: 'M',
+        audioTarget: null,
+        textTone: 'light',
+        textOutline: true,
+        displayDelayS: null,
       },
     ],
   };
 
-  it('montre ce que le modèle contient avant d’en prendre une copie', async () => {
+  const HOST = {
+    id: 'u1',
+    displayName: 'Marc',
+    email: null,
+    roles: ['host'],
+    subject: 'local:marc',
+  };
+
+  it('draws the template with the quiz preview, its media served by the catalogue', async () => {
     localStorage.setItem('live.localUser', 'Marc');
+    mockApi([
+      { method: 'GET', path: '/me', body: HOST },
+      { method: 'GET', path: `/store/${ENTRY.id}`, body: PREVIEW },
+    ]);
+    const { container } = renderApp(`/templates/${ENTRY.id}`);
+
+    // The slide comes first, on its background from the catalogue.
+    expect(await screen.findByRole('heading', { name: 'Bienvenue' })).toBeInTheDocument();
+    expect(
+      container.querySelector(`img[src="/api/v1/store/${ENTRY.id}/media/bg.webp"]`),
+    ).not.toBeNull();
+    fireEvent.click(screen.getByText('Suivant'));
+    expect(
+      screen.getByRole('heading', { name: 'Quel est le plus grand port d’Europe ?' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Rotterdam')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Créer un quiz à partir de ceci/ }),
+    ).toBeInTheDocument();
+    // Not Alice's template, not an admin: nothing to withdraw.
+    expect(screen.queryByRole('button', { name: 'Plus d’actions' })).toBeNull();
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it('its author withdraws it from the ⋯ menu', async () => {
+    localStorage.setItem('live.localUser', 'Alice');
     mockApi([
       {
         method: 'GET',
         path: '/me',
-        body: {
-          id: 'u1',
-          displayName: 'Marc',
-          email: null,
-          roles: ['host'],
-          subject: 'local:marc',
-        },
+        body: { ...HOST, displayName: 'Alice', subject: 'local:alice' },
       },
       { method: 'GET', path: `/store/${ENTRY.id}`, body: PREVIEW },
     ]);
     renderApp(`/templates/${ENTRY.id}`);
+    fireEvent.click(await screen.findByRole('button', { name: 'Plus d’actions' }));
+    expect(screen.getByRole('button', { name: 'Retirer' })).toBeInTheDocument();
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
 
-    expect(await screen.findByText(/plus grand port d’Europe/)).toBeInTheDocument();
-    expect(screen.getByText('Rotterdam')).toBeInTheDocument();
-    expect(screen.getByText('Bienvenue')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Créer à partir de ce modèle/ })).toBeInTheDocument();
+  it('says what a copy would refuse, when the template does not read whole', async () => {
+    localStorage.setItem('live.localUser', 'Marc');
+    mockApi([
+      { method: 'GET', path: '/me', body: HOST },
+      {
+        method: 'GET',
+        path: `/store/${ENTRY.id}`,
+        body: { ...PREVIEW, questions: [], slides: [], invalid: { item: 3 } },
+      },
+    ]);
+    renderApp(`/templates/${ENTRY.id}`);
+    expect(await screen.findByText(/élément 3/)).toBeInTheDocument();
     localStorage.clear();
     vi.unstubAllGlobals();
   });
@@ -212,7 +309,7 @@ describe('TemplatePage (aperçu)', () => {
     renderApp(`/templates/${ENTRY.id}`);
 
     expect(await screen.findByText(/action d’animateur/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Créer à partir/ })).toBeNull();
+    expect(screen.queryByRole('button', { name: /Créer un quiz/ })).toBeNull();
     localStorage.clear();
     vi.unstubAllGlobals();
   });

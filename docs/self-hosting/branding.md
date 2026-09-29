@@ -103,7 +103,8 @@ own**: only yours. States are `data-*` attributes.
 | `qd-player` | the participant's phone | `data-state` |
 | `qd-console` | the host's console | `data-state` |
 | `qd-lobby`, `qd-roster` | the projection's lobby, its list of participants | |
-| `qd-join`, `qd-join-pin`, `qd-join-qr` | how to join: the bar during a question, the PIN, the QR code | |
+| `qd-join`, `qd-join-pin`, `qd-join-qr` | how to join: the reminder in the projection's top band (a chip on a slide), the PIN, the QR code | |
+| `qd-band` | the projection's top and bottom bands | `data-band`: `top`, `bottom` |
 | `qd-timer` | a question's clock | `data-tone`: `ok`, `warning`, `critical`, `paused` |
 | `qd-chrono` | the console's clock and its ± buttons | |
 | `qd-prompt` | a question's text | |

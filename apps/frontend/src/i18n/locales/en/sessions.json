@@ -13,14 +13,16 @@
   "list": {
     "title": "Session history",
     "backToEditor": "Back to editor",
-    "loadError": "History unavailable.",
     "empty": "No archived session for this quiz. At the end of a session, choose “Archive results” to find it here.",
     "capture": "Capture",
-    "participantCount_one": "{{count}} player",
-    "participantCount_other": "{{count}} players",
-    "successRate": "Success {{rate}}",
     "inRoom_one": "Room · {{count}} quiz",
-    "inRoom_other": "Room · {{count}} quizzes"
+    "inRoom_other": "Room · {{count}} quizzes",
+    "pin": "PIN {{pin}}",
+    "thDate": "Date",
+    "thStatus": "Status",
+    "thPlayers": "Participants",
+    "thSuccess": "Success",
+    "presentIt": "Present this quiz"
   },
   "detail": {
     "notFound": "Session not found.",
@@ -43,7 +45,6 @@
     "thScore": "Score",
     "thCorrect": "Correct",
     "thStreak": "Streak",
-    "participantDetailAria": "Details for {{nickname}}",
     "csvGlobal": {
       "rank": "Rank",
       "nickname": "Nickname",

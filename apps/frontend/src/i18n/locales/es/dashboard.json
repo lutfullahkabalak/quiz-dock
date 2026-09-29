@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} jugador",
   "playerCount_other": "{{count}} jugadores",
   "resume": "Reanudar",
-  "stop": "Detener",
+  "stop": "Cerrar la sala…",
   "stopConfirmTitle": "¿Cerrar la sala?",
   "stopConfirmDescription": "La sala se cerrará para todos los participantes conectados.",
   "stopConfirmLabel": "Cerrar la sala",
@@ -18,7 +18,6 @@
   "empty": "Aún no hay quizzes. ¡Crea uno!",
   "questionCount_one": "{{count}} pregunta",
   "questionCount_other": "{{count}} preguntas",
-  "edit": "Editar",
   "present": "Presentar",
   "running_one": "{{count}} sala abierta",
   "running_other": "{{count}} salas abiertas",
@@ -63,7 +62,6 @@
   "seeAllSessions": "Ver todas las salas",
   "allQuizzes": "Todos los cuestionarios",
   "ownedBy": "de {{name}}",
-  "view": "Ver",
   "browseTemplates": "Explorar las plantillas",
   "browseTemplatesHint": "Cuestionarios listos para crear el tuyo; nada llega a tu banco sin que lo pidas.",
   "mediaAdmin": {
@@ -184,12 +182,14 @@
     "answer1": "Respuesta 1",
     "answer2": "Respuesta 2"
   },
-  "createFrom": "Crear a partir de este quiz",
+  "createFrom": "Crear un quiz a partir de esto",
   "readOnly": "Solo lectura: compartido por otro anfitrión",
   "filterOwner": "Propietario",
   "ownerAll": "Todos",
   "ownerMe": "Yo",
   "ownerNone": "Ningún propietario con ese nombre",
   "statusCount_one": "{{count}} estado",
-  "statusCount_other": "{{count}} estados"
+  "statusCount_other": "{{count}} estados",
+  "publishToPresent": "Publicar para presentar",
+  "quizActions": "Acciones de «{{title}}»"
 }

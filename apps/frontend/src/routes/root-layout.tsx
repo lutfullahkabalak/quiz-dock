@@ -26,6 +26,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/join': 'join',
   '/join/$pin': 'join',
   '/join/$pin/screen': 'screen',
+  '/admin/media': 'instanceMedia',
 };
 
 export function RootLayout() {
@@ -61,7 +62,14 @@ export function RootLayout() {
   }
 
   return (
-    <div className="qd-shell flex min-h-screen flex-col" data-shell={shell}>
+    <div
+      className={cn(
+        'qd-shell flex min-h-screen flex-col',
+        // A phone is read outdoors: its hints a step darker (light theme; the dark one keeps its own).
+        shell === 'participant' && 'not-dark:[--muted-foreground:oklch(0.45_0_0)]',
+      )}
+      data-shell={shell}
+    >
       {/* La barre traverse l'écran — c'est la limite du cadre — mais son contenu
           suit exactement les marges de `main` : la marque s'aligne sur le titre
           de la page. Le nom s'efface sous `sm` pour laisser la place à la
@@ -114,7 +122,7 @@ export function RootLayout() {
       {demo ? (
         <p
           role="note"
-          className="border-b bg-amber-500/15 px-6 py-1.5 text-center text-xs text-amber-700 dark:text-amber-400"
+          className="bg-warning/15 text-warning-text border-b px-6 py-1.5 text-center text-xs"
         >
           {t('common:demo.banner', { user: demo.user })}
         </p>

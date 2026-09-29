@@ -42,7 +42,8 @@
     "live": "Salons ouverts",
     "templates": "Modèles",
     "profile": "Mon compte",
-    "template": "Modèle"
+    "template": "Modèle",
+    "instanceMedia": "Médias de l’instance"
   },
   "demo": {
     "banner": "Démo publique — un seul compte animateur partagé par tous les visiteurs ; tout est effacé chaque heure."
@@ -50,5 +51,13 @@
   "chromiumOnly": "Cette page est conçue pour Chrome, Edge ou un autre navigateur Chromium. Sur ce navigateur, l’envoi et la lecture des vidéos et des sons peuvent mal fonctionner.",
   "play": "Lire",
   "pause": "Pause",
-  "position": "Position dans le son"
+  "position": "Position dans le son",
+  "fallback": {
+    "notFoundTitle": "Cette page n’existe pas",
+    "notFoundText": "Le lien est peut-être ancien, ou ce qu’il désignait a été supprimé.",
+    "errorTitle": "Quelque chose s’est mal passé",
+    "errorText": "Cette page a cessé de fonctionner. Ce que vous avez enregistré est en sécurité.",
+    "backHome": "Retour à l’accueil",
+    "tryAgain": "Réessayer"
+  }
 }

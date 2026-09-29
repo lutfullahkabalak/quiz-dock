@@ -1,12 +1,18 @@
+import { AlertCircle, AlertTriangle } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { Popover } from '@/components/ui/popover';
+import type { FieldIssue } from '@/lib/question-issues';
+import { cn } from '@/lib/utils';
 
 /**
  * The top of an editor form, kept in view (a long form would push saving out of
  * reach): what is being edited, a refusal next to the button that caused it,
- * Cancel and Save. Cancel asks first when there are changes, then `onCancel`.
+ * what the form still says under its fields (a count that opens their list, each
+ * leading to its field), Cancel and Save. Cancel asks first when there are changes,
+ * then `onCancel`.
  */
 export function FormActionBar({
   title,
@@ -14,6 +20,8 @@ export function FormActionBar({
   dirty,
   busy,
   submitLabel,
+  issues = [],
+  onIssue,
   onCancel,
 }: {
   title: string;
@@ -22,6 +30,9 @@ export function FormActionBar({
   dirty: boolean;
   busy: boolean;
   submitLabel: string;
+  /** What the fields say: errors block the save, the rest is left to finish. */
+  issues?: FieldIssue[];
+  onIssue?: (field: string) => void;
   onCancel: () => void;
 }) {
   const { t } = useTranslation('editor');
@@ -42,6 +53,7 @@ export function FormActionBar({
         {error !== undefined ? (
           <p className="text-destructive mr-auto min-w-0 flex-1 truncate text-xs">{error}</p>
         ) : null}
+        {issues.length > 0 ? <IssueSummary issues={issues} onIssue={onIssue} /> : null}
         <Button
           type="button"
           variant="ghost"
@@ -67,5 +79,64 @@ export function FormActionBar({
         }}
       />
     </>
+  );
+}
+
+/** "2 errors" or "3 to finish", opening the list: each line leads to its field. */
+function IssueSummary({
+  issues,
+  onIssue,
+}: {
+  issues: FieldIssue[];
+  onIssue?: (field: string) => void;
+}) {
+  const { t } = useTranslation('editor');
+  const errors = issues.filter((i) => i.tone === 'error');
+  const shown = errors.length > 0 ? errors : issues;
+  // One line per distinct text, at its first field.
+  const lines = [...new Map(shown.map((i) => [i.text, i])).values()];
+  const Icon = errors.length > 0 ? AlertCircle : AlertTriangle;
+  return (
+    <Popover
+      align="end"
+      className="w-72"
+      trigger={({ open, toggle }) => (
+        <Button
+          type="button"
+          variant="ghost"
+          size="sm"
+          aria-expanded={open}
+          onClick={toggle}
+          className={errors.length > 0 ? 'text-destructive' : 'text-warning-text'}
+        >
+          <Icon className="size-4" />
+          {errors.length > 0
+            ? t('formIssues.errors', { count: errors.length })
+            : t('formIssues.toFinish', { count: lines.length })}
+        </Button>
+      )}
+    >
+      {(close) => (
+        <ul className="flex flex-col gap-1">
+          {lines.map((i) => (
+            <li key={i.text}>
+              <button
+                type="button"
+                className={cn(
+                  'hover:bg-accent w-full rounded-md px-2 py-1 text-left text-sm',
+                  i.tone === 'error' ? 'text-destructive' : 'text-foreground',
+                )}
+                onClick={() => {
+                  close();
+                  onIssue?.(i.field);
+                }}
+              >
+                {i.text}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </Popover>
   );
 }

@@ -1,4 +1,4 @@
-import { TriangleAlert } from 'lucide-react';
+import { Notice } from '@/components/ui/notice';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -21,13 +21,5 @@ export function isChromium(nav: Navigator = navigator): boolean {
 export function ChromiumNotice() {
   const { t } = useTranslation();
   if (isChromium()) return null;
-  return (
-    <p
-      role="note"
-      className="flex items-start gap-2 rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm"
-    >
-      <TriangleAlert className="mt-0.5 size-4 shrink-0 text-amber-600" />
-      {t('chromiumOnly')}
-    </p>
-  );
+  return <Notice>{t('chromiumOnly')}</Notice>;
 }

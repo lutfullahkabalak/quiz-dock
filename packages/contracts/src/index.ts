@@ -9,11 +9,14 @@
  * (maps `ClientToServerEvents`/`ServerToClientEvents`) du contrat temps réel.
  */
 
+export * from './background';
 export * from './image-choice';
 export * from './media-sniff';
 export * from './preferences';
 export * from './question-media';
+export * from './question-content';
 export * from './quiz-terms';
+export * from './slide-content';
 export * from './slide-media';
 import type { ParticipantAccess } from './preferences';
 import type { AudioTarget, LiveAudio, LiveQuestionMedia } from './question-media';
@@ -200,6 +203,25 @@ export interface PublicOption {
   shape: OptionShape;
   /** `alt` is what the author wrote for screen readers (#43); null = none. */
   media?: { url: string; kind: 'image'; alt?: string | null } | null;
+}
+
+/** A participant's nickname, in characters: what the server takes and the phone counts. */
+export const NICKNAME_MIN = 2;
+export const NICKNAME_MAX = 20;
+
+/**
+ * What a player learns of a room before joining (#57): whether the quiz plays
+ * sound (the form then asks where they are), whether an account is needed, and
+ * whose room it is — said as soon as the PIN is typed.
+ */
+export interface PlayerPeek {
+  hasSound: boolean;
+  participantAccess: ParticipantAccess;
+  roomName: string | null;
+  hostName: string | null;
+  quizTitle: string | null;
+  /** Closed to newcomers by the host: a place taken back still works. */
+  joinLocked: boolean;
 }
 
 export interface QuestionStartPayload {
@@ -428,6 +450,18 @@ export interface OutlineQuestion {
   correctOptionIds: string[];
 }
 
+/** A slide in the host's outline, placed before the question it leads to. */
+export interface OutlineSlide {
+  /** Its index among the quiz's slides (the `slideIndex` of a `GameStep`). */
+  slideIndex: number;
+  /** The question it comes before; the question count when it closes the quiz. */
+  beforeQuestionIndex: number;
+  /** Its first heading, else the start of its first text; empty when it has neither. */
+  title: string;
+  /** Seconds it stays in auto mode; null = the default duration. */
+  displayDelayS: number | null;
+}
+
 /** Sommaire du quiz pour la console hôte (récap + carrousel d'avancement). */
 export interface GameOutlinePayload {
   /** Quiz being played — the host console links back to its editor. */
@@ -435,6 +469,8 @@ export interface GameOutlinePayload {
   title: string;
   description: string | null;
   questions: OutlineQuestion[];
+  /** The quiz's slides, so the outline shows every step. */
+  slides: OutlineSlide[];
 }
 
 export interface PersonalResult {
@@ -666,10 +702,7 @@ export interface ClientToServerEvents {
    * Before joining: whether the quiz plays sound, so the join form offers the
    * presence choice, and whether an account is needed to get in.
    */
-  'player:peek': (
-    p: { pin: string },
-    ack: (res: { hasSound: boolean; participantAccess: ParticipantAccess }) => void,
-  ) => void;
+  'player:peek': (p: { pin: string }, ack: (res: PlayerPeek) => void) => void;
   'player:join': (
     p: {
       pin: string;

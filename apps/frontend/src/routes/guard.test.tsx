@@ -20,14 +20,14 @@ describe('Garde de route', () => {
     configureAnonymousParticipants(true);
     mockApi([]);
     renderApp('/join', 'oidc');
-    expect(await screen.findByLabelText('Code PIN')).toBeInTheDocument();
+    expect(await screen.findByLabelText('PIN, 6 chiffres')).toBeInTheDocument();
     configureAnonymousParticipants(false);
   });
 
   it('keeps the join pages public in local mode', async () => {
     mockApi([]);
     renderApp('/join');
-    expect(await screen.findByLabelText('Code PIN')).toBeInTheDocument();
+    expect(await screen.findByLabelText('PIN, 6 chiffres')).toBeInTheDocument();
   });
 
   it('redirige vers /login si non connecté', async () => {

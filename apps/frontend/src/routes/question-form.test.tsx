@@ -57,6 +57,72 @@ describe('QuestionForm', () => {
     expect(payload.revealDelayS).toBeNull();
   });
 
+  it('a draft saves unfinished (no right answer), then says what is left to finish', async () => {
+    const fetchMock = mockApi([
+      { method: 'POST', path: '/quizzes/q1/questions', status: 201, body: {} },
+    ]);
+    const { onClose } = renderForm();
+    setMarkdownField('Énoncé', 'Capitale ?');
+    fireEvent.click(screen.getByText('Ajouter'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(lastPost(fetchMock).options.every((o: { isCorrect: boolean }) => !o.isCorrect)).toBe(
+      true,
+    );
+  });
+
+  it('true or false starts with True ticked; another type clears the ticks', () => {
+    mockApi([]);
+    renderForm();
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'true_false' } });
+    expect(screen.getAllByRole('radio')[0]).toBeChecked();
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'multiple_choice' } });
+    for (const box of screen.getAllByRole('checkbox', { name: 'Correcte' })) {
+      expect(box).not.toBeChecked();
+    }
+  });
+
+  it('a time out of bounds becomes the nearest bound, with a note', () => {
+    mockApi([]);
+    renderForm();
+    const time = screen.getByLabelText('Temps (s)');
+    fireEvent.change(time, { target: { value: '500' } });
+    fireEvent.blur(time);
+    expect(time).toHaveValue(120);
+    expect(screen.getByRole('note')).toHaveTextContent('120');
+  });
+
+  it('ordering: taking a place swaps it with the answer that held it', async () => {
+    const fetchMock = mockApi([
+      { method: 'POST', path: '/quizzes/q1/questions', status: 201, body: {} },
+    ]);
+    const { onClose } = renderForm();
+    setMarkdownField('Énoncé', 'Du plus petit au plus grand');
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'ordering' } });
+    const place = (i: number) =>
+      screen.getByLabelText(`Place de la réponse ${i} dans le bon ordre`);
+    expect(place(1)).toHaveValue('0');
+    fireEvent.change(place(1), { target: { value: '1' } });
+    expect(place(2)).toHaveValue('0');
+    fireEvent.click(screen.getByText('Ajouter'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(
+      lastPost(fetchMock).options.map((o: { correctOrderIndex: number }) => o.correctOrderIndex),
+    ).toEqual([1, 0]);
+  });
+
+  it('numeric: decimals are fine, and the target may wait in a draft', async () => {
+    const fetchMock = mockApi([
+      { method: 'POST', path: '/quizzes/q1/questions', status: 201, body: {} },
+    ]);
+    const { onClose } = renderForm();
+    setMarkdownField('Énoncé', 'Pi ?');
+    fireEvent.change(screen.getByLabelText('Type'), { target: { value: 'numeric' } });
+    expect(screen.getByLabelText('Valeur cible')).toHaveAttribute('step', 'any');
+    fireEvent.click(screen.getByText('Ajouter'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(lastPost(fetchMock)).not.toHaveProperty('numericValue');
+  });
+
   it("no text field offers an image to add: a question's picture goes in its Media section", () => {
     renderForm();
     for (const label of ['Énoncé', 'Explication de la réponse (affichée après la révélation)']) {
@@ -387,13 +453,17 @@ describe('QuestionForm — image choice', () => {
       ...over,
     }) as unknown as QuizDetailDtoQuestionsItem;
 
-  function renderEdit(question: QuizDetailDtoQuestionsItem, onClose = vi.fn()) {
+  function renderEdit(
+    question: QuizDetailDtoQuestionsItem,
+    onClose = vi.fn(),
+    quizStatus: 'draft' | 'ready' = 'draft',
+  ) {
     const queryClient = new QueryClient({
       defaultOptions: { queries: { retry: false }, mutations: { retry: false } },
     });
     render(
       <QueryClientProvider client={queryClient}>
-        <QuestionForm quizId="q1" question={question} onClose={onClose} />
+        <QuestionForm quizId="q1" question={question} quizStatus={quizStatus} onClose={onClose} />
       </QueryClientProvider>,
     );
     return onClose;
@@ -418,22 +488,84 @@ describe('QuestionForm — image choice', () => {
     expect(screen.queryByRole('button', { name: '3' })).toBeNull();
   });
 
-  it('refuses to save an answer without its alternative text, and says which', async () => {
+  it('a media credit typed in the form is saved with it, not before', async () => {
+    const fetchMock = mockApi([
+      { method: 'GET', path: `/media/${CAT}/meta`, body: { id: CAT, alt: null, credit: null } },
+      { method: 'PUT', path: `/media/${CAT}/credit`, body: { id: CAT, credit: 'Photo : Ana' } },
+      { method: 'PUT', path: '/questions/qi', body: {} },
+    ]);
+    const onClose = renderEdit(
+      pictureQuestion({
+        type: 'single_choice',
+        media: { visual: { kind: 'image', assetId: CAT }, audio: null },
+        options: [
+          {
+            id: 'o1',
+            orderIndex: 0,
+            text: 'Oui',
+            mediaId: null,
+            alt: null,
+            color: 'red',
+            shape: 'triangle',
+            isCorrect: true,
+            correctOrderIndex: null,
+          },
+          {
+            id: 'o2',
+            orderIndex: 1,
+            text: 'Non',
+            mediaId: null,
+            alt: null,
+            color: 'blue',
+            shape: 'diamond',
+            isCorrect: false,
+            correctOrderIndex: null,
+          },
+        ],
+      } as never),
+    );
+    const methodCalls = (method: string, path: string) =>
+      fetchMock.mock.calls.filter(
+        ([url, opts]) => String(url).includes(path) && (opts as RequestInit)?.method === method,
+      );
+    const credit = await screen.findByLabelText(/^Crédit/);
+    fireEvent.change(credit, { target: { value: 'Photo : Ana' } });
+    fireEvent.blur(credit);
+    expect(methodCalls('PUT', '/credit')).toHaveLength(0);
+    // The change alone makes the form savable.
+    fireEvent.click(screen.getByText('Enregistrer'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(methodCalls('PUT', '/credit')).toHaveLength(1);
+    expect(methodCalls('PUT', '/questions/qi')).toHaveLength(1);
+  });
+
+  it('says which picture misses its alt; a draft saves it anyway (UI system §1.5)', async () => {
     const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
     const onClose = renderEdit(pictureQuestion());
-    fireEvent.click(screen.getByLabelText('Texte alternatif de l’image 1'));
-    fireEvent.change(screen.getByLabelText('Texte alternatif de l’image 1'), {
-      target: { value: 'A cat ' },
-    });
-    fireEvent.click(screen.getByText('Enregistrer'));
-    expect(
-      await screen.findByText('Chaque réponse demande une image et son texte alternatif.'),
-    ).toBeInTheDocument();
+    // A saved question says at once what it still misses, under the picture.
     expect(screen.getByLabelText('Texte alternatif de l’image 2')).toHaveAttribute(
       'aria-invalid',
       'true',
     );
+    expect(screen.getByRole('button', { name: /1 point à finir/ })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Texte alternatif de l’image 1'), {
+      target: { value: 'A black cat' },
+    });
+    fireEvent.click(screen.getByText('Enregistrer'));
+    await waitFor(() => expect(onClose).toHaveBeenCalled());
+    expect(lastPut(fetchMock)).toMatchObject({ options: [{ alt: 'A black cat' }, { alt: '' }] });
+  });
+
+  it('in a published quiz, an unfinished question offers to go back to draft', async () => {
+    const fetchMock = mockApi([{ method: 'PUT', path: '/questions/qi', body: {} }]);
+    const onClose = renderEdit(pictureQuestion(), vi.fn(), 'ready');
+    fireEvent.change(screen.getByLabelText('Texte alternatif de l’image 1'), {
+      target: { value: 'A black cat' },
+    });
+    fireEvent.click(screen.getByText('Enregistrer'));
+    expect(await screen.findByText('Enregistrer cette question inachevée ?')).toBeInTheDocument();
     expect(lastPut(fetchMock)).toBeNull();
+    fireEvent.click(screen.getByText('Continuer à modifier'));
     expect(onClose).not.toHaveBeenCalled();
   });
 
@@ -445,7 +577,7 @@ describe('QuestionForm — image choice', () => {
     });
     fireEvent.click(screen.getByLabelText('Plusieurs bonnes réponses'));
     // Now checkboxes: tick the second picture too.
-    fireEvent.click(screen.getAllByRole('checkbox', { name: 'correcte' })[1]);
+    fireEvent.click(screen.getAllByRole('checkbox', { name: 'Correcte' })[1]);
     fireEvent.change(screen.getByLabelText('Barème'), { target: { value: 'partial' } });
     fireEvent.click(screen.getByText('Enregistrer'));
     await waitFor(() => expect(onClose).toHaveBeenCalled());

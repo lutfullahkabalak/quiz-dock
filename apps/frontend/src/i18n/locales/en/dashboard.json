@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} player",
   "playerCount_other": "{{count}} players",
   "resume": "Resume",
-  "stop": "Stop",
+  "stop": "Close the room…",
   "stopConfirmTitle": "Close the room?",
   "stopConfirmDescription": "The room will be closed for all connected participants.",
   "stopConfirmLabel": "Close the room",
@@ -18,7 +18,6 @@
   "empty": "No quizzes yet. Create one!",
   "questionCount_one": "{{count}} question",
   "questionCount_other": "{{count}} questions",
-  "edit": "Edit",
   "present": "Present",
   "running_one": "{{count}} room open",
   "running_other": "{{count}} rooms open",
@@ -63,7 +62,6 @@
   "seeAllSessions": "See all rooms",
   "allQuizzes": "All quizzes",
   "ownedBy": "by {{name}}",
-  "view": "View",
   "browseTemplates": "Browse the templates",
   "browseTemplatesHint": "Ready-made quizzes to create yours from — nothing is added to your bank until you ask.",
   "mediaAdmin": {
@@ -184,12 +182,14 @@
     "answer1": "Answer 1",
     "answer2": "Answer 2"
   },
-  "createFrom": "Create from this quiz",
+  "createFrom": "Create a quiz from this",
   "readOnly": "Read-only: shared by another host",
   "filterOwner": "Owner",
   "ownerAll": "Everyone",
   "ownerMe": "Me",
   "ownerNone": "No such owner",
   "statusCount_one": "{{count}} status",
-  "statusCount_other": "{{count}} statuses"
+  "statusCount_other": "{{count}} statuses",
+  "publishToPresent": "Publish to present",
+  "quizActions": "Actions for “{{title}}”"
 }

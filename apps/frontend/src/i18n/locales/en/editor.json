@@ -17,7 +17,8 @@
     "deleteQuiz": "Delete quiz",
     "preview": "Preview",
     "export": "Export",
-    "exportError": "Could not export the quiz."
+    "exportError": "Could not export the quiz.",
+    "more": "More"
   },
   "settings": {
     "title": "Settings",
@@ -65,7 +66,9 @@
     "sharedLabel": "Share with the instance’s other hosts",
     "sharedHelp": "They see it in their quizzes, read-only, and can create their own copy from it. Unchecked, it stays yours alone.",
     "sharedOn": "Shared",
-    "sharedOff": "Private"
+    "sharedOff": "Private",
+    "saving": "Saving…",
+    "saved": "Saved"
   },
   "broadcast": {
     "title": "Broadcast",
@@ -91,9 +94,6 @@
     "backToEditor": "Back to the editor",
     "loadError": "Could not load the reviews.",
     "noneForFilter": "No review with this rating.",
-    "previous": "Previous",
-    "next": "Next",
-    "pagePosition": "Page {{page}} / {{pages}}",
     "count_one": "{{count}} review",
     "count_other": "{{count}} reviews"
   },
@@ -110,7 +110,9 @@
     "formTitle": "Question",
     "empty": "No questions. Add one!",
     "collapseList": "Collapse the list",
-    "expandList": "Expand the list"
+    "expandList": "Expand the list",
+    "unfinished": "Unfinished",
+    "itemActions": "Actions for “{{label}}”"
   },
   "slides": {
     "formTitle": "Slide",
@@ -123,8 +125,8 @@
     "bodyPlaceholder": "Text to display…",
     "contrastLegend": "Text contrast",
     "tone": {
-      "light": "Light text on a darkened image",
-      "dark": "Dark text on a lightened image"
+      "light": "Light text",
+      "dark": "Dark text"
     },
     "outline": "Outline (halo, like subtitles)",
     "displayLegend": "Auto-advance (automatic mode)",
@@ -204,6 +206,13 @@
       "remaining": "How many questions are left, the next one included",
       "date": "Today’s date",
       "time": "The time"
+    },
+    "blockRemoved": "Block removed.",
+    "undo": "Undo",
+    "emptySkipped": "Empty — skipped when saved.",
+    "moveToDraft": {
+      "title": "Save this empty slide?",
+      "description": "This quiz is published, so it can be presented at any time: a slide must show something. Move the quiz back to draft to save this one as it is, or keep editing."
     }
   },
   "discardConfirm": {
@@ -262,8 +271,8 @@
     "optionPlaceholder": "Option {{index}}",
     "colorAriaLabel": "color {{index}}",
     "shapeAriaLabel": "shape {{index}}",
-    "orderAriaLabel": "rank {{index}}",
-    "correct": "correct",
+    "orderAriaLabel": "Place of answer {{index}} in the right order",
+    "correct": "Correct",
     "removeOption": "Remove option {{index}}",
     "addOption": "Add an option",
     "acceptedAnswersLegend": "Accepted answers",
@@ -300,11 +309,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "Partial credit: each right tick earns its share, each wrong tick cancels one.",
-      "ordering": "Partial credit: share of the elements at the right position.",
-      "text_input": "Tolerate typos: one edit up to 5 letters, two beyond (after case/accent normalisation).",
-      "numeric": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus.",
-      "image_choice": "Partial credit (several right pictures): each right tick earns its share, each wrong tick cancels one."
+      "multiple_choice": {
+        "standard": "All or nothing: every right answer ticked, and no wrong one.",
+        "partial": "Partial credit: each right tick earns its share, each wrong tick cancels one."
+      },
+      "ordering": {
+        "standard": "All or nothing: every item in its place.",
+        "partial": "Partial credit: share of the elements at the right position."
+      },
+      "text_input": {
+        "standard": "Exact match, once case and accents are set aside.",
+        "lenient": "Tolerate typos: one edit up to 5 letters, two beyond (after case/accent normalisation)."
+      },
+      "numeric": {
+        "standard": "Within the tolerance counts as right; points scale with speed.",
+        "closest": "Closest answer wins: scored at the reveal — exact (within tolerance) = full points, then 75 / 50 / 30 %, 10 % beyond; no speed bonus."
+      },
+      "image_choice": {
+        "standard": "All or nothing: every right picture ticked, and no wrong one.",
+        "partial": "Partial credit (several right pictures): each right tick earns its share, each wrong tick cancels one."
+      }
     },
     "removeOptionConfirm": {
       "title": "Remove this option?",
@@ -330,14 +354,38 @@
     "imageAltAria": "Alternative text of picture {{index}}",
     "imageAltPlaceholder": "What the picture shows, for whoever cannot see it",
     "imageAltRequired": "Describe the picture: it is the answer for whoever cannot see it.",
-    "imagesIncomplete": "Every answer needs a picture and its alternative text.",
     "imageCountConfirm": {
       "title": "Keep only 2 pictures?",
       "description": "The last two answers and their pictures will be removed.",
       "confirmLabel": "Remove"
     },
     "trueOption": "True",
-    "falseOption": "False"
+    "falseOption": "False",
+    "clampedTime": "Set to {{value}} s: a question lasts {{min}} to {{max}} s.",
+    "clampedReveal": "Set to {{value}} s: the pause lasts {{min}} to {{max}} s.",
+    "addOptionMax": "{{max}} answers max",
+    "addAnswerMax": "{{max}} answers max",
+    "moveToDraft": {
+      "title": "Save this unfinished question?",
+      "description": "This quiz is published, so it can be presented at any time: it only takes complete questions. Move it back to draft to save this one as it is, or keep editing.",
+      "confirmLabel": "Move to draft and save",
+      "cancelLabel": "Keep editing"
+    },
+    "optionActions": "Actions for option {{index}}",
+    "removeOptionShort": "Remove",
+    "ticksCleared": "The type changed: the right answers were cleared. Tick them again under the new rules.",
+    "explanationWritten": "Written",
+    "explanationEmpty": "Empty",
+    "numericLegend": "Answer",
+    "decimalsAllowed": "Decimals are fine: 3.14, 0.5…",
+    "timingSummary": "{{time}} s",
+    "timingSummaryStretched": "{{time}} s ({{total}} s with the media)",
+    "revealDelayAuto": "reveal delay auto",
+    "revealDelaySummary": "reveal after {{seconds}} s",
+    "place_ordinal_one": "{{count}}st",
+    "place_ordinal_two": "{{count}}nd",
+    "place_ordinal_few": "{{count}}rd",
+    "place_ordinal_other": "{{count}}th"
   },
   "preview": {
     "view": "Preview (player view)",
@@ -353,7 +401,14 @@
     "numericTarget": "Target: {{value}} (± {{tolerance}})",
     "credits": "Credits",
     "video": "Question video",
-    "sound": "Sound · {{seconds}} s"
+    "sound": "Sound · {{seconds}} s",
+    "steps": "Steps",
+    "backToEditor": "Back to the editor",
+    "device": "Device",
+    "projection": "Projection",
+    "phone": "Phone",
+    "showAnswer": "Show the answer",
+    "title": "Preview"
   },
   "media": {
     "alt": "question media",
@@ -498,12 +553,26 @@
   },
   "readOnly": {
     "notice": "{{owner}}'s quiz: you can read it, not change it.",
-    "createFrom": "Create from this quiz",
+    "createFrom": "Create a quiz from this",
     "props": {
       "orderShown": "Listed in the right order.",
       "seconds_one": "{{count}} second",
       "seconds_other": "{{count}} seconds",
       "muted": "muted"
-    }
+    },
+    "empty": "No questions yet."
+  },
+  "publishChecklist": {
+    "title_one": "1 step to finish before publishing",
+    "title_other": "{{count}} steps to finish before publishing",
+    "description": "A published quiz can be presented at any time, so every question must be complete. Drafts keep whatever you save.",
+    "untitled": "Question without text",
+    "open": "Open"
+  },
+  "formIssues": {
+    "errors_one": "1 error",
+    "errors_other": "{{count}} errors",
+    "toFinish_one": "1 thing to finish",
+    "toFinish_other": "{{count}} things to finish"
   }
 }

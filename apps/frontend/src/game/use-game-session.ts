@@ -14,6 +14,7 @@ import type {
   MediaPreloadPayload,
   MediaReadinessPayload,
   OutlineQuestion,
+  OutlineSlide,
   ParticipantAccess,
   PersonalResult,
   PlayerPresence,
@@ -95,6 +96,8 @@ export interface GameView {
   mode: GameMode;
   /** Auto-progression suspendue par l'hôte (chrono gelé en ANSWERING). */
   paused: boolean;
+  /** Drawn with no game (a preview): the clock stands at its full time, nothing plays. */
+  still: boolean;
   /** Restant figé (ms) quand le chrono est gelé, sinon `null`. */
   pausedRemainingMs: number | null;
   /** Deadline (ms epoch) de l'enchaînement auto en cours, sinon `null`. */
@@ -110,6 +113,8 @@ export interface GameView {
   joinBaseUrl: string | null;
   /** Sommaire des questions (console hôte uniquement). */
   outline: OutlineQuestion[];
+  /** The quiz's slides, placed among the questions of the outline (host console only). */
+  outlineSlides: OutlineSlide[];
   /** Media of the next question, to fetch ahead (projection and console only). */
   preload: MediaPreloadPayload | null;
   /** Last host command on the current media; `seq` changes with each one. */
@@ -148,7 +153,8 @@ export interface GameView {
   rateable: { quizId: string | null; feedbackEnabled: boolean } | null;
 }
 
-const INITIAL: GameView = {
+/** A view before anything arrived; the base of a preview drawn without a game. */
+export const INITIAL_VIEW: GameView = {
   status: 'connecting',
   error: null,
   state: null,
@@ -175,6 +181,7 @@ const INITIAL: GameView = {
   connectionLost: false,
   mode: 'manual',
   paused: false,
+  still: false,
   pausedRemainingMs: null,
   autoNextAt: null,
   autoNextMs: null,
@@ -183,6 +190,7 @@ const INITIAL: GameView = {
   quizDescription: null,
   joinBaseUrl: null,
   outline: [],
+  outlineSlides: [],
   preload: null,
   mediaControl: null,
   quizHasSound: null,
@@ -243,7 +251,7 @@ const sessionNotFound = () => i18next.t('live:errors.sessionNotFound');
  */
 export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boolean } = {}) {
   const follow = opts.follow === true;
-  const [view, setView] = useState<GameView>(INITIAL);
+  const [view, setView] = useState<GameView>(INITIAL_VIEW);
   const socketRef = useRef<GameSocket | null>(null);
 
   useEffect(() => {
@@ -324,6 +332,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         quizTitle: p.title,
         quizDescription: p.description,
         outline: p.questions,
+        outlineSlides: p.slides ?? [],
       });
     // Ajustement du chrono : on remplace les timings de la question courante (le
     // décompte est dérivé de `endsAt`), sans toucher au reste de son contenu.

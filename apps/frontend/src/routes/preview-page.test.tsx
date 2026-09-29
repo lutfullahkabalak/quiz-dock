@@ -1,4 +1,4 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, renderApp } from '../test/harness';
 
@@ -63,16 +63,29 @@ describe('PreviewPage', () => {
     vi.unstubAllGlobals();
   });
 
-  it('rend la question en vue participant (énoncé, options, temps, bonne réponse)', async () => {
+  it('draws the real projection, the answer on request, and the phone', async () => {
     mockApi([{ method: 'GET', path: '/quizzes/q1', body: detail() }]);
-    renderApp('/quizzes/q1/preview');
+    const { container } = renderApp('/quizzes/q1/preview');
 
-    expect(await screen.findByText('Capitale de la France ?')).toBeInTheDocument();
-    expect(screen.getByText('Paris')).toBeInTheDocument();
-    expect(screen.getByText('Lyon')).toBeInTheDocument();
-    expect(screen.getByText('⏱ 20 s')).toBeInTheDocument();
-    // l'option correcte est marquée
-    expect(screen.getByLabelText('bonne réponse')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Retour à l’éditeur/ })).toBeInTheDocument();
+    const projection = () => container.querySelector('.qd-screen') as HTMLElement;
+    expect(within(projection()).getByText('Capitale de la France ?')).toBeInTheDocument();
+    expect(within(projection()).getByText('Paris')).toBeInTheDocument();
+    expect(container.querySelector('[data-correct="true"]')).toBeNull();
+    // Its clock stands at the full time: not counting, not paused.
+    const timer = projection().querySelector('.qd-timer') as HTMLElement;
+    expect(timer.dataset.tone).toBe('ok');
+    expect(timer).toHaveTextContent('20');
+
+    // The answer, as the room sees it once revealed.
+    fireEvent.click(screen.getByRole('switch', { name: 'Montrer la réponse' }));
+    expect(projection().dataset.state).toBe('REVEAL');
+    expect(container.querySelector('.qd-answer[data-correct="true"]')).toHaveTextContent('Paris');
+
+    // A participant's phone.
+    fireEvent.click(screen.getByRole('button', { name: 'Téléphone' }));
+    expect(container.querySelector('.qd-screen')).toBeNull();
+    expect(screen.getAllByText('Paris').length).toBeGreaterThan(0);
   });
 
   it('propose le plein écran et déclenche requestFullscreen', async () => {
@@ -89,7 +102,7 @@ describe('PreviewPage', () => {
     mockApi([{ method: 'GET', path: '/quizzes/q1', body: detail() }]);
     renderApp('/quizzes/q1/preview');
 
-    const btn = await screen.findByText('Plein écran');
+    const btn = await screen.findByRole('button', { name: 'Plein écran' });
     fireEvent.click(btn);
     expect(requestFullscreen).toHaveBeenCalled();
   });
@@ -110,8 +123,16 @@ describe('PreviewPage', () => {
     ]);
     renderApp('/quizzes/q1/preview');
 
-    expect(await screen.findByText('Question une')).toBeInTheDocument();
+    const onStage = (name: string) => screen.queryByRole('heading', { name });
+    expect(await screen.findByRole('heading', { name: 'Question une' })).toBeInTheDocument();
     fireEvent.click(screen.getByText('Suivant'));
-    expect(screen.getByText('Question deux')).toBeInTheDocument();
+    expect(onStage('Question deux')).toBeInTheDocument();
+    // The keyboard walks too, and the list picks any step.
+    fireEvent.keyDown(window, { key: 'ArrowLeft' });
+    expect(onStage('Question une')).toBeInTheDocument();
+    fireEvent.click(
+      within(screen.getByRole('list', { name: 'Étapes' })).getByText('Question deux'),
+    );
+    expect(onStage('Question deux')).toBeInTheDocument();
   });
 });

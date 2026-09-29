@@ -15,11 +15,14 @@ import {
   verticalListSortingStrategy,
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import { useForm, useStore } from '@tanstack/react-form';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
+  AlertTriangle,
   Archive,
+  Check,
+  EllipsisVertical,
+  PackageCheck,
   ArrowDown,
   ArrowUp,
   Download,
@@ -34,7 +37,6 @@ import {
   Play,
   Plus,
   Radio,
-  Save,
   Share2,
   Sparkles,
   Trash2,
@@ -60,6 +62,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { QuizStatusBadge } from '@/components/quiz-status-badge';
+import { MenuItem, MenuSeparator } from '@/components/ui/menu-item';
+import { Popover } from '@/components/ui/popover';
+import { Modal } from '@/components/ui/modal';
+import { savedQuestionIssues } from '@/lib/question-issues';
+import { slideIssues } from '@quiz-dock/contracts';
+import { validationText } from '../api/error-text';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -70,14 +79,12 @@ import type { QuizDetailDto, UpdateQuizDto } from '../api/generated/model';
 import { quizItems, moveItem, slideLabel, type QuizItem } from '@/lib/quiz-items';
 import { useMediaQuery } from '@/lib/use-media-query';
 import { useUnsavedGuard } from '@/lib/use-unsaved-guard';
-import { clearDraft, loadDraft, saveDraft } from '@/lib/draft-store';
 import { languageName, licenseName } from '@/lib/quiz-terms';
 import { ChromiumNotice } from '@/components/chromium-notice';
-import { DraftNotice } from '@/components/draft-notice';
 import { Disclosure } from '@/components/ui/disclosure';
 import { Drawer } from '@/components/ui/drawer';
 import { QuestionForm } from './question-form';
-import { PublicationExport } from './publication-export';
+import { PublicationDialog } from './publication-export';
 import { QuizReadOnly } from './quiz-read-only';
 import { SlideForm } from './slide-form';
 import { StarRow } from './feedback-page';
@@ -136,8 +143,12 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   const removeSlide = useSlidesControllerRemove();
   const reorder = useSlidesControllerReorderItems();
   type Editing = string | 'new' | 'new-slide' | null;
-  const [editing, setEditing] = useState<Editing>(
-    () => quiz.questions[0]?.id ?? quiz.slides[0]?.id ?? 'new',
+  // Side by side (wide), the first step opens with the page; on a phone the form is a
+  // sheet, opened when a step is picked, never on arrival.
+  const [editing, setEditing] = useState<Editing>(() =>
+    window.matchMedia?.('(min-width: 1024px)').matches
+      ? (quiz.questions[0]?.id ?? quiz.slides[0]?.id ?? 'new')
+      : null,
   );
   // Unsaved edits in the open item form: switching item or closing asks first.
   const [formDirty, setFormDirty] = useState(false);
@@ -181,6 +192,10 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
     dialog: launchDialog,
   } = useLaunchSession();
   const [confirmDelete, setConfirmDelete] = useState(false);
+  // The ⋯ menu's two actions that ask first: their dialogs outlive the menu.
+  const [publishing, setPublishing] = useState(false);
+  const [sharing, setSharing] = useState(false);
+  const [shareNote, setShareNote] = useState<string | null>(null);
   // Deleting an item of the sequence asks first (a question takes its stats history with it).
   const [pendingDelete, setPendingDelete] = useState<QuizItem | null>(null);
   // Portable bundle (zip: quiz.json + media/) — the same file the Quiz Store shares.
@@ -212,52 +227,39 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   // A save that fails says so, next to the settings, instead of snapping back
   // in silence (#82).
   const [saveError, setSaveError] = useState<string | null>(null);
-  // Title/description draft kept in localStorage until saved or discarded.
-  const quizDraftKey = `quiz:${quiz.id}:settings`;
-  // Title and description only: the language is saved on its own (see `setLanguage`).
-  type QuizForm = { title: string; description: string };
-  const [quizDraft, setQuizDraft] = useState(() => loadDraft<QuizForm>(quizDraftKey));
-  const form = useForm({
-    defaultValues: {
-      title: quiz.title,
-      description: quiz.description ?? '',
-    },
-    onSubmit: async ({ value }) => {
-      setSaveError(null);
-      try {
-        await update.mutateAsync({
-          id: quiz.id,
-          data: {
-            title: value.title,
-            description: value.description || null,
-          },
-        });
-      } catch (e) {
-        // The draft stays: nothing typed is lost.
-        setSaveError(apiErrorText(e, t('settings.saveError')));
-        return;
-      }
+  // Title and description save themselves when their field is left, like the settings
+  // beside them: the quiz frame has one way of saving (UI system §3), and says so.
+  const [title, setTitle] = useState(quiz.title);
+  const [description, setDescription] = useState(quiz.description ?? '');
+  useEffect(() => setTitle(quiz.title), [quiz.title]);
+  useEffect(() => setDescription(quiz.description ?? ''), [quiz.description]);
+  const [frameSave, setFrameSave] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const saveFrame = async (data: UpdateQuizDto) => {
+    setSaveError(null);
+    setFrameSave('saving');
+    try {
+      await update.mutateAsync({ id: quiz.id, data });
       await invalidate();
-      clearDraft(quizDraftKey);
-      setQuizDraft(null);
-      form.reset(value); // valeurs enregistrées = nouvelle base « propre » → bouton inactif
-      setEditingDescription(false);
-    },
-  });
-  // A restored draft is applied once, on mount; changes are then written back on every edit.
-  useEffect(() => {
-    if (quizDraft) form.reset(quizDraft, { keepDefaultValues: true });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-  const quizValues = useStore(form.store, (s) => s.values);
-
-  // Le bouton « Enregistrer » n'est actif que si une modification est en cours.
-  const isDirty = useStore(form.store, (s) => s.isDirty);
-  useEffect(() => {
-    if (isDirty) saveDraft(quizDraftKey, quizValues);
-    else clearDraft(quizDraftKey);
-  }, [isDirty, quizValues, quizDraftKey]);
-  useUnsavedGuard(isDirty);
+      setFrameSave('saved');
+    } catch (e) {
+      // What was typed stays in the field: nothing is lost, the save can be tried again.
+      setFrameSave('idle');
+      setSaveError(apiErrorText(e, t('settings.saveError')));
+    }
+  };
+  const commitTitle = () => {
+    const next = title.trim();
+    // A quiz keeps a title: an emptied one comes back.
+    if (!next) setTitle(quiz.title);
+    else if (next !== quiz.title) void saveFrame({ title: next });
+  };
+  const commitDescription = () => {
+    setEditingDescription(false);
+    const next = description.trim();
+    if (next !== (quiz.description ?? '')) void saveFrame({ description: next || null });
+  };
+  // Typed but not yet left: leaving the page asks first.
+  useUnsavedGuard(title.trim() !== quiz.title || description.trim() !== (quiz.description ?? ''));
 
   const guarded = async (action: () => Promise<unknown>) => {
     setSaveError(null);
@@ -288,6 +290,12 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       await invalidate();
     });
 
+  // Called by a form saving an unfinished question in a published quiz; it says what fails.
+  const moveToDraft = async () => {
+    await transition.mutateAsync({ id: quiz.id, data: { status: 'draft' } });
+    await invalidate();
+  };
+
   const onPresent = () => launch(quiz.id, { fullCapture });
 
   const onDeleteQuiz = () =>
@@ -311,6 +319,35 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
 
   // Questions and slides share one sequence (#7): the server re-anchors slides from it.
   const items = quizItems(quiz);
+  // What each step still misses (a question its answers, a slide something to show):
+  // what a quiz must finish to be published.
+  const unfinished = items
+    .map((item, i) => ({
+      item,
+      number: questionNumber(items, i),
+      issues:
+        item.kind === 'question'
+          ? savedQuestionIssues(item.question)
+          : slideIssues({ ...item.slide, blocks: item.slide.blocks as unknown[] }),
+    }))
+    .filter((u) => u.issues.length > 0);
+  const [checklist, setChecklist] = useState(false);
+  // Publishing an unfinished quiz lists what is missing, each line opening its step.
+  const onPublish = () => (unfinished.length > 0 ? setChecklist(true) : void changeStatus('ready'));
+  // Arrived from the dashboard's « Publish to present »: done once, then the address is clean.
+  const { publish: publishOnArrival } = editorRoute.useSearch();
+  useEffect(() => {
+    if (!publishOnArrival) return;
+    if (quiz.status === 'draft') onPublish();
+    void navigate({
+      to: '/quizzes/$quizId',
+      params: { quizId: quiz.id },
+      search: {},
+      replace: true,
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [publishOnArrival]);
+
   const persistOrder = (next: QuizItem[]) =>
     guarded(async () => {
       await reorder.mutateAsync({
@@ -335,6 +372,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
   };
 
   const editingItem = items.find((it) => it.id === editing);
+  const editingIndex = items.findIndex((it) => it.id === editing);
   // What a slide's quiz variables read in the builder's preview (`{title}`, `{questions}`…).
   const slideQuizFields = quiz
     ? {
@@ -352,6 +390,9 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         key="new"
         quizId={quiz.id}
         mediaTailS={quiz.mediaTailS}
+        quizStatus={quiz.status}
+        position={{ index: quiz.questionCount, total: quiz.questionCount + 1 }}
+        onMoveToDraft={moveToDraft}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
       />
@@ -359,6 +400,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       <SlideForm
         key="new-slide"
         quizId={quiz.id}
+        quizStatus={quiz.status}
+        onMoveToDraft={moveToDraft}
         quizFields={slideQuizFields}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
@@ -370,6 +413,9 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         quizId={quiz.id}
         question={editingItem.question}
         mediaTailS={quiz.mediaTailS}
+        quizStatus={quiz.status}
+        position={{ index: editingItem.question.orderIndex, total: quiz.questionCount }}
+        onMoveToDraft={moveToDraft}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
       />
@@ -378,6 +424,8 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
         key={editingItem.id}
         quizId={quiz.id}
         slide={editingItem.slide}
+        quizStatus={quiz.status}
+        onMoveToDraft={moveToDraft}
         quizFields={slideQuizFields}
         onClose={closeForm}
         onDirtyChange={onFormDirty}
@@ -388,9 +436,6 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       ? t('questions.formTitle')
       : t('slides.formTitle');
 
-  const statusVariant =
-    quiz.status === 'ready' ? 'success' : quiz.status === 'archived' ? 'muted' : 'default';
-
   return (
     <div className="flex w-full flex-col gap-6">
       <ChromiumNotice />
@@ -398,330 +443,331 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       {/* L'en-tête occupe toute la largeur : les actions ne prennent plus la moitié
           de la ligne au formulaire, la description et ce qui l'accompagne ont enfin
           la page entière. */}
-      <header className="w-full">
-        <form
-          className="flex w-full min-w-0 flex-col gap-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            void form.handleSubmit();
-          }}
-        >
-          {/* Enregistrer suit l'édition : la barre colle en haut de la zone, calée
-              à droite, et « Enregistrer » occupe l'angle — on ne descend pas
-              chercher le bouton après avoir tapé. */}
-          {isDirty ? (
-            <div className="bg-background/95 sticky top-0 z-20 -mx-2 flex items-center justify-end gap-2 px-2 py-2 backdrop-blur">
-              <Button
-                type="button"
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  clearDraft(quizDraftKey);
-                  setQuizDraft(null);
-                  form.reset();
-                  setEditingDescription(false);
-                }}
-              >
-                {t('common:cancel')}
-              </Button>
-              <Button type="submit" size="sm" disabled={update.isPending}>
-                <Save className="size-4" />
-                {t('settings.save')}
-              </Button>
-            </div>
-          ) : null}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <form.Field name="title">
-              {(field) => (
-                <Input
-                  aria-label={t('settings.titleLabel')}
-                  className="hover:bg-accent/60 focus-visible:bg-accent/60 -mx-2 h-auto min-w-64 flex-1 rounded-md border-0 bg-transparent px-2 text-3xl font-bold tracking-tight shadow-none focus-visible:ring-0"
-                  value={field.state.value}
-                  onChange={(e) => field.handleChange(e.target.value)}
-                />
-              )}
-            </form.Field>
-            <div className="flex flex-wrap items-center gap-1">
-              {/* L'état du quiz se lit sur la même ligne que ce qu'on peut en faire. */}
-              <Badge variant={statusVariant} className="mr-2">
-                {t(`common:quizStatus.${quiz.status}`, { defaultValue: quiz.status })}
-              </Badge>
-              <div className="flex flex-wrap items-center gap-1">
-                <a
-                  className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
-                  href={`/quizzes/${quiz.id}/preview`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  <ExternalLink className="size-4" />
-                  {t('header.preview')}
-                </a>
-                <Link
-                  to="/quizzes/$quizId/history"
-                  params={{ quizId: quiz.id }}
-                  className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
-                >
-                  <History className="size-4" />
-                  {t('header.history')}
-                </Link>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  disabled={exporting}
-                  onClick={() => void onExport()}
-                >
-                  <Download className="size-4" />
-                  {t('header.export')}
-                </Button>
-                <PublicationExport quizId={quiz.id} />
-                {/* A demo catalogue is read-only. */}
-                {quiz.status === 'ready' && !getDemo() ? (
-                  <ShareAsTemplate quizId={quiz.id} />
-                ) : null}
-                {/* Archiver et supprimer sont des actions du quiz, pas des réglages :
-                elles sont avec les autres, en dernier et dans le ton qui convient. */}
-                {quiz.status !== 'archived' ? (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="sm"
-                    title={t('broadcast.archiveHelp')}
-                    disabled={transition.isPending}
-                    onClick={() => void changeStatus('archived')}
-                  >
-                    <Archive className="size-4" />
-                    {t('broadcast.archive')}
-                  </Button>
-                ) : null}
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  className="text-destructive hover:text-destructive"
-                  onClick={() => setConfirmDelete(true)}
-                >
-                  <Trash2 className="size-4" />
-                  {t('header.deleteQuiz')}
-                </Button>
-              </div>
-            </div>
-          </div>
-          <div className={cn('grid items-start gap-x-8 gap-y-4', PAGE_COLUMNS)}>
-            <form.Field name="description">
-              {(field) => (
-                <div className="flex flex-col gap-1">
-                  <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-                    {t('settings.descriptionLabel')}
-                  </span>
-                  {/* Du texte, rien d'autre : une description qui accepte du format
-                      accepte un média, donc un identifiant local dans l'export et dans
-                      le store. Elle se lit en paragraphe et s'ouvre au clic. */}
-                  {editingDescription || isDirty ? (
-                    <Textarea
-                      aria-label={t('settings.descriptionLabel')}
-                      rows={3}
-                      className="max-w-(--container-content-sm)"
-                      placeholder={t('settings.descriptionPlaceholder')}
-                      value={field.state.value}
-                      onChange={(e) => field.handleChange(e.target.value)}
-                    />
-                  ) : (
-                    <button
-                      type="button"
-                      className="text-muted-foreground hover:bg-accent/60 -mx-2 min-h-20 max-w-(--container-content-sm) rounded-md px-2 py-1 text-left text-sm whitespace-pre-line"
-                      onClick={() => setEditingDescription(true)}
-                    >
-                      {field.state.value || (
-                        <span className="italic">{t('settings.descriptionPlaceholder')}</span>
-                      )}
-                    </button>
-                  )}
-                </div>
-              )}
-            </form.Field>
-            {/* À droite de la description, les réglages du quiz dans une carte : les avis
-                en clair sur une rangée, le son replié sur la suivante. */}
-            <Section className="bg-muted/30 min-w-0 rounded-lg border px-3 py-2">
-              <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-                <label className="flex items-center gap-2 text-sm" title={t('feedback.enableHelp')}>
-                  <Switch
-                    checked={quiz.feedbackEnabled}
-                    disabled={update.isPending}
-                    onCheckedChange={(checked) => void setFeedbackEnabled(checked)}
-                    aria-label={t('feedback.enableLabel')}
-                  />
-                  <span className="font-medium">{t('feedback.enableLabel')}</span>
-                </label>
-                <FeedbackSection quizId={quiz.id} />
-              </div>
-              <Disclosure
-                flush
-                className="-mx-3 border-t px-3 pt-1"
-                title={t('settings.soundLegend')}
-                value={t('settings.soundSummary', {
-                  lufs: String(quiz.loudnessTargetLufs).replace('-', '−'),
-                  target: t(`settings.audioTarget.${quiz.audioTarget}`),
-                  tail: quiz.mediaTailS,
-                })}
-              >
-                {/* Ouvert, les trois réglages se lisent sur une ligne. */}
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                  <MediaTailField
-                    value={quiz.mediaTailS}
-                    disabled={update.isPending}
-                    onSave={(mediaTailS) => void setMediaTailS(mediaTailS)}
-                  />
-                  <label
-                    className="flex items-center gap-2 text-sm"
-                    title={t('settings.loudnessHelp')}
-                  >
-                    <span className="font-medium">{t('settings.loudnessLabel')}</span>
-                    <Select
-                      className="h-8 w-auto"
-                      value={String(quiz.loudnessTargetLufs)}
-                      disabled={update.isPending}
-                      onChange={(e) => void setLoudness(Number(e.target.value) as LoudnessTarget)}
-                    >
-                      {LOUDNESS_TARGETS.map((lufs) => (
-                        <option key={lufs} value={lufs}>
-                          {t(`settings.loudness.${-lufs}`)}
-                        </option>
-                      ))}
-                    </Select>
-                  </label>
-                  <label
-                    className="flex flex-wrap items-center gap-2 text-sm"
-                    title={t('settings.audioTargetHelp')}
-                  >
-                    <span className="font-medium">{t('settings.audioTargetLabel')}</span>
-                    <Select
-                      className="h-8 w-auto"
-                      value={quiz.audioTarget}
-                      disabled={update.isPending}
-                      onChange={(e) => void setAudioTarget(e.target.value as AudioTarget)}
-                    >
-                      {AUDIO_TARGETS.map((target) => (
-                        <option key={target} value={target}>
-                          {t(`settings.audioTarget.${target}`)}
-                        </option>
-                      ))}
-                    </Select>
-                  </label>
-                </div>
-              </Disclosure>
-              {/* The terms the quiz is shared under: required before sharing it as a template. */}
-              <Disclosure
-                flush
-                className="-mx-3 border-t px-3 pt-1"
-                title={t('settings.sharingLegend')}
-                value={[
-                  quiz.shared ? t('settings.sharedOn') : t('settings.sharedOff'),
-                  languageName(quiz.language, i18n.language),
-                  quiz.license
-                    ? t('settings.sharingSummary', {
-                        license: licenseName(quiz.license),
-                        count: quiz.tags.length,
-                      })
-                    : t('settings.noLicense'),
-                ].join(' · ')}
-              >
-                {/* Private by default: the other hosts see nothing of it until it is shared. */}
-                <CheckboxField
-                  className="mb-2"
-                  checked={quiz.shared}
-                  disabled={update.isPending}
-                  onChange={(shared) => void setShared(shared)}
-                  label={t('settings.sharedLabel')}
-                  hint={t('settings.sharedHelp')}
-                />
-                <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
-                  <label
-                    className="flex items-center gap-2 text-sm"
-                    title={t('settings.languageHelp')}
-                  >
-                    <span className="font-medium">{t('settings.languageLabel')}</span>
-                    <Select
-                      className="h-8 w-auto"
-                      value={quiz.language}
-                      disabled={update.isPending}
-                      onChange={(e) => void setLanguage(e.target.value)}
-                    >
-                      {languageOptions(quiz.language, i18n.language).map(({ code, name }) => (
-                        <option key={code} value={code}>
-                          {name}
-                        </option>
-                      ))}
-                    </Select>
-                  </label>
-                  <label
-                    className="flex items-center gap-2 text-sm"
-                    title={t('settings.licenseHelp')}
-                  >
-                    <span className="font-medium">{t('settings.licenseLabel')}</span>
-                    <Select
-                      className="h-8 w-auto"
-                      value={quiz.license ?? ''}
-                      disabled={update.isPending}
-                      onChange={(e) => {
-                        const value = e.target.value;
-                        if (value === '' || isQuizLicense(value)) void setLicense(value || null);
-                      }}
-                    >
-                      <option value="">{t('settings.noLicense')}</option>
-                      {QUIZ_LICENSES.map((license) => (
-                        <option key={license} value={license}>
-                          {t(`settings.license.${LICENSE_KEYS[license]}`)}
-                        </option>
-                      ))}
-                      {/* An imported quiz may carry a licence no longer offered: shown, not lost. */}
-                      {quiz.license && !isQuizLicense(quiz.license) ? (
-                        <option value={quiz.license} disabled>
-                          {quiz.license}
-                        </option>
-                      ) : null}
-                    </Select>
-                  </label>
-                  <TagsField
-                    value={quiz.tags}
-                    disabled={update.isPending}
-                    onSave={(tags) => void setTags(tags)}
-                  />
-                </div>
-              </Disclosure>
-            </Section>
-          </div>
-          {/* Où en est le quiz, et l'action qui suit : toute la largeur, sous la
-              description et les réglages — l'accès live s'affiche ici pendant une session. */}
-          <StatusBar
-            quiz={quiz}
-            presenting={presenting}
-            presentError={presentError ?? exportError}
-            fullCapture={fullCapture}
-            onFullCapture={setFullCapture}
-            onPublish={() => void changeStatus('ready')}
-            onPresent={() => void onPresent()}
-            onBackToDraft={() => void changeStatus('draft')}
-            onRestore={() => void changeStatus('draft')}
-            busy={transition.isPending}
-          />
-          {launchDialog}
-          {saveError ? (
-            <p className="text-destructive text-sm" role="alert">
-              {saveError}
-            </p>
-          ) : null}
-          {quizDraft && isDirty ? (
-            <DraftNotice
-              onDiscard={() => {
-                clearDraft(quizDraftKey);
-                setQuizDraft(null);
-                form.reset();
-                setEditingDescription(false);
+      <header className="flex w-full min-w-0 flex-col gap-3">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex min-w-64 flex-1 items-center gap-3">
+            <Input
+              aria-label={t('settings.titleLabel')}
+              className="hover:bg-accent/60 focus-visible:bg-accent/60 -mx-2 h-auto min-w-0 flex-1 rounded-md border-0 bg-transparent px-2 text-3xl font-bold tracking-tight shadow-none focus-visible:ring-0"
+              value={title}
+              onChange={(e) => {
+                setTitle(e.target.value);
+                setFrameSave('idle');
+              }}
+              onBlur={commitTitle}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.currentTarget.blur();
               }}
             />
-          ) : null}
-        </form>
+            <FrameSaveState state={frameSave} />
+          </div>
+          <div className="flex flex-wrap items-center gap-1">
+            {/* L'état du quiz se lit sur la même ligne que ce qu'on peut en faire. */}
+            <QuizStatusBadge status={quiz.status} className="mr-2" />
+            <a
+              className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
+              href={`/quizzes/${quiz.id}/preview`}
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              <ExternalLink className="size-4" />
+              {t('header.preview')}
+            </a>
+            {/* The rest of what can be done with the quiz, the destructive last. */}
+            <Popover
+              align="end"
+              trigger={({ open, toggle }) => (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-expanded={open}
+                  onClick={toggle}
+                >
+                  <EllipsisVertical className="size-4" />
+                  {t('header.more')}
+                </Button>
+              )}
+            >
+              {(close) => (
+                <div className="flex min-w-56 flex-col">
+                  <MenuItem
+                    onClick={() => {
+                      close();
+                      void navigate({
+                        to: '/quizzes/$quizId/history',
+                        params: { quizId: quiz.id },
+                      });
+                    }}
+                  >
+                    <History className="size-4" />
+                    {t('header.history')}
+                  </MenuItem>
+                  <MenuItem
+                    disabled={exporting}
+                    onClick={() => {
+                      close();
+                      void onExport();
+                    }}
+                  >
+                    <Download className="size-4" />
+                    {t('header.export')}
+                  </MenuItem>
+                  <MenuItem
+                    onClick={() => {
+                      close();
+                      setPublishing(true);
+                    }}
+                  >
+                    <PackageCheck className="size-4" />
+                    {t('publication.open')}
+                  </MenuItem>
+                  {/* A demo catalogue is read-only. */}
+                  {quiz.status === 'ready' && !getDemo() ? (
+                    <MenuItem
+                      onClick={() => {
+                        close();
+                        setSharing(true);
+                      }}
+                    >
+                      <Share2 className="size-4" />
+                      {t('store:share')}
+                    </MenuItem>
+                  ) : null}
+                  {quiz.status !== 'archived' ? (
+                    <MenuItem
+                      disabled={transition.isPending}
+                      onClick={() => {
+                        close();
+                        void changeStatus('archived');
+                      }}
+                    >
+                      <Archive className="size-4" />
+                      {t('broadcast.archive')}
+                    </MenuItem>
+                  ) : null}
+                  <MenuSeparator />
+                  <MenuItem
+                    destructive
+                    onClick={() => {
+                      close();
+                      setConfirmDelete(true);
+                    }}
+                  >
+                    <Trash2 className="size-4" />
+                    {t('header.deleteQuiz')}
+                  </MenuItem>
+                </div>
+              )}
+            </Popover>
+          </div>
+        </div>
+        {shareNote ? <p className="text-muted-foreground text-sm">{shareNote}</p> : null}
+        <div className={cn('grid items-start gap-x-8 gap-y-4', PAGE_COLUMNS)}>
+          <div className="flex flex-col gap-1">
+            <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+              {t('settings.descriptionLabel')}
+            </span>
+            {/* Du texte, rien d'autre : une description qui accepte du format
+                  accepte un média, donc un identifiant local dans l'export et dans
+                  le store. Elle se lit en paragraphe et s'ouvre au clic. */}
+            {editingDescription ? (
+              <Textarea
+                aria-label={t('settings.descriptionLabel')}
+                rows={3}
+                autoFocus
+                className="max-w-(--container-content-sm)"
+                placeholder={t('settings.descriptionPlaceholder')}
+                value={description}
+                onChange={(e) => {
+                  setDescription(e.target.value);
+                  setFrameSave('idle');
+                }}
+                onBlur={commitDescription}
+              />
+            ) : (
+              <button
+                type="button"
+                className="text-muted-foreground hover:bg-accent/60 -mx-2 min-h-20 max-w-(--container-content-sm) rounded-md px-2 py-1 text-left text-sm whitespace-pre-line"
+                onClick={() => setEditingDescription(true)}
+              >
+                {description || (
+                  <span className="italic">{t('settings.descriptionPlaceholder')}</span>
+                )}
+              </button>
+            )}
+          </div>
+          {/* À droite de la description, les réglages du quiz dans une carte : les avis
+                en clair sur une rangée, le son replié sur la suivante. */}
+          <Section className="bg-muted/30 min-w-0 rounded-lg border px-3 py-2">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <label className="flex items-center gap-2 text-sm" title={t('feedback.enableHelp')}>
+                <Switch
+                  checked={quiz.feedbackEnabled}
+                  disabled={update.isPending}
+                  onCheckedChange={(checked) => void setFeedbackEnabled(checked)}
+                  aria-label={t('feedback.enableLabel')}
+                />
+                <span className="font-medium">{t('feedback.enableLabel')}</span>
+              </label>
+              <FeedbackSection quizId={quiz.id} />
+            </div>
+            <Disclosure
+              flush
+              className="-mx-3 border-t px-3 pt-1"
+              title={t('settings.soundLegend')}
+              value={t('settings.soundSummary', {
+                lufs: String(quiz.loudnessTargetLufs).replace('-', '−'),
+                target: t(`settings.audioTarget.${quiz.audioTarget}`),
+                tail: quiz.mediaTailS,
+              })}
+            >
+              {/* Ouvert, les trois réglages se lisent sur une ligne. */}
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <MediaTailField
+                  value={quiz.mediaTailS}
+                  disabled={update.isPending}
+                  onSave={(mediaTailS) => void setMediaTailS(mediaTailS)}
+                />
+                <label
+                  className="flex items-center gap-2 text-sm"
+                  title={t('settings.loudnessHelp')}
+                >
+                  <span className="font-medium">{t('settings.loudnessLabel')}</span>
+                  <Select
+                    className="h-8 w-auto"
+                    value={String(quiz.loudnessTargetLufs)}
+                    disabled={update.isPending}
+                    onChange={(e) => void setLoudness(Number(e.target.value) as LoudnessTarget)}
+                  >
+                    {LOUDNESS_TARGETS.map((lufs) => (
+                      <option key={lufs} value={lufs}>
+                        {t(`settings.loudness.${-lufs}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label
+                  className="flex flex-wrap items-center gap-2 text-sm"
+                  title={t('settings.audioTargetHelp')}
+                >
+                  <span className="font-medium">{t('settings.audioTargetLabel')}</span>
+                  <Select
+                    className="h-8 w-auto"
+                    value={quiz.audioTarget}
+                    disabled={update.isPending}
+                    onChange={(e) => void setAudioTarget(e.target.value as AudioTarget)}
+                  >
+                    {AUDIO_TARGETS.map((target) => (
+                      <option key={target} value={target}>
+                        {t(`settings.audioTarget.${target}`)}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+              </div>
+            </Disclosure>
+            {/* The terms the quiz is shared under: required before sharing it as a template. */}
+            <Disclosure
+              flush
+              className="-mx-3 border-t px-3 pt-1"
+              title={t('settings.sharingLegend')}
+              value={[
+                quiz.shared ? t('settings.sharedOn') : t('settings.sharedOff'),
+                languageName(quiz.language, i18n.language),
+                quiz.license
+                  ? t('settings.sharingSummary', {
+                      license: licenseName(quiz.license),
+                      count: quiz.tags.length,
+                    })
+                  : t('settings.noLicense'),
+              ].join(' · ')}
+            >
+              {/* Private by default: the other hosts see nothing of it until it is shared. */}
+              <CheckboxField
+                className="mb-2"
+                checked={quiz.shared}
+                disabled={update.isPending}
+                onChange={(shared) => void setShared(shared)}
+                label={t('settings.sharedLabel')}
+                hint={t('settings.sharedHelp')}
+              />
+              <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+                <label
+                  className="flex items-center gap-2 text-sm"
+                  title={t('settings.languageHelp')}
+                >
+                  <span className="font-medium">{t('settings.languageLabel')}</span>
+                  <Select
+                    className="h-8 w-auto"
+                    value={quiz.language}
+                    disabled={update.isPending}
+                    onChange={(e) => void setLanguage(e.target.value)}
+                  >
+                    {languageOptions(quiz.language, i18n.language).map(({ code, name }) => (
+                      <option key={code} value={code}>
+                        {name}
+                      </option>
+                    ))}
+                  </Select>
+                </label>
+                <label
+                  className="flex items-center gap-2 text-sm"
+                  title={t('settings.licenseHelp')}
+                >
+                  <span className="font-medium">{t('settings.licenseLabel')}</span>
+                  <Select
+                    className="h-8 w-auto"
+                    value={quiz.license ?? ''}
+                    disabled={update.isPending}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === '' || isQuizLicense(value)) void setLicense(value || null);
+                    }}
+                  >
+                    <option value="">{t('settings.noLicense')}</option>
+                    {QUIZ_LICENSES.map((license) => (
+                      <option key={license} value={license}>
+                        {t(`settings.license.${LICENSE_KEYS[license]}`)}
+                      </option>
+                    ))}
+                    {/* An imported quiz may carry a licence no longer offered: shown, not lost. */}
+                    {quiz.license && !isQuizLicense(quiz.license) ? (
+                      <option value={quiz.license} disabled>
+                        {quiz.license}
+                      </option>
+                    ) : null}
+                  </Select>
+                </label>
+                <TagsField
+                  value={quiz.tags}
+                  disabled={update.isPending}
+                  onSave={(tags) => void setTags(tags)}
+                />
+              </div>
+            </Disclosure>
+          </Section>
+        </div>
+        {/* Où en est le quiz, et l'action qui suit : toute la largeur, sous la
+              description et les réglages — l'accès live s'affiche ici pendant une session. */}
+        <StatusBar
+          quiz={quiz}
+          presenting={presenting}
+          presentError={presentError ?? exportError}
+          fullCapture={fullCapture}
+          onFullCapture={setFullCapture}
+          onPublish={onPublish}
+          onPresent={() => void onPresent()}
+          onBackToDraft={() => void changeStatus('draft')}
+          onRestore={() => void changeStatus('draft')}
+          busy={transition.isPending}
+        />
+        {launchDialog}
+        {saveError ? (
+          <p className="text-destructive text-sm" role="alert">
+            {saveError}
+          </p>
+        ) : null}
       </header>
       {/* Master / detail: the sequence on the left, the open item on the right (a bottom
           sheet below `lg`). */}
@@ -769,6 +815,26 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                 );
               })}
             </ul>
+            {/* Folded, the open step keeps its actions. */}
+            {editingItem ? (
+              <ItemMenu
+                label={t('questions.itemActions', {
+                  label:
+                    editingItem.kind === 'slide'
+                      ? slideLabel(editingItem.slide)
+                      : editingItem.question.prompt,
+                })}
+                deleteLabel={
+                  editingItem.kind === 'slide'
+                    ? t('slides.deleteSlide')
+                    : t('questions.deleteQuestion')
+                }
+                canMoveUp={editingIndex > 0 && !reorder.isPending}
+                canMoveDown={editingIndex < items.length - 1 && !reorder.isPending}
+                onMove={(d) => move(editingIndex, d)}
+                onDelete={() => setPendingDelete(editingItem)}
+              />
+            ) : null}
             <Button
               type="button"
               variant="outline"
@@ -827,6 +893,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                       {(handle) => (
                         <ItemRow
                           item={item}
+                          unfinished={unfinished.some((u) => u.item.id === item.id)}
                           active={editing === item.id}
                           number={questionNumber(items, i)}
                           handle={handle}
@@ -931,6 +998,30 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           setFormDirty(false);
           setEditing(next);
         }}
+      />
+      <PublishChecklist
+        open={checklist}
+        steps={unfinished.map((u) => ({
+          id: u.item.id,
+          number: u.number,
+          label: u.item.kind === 'question' ? u.item.question.prompt : slideLabel(u.item.slide),
+          slide: u.item.kind === 'slide',
+          texts: [...new Set(u.issues.map((i) => validationText(i.code)))],
+        }))}
+        onOpenStep={(id) => {
+          setChecklist(false);
+          requestEditing(id);
+        }}
+        onClose={() => setChecklist(false)}
+      />
+      {publishing ? (
+        <PublicationDialog quizId={quiz.id} onClose={() => setPublishing(false)} />
+      ) : null}
+      <ShareTemplateDialog
+        quizId={quiz.id}
+        open={sharing}
+        onClose={() => setSharing(false)}
+        onDone={setShareNote}
       />
       <ConfirmDialog
         open={confirmDelete}
@@ -1048,6 +1139,7 @@ function SortableRow({ id, children }: { id: string; children: (handle: ReactNod
  */
 function ItemRow({
   item,
+  unfinished,
   number,
   handle,
   active,
@@ -1058,6 +1150,8 @@ function ItemRow({
   onDelete,
 }: {
   item: QuizItem;
+  /** Misses something to be played: publishing waits for it. */
+  unfinished?: boolean;
   number: number | null;
   handle?: ReactNode;
   /** Currently open in the editing pane. */
@@ -1079,8 +1173,6 @@ function ItemRow({
           : `${item.slide.displayDelayS ?? DEFAULT_SLIDE_SECONDS} s`
       }`
     : `${t(`questionType.${item.question.type}`, { defaultValue: item.question.type })} · ${item.question.timeLimitS} s`;
-  const hover =
-    'opacity-0 transition-opacity group-hover:opacity-100 group-focus-within:opacity-100';
   return (
     <div
       className={cn(
@@ -1088,7 +1180,8 @@ function ItemRow({
         active ? 'bg-primary/5 border-primary/30' : 'hover:bg-accent/60',
       )}
     >
-      <div className={cn('flex items-center pl-1', hover)}>{handle}</div>
+      {/* The open step shows how to move it; nothing appears on hover only. */}
+      {active ? <div className="flex items-center pl-1">{handle}</div> : null}
       <button
         type="button"
         aria-current={active ? 'true' : undefined}
@@ -1109,44 +1202,191 @@ function ItemRow({
           <Markdown profile="inline" className="line-clamp-2 block text-sm font-medium">
             {label}
           </Markdown>
-          <span className="text-muted-foreground mt-0.5 block truncate text-xs">{meta}</span>
+          <span className="text-muted-foreground mt-0.5 flex items-center gap-1 truncate text-xs">
+            {unfinished ? (
+              <span className="text-warning-text flex items-center gap-1 font-medium">
+                <AlertTriangle className="size-3.5" aria-hidden />
+                {t('questions.unfinished')} ·
+              </span>
+            ) : null}
+            {meta}
+          </span>
         </span>
       </button>
-      <div className={cn('flex items-center gap-0.5 pr-1', hover)}>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          aria-label={t('questions.moveUp')}
-          disabled={!canMoveUp}
-          onClick={() => onMove(-1)}
-        >
-          <ArrowUp className="size-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="size-7"
-          aria-label={t('questions.moveDown')}
-          disabled={!canMoveDown}
-          onClick={() => onMove(1)}
-        >
-          <ArrowDown className="size-3.5" />
-        </Button>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="hover:text-destructive size-7"
-          aria-label={isSlide ? t('slides.deleteSlide') : t('questions.deleteQuestion')}
-          onClick={onDelete}
-        >
-          <Trash2 className="size-3.5" />
-        </Button>
+      <div className="flex items-center gap-0.5 pr-1">
+        {active ? (
+          <>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label={t('questions.moveUp')}
+              disabled={!canMoveUp}
+              onClick={() => onMove(-1)}
+            >
+              <ArrowUp className="size-3.5" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon"
+              className="size-7"
+              aria-label={t('questions.moveDown')}
+              disabled={!canMoveDown}
+              onClick={() => onMove(1)}
+            >
+              <ArrowDown className="size-3.5" />
+            </Button>
+          </>
+        ) : null}
+        <ItemMenu
+          label={t('questions.itemActions', { label: label || meta })}
+          deleteLabel={isSlide ? t('slides.deleteSlide') : t('questions.deleteQuestion')}
+          canMoveUp={canMoveUp}
+          canMoveDown={canMoveDown}
+          onMove={onMove}
+          onDelete={onDelete}
+        />
       </div>
     </div>
+  );
+}
+
+/** A step's `⋯`: move it, or delete it (after a separator). */
+function ItemMenu({
+  label,
+  deleteLabel,
+  canMoveUp,
+  canMoveDown,
+  onMove,
+  onDelete,
+}: {
+  label: string;
+  deleteLabel: string;
+  canMoveUp: boolean;
+  canMoveDown: boolean;
+  onMove: (direction: -1 | 1) => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation('editor');
+  return (
+    <Popover
+      align="end"
+      trigger={({ open, toggle }) => (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="text-muted-foreground size-7"
+          aria-label={label}
+          aria-expanded={open}
+          onClick={toggle}
+        >
+          <EllipsisVertical className="size-4" />
+        </Button>
+      )}
+    >
+      {(close) => (
+        <div className="flex min-w-44 flex-col">
+          <MenuItem
+            disabled={!canMoveUp}
+            onClick={() => {
+              close();
+              onMove(-1);
+            }}
+          >
+            <ArrowUp className="size-4" />
+            {t('questions.moveUp')}
+          </MenuItem>
+          <MenuItem
+            disabled={!canMoveDown}
+            onClick={() => {
+              close();
+              onMove(1);
+            }}
+          >
+            <ArrowDown className="size-4" />
+            {t('questions.moveDown')}
+          </MenuItem>
+          <MenuSeparator />
+          <MenuItem
+            destructive
+            onClick={() => {
+              close();
+              onDelete();
+            }}
+          >
+            <Trash2 className="size-4" />
+            {deleteLabel}
+          </MenuItem>
+        </div>
+      )}
+    </Popover>
+  );
+}
+
+/**
+ * What a quiz misses to be published (UI system §1.5): each unfinished step with
+ * what it lacks, and a way straight to it.
+ */
+function PublishChecklist({
+  open,
+  steps,
+  onOpenStep,
+  onClose,
+}: {
+  open: boolean;
+  steps: { id: string; number: number | null; label: string; slide: boolean; texts: string[] }[];
+  onOpenStep: (id: string) => void;
+  onClose: () => void;
+}) {
+  const { t } = useTranslation(['editor', 'common']);
+  return (
+    <Modal
+      open={open}
+      onClose={onClose}
+      aria-labelledby="publish-checklist-title"
+      className="max-h-[calc(100dvh-2rem)] max-w-lg open:flex open:flex-col"
+    >
+      <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-6">
+        <h2 id="publish-checklist-title" className="text-lg font-semibold">
+          {t('publishChecklist.title', { count: steps.length })}
+        </h2>
+        <p className="text-muted-foreground text-sm">{t('publishChecklist.description')}</p>
+        <ul className="flex flex-col divide-y rounded-lg border">
+          {steps.map((step) => (
+            <li key={step.id} className="flex items-start gap-3 px-3 py-2">
+              <span className="bg-muted text-muted-foreground mt-0.5 flex size-6 shrink-0 items-center justify-center rounded-md text-xs font-semibold tabular-nums">
+                {step.slide ? (
+                  <LayoutTemplate className="size-4" aria-label={t('slides.kind')} />
+                ) : (
+                  step.number
+                )}
+              </span>
+              <div className="min-w-0 flex-1">
+                <Markdown profile="inline" className="line-clamp-1 block text-sm font-medium">
+                  {step.label || t('publishChecklist.untitled')}
+                </Markdown>
+                {step.texts.map((text) => (
+                  <p key={text} className="text-warning-text text-xs">
+                    {text}
+                  </p>
+                ))}
+              </div>
+              <Button type="button" size="sm" variant="outline" onClick={() => onOpenStep(step.id)}>
+                {t('publishChecklist.open')}
+              </Button>
+            </li>
+          ))}
+        </ul>
+        <div className="flex justify-end">
+          <Button type="button" variant="outline" onClick={onClose}>
+            {t('common:close')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 }
 
@@ -1322,53 +1562,58 @@ function StatusBar({
  * The confirmation says exactly that, because "share" is the word people read
  * as "give access to mine".
  */
-function ShareAsTemplate({ quizId }: { quizId: string }) {
+function ShareTemplateDialog({
+  quizId,
+  open,
+  onClose,
+  onDone,
+}: {
+  quizId: string;
+  open: boolean;
+  onClose: () => void;
+  /** What happened, said under the header (shared, or why not). */
+  onDone: (note: string) => void;
+}) {
   const { t } = useTranslation(['store', 'common']);
   const queryClient = useQueryClient();
   const share = useStoreControllerShare();
-  const [confirming, setConfirming] = useState(false);
-  const [note, setNote] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
   const onShare = async () => {
-    setConfirming(false);
-    setError(null);
+    onClose();
     try {
       const { data } = await share.mutateAsync({ data: { quizId } });
       await queryClient.invalidateQueries({ queryKey: getStoreControllerListQueryKey() });
-      setNote(t('shared', { n: data.revision }));
+      onDone(t('shared', { n: data.revision }));
     } catch (e) {
-      setError(apiErrorText(e, t('shareFailed')));
+      onDone(apiErrorText(e, t('shareFailed')));
     }
   };
-
   return (
-    <>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        disabled={share.isPending}
-        onClick={() => setConfirming(true)}
-      >
-        <Share2 className="size-4" />
-        {t('share')}
-      </Button>
-      {note ? <span className="text-muted-foreground text-sm">{note}</span> : null}
-      {error ? (
-        <span className="text-destructive text-sm" role="alert">
-          {error}
-        </span>
-      ) : null}
-      <ConfirmDialog
-        open={confirming}
-        title={t('shareConfirm.title')}
-        description={t('shareConfirm.description')}
-        confirmLabel={t('share')}
-        onCancel={() => setConfirming(false)}
-        onConfirm={() => void onShare()}
-      />
-    </>
+    <ConfirmDialog
+      open={open}
+      title={t('shareConfirm.title')}
+      description={t('shareConfirm.description')}
+      confirmLabel={t('share')}
+      onCancel={onClose}
+      onConfirm={() => void onShare()}
+    />
+  );
+}
+
+/** Where the quiz frame's own save is: saving, or saved (nothing shown before the first edit). */
+function FrameSaveState({ state }: { state: 'idle' | 'saving' | 'saved' }) {
+  const { t } = useTranslation('editor');
+  if (state === 'idle') return null;
+  return (
+    <span className="text-muted-foreground flex shrink-0 items-center gap-1 text-xs" role="status">
+      {state === 'saving' ? (
+        t('settings.saving')
+      ) : (
+        <>
+          <Check className="text-success size-3.5" aria-hidden />
+          {t('settings.saved')}
+        </>
+      )}
+    </span>
   );
 }
 

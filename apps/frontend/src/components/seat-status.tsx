@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Armchair, DoorOpen, RefreshCw } from 'lucide-react';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -8,8 +8,8 @@ import { useNavigate } from '@tanstack/react-router';
 import { Select } from '@/components/ui/select';
 import {
   getHostSeatControllerStateQueryKey,
+  hostSeatControllerRelease,
   useHostSeatControllerClaim,
-  useHostSeatControllerRelease,
   useHostSeatControllerState,
 } from '../api/generated/auth/auth';
 import { SEAT_EXPIRY_OPTIONS } from '../auth/seat-options';
@@ -17,6 +17,53 @@ import { getDemo } from '../config';
 
 /** Re-read the seat this often; the server is the truth (operator release, takeover…). */
 const REFRESH_MS = 60_000;
+
+/**
+ * Releasing the seat is reversible for a few seconds (UI system §1.1: Undo rather
+ * than a confirmation): the release is sent once they pass. Kept outside any
+ * component, so closing the menu does not lose it; the top bar shows it meanwhile.
+ */
+const RELEASE_DELAY_MS = 8_000;
+let pendingRelease: ReturnType<typeof setTimeout> | null = null;
+const releaseListeners = new Set<() => void>();
+const announce = () => releaseListeners.forEach((listener) => listener());
+const subscribeRelease = (listener: () => void) => {
+  releaseListeners.add(listener);
+  return () => void releaseListeners.delete(listener);
+};
+const usePendingRelease = () =>
+  useSyncExternalStore(subscribeRelease, () => pendingRelease !== null);
+function scheduleRelease(run: () => void) {
+  if (pendingRelease) return;
+  pendingRelease = setTimeout(() => {
+    pendingRelease = null;
+    announce();
+    run();
+  }, RELEASE_DELAY_MS);
+  announce();
+}
+function cancelRelease() {
+  if (!pendingRelease) return;
+  clearTimeout(pendingRelease);
+  pendingRelease = null;
+  announce();
+}
+
+/** "Seat released · Undo", while the release waits. */
+function ReleaseUndo() {
+  const { t } = useTranslation('auth');
+  return (
+    <span
+      role="status"
+      className="bg-foreground text-background flex items-center gap-2 rounded-md px-2 py-1 text-xs"
+    >
+      {t('seat.released')}
+      <button type="button" className="font-semibold underline" onClick={cancelRelease}>
+        {t('seat.undo')}
+      </button>
+    </span>
+  );
+}
 
 /**
  * Local-mode host seat as seen by its holder. Nothing is stored client-side —
@@ -82,6 +129,8 @@ function useSeat(user: string) {
 export function SeatCountdown({ user }: { user: string }) {
   const { t } = useTranslation('auth');
   const seat = useSeat(user);
+  const releasing = usePendingRelease();
+  if (releasing) return <ReleaseUndo />;
   if (!seat?.expires) return null;
   return (
     <Badge
@@ -101,16 +150,18 @@ export function SeatMenuRow({ user }: { user: string }) {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const seat = useSeat(user);
-  const release = useHostSeatControllerRelease();
+  const releasing = usePendingRelease();
   const [forMinutes, setForMinutes] = useState<number>(SEAT_EXPIRY_OPTIONS[1]);
   // On a demo the shared account holds the seat for good: nothing to extend or give up.
   if (!seat || getDemo()) return null;
   const onRelease = () =>
-    release.mutate(undefined, {
-      onSuccess: () => {
-        void queryClient.invalidateQueries({ queryKey: getHostSeatControllerStateQueryKey() });
-        void navigate({ to: '/login' });
-      },
+    scheduleRelease(() => {
+      void hostSeatControllerRelease()
+        .then(() =>
+          queryClient.invalidateQueries({ queryKey: getHostSeatControllerStateQueryKey() }),
+        )
+        .then(() => navigate({ to: '/login' }))
+        .catch(() => undefined);
     });
   return (
     <div className="flex flex-col gap-2 text-sm">
@@ -149,18 +200,21 @@ export function SeatMenuRow({ user }: { user: string }) {
           {t('seat.extend')}
         </Button>
       </div>
-      <Button
-        type="button"
-        variant="ghost"
-        size="sm"
-        className="text-destructive hover:text-destructive h-7 justify-start gap-1 px-1 text-xs"
-        disabled={release.isPending}
-        onClick={onRelease}
-        title={t('seat.releaseHint')}
-      >
-        <DoorOpen className="size-3.5" />
-        {t('seat.release')}
-      </Button>
+      {releasing ? (
+        <ReleaseUndo />
+      ) : (
+        <Button
+          type="button"
+          variant="destructive-outline"
+          size="sm"
+          className="h-7 justify-start gap-1 px-2 text-xs"
+          onClick={onRelease}
+          title={t('seat.releaseHint')}
+        >
+          <DoorOpen className="size-3.5" />
+          {t('seat.release')}
+        </Button>
+      )}
     </div>
   );
 }

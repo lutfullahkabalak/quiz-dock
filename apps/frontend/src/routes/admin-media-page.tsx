@@ -13,7 +13,7 @@ import {
   Trash2,
   X,
 } from 'lucide-react';
-import { useEffect, useRef, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -51,6 +51,7 @@ import type {
 import { useRole } from '../auth/use-role';
 import { LoadFailed, Spinner } from '@/components/ui/loading';
 import { Modal } from '@/components/ui/modal';
+import { PageTitle } from '@/components/ui/page-title';
 
 const PAGE_SIZE = 25;
 /** The owner key of the instance's own media (#62). */
@@ -90,7 +91,7 @@ export function AdminMediaPage() {
   }
   return (
     <div className="content-lg flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">{t('mediaAdmin.title')}</h1>
+      <PageTitle>{t('mediaAdmin.title')}</PageTitle>
       <Overview />
       <Files />
     </div>
@@ -185,7 +186,7 @@ function Overview() {
           })}
         </p>
         {cleanup.guard ? (
-          <p className="flex items-start gap-1.5 text-sm text-amber-700 dark:text-amber-400">
+          <p className="text-warning-text flex items-start gap-1.5 text-sm">
             <AlertTriangle className="mt-0.5 size-4 shrink-0" />
             {t(`mediaAdmin.cleanup.guard.${cleanup.guard}`)}
           </p>
@@ -339,45 +340,43 @@ function Files() {
         <p className="text-muted-foreground text-sm">{t('mediaAdmin.instance.help')}</p>
       ) : null}
 
-      <div className="flex flex-wrap items-center gap-2">
-        <Select
-          className="w-36"
-          value={kind}
-          onChange={(e) => setKind(e.target.value)}
-          aria-label={t('mediaAdmin.files.kind')}
-        >
-          <option value="">{t('mediaAdmin.files.allKinds')}</option>
-          {(['image', 'video', 'audio'] as const).map((k) => (
-            <option key={k} value={k}>
-              {t(`mediaAdmin.kind.${k}`)}
-            </option>
-          ))}
-        </Select>
-        {scope === 'all' ? (
-          <Select
-            className="w-44"
-            value={ownerId}
-            onChange={(e) => setOwnerId(e.target.value)}
-            aria-label={t('mediaAdmin.files.owner')}
-          >
-            <option value="">{t('mediaAdmin.files.allOwners')}</option>
-            {owners.map((o) => (
-              <option key={o.ownerId} value={o.ownerId}>
-                {o.displayName}
+      <div className="flex flex-wrap items-end gap-2">
+        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+          {t('mediaAdmin.files.kind')}
+          <Select className="w-36" value={kind} onChange={(e) => setKind(e.target.value)}>
+            <option value="">{t('mediaAdmin.files.allKinds')}</option>
+            {(['image', 'video', 'audio'] as const).map((k) => (
+              <option key={k} value={k}>
+                {t(`mediaAdmin.kind.${k}`)}
               </option>
             ))}
           </Select>
+        </label>
+        {scope === 'all' ? (
+          <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+            {t('mediaAdmin.files.owner')}
+            <Select className="w-44" value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
+              <option value="">{t('mediaAdmin.files.allOwners')}</option>
+              {owners.map((o) => (
+                <option key={o.ownerId} value={o.ownerId}>
+                  {o.displayName}
+                </option>
+              ))}
+            </Select>
+          </label>
         ) : null}
-        <Select
-          className="w-44"
-          value={sort}
-          onChange={(e) => setSort(e.target.value as typeof sort)}
-          aria-label={t('mediaAdmin.files.sort')}
-        >
-          <option value="size">{t('mediaAdmin.files.bySize')}</option>
-          <option value="usage">{t('mediaAdmin.files.byUsage')}</option>
-          <option value="recent">{t('mediaAdmin.files.byDate')}</option>
-        </Select>
+        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+          {t('mediaAdmin.files.sort')}
+          <Select
+            className="w-44"
+            value={sort}
+            onChange={(e) => setSort(e.target.value as typeof sort)}
+          >
+            <option value="size">{t('mediaAdmin.files.bySize')}</option>
+            <option value="usage">{t('mediaAdmin.files.byUsage')}</option>
+            <option value="recent">{t('mediaAdmin.files.byDate')}</option>
+          </Select>
+        </label>
         <label className="flex items-center gap-1.5 text-sm">
           <input type="checkbox" checked={legacy} onChange={(e) => setLegacy(e.target.checked)} />
           {t('mediaAdmin.files.legacyOnly')}
@@ -439,6 +438,7 @@ function Files() {
           index={previewAt}
           onIndex={setPreviewAt}
           onClose={() => setPreviewAt(null)}
+          actions={actions(list.items[previewAt])}
         />
       ) : null}
 
@@ -528,11 +528,14 @@ function PreviewDialog({
   index,
   onIndex,
   onClose,
+  actions,
 }: {
   files: MediaFilesPageDtoItemsItem[];
   index: number;
   onIndex: (index: number) => void;
   onClose: () => void;
+  /** What can be done to the file shown, without going back to the list. */
+  actions?: ReactNode;
 }) {
   const { t, i18n } = useTranslation('dashboard');
   const file = files[index];
@@ -621,6 +624,7 @@ function PreviewDialog({
           >
             {t('mediaAdmin.preview.openFile')}
           </a>
+          {actions ? <div className="border-t pt-3">{actions}</div> : null}
           <div className="mt-auto flex items-center justify-between gap-2">
             <Button
               type="button"
@@ -826,7 +830,9 @@ function DeleteFileDialog({
       description={`${file.name ?? file.mime} · ${formatBytes(file.sizeBytes, i18n.language)}`}
       confirmLabel={t('mediaAdmin.delete.confirm')}
       onCancel={onClose}
-      onConfirm={() => void (info?.playing ? undefined : confirm())}
+      // Greyed while a room plays the file, with the reason said below (never a dead click).
+      confirmDisabled={!info || info.playing || remove.isPending}
+      onConfirm={() => void confirm()}
     >
       {!info ? (
         <Spinner label={t('mediaAdmin.loading')} showLabel className="text-sm" />
@@ -836,7 +842,7 @@ function DeleteFileDialog({
             <p className="text-destructive">{t('mediaAdmin.delete.playing')}</p>
           ) : null}
           {file.inCatalog ? (
-            <p className="text-amber-700 dark:text-amber-400">{t('mediaAdmin.delete.inCatalog')}</p>
+            <p className="text-warning-text">{t('mediaAdmin.delete.inCatalog')}</p>
           ) : null}
           {info.quizzes.length > 0 || info.archivedSessions > 0 ? (
             <>

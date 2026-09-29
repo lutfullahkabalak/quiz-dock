@@ -17,7 +17,8 @@
     "deleteQuiz": "删除测验",
     "preview": "预览",
     "export": "导出",
-    "exportError": "无法导出测验。"
+    "exportError": "无法导出测验。",
+    "more": "更多"
   },
   "settings": {
     "title": "设置",
@@ -65,7 +66,9 @@
     "sharedLabel": "与本实例的其他主持人共享",
     "sharedHelp": "他们会在自己的测验中看到它（只读），并可创建自己的副本。不勾选则只有你能看到。",
     "sharedOn": "已共享",
-    "sharedOff": "私有"
+    "sharedOff": "私有",
+    "saving": "正在保存…",
+    "saved": "已保存"
   },
   "broadcast": {
     "title": "广播",
@@ -91,9 +94,6 @@
     "backToEditor": "返回编辑器",
     "loadError": "无法加载评价。",
     "noneForFilter": "没有此评分的评价。",
-    "previous": "上一页",
-    "next": "下一页",
-    "pagePosition": "第 {{page}} / {{pages}} 页",
     "count_one": "{{count}} 条评价",
     "count_other": "{{count}} 条评价"
   },
@@ -110,7 +110,9 @@
     "formTitle": "题目",
     "empty": "还没有题目。添加一道吧！",
     "collapseList": "收起列表",
-    "expandList": "展开列表"
+    "expandList": "展开列表",
+    "unfinished": "未完成",
+    "itemActions": "“{{label}}”的操作"
   },
   "slides": {
     "formTitle": "幻灯片",
@@ -123,8 +125,8 @@
     "bodyPlaceholder": "要显示的文字…",
     "contrastLegend": "文字对比度",
     "tone": {
-      "light": "浅色文字，图片压暗",
-      "dark": "深色文字，图片提亮"
+      "light": "浅色文字",
+      "dark": "深色文字"
     },
     "outline": "描边（光晕，如字幕）",
     "displayLegend": "自动切换（自动模式）",
@@ -204,6 +206,13 @@
       "remaining": "剩余题目数（含下一题）",
       "date": "今天的日期",
       "time": "时间"
+    },
+    "blockRemoved": "已移除区块。",
+    "undo": "撤销",
+    "emptySkipped": "空白——保存时忽略。",
+    "moveToDraft": {
+      "title": "保存这张空白幻灯片？",
+      "description": "此测验已发布，随时可以演示，幻灯片必须显示内容。改回草稿即可按原样保存，或继续编辑。"
     }
   },
   "discardConfirm": {
@@ -262,7 +271,7 @@
     "optionPlaceholder": "选项 {{index}}",
     "colorAriaLabel": "颜色 {{index}}",
     "shapeAriaLabel": "形状 {{index}}",
-    "orderAriaLabel": "位置 {{index}}",
+    "orderAriaLabel": "答案 {{index}} 在正确顺序中的位置",
     "correct": "正确",
     "removeOption": "移除选项 {{index}}",
     "addOption": "添加选项",
@@ -300,11 +309,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "部分得分：每个正确勾选得其份额，每个错误勾选抵消一个。",
-      "ordering": "部分得分：位置正确的元素所占比例。",
-      "text_input": "容忍拼写错误：5 个字母内允许 1 处，之外允许 2 处（大小写/重音归一后）。",
-      "numeric": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。",
-      "image_choice": "部分得分（多张正确图片）：每勾对一项得相应分数，每勾错一项抵消一项。"
+      "multiple_choice": {
+        "standard": "全对才得分：勾选所有正确答案，且不勾选错误答案。",
+        "partial": "部分得分：每个正确勾选得其份额，每个错误勾选抵消一个。"
+      },
+      "ordering": {
+        "standard": "全对才得分：每一项都在正确位置。",
+        "partial": "部分得分：位置正确的元素所占比例。"
+      },
+      "text_input": {
+        "standard": "完全匹配，忽略大小写和重音。",
+        "lenient": "容忍拼写错误：5 个字母内允许 1 处，之外允许 2 处（大小写/重音归一后）。"
+      },
+      "numeric": {
+        "standard": "在容差内即为正确；得分随速度而定。",
+        "closest": "最接近者胜：揭晓时计分——精确（在误差内）= 满分，其后 75 / 50 / 30 %，再往后 10 %；无速度加分。"
+      },
+      "image_choice": {
+        "standard": "全对才得分：勾选所有正确图片，且不勾选错误图片。",
+        "partial": "部分得分（多张正确图片）：每勾对一项得相应分数，每勾错一项抵消一项。"
+      }
     },
     "removeOptionConfirm": {
       "title": "删除此选项？",
@@ -330,14 +354,38 @@
     "imageAltAria": "图片 {{index}} 的替代文字",
     "imageAltPlaceholder": "图片内容，供看不到图片的人使用",
     "imageAltRequired": "请描述图片：对看不到它的人来说，这就是答案。",
-    "imagesIncomplete": "每个答案都需要一张图片及其替代文字。",
     "imageCountConfirm": {
       "title": "只保留 2 张图片？",
       "description": "最后两个答案及其图片将被移除。",
       "confirmLabel": "移除"
     },
     "trueOption": "正确",
-    "falseOption": "错误"
+    "falseOption": "错误",
+    "clampedTime": "已调整为 {{value}} 秒：题目时长为 {{min}} 到 {{max}} 秒。",
+    "clampedReveal": "已调整为 {{value}} 秒：停顿时长为 {{min}} 到 {{max}} 秒。",
+    "addOptionMax": "最多 {{max}} 个答案",
+    "addAnswerMax": "最多 {{max}} 个答案",
+    "moveToDraft": {
+      "title": "保存这道未完成的题目？",
+      "description": "此测验已发布，随时可以演示，只接受完整的题目。改回草稿即可按原样保存这道题，或继续编辑。",
+      "confirmLabel": "改回草稿并保存",
+      "cancelLabel": "继续编辑"
+    },
+    "optionActions": "选项 {{index}} 的操作",
+    "removeOptionShort": "移除",
+    "ticksCleared": "题型已更改：正确答案已取消勾选。请按新规则重新勾选。",
+    "explanationWritten": "已填写",
+    "explanationEmpty": "未填写",
+    "numericLegend": "答案",
+    "decimalsAllowed": "可以使用小数：3.14、0.5…",
+    "timingSummary": "{{time}} 秒",
+    "timingSummaryStretched": "{{time}} 秒（含媒体 {{total}} 秒）",
+    "revealDelayAuto": "揭晓延迟自动",
+    "revealDelaySummary": "{{seconds}} 秒后揭晓",
+    "place_ordinal_one": "第{{count}}",
+    "place_ordinal_two": "第{{count}}",
+    "place_ordinal_few": "第{{count}}",
+    "place_ordinal_other": "第{{count}}"
   },
   "preview": {
     "view": "预览（玩家视图）",
@@ -353,7 +401,14 @@
     "numericTarget": "目标：{{value}}（± {{tolerance}}）",
     "credits": "署名",
     "video": "题目视频",
-    "sound": "声音 · {{seconds}} 秒"
+    "sound": "声音 · {{seconds}} 秒",
+    "steps": "步骤",
+    "backToEditor": "返回编辑器",
+    "device": "设备",
+    "projection": "投影",
+    "phone": "手机",
+    "showAnswer": "显示答案",
+    "title": "预览"
   },
   "media": {
     "alt": "题目媒体",
@@ -498,12 +553,26 @@
   },
   "readOnly": {
     "notice": "{{owner}} 的测验：你可以查看，但不能修改。",
-    "createFrom": "基于此测验创建",
+    "createFrom": "以此创建测验",
     "props": {
       "orderShown": "按正确顺序列出。",
       "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒",
       "muted": "静音"
-    }
+    },
+    "empty": "还没有题目。"
+  },
+  "publishChecklist": {
+    "title_one": "发布前还有 1 个步骤要完成",
+    "title_other": "发布前还有 {{count}} 个步骤要完成",
+    "description": "已发布的测验随时可以演示，因此每道题都必须完整。草稿会保留你保存的任何内容。",
+    "untitled": "没有文字的题目",
+    "open": "打开"
+  },
+  "formIssues": {
+    "errors_one": "1 个错误",
+    "errors_other": "{{count}} 个错误",
+    "toFinish_one": "还有 1 项要完成",
+    "toFinish_other": "还有 {{count}} 项要完成"
   }
 }

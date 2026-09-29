@@ -34,6 +34,7 @@ import { isCrossOrigin, readCookie, SESSION_COOKIE } from '../auth/oidc/session-
 import { clientIp } from '../common/trust-proxy';
 import { PinAttempts } from './pin-attempts';
 import { WsExceptionFilter } from './ws-exception.filter';
+import { slideTitle } from './snapshot';
 
 /** Données attachées à chaque socket de jeu. */
 export interface GameSocketData {
@@ -215,6 +216,12 @@ export class GameGateway implements OnGatewayInit, OnGatewayDisconnect {
         timeLimitS: q.timeLimitS,
         // Clé de correction — n'est jamais envoyée qu'à la console hôte (ce socket).
         correctOptionIds: q.options.filter((o) => o.isCorrect).map((o) => o.id),
+      })),
+      slides: snapshot.slides.map((s, slideIndex) => ({
+        slideIndex,
+        beforeQuestionIndex: s.beforeQuestionIndex,
+        title: slideTitle(s.blocks),
+        displayDelayS: s.displayDelayS,
       })),
     });
   }

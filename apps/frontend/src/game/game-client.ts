@@ -1,6 +1,7 @@
 import type {
   ClientToServerEvents,
   ParticipantAccess,
+  PlayerPeek,
   PlayerPresence,
   ServerToClientEvents,
 } from '@quiz-dock/contracts';
@@ -131,7 +132,8 @@ export function emitWithAckOrError<T>(
     };
     const onError = (e: { code: string; params?: Record<string, string | number> }) => {
       cleanup();
-      reject(new Error(errorText(e.code, e.params)));
+      // Its text for whoever shows it, its code for whoever decides on it.
+      reject(Object.assign(new Error(errorText(e.code, e.params)), { code: e.code }));
     };
     const timer = setTimeout(() => {
       cleanup();
@@ -190,13 +192,8 @@ export async function joinSession(
   return res;
 }
 
-/** What a player learns before joining (#57). */
-export interface SessionPeek {
-  /** The join form then asks where the player is. */
-  hasSound: boolean;
-  /** `account`: the page sends to the sign-in first when there is no session. */
-  participantAccess: ParticipantAccess;
-}
+/** What a player learns before joining (#57): the contract's peek. */
+export type SessionPeek = PlayerPeek;
 
 export async function peekSession(pin: string): Promise<SessionPeek> {
   const s = await ensureGameSocket('guest');

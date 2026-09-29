@@ -1,6 +1,7 @@
 import { Film, FolderOpen, ImagePlus, Music, Trash2, X } from 'lucide-react';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useMediaEditsContext } from '@/lib/media-edits';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -226,8 +227,8 @@ export function MediaUpload({
 }
 
 /**
- * What goes with the attached media, saved on blur on the media itself (so it
- * travels in a bundle): its alternative text for an image (#43) — empty is a
+ * What goes with the attached media, stored on the media itself (so it travels in
+ * a bundle) — inside a form, saved with it and cancelled with it; alone, on blur: its alternative text for an image (#43) — empty is a
  * legitimate answer for decoration, a wrong description is worse than none —
  * and, for any kind, its credit (#53): who made it, under which licence, from
  * where, shown with the quiz and at the end of a session.
@@ -240,6 +241,11 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   const [credit, setCreditValue] = useState('');
   const [saveError, setSaveError] = useState<string | null>(null);
   const saved = useRef({ alt: '', credit: '' });
+  // In a step's form: the edits wait for its Save (and go with its Cancel).
+  const form = useMediaEditsContext();
+  const staged = form?.get(mediaId);
+  const altShown = staged?.alt ?? alt;
+  const creditShown = staged?.credit ?? credit;
 
   useEffect(() => {
     let cancelled = false;
@@ -257,7 +263,7 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   }, [mediaId]);
 
   const saveAlt = () => {
-    if (alt === saved.current.alt) return;
+    if (form || alt === saved.current.alt) return;
     saved.current.alt = alt;
     setSaveError(null);
     void setAlt.mutateAsync({ id: mediaId, data: { alt } }).catch((e: unknown) => {
@@ -266,7 +272,7 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
     });
   };
   const saveCredit = () => {
-    if (credit === saved.current.credit) return;
+    if (form || credit === saved.current.credit) return;
     saved.current.credit = credit;
     setSaveError(null);
     void setCredit.mutateAsync({ id: mediaId, data: { credit } }).catch((e: unknown) => {
@@ -281,9 +287,11 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
         <Label className="text-muted-foreground text-sm">
           {t('media.altLabel')}
           <Input
-            value={alt}
+            value={altShown}
             maxLength={300}
-            onChange={(e) => setAltValue(e.target.value)}
+            onChange={(e) =>
+              form ? form.set(mediaId, { alt: e.target.value }) : setAltValue(e.target.value)
+            }
             onBlur={saveAlt}
             placeholder={t('media.altPlaceholder')}
           />
@@ -293,9 +301,11 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
       <Label className="text-muted-foreground text-sm">
         {t('media.creditLabel')}
         <Input
-          value={credit}
+          value={creditShown}
           maxLength={300}
-          onChange={(e) => setCreditValue(e.target.value)}
+          onChange={(e) =>
+            form ? form.set(mediaId, { credit: e.target.value }) : setCreditValue(e.target.value)
+          }
           onBlur={saveCredit}
           placeholder={t('media.creditPlaceholder')}
         />

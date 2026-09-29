@@ -1,8 +1,7 @@
 import { SLUG_MAX_LENGTH, toSlug } from '@quiz-dock/contracts';
-import { AlertTriangle, Check, PackageCheck, X } from 'lucide-react';
+import { AlertTriangle, Check, X } from 'lucide-react';
 import { type ReactNode, useEffect, useId, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
 import { Input } from '@/components/ui/input';
 import { downloadFile } from '../api/download';
@@ -18,21 +17,7 @@ import { languageName, licenseName } from '@/lib/quiz-terms';
  * downloads `<slug>.quizdock.zip`. Refusals happen here, in words, rather than
  * as a robot's red cross after the upload.
  */
-export function PublicationExport({ quizId }: { quizId: string }) {
-  const { t } = useTranslation('editor');
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(true)}>
-        <PackageCheck className="size-4" />
-        {t('publication.open')}
-      </Button>
-      {open ? <PublicationDialog quizId={quizId} onClose={() => setOpen(false)} /> : null}
-    </>
-  );
-}
-
-function PublicationDialog({ quizId, onClose }: { quizId: string; onClose: () => void }) {
+export function PublicationDialog({ quizId, onClose }: { quizId: string; onClose: () => void }) {
   const { t } = useTranslation('editor');
   // Read fresh every time the dialog opens: the settings may have just changed.
   const { data, isError } = useQuizzesControllerPublicationReport(quizId, {
@@ -193,7 +178,7 @@ function Row({
   children?: ReactNode;
 }) {
   const Icon = warn ? AlertTriangle : ok ? Check : X;
-  const tone = warn ? 'text-amber-600' : ok ? 'text-green-600' : 'text-destructive';
+  const tone = warn ? 'text-warning-text' : ok ? 'text-success' : 'text-destructive';
   return (
     <li className="flex gap-2">
       <Icon className={`mt-0.5 size-4 shrink-0 ${tone}`} aria-hidden />
@@ -238,7 +223,7 @@ function SlugField({
         {t('publication.slugHelp', { file: `${value || '…'}.quizdock.zip` })}
       </span>
       {changed ? (
-        <span className="text-xs text-amber-700" role="status">
+        <span className="text-warning-text text-xs" role="status">
           {t('publication.slugChanged', { previous: report.slug })}
         </span>
       ) : null}

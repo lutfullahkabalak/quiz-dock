@@ -3,6 +3,7 @@ import {
   buildSnapshot,
   gameAudioTarget,
   refreshSnapshotForm,
+  slideTitle,
   type QuizWithContent,
 } from './snapshot';
 
@@ -466,5 +467,35 @@ describe('buildSnapshot', () => {
       md: 'Tour d’Europe par Billy (europe, CC-BY-4.0)',
     });
     expect(cols.columns[1][0]).toMatchObject({ md: 'PIN {pin}, {unknown}' });
+  });
+});
+
+describe('slideTitle', () => {
+  it('names a slide by its first heading, else its first text, marks removed', () => {
+    expect(
+      slideTitle([
+        { type: 'text', id: 't', md: 'intro' },
+        { type: 'heading', id: 'h', text: ' Discover France ', level: 1 },
+      ]),
+    ).toBe('Discover France');
+    expect(
+      slideTitle([
+        {
+          type: 'text',
+          id: 't',
+          md: 'Ten **quick** questions about [Mont-Saint-Michel](https://x)',
+        },
+      ]),
+    ).toBe('Ten quick questions about Mont-Saint-Michel');
+    expect(
+      slideTitle([
+        {
+          type: 'columns',
+          id: 'c',
+          columns: [[{ type: 'heading', id: 'h', text: 'In columns', level: 2 }], []],
+        },
+      ]),
+    ).toBe('In columns');
+    expect(slideTitle([{ type: 'image', id: 'i', mediaId: 'm', size: 'large' }] as never)).toBe('');
   });
 });

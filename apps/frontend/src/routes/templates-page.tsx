@@ -1,7 +1,14 @@
 import type { SlideBackground, SlideBlock } from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { LayoutGrid, LibraryBig, List as ListIcon, ListChecks, Plus, Search } from 'lucide-react';
+import {
+  CopyPlus,
+  LayoutGrid,
+  LibraryBig,
+  List as ListIcon,
+  ListChecks,
+  Search,
+} from 'lucide-react';
 import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -21,6 +28,7 @@ import { apiErrorText } from '../api/http';
 import { useRole } from '../auth/use-role';
 import { SlideStage } from '../game/slide-stage';
 import { ListSkeleton, LoadFailed } from '@/components/ui/loading';
+import { PageTitle } from '@/components/ui/page-title';
 
 const PAGE_SIZE = 20;
 
@@ -82,7 +90,7 @@ export function TemplatesPage() {
   return (
     <section className="flex flex-col gap-6">
       <header className="flex flex-col gap-1">
-        <h1 className="text-2xl font-bold">{t('title')}</h1>
+        <PageTitle>{t('title')}</PageTitle>
         <p className="text-muted-foreground max-w-prose text-sm">{t('intro')}</p>
       </header>
 
@@ -240,7 +248,7 @@ export function TemplatesPage() {
                   disabled={take.isPending}
                   onClick={() => void onCreate(entry.id)}
                 >
-                  <Plus className="size-4" />
+                  <CopyPlus className="size-4" />
                   {t('createFrom')}
                 </Button>
               </span>

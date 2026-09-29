@@ -8,6 +8,28 @@ vi.mock('../game/game-client', () => ({
   ensureGameSocket: vi.fn(() => new Promise(() => undefined)),
 }));
 
+/** Two answers, the first right: a complete question. */
+const OPTIONS = [
+  {
+    id: 'o1',
+    text: 'Paris',
+    color: 'red',
+    shape: 'triangle',
+    isCorrect: true,
+    mediaId: null,
+    alt: null,
+  },
+  {
+    id: 'o2',
+    text: 'Lyon',
+    color: 'blue',
+    shape: 'diamond',
+    isCorrect: false,
+    mediaId: null,
+    alt: null,
+  },
+];
+
 const detail = (over: Record<string, unknown> = {}) => ({
   id: 'q1',
   ownerId: 'o',
@@ -35,13 +57,31 @@ const detail = (over: Record<string, unknown> = {}) => ({
       pointsMode: 'standard',
       numericValue: null,
       numericTolerance: null,
-      options: [],
+      options: OPTIONS,
       acceptedAnswers: [],
     },
   ],
   slides: [],
   ...over,
 });
+
+/** Opens the header's ⋯ Plus menu and picks one of its lines. */
+async function more(item: string) {
+  fireEvent.click(await screen.findByRole('button', { name: 'Plus' }));
+  fireEvent.click(await screen.findByRole('button', { name: item }));
+}
+
+/** Opens a step's ⋯ in the list and picks one of its lines. */
+async function stepMenu(step: string, item: string) {
+  const trigger = await screen.findByRole('button', { name: `Actions pour « ${step} »` });
+  fireEvent.click(trigger);
+  // The menu opens next to its trigger.
+  fireEvent.click(within(trigger.parentElement!).getByRole('button', { name: item }));
+}
+
+/** A step's row in the list (its ⋯ carries a label, the row does not). */
+const stepRow = (name: RegExp) =>
+  screen.getAllByRole('button', { name }).find((b) => !b.hasAttribute('aria-label'))!;
 
 describe('EditorPage', () => {
   const q = (id: string, prompt: string, orderIndex: number) => ({
@@ -55,7 +95,7 @@ describe('EditorPage', () => {
     pointsMode: 'standard',
     numericValue: null,
     numericTolerance: null,
-    options: [],
+    options: OPTIONS,
     acceptedAnswers: [],
   });
   beforeEach(() => localStorage.setItem('live.localUser', 'Marc'));
@@ -136,7 +176,7 @@ describe('EditorPage', () => {
       .spyOn(HTMLAnchorElement.prototype, 'click')
       .mockImplementation(() => undefined);
     renderApp('/quizzes/q1');
-    fireEvent.click(await screen.findByRole('button', { name: 'Exporter' }));
+    await more('Exporter');
     await waitFor(() => expect(click).toHaveBeenCalled());
     expect(screen.queryByText(/Impossible d’exporter/)).toBeNull();
     const anchor = click.mock.instances[0] as unknown as HTMLAnchorElement;
@@ -180,7 +220,7 @@ describe('EditorPage', () => {
         { method: 'GET', path: '/quizzes/q1', body: detail() },
       ]);
       renderApp('/quizzes/q1');
-      fireEvent.click(await screen.findByRole('button', { name: 'Exporter pour publication' }));
+      await more('Exporter pour publication');
       const dialog = within((await screen.findByText('Nom court')).closest('dialog')!);
       expect(dialog.getByText('Le quiz n’est pas prêt')).toBeInTheDocument();
       expect(dialog.getByText('Aucune licence')).toBeInTheDocument();
@@ -215,7 +255,7 @@ describe('EditorPage', () => {
         .spyOn(HTMLAnchorElement.prototype, 'click')
         .mockImplementation(() => undefined);
       renderApp('/quizzes/q1');
-      fireEvent.click(await screen.findByRole('button', { name: 'Exporter pour publication' }));
+      await more('Exporter pour publication');
       const input = await screen.findByLabelText('Nom court');
       expect(input).toHaveValue('histoire');
       fireEvent.change(input, { target: { value: 'Histoire de France' } });
@@ -245,6 +285,47 @@ describe('EditorPage', () => {
       );
       expect(patched).toBe(true);
     });
+  });
+
+  it('publishing an unfinished quiz lists what is missing, each step one click away', async () => {
+    const fetchMock = mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/q1',
+        body: detail({
+          questionCount: 2,
+          questions: [q('a', 'Première', 0), { ...q('b', 'Seconde', 1), options: [] }],
+        }),
+      },
+    ]);
+    renderApp('/quizzes/q1');
+
+    fireEvent.click(await screen.findByText('Publier (prêt)'));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByText('1 étape à finir avant de publier')).toBeInTheDocument();
+    expect(within(dialog).getByText('Ajoutez au moins 2 réponses.')).toBeInTheDocument();
+    expect(within(dialog).getByText('Cochez la bonne réponse.')).toBeInTheDocument();
+    // Nothing was sent: the list says what to do first.
+    expect(fetchMock.mock.calls.some(([url]) => String(url).includes('/status'))).toBe(false);
+    // The unfinished step says so in the list too.
+    expect(screen.getAllByText(/Inachevée/).length).toBeGreaterThan(0);
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Ouvrir' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  });
+
+  it('arriving to publish (from the dashboard) lists what is missing first', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/q1',
+        body: detail({ questions: [{ ...q('a', 'Première', 0), options: [] }] }),
+      },
+    ]);
+    const { router } = renderApp('/quizzes/q1?publish=true');
+    expect(await screen.findByText('1 étape à finir avant de publier')).toBeInTheDocument();
+    // Done once: the address is clean again.
+    await waitFor(() => expect(router.state.location.search).toEqual({}));
   });
 
   it('sets the licence and the tags of the quiz (PUT), a typed tag turned into kebab-case', async () => {
@@ -310,8 +391,8 @@ describe('EditorPage', () => {
       target: { value: 'de' },
     });
     await waitFor(() => expect(puts()).toContainEqual({ language: 'de' }));
-    const header = within(title.closest('form') as HTMLElement);
-    fireEvent.click(await header.findByRole('button', { name: /Enregistrer/ }));
+    // Leaving the field saves it.
+    fireEvent.blur(title);
     await waitFor(() => expect(puts().some((b) => b.title === 'Mon quiz révisé')).toBe(true));
     const titleSave = puts().find((b) => b.title === 'Mon quiz révisé');
     expect(titleSave).not.toHaveProperty('language');
@@ -422,7 +503,7 @@ describe('EditorPage', () => {
         name: 'the status (archive)',
         request: ['PATCH', '/quizzes/q1/status'],
         act: async () => {
-          fireEvent.click(await screen.findByRole('button', { name: 'Archiver' }));
+          await more('Archiver');
         },
       },
       {
@@ -437,7 +518,7 @@ describe('EditorPage', () => {
         name: 'deleting a question',
         request: ['DELETE', '/questions/qq'],
         act: async () => {
-          fireEvent.click(await screen.findByLabelText('Supprimer la question'));
+          await stepMenu('Capitale de la France ?', 'Supprimer la question');
           fireEvent.click(await screen.findByRole('button', { name: 'Supprimer' }));
         },
       },
@@ -446,7 +527,7 @@ describe('EditorPage', () => {
         quiz: detail({ slides: [slide] }),
         request: ['DELETE', '/slides/s1'],
         act: async () => {
-          fireEvent.click(await screen.findByLabelText('Supprimer la slide'));
+          await stepMenu('Bienvenue', 'Supprimer la slide');
           fireEvent.click(await screen.findByRole('button', { name: 'Supprimer' }));
         },
       },
@@ -454,7 +535,7 @@ describe('EditorPage', () => {
         name: 'deleting the quiz',
         request: ['DELETE', '/quizzes/q1'],
         act: async () => {
-          fireEvent.click(await screen.findByRole('button', { name: 'Supprimer le quiz' }));
+          await more('Supprimer le quiz');
           fireEvent.click(await screen.findByRole('button', { name: 'Supprimer' }));
         },
       },
@@ -494,19 +575,18 @@ describe('EditorPage', () => {
       expect(screen.queryByText(FAILED)).toBeNull();
     });
 
-    it('a title that fails to save stays typed, with its Save button', async () => {
+    it('a title that fails to save stays typed', async () => {
       mockApi([
         refused('PUT', '/quizzes/q1'),
         { method: 'GET', path: '/quizzes/q1', body: detail() },
       ]);
       renderApp('/quizzes/q1');
       const title = await screen.findByDisplayValue('Mon quiz');
-      const header = within(title.closest('form') as HTMLElement);
       fireEvent.change(title, { target: { value: 'Mon quiz révisé' } });
-      fireEvent.click(await header.findByRole('button', { name: /Enregistrer/ }));
+      fireEvent.blur(title);
       expect(await screen.findByText(FAILED)).toBeInTheDocument();
+      // What was typed stays, to be saved again on the next leave.
       expect(title).toHaveValue('Mon quiz révisé');
-      expect(header.getByRole('button', { name: /Enregistrer/ })).toBeEnabled();
     });
   });
 
@@ -550,17 +630,30 @@ describe('EditorPage', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/session/482913/console'));
   });
 
-  it('title is edited in place: « Enregistrer » only appears once something changed', async () => {
-    mockApi([{ method: 'GET', path: '/quizzes/q1', body: detail() }]);
+  it('the title saves itself when left, and says it is saved (UI system §3)', async () => {
+    const fetchMock = mockApi([
+      { method: 'GET', path: '/quizzes/q1', body: detail() },
+      { method: 'PUT', path: '/quizzes/q1', body: detail({ title: 'Mon quiz révisé' }) },
+    ]);
     renderApp('/quizzes/q1');
 
     const title = await screen.findByDisplayValue('Mon quiz');
-    // The header form is the first form on the page (the item form has its own Save).
-    const header = within(title.closest('form') as HTMLElement);
-    expect(header.queryByRole('button', { name: /Enregistrer/ })).toBeNull();
-
     fireEvent.change(title, { target: { value: 'Mon quiz révisé' } });
-    expect(await header.findByRole('button', { name: /Enregistrer/ })).toBeEnabled();
+    fireEvent.keyDown(title, { key: 'Enter' });
+    fireEvent.blur(title);
+    expect(await screen.findByText('Enregistré')).toBeInTheDocument();
+    const put = fetchMock.mock.calls.find(([, o]) => (o as RequestInit)?.method === 'PUT');
+    expect(JSON.parse(String((put![1] as RequestInit).body))).toEqual({ title: 'Mon quiz révisé' });
+  });
+
+  it('an emptied title comes back: a quiz keeps one', async () => {
+    const fetchMock = mockApi([{ method: 'GET', path: '/quizzes/q1', body: detail() }]);
+    renderApp('/quizzes/q1');
+    const title = await screen.findByDisplayValue('Mon quiz');
+    fireEvent.change(title, { target: { value: '  ' } });
+    fireEvent.blur(title);
+    expect(title).toHaveValue('Mon quiz');
+    expect(fetchMock.mock.calls.some(([, o]) => (o as RequestInit)?.method === 'PUT')).toBe(false);
   });
 
   it('supprimer le quiz demande confirmation (modal) avant le DELETE', async () => {
@@ -576,8 +669,8 @@ describe('EditorPage', () => {
           String(url).includes('/quizzes/q1') && (opts as RequestInit)?.method === 'DELETE',
       );
 
-    // La zone dangereuse est visible, plus cachée derrière un tiroir.
-    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer le quiz' }));
+    // In the header's ⋯, after its separator.
+    await more('Supprimer le quiz');
     expect(deleted()).toBe(false); // la modal s'ouvre, rien n'est supprimé encore
 
     fireEvent.click(screen.getByRole('button', { name: 'Supprimer' }));
@@ -646,8 +739,8 @@ describe('EditorPage', () => {
       expect.stringContaining('Interlude'),
       expect.stringContaining('Seconde'),
     ]);
-    const up = screen.getAllByLabelText('Monter');
-    fireEvent.click(up[1]); // the slide moves above « Première »
+    // The slide moves above « Première », from its ⋯ (the open step is « Première »).
+    await stepMenu('Interlude', 'Monter');
     await waitFor(() => {
       const call = fetchMock.mock.calls.find(
         ([url, opts]) => String(url).includes('/items/reorder') && opts?.method === 'PATCH',
@@ -674,7 +767,8 @@ describe('EditorPage', () => {
     ]);
     renderApp('/quizzes/q1');
 
-    fireEvent.click(await screen.findByRole('button', { name: /Première/ }));
+    await screen.findAllByRole('button', { name: /Première/ });
+    fireEvent.click(stepRow(/Première/));
     // Two « Enregistrer »: the settings one (folded details, first in DOM) and the item form's.
     const save = (await screen.findAllByRole('button', { name: 'Enregistrer' })).at(-1)!;
     expect(save).toBeDisabled(); // nothing changed yet
@@ -682,7 +776,7 @@ describe('EditorPage', () => {
     expect(save).toBeEnabled();
 
     // Opening another item while dirty → confirm dialog, the form stays until confirmed.
-    fireEvent.click(screen.getByRole('button', { name: /Seconde/ }));
+    fireEvent.click(stepRow(/Seconde/));
     // The editing sheet is a <dialog> too (and nests the form's own closed confirm);
     // the editor-level confirm is the last open dialog in the DOM.
     const openDialog = await waitFor(() => {

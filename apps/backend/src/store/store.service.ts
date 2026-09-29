@@ -18,6 +18,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { BUNDLE_FORMAT, BUNDLE_VERSION } from '../quizzes/portable/quiz-bundle.schema';
 import { QuizPortableService } from '../quizzes/portable/quiz-portable.service';
 import { SAMPLE_QUIZZES, type SampleQuiz } from '../quizzes/samples/sample-quizzes.data';
+import { type TemplateSteps, templateSteps } from './store-preview';
 
 /** One entry of the catalogue, as `index.json` holds it. */
 export interface StoreEntry {
@@ -230,23 +231,12 @@ function firstText(blocks: unknown[] | undefined): string {
   return '';
 }
 
-/** L'aperçu d'un modèle : son entrée de catalogue, plus ce qu'il contient. */
-export type StorePreview = StoreEntry & {
-  coverUrl: string | null;
-  slideCount: number;
-  items: {
-    kind: 'question' | 'slide';
-    text: string;
-    type: string | null;
-    timeLimitS: number | null;
-    mediaUrl: string | null;
-    mediaAlt: string | null;
-    gradient: { angle: number; colors: string[] } | null;
-    options: { text: string; color: string; shape: string; mediaUrl: string | null }[];
-    /** A slide as the stage draws it; null for a question. */
-    slide: ServedSlide | null;
-  }[];
-};
+/** L'aperçu d'un modèle : son entrée de catalogue, plus ce qu'en donnerait une copie. */
+export type StorePreview = StoreEntry &
+  TemplateSteps & {
+    coverUrl: string | null;
+    slideCount: number;
+  };
 const MANIFEST = 'quiz.json';
 
 /**
@@ -441,45 +431,23 @@ export class StoreService implements OnModuleInit {
   }
 
   /**
-   * Ce qu'un modèle contient, lu depuis son bundle : de quoi juger avant d'en
-   * prendre une copie. Les chemins de médias deviennent des URL servies par le
-   * catalogue, sinon l'aperçu n'aurait que du texte.
+   * Ce qu'un modèle contient, lu depuis son bundle par l'import lui-même : de quoi
+   * juger avant d'en prendre une copie, exactement ce que la copie donnera. Les
+   * médias gardent des identifiants de remplacement, servis par le catalogue.
    */
   async preview(id: string): Promise<StorePreview> {
     const entry = (await this.readIndex()).find((e) => e.id === id);
     const raw = await readFile(join(this.dir, this.safeId(id), MANIFEST), 'utf8').catch(() => null);
     if (!entry || !raw) throw new NotFoundException('store.entry_not_found');
     // Le catalogue est un dossier : un manifeste retouché à la main ne doit pas
-    // faire tomber l'aperçu, il montre alors ce qu'il a.
-    const bundle = parseOr<{
-      quiz?: { cover?: string | null };
-      media?: Record<string, { alt: string | null }>;
-      items?: BundleItem[];
-    }>(raw, {});
-    const urlOf = (path?: string | null) => mediaUrl(id, path);
-    const items = (bundle.items ?? []).map((item) => ({
-      kind: item.kind,
-      text: item.kind === 'question' ? (item.prompt ?? '') : firstText(item.blocks),
-      type: item.kind === 'question' ? (item.type ?? null) : null,
-      timeLimitS: item.timeLimitS ?? null,
-      // The preview shows pictures; a question's video (version 3) is not one.
-      mediaUrl: item.media && !item.media.endsWith('.mp4') ? urlOf(item.media) : null,
-      mediaAlt: item.media ? (bundle.media?.[item.media]?.alt ?? null) : null,
-      gradient: item.backgroundGradient ?? null,
-      options: (item.options ?? []).map((o) => ({
-        // A picture answer (an image choice) is named by its alt.
-        text: o.text ?? o.alt ?? '',
-        color: o.color ?? 'blue',
-        shape: o.shape ?? 'circle',
-        mediaUrl: o.media ? urlOf(o.media) : null,
-      })),
-      slide: item.kind === 'slide' ? servedSlide(id, item) : null,
-    }));
+    // faire tomber l'aperçu, il dit alors quel élément la copie refuserait.
+    const bundle = parseOr<{ quiz?: { cover?: string | null } }>(raw, {});
+    const steps = templateSteps(bundle, id, (path) => mediaUrl(id, path));
     return {
       ...entry,
-      coverUrl: urlOf(bundle.quiz?.cover),
-      slideCount: items.filter((i) => i.kind === 'slide').length,
-      items,
+      coverUrl: mediaUrl(id, bundle.quiz?.cover),
+      slideCount: steps.slides.length,
+      ...steps,
     };
   }
 

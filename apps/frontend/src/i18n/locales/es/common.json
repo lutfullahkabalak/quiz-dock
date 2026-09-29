@@ -42,7 +42,8 @@
     "live": "Salas abiertas",
     "templates": "Plantillas",
     "profile": "Mi cuenta",
-    "template": "Plantilla"
+    "template": "Plantilla",
+    "instanceMedia": "Medios de la instancia"
   },
   "demo": {
     "banner": "Demo pública — una sola cuenta de anfitrión compartida por todos los visitantes; todo se borra cada hora."
@@ -50,5 +51,13 @@
   "chromiumOnly": "Esta página está pensada para Chrome, Edge u otro navegador Chromium. En este navegador, el envío y la reproducción de vídeos y sonidos pueden fallar.",
   "play": "Reproducir",
   "pause": "Pausa",
-  "position": "Posición en el sonido"
+  "position": "Posición en el sonido",
+  "fallback": {
+    "notFoundTitle": "Esta página no existe",
+    "notFoundText": "Puede que el enlace sea antiguo o que lo que señalaba se haya eliminado.",
+    "errorTitle": "Algo ha salido mal",
+    "errorText": "Esta página ha dejado de funcionar. Lo que guardaste está a salvo.",
+    "backHome": "Volver al inicio",
+    "tryAgain": "Reintentar"
+  }
 }

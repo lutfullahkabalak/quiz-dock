@@ -57,7 +57,10 @@ describe('toErrorResponse (enveloppe tokenisée, ADR 0001)', () => {
     }
     expect(toErrorResponse(new ZodValidationException(zerr as never))).toEqual({
       status: 400,
-      body: { code: 'media.video_with_audio' },
+      body: {
+        code: 'media.video_with_audio',
+        errors: [{ field: 'a', code: 'media.video_with_audio' }],
+      },
     });
   });
 

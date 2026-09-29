@@ -17,7 +17,8 @@
     "deleteQuiz": "Eliminar quiz",
     "preview": "Vista previa",
     "export": "Exportar",
-    "exportError": "No se pudo exportar el quiz."
+    "exportError": "No se pudo exportar el quiz.",
+    "more": "Más"
   },
   "settings": {
     "title": "Ajustes",
@@ -65,7 +66,9 @@
     "sharedLabel": "Compartir con los otros anfitriones de la instancia",
     "sharedHelp": "Lo ven en sus quiz, en solo lectura, y pueden crear su propia copia. Sin marcar, solo es tuyo.",
     "sharedOn": "Compartido",
-    "sharedOff": "Privado"
+    "sharedOff": "Privado",
+    "saving": "Guardando…",
+    "saved": "Guardado"
   },
   "broadcast": {
     "title": "Difusión",
@@ -91,9 +94,6 @@
     "backToEditor": "Volver al editor",
     "loadError": "No se pudieron cargar las opiniones.",
     "noneForFilter": "Ninguna opinión con esta nota.",
-    "previous": "Anterior",
-    "next": "Siguiente",
-    "pagePosition": "Página {{page}} / {{pages}}",
     "count_one": "{{count}} opinión",
     "count_other": "{{count}} opiniones"
   },
@@ -110,7 +110,9 @@
     "formTitle": "Pregunta",
     "empty": "No hay preguntas. ¡Añade una!",
     "collapseList": "Reducir la lista",
-    "expandList": "Desplegar la lista"
+    "expandList": "Desplegar la lista",
+    "unfinished": "Sin terminar",
+    "itemActions": "Acciones de «{{label}}»"
   },
   "slides": {
     "formTitle": "Diapositiva",
@@ -123,8 +125,8 @@
     "bodyPlaceholder": "Texto a mostrar…",
     "contrastLegend": "Contraste del texto",
     "tone": {
-      "light": "Texto claro sobre imagen oscurecida",
-      "dark": "Texto oscuro sobre imagen aclarada"
+      "light": "Texto claro",
+      "dark": "Texto oscuro"
     },
     "outline": "Contorno (halo, como subtítulos)",
     "displayLegend": "Avance (modo automático)",
@@ -204,6 +206,13 @@
       "remaining": "Cuántas preguntas quedan, la siguiente incluida",
       "date": "La fecha de hoy",
       "time": "La hora"
+    },
+    "blockRemoved": "Bloque quitado.",
+    "undo": "Deshacer",
+    "emptySkipped": "Vacío — se omite al guardar.",
+    "moveToDraft": {
+      "title": "¿Guardar esta diapositiva vacía?",
+      "description": "Este cuestionario está publicado: puede presentarse en cualquier momento y una diapositiva debe mostrar algo. Vuelve a pasarlo a borrador para guardar esta tal cual, o sigue editándola."
     }
   },
   "discardConfirm": {
@@ -262,8 +271,8 @@
     "optionPlaceholder": "Opción {{index}}",
     "colorAriaLabel": "color {{index}}",
     "shapeAriaLabel": "forma {{index}}",
-    "orderAriaLabel": "posición {{index}}",
-    "correct": "correcta",
+    "orderAriaLabel": "Lugar de la respuesta {{index}} en el orden correcto",
+    "correct": "Correcta",
     "removeOption": "Quitar la opción {{index}}",
     "addOption": "Añadir una opción",
     "acceptedAnswersLegend": "Respuestas aceptadas",
@@ -300,11 +309,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "Crédito parcial: cada acierto suma su parte, cada fallo resta uno.",
-      "ordering": "Crédito parcial: parte de los elementos en la posición correcta.",
-      "text_input": "Tolerar erratas: una letra hasta 5 letras, dos más allá (tras normalizar mayúsculas/acentos).",
-      "numeric": "Gana la más cercana: se puntúa al revelar — exacta (dentro de la tolerancia) = puntos completos, luego 75 / 50 / 30 %, 10 % después; sin bonus de velocidad.",
-      "image_choice": "Crédito parcial (varias imágenes correctas): cada marca correcta suma su parte, cada marca errónea anula una."
+      "multiple_choice": {
+        "standard": "Todo o nada: todas las respuestas correctas marcadas y ninguna incorrecta.",
+        "partial": "Crédito parcial: cada acierto suma su parte, cada fallo resta uno."
+      },
+      "ordering": {
+        "standard": "Todo o nada: cada elemento en su lugar.",
+        "partial": "Crédito parcial: parte de los elementos en la posición correcta."
+      },
+      "text_input": {
+        "standard": "Coincidencia exacta, sin tener en cuenta mayúsculas ni acentos.",
+        "lenient": "Tolerar erratas: una letra hasta 5 letras, dos más allá (tras normalizar mayúsculas/acentos)."
+      },
+      "numeric": {
+        "standard": "Dentro de la tolerancia cuenta como correcta; los puntos dependen de la rapidez.",
+        "closest": "Gana la más cercana: se puntúa al revelar — exacta (dentro de la tolerancia) = puntos completos, luego 75 / 50 / 30 %, 10 % después; sin bonus de velocidad."
+      },
+      "image_choice": {
+        "standard": "Todo o nada: todas las imágenes correctas marcadas y ninguna incorrecta.",
+        "partial": "Crédito parcial (varias imágenes correctas): cada marca correcta suma su parte, cada marca errónea anula una."
+      }
     },
     "removeOptionConfirm": {
       "title": "¿Eliminar esta opción?",
@@ -330,14 +354,38 @@
     "imageAltAria": "Texto alternativo de la imagen {{index}}",
     "imageAltPlaceholder": "Lo que muestra la imagen, para quien no la ve",
     "imageAltRequired": "Describe la imagen: es la respuesta para quien no la ve.",
-    "imagesIncomplete": "Cada respuesta necesita una imagen y su texto alternativo.",
     "imageCountConfirm": {
       "title": "¿Conservar solo 2 imágenes?",
       "description": "Se quitarán las dos últimas respuestas y sus imágenes.",
       "confirmLabel": "Quitar"
     },
     "trueOption": "Verdadero",
-    "falseOption": "Falso"
+    "falseOption": "Falso",
+    "clampedTime": "Ajustado a {{value}} s: una pregunta dura de {{min}} a {{max}} s.",
+    "clampedReveal": "Ajustado a {{value}} s: la pausa dura de {{min}} a {{max}} s.",
+    "addOptionMax": "{{max}} respuestas máx.",
+    "addAnswerMax": "{{max}} respuestas máx.",
+    "moveToDraft": {
+      "title": "¿Guardar esta pregunta sin terminar?",
+      "description": "Este cuestionario está publicado: puede presentarse en cualquier momento y solo admite preguntas completas. Vuelve a pasarlo a borrador para guardar esta tal cual, o sigue editándola.",
+      "confirmLabel": "Pasar a borrador y guardar",
+      "cancelLabel": "Seguir editando"
+    },
+    "optionActions": "Acciones de la opción {{index}}",
+    "removeOptionShort": "Quitar",
+    "ticksCleared": "El tipo cambió: las respuestas correctas se desmarcaron. Márcalas de nuevo según las nuevas reglas.",
+    "explanationWritten": "Redactada",
+    "explanationEmpty": "Vacía",
+    "numericLegend": "Respuesta",
+    "decimalsAllowed": "Se admiten decimales: 3,14, 0,5…",
+    "timingSummary": "{{time}} s",
+    "timingSummaryStretched": "{{time}} s ({{total}} s con el medio)",
+    "revealDelayAuto": "retardo de revelación auto",
+    "revealDelaySummary": "revelación tras {{seconds}} s",
+    "place_ordinal_one": "{{count}}.º",
+    "place_ordinal_two": "{{count}}.º",
+    "place_ordinal_few": "{{count}}.º",
+    "place_ordinal_other": "{{count}}.º"
   },
   "preview": {
     "view": "Vista previa (vista del jugador)",
@@ -353,7 +401,14 @@
     "numericTarget": "Objetivo: {{value}} (± {{tolerance}})",
     "credits": "Créditos",
     "video": "Vídeo de la pregunta",
-    "sound": "Sonido · {{seconds}} s"
+    "sound": "Sonido · {{seconds}} s",
+    "steps": "Pasos",
+    "backToEditor": "Volver al editor",
+    "device": "Dispositivo",
+    "projection": "Proyección",
+    "phone": "Teléfono",
+    "showAnswer": "Mostrar la respuesta",
+    "title": "Vista previa"
   },
   "media": {
     "alt": "medio de la pregunta",
@@ -498,12 +553,26 @@
   },
   "readOnly": {
     "notice": "Cuestionario de {{owner}}: puedes consultarlo, no modificarlo.",
-    "createFrom": "Crear a partir de este quiz",
+    "createFrom": "Crear un quiz a partir de esto",
     "props": {
       "orderShown": "Listadas en el orden correcto.",
       "seconds_one": "{{count}} segundo",
       "seconds_other": "{{count}} segundos",
       "muted": "silenciado"
-    }
+    },
+    "empty": "Todavía no hay preguntas."
+  },
+  "publishChecklist": {
+    "title_one": "1 paso por terminar antes de publicar",
+    "title_other": "{{count}} pasos por terminar antes de publicar",
+    "description": "Un cuestionario publicado puede presentarse en cualquier momento, así que cada pregunta debe estar completa. Un borrador guarda todo lo que guardes.",
+    "untitled": "Pregunta sin texto",
+    "open": "Abrir"
+  },
+  "formIssues": {
+    "errors_one": "1 error",
+    "errors_other": "{{count}} errores",
+    "toFinish_one": "1 cosa por terminar",
+    "toFinish_other": "{{count}} cosas por terminar"
   }
 }

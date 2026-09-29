@@ -46,6 +46,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   connectionLost: false,
   mode: 'manual',
   paused: false,
+  still: false,
   pausedRemainingMs: null,
   autoNextAt: null,
   autoNextMs: null,
@@ -53,6 +54,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   quizId: null,
   quizDescription: null,
   outline: [],
+  outlineSlides: [],
   preload: null,
   mediaControl: null,
   quizHasSound: null,
@@ -498,7 +500,8 @@ describe('ControlPage (console hôte)', () => {
     hookState.value = view({});
     renderApp('/session/482913/console');
 
-    const lock = await screen.findByRole('switch', {
+    // One control for it in every phase (UI system §2.1): the second row's toggle button.
+    const lock = await screen.findByRole('button', {
       name: 'Fermer le salon aux nouveaux participants',
     });
     act(() => fireEvent.click(lock));

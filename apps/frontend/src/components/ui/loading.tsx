@@ -1,6 +1,7 @@
 import { Loader2 } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
+import { Button } from './button';
 import { ApiError, apiErrorText } from '@/api/http';
 
 /** A turning wheel, with what it waits for said to screen readers (and shown when `label`). */
@@ -92,11 +93,28 @@ export function ListSkeleton({
  * A page whose data could not be read: `notFound` only when the server says so
  * (404); otherwise why it failed (a server or network error is never "not found").
  */
-export function LoadFailed({ error, notFound }: { error: unknown; notFound?: string }) {
+export function LoadFailed({
+  error,
+  notFound,
+  onRetry,
+}: {
+  error: unknown;
+  notFound?: string;
+  /** A read that may work a second time offers it (never a dead end). */
+  onRetry?: () => void;
+}) {
+  const { t } = useTranslation('common');
   const missing = !error || (error instanceof ApiError && error.status === 404);
   return (
-    <p className="text-destructive text-sm" role="alert">
-      {missing && notFound ? notFound : apiErrorText(error)}
-    </p>
+    <div className="flex flex-wrap items-center gap-3" role="alert">
+      <p className="text-destructive text-sm">
+        {missing && notFound ? notFound : apiErrorText(error)}
+      </p>
+      {onRetry && !missing ? (
+        <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+          {t('fallback.tryAgain')}
+        </Button>
+      ) : null}
+    </div>
   );
 }

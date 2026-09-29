@@ -1,4 +1,4 @@
-import { screen, within } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockApi, renderApp } from '../test/harness';
 
@@ -111,5 +111,60 @@ describe('Session history: the room (#89)', () => {
     renderApp('/quizzes/q1/history/s1');
     expect(await screen.findByText('Manche A')).toBeInTheDocument();
     expect(screen.queryByText('Salon')).toBeNull();
+  });
+});
+
+describe('Session history (UI system §4)', () => {
+  beforeEach(() => localStorage.setItem('live.localUser', 'Marc'));
+  afterEach(() => {
+    localStorage.clear();
+    vi.unstubAllGlobals();
+  });
+
+  it('sorts its sessions by a column, the latest first by default', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/q1/sessions',
+        body: {
+          sessions: [
+            summary({
+              id: 'a',
+              pin: '111111',
+              startedAt: '2026-09-20T18:00:00.000Z',
+              successRate: 0.9,
+            }),
+            summary({
+              id: 'b',
+              pin: '222222',
+              startedAt: '2026-09-26T18:00:00.000Z',
+              successRate: 0.2,
+            }),
+          ],
+        },
+      },
+    ]);
+    renderApp('/quizzes/q1/history');
+    const pins = () => screen.getAllByText(/^PIN \d+/).map((el) => el.textContent?.slice(0, 10));
+    await screen.findByText(/PIN 222222/);
+    expect(pins()).toEqual(['PIN 222222', 'PIN 111111']);
+    // By success: the best first on the first click, then the weakest.
+    fireEvent.click(screen.getByRole('button', { name: /Réussite/ }));
+    expect(pins()).toEqual(['PIN 111111', 'PIN 222222']);
+    fireEvent.click(screen.getByRole('button', { name: /Réussite/ }));
+    expect(pins()).toEqual(['PIN 222222', 'PIN 111111']);
+  });
+
+  it('with no session yet, leads to presenting the quiz', async () => {
+    mockApi([
+      { method: 'GET', path: '/quizzes/q1/sessions', body: { sessions: [] } },
+      {
+        method: 'GET',
+        path: '/quizzes/q1',
+        body: { id: 'q1', status: 'ready', title: 'Q', questions: [], slides: [] },
+      },
+    ]);
+    renderApp('/quizzes/q1/history');
+    expect(await screen.findByRole('button', { name: /Présenter ce quiz/ })).toBeInTheDocument();
   });
 });

@@ -143,9 +143,9 @@ describe('StoreService', () => {
     const preview = await service.preview(entry.id);
 
     expect(preview).toMatchObject({ id: entry.id, title: 'Ports', questionCount: 3 });
-    // Le bundle de test ne porte qu'un manifeste minimal : l'aperçu ne doit pas
-    // s'effondrer pour autant, il montre ce qu'il a.
-    expect(Array.isArray(preview.items)).toBe(true);
+    // Le bundle de test ne porte qu'un manifeste minimal : l'aperçu ne s'effondre
+    // pas, il dit quel élément une copie refuserait.
+    expect(preview).toMatchObject({ questions: [], slides: [], invalid: { item: null } });
   });
 
   it('la carte reçoit la première diapositive entière, médias servis par le catalogue', async () => {
@@ -199,20 +199,76 @@ describe('StoreService', () => {
       textTone: 'dark',
       textOutline: true,
     });
-    // The template page draws the same slide.
-    const preview = await service.preview(entry.id);
-    expect(preview.items[0].slide).toEqual(listed.first?.slide);
   });
 
-  it('an image choice previews with its pictures, named by their alt', async () => {
+  it('the template page gets what a copy would create, in the shape of a quiz', async () => {
     const { service } = makeService(quiz, 1, {
+      format: 'quizdock/quiz',
+      quiz: { title: 'Ports' },
+      items: [
+        {
+          kind: 'slide',
+          backgroundImage: 'media/bg.webp',
+          textTone: 'dark',
+          blocks: [
+            { type: 'heading', id: 'h', text: 'Ports', level: 1 },
+            { type: 'image', id: 'i', media: 'media/pic.jpg', size: 'full', align: 'center' },
+          ],
+        },
+        {
+          kind: 'question',
+          type: 'single_choice',
+          prompt: 'Biggest port?',
+          backgroundGradient: { angle: 90, colors: ['#112233', '#445566'] },
+          options: [
+            { text: 'Shanghai', color: 'red', shape: 'triangle', isCorrect: true },
+            { text: 'Rotterdam', color: 'blue', shape: 'diamond' },
+          ],
+        },
+      ],
+    });
+    const entry = await service.share(alice, 'q1');
+    const base = `/api/v1/store/${entry.id}/media`;
+    const preview = await service.preview(entry.id);
+
+    expect(preview.invalid).toBeNull();
+    expect(preview.questions).toHaveLength(1);
+    const [question] = preview.questions;
+    expect(question).toMatchObject({
+      type: 'single_choice',
+      prompt: 'Biggest port?',
+      backgroundGradient: { angle: 90, colors: ['#112233', '#445566'] },
+      options: [
+        { text: 'Shanghai', isCorrect: true, orderIndex: 0 },
+        { text: 'Rotterdam', isCorrect: false, orderIndex: 1 },
+      ],
+    });
+    // The slide comes before the question, its media under stand-in ids the catalogue serves.
+    const [slide] = preview.slides;
+    expect(slide.beforeQuestionId).toBe(question.id);
+    expect(slide.textTone).toBe('dark');
+    expect(preview.media[slide.mediaId as string]).toBe(`${base}/bg.webp`);
+    const image = slide.blocks[1] as { mediaId: string };
+    expect(preview.media[image.mediaId]).toBe(`${base}/pic.jpg`);
+  });
+
+  it('an image choice previews with its pictures and their alt', async () => {
+    const { service } = makeService(quiz, 1, {
+      format: 'quizdock/quiz',
+      quiz: { title: 'Pets' },
       items: [
         {
           kind: 'question',
           type: 'image_choice',
           prompt: 'Which one is a cat?',
           options: [
-            { media: 'media/cat.webp', alt: 'A cat', color: 'red', shape: 'triangle' },
+            {
+              media: 'media/cat.webp',
+              alt: 'A cat',
+              color: 'red',
+              shape: 'triangle',
+              isCorrect: true,
+            },
             { media: 'media/dog.webp', alt: 'A dog', color: 'blue', shape: 'diamond' },
           ],
         },
@@ -221,9 +277,10 @@ describe('StoreService', () => {
     const entry = await service.share(alice, 'q1');
     const base = `/api/v1/store/${entry.id}/media`;
     const preview = await service.preview(entry.id);
-    expect(preview.items[0].options).toEqual([
-      { text: 'A cat', color: 'red', shape: 'triangle', mediaUrl: `${base}/cat.webp` },
-      { text: 'A dog', color: 'blue', shape: 'diamond', mediaUrl: `${base}/dog.webp` },
+    const options = preview.questions[0].options;
+    expect(options.map((o) => [o.alt, preview.media[o.mediaId as string]])).toEqual([
+      ['A cat', `${base}/cat.webp`],
+      ['A dog', `${base}/dog.webp`],
     ]);
   });
 
@@ -304,7 +361,11 @@ describe('StoreService', () => {
       const { service } = makeService();
       const entry = await service.share(alice, 'q1');
       writeFileSync(join(dir, entry.id, 'quiz.json'), '{ not json');
-      await expect(service.preview(entry.id)).resolves.toMatchObject({ items: [] });
+      await expect(service.preview(entry.id)).resolves.toMatchObject({
+        questions: [],
+        slides: [],
+        invalid: { item: null },
+      });
     });
   });
 });

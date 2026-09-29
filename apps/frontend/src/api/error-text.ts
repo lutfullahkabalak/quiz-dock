@@ -10,19 +10,26 @@ export function errorText(code: string, params?: Record<string, unknown>): strin
   return i18next.t(`errors:${code}`, { ...params, defaultValue: i18next.t('errors:error') });
 }
 
-/** Une erreur de validation par champ : code Zod générique résolu via `validation`. */
+/** A domain error code: dotted lowercase words (`question.options.one_correct`). */
+const DOMAIN_CODE = /^[a-z][a-z_]*(\.[a-z][a-z_]*)+$/;
+
+/**
+ * The text of one validation code: a business rule's own (`errors`), else the
+ * generic Zod code's (`validation`, ADR 0001).
+ */
+export function validationText(code: string): string {
+  return DOMAIN_CODE.test(code)
+    ? errorText(code)
+    : i18next.t(`validation:${code}`, { defaultValue: i18next.t('validation:_default') });
+}
+
+/** Une erreur de validation par champ. */
 export interface FieldError {
   field: string;
   message: string;
 }
 
-/**
- * Traduit chaque issue de validation `{ field, code }` (codes Zod génériques émis
- * par le backend, ADR 0001) en message via le dictionnaire `validation`.
- */
+/** Traduit chaque issue de validation `{ field, code }` renvoyée par le backend. */
 export function validationFieldErrors(errors: { field: string; code: string }[]): FieldError[] {
-  return errors.map((e) => ({
-    field: e.field,
-    message: i18next.t(`validation:${e.code}`, { defaultValue: i18next.t('validation:_default') }),
-  }));
+  return errors.map((e) => ({ field: e.field, message: validationText(e.code) }));
 }

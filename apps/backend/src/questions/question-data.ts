@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
+import type { QuestionIssue } from '@quiz-dock/contracts';
 import type { QuestionContent } from './dto/question-content.schema';
-import { normalizeAnswer } from './dto/question-content.schema';
+import { normalizeAnswer, questionIssues } from './dto/question-content.schema';
 
 /**
  * A question's content as rows, one way for every path that writes one: the
@@ -26,8 +27,9 @@ export function questionData(dto: QuestionContent) {
     // Un sondage ne rapporte aucun point (technique §4).
     pointsMode: dto.type === 'poll' ? 'none' : dto.pointsMode,
     scoring: dto.scoring,
-    numericValue: isNumeric ? dto.numericValue : null,
-    numericTolerance: isNumeric ? dto.numericTolerance : null,
+    // A draft may leave them unset: null, not "unchanged" on an update.
+    numericValue: isNumeric ? (dto.numericValue ?? null) : null,
+    numericTolerance: isNumeric ? (dto.numericTolerance ?? null) : null,
     multiSelect: dto.type === 'image_choice' && dto.multiSelect,
   };
 }
@@ -81,4 +83,29 @@ export function questionCreateData(
     options: { create: optionsData(dto) },
     acceptedAnswers: { create: acceptedAnswersData(dto) },
   };
+}
+
+/** What a stored question still needs to be played (`questionIssues` on its row). */
+export function storedQuestionIssues(q: {
+  type: QuestionContent['type'];
+  prompt: string;
+  visualMediaId: string | null;
+  audioMediaId: string | null;
+  multiSelect: boolean;
+  numericValue: Prisma.Decimal | null;
+  numericTolerance: Prisma.Decimal | null;
+  options: {
+    text: string | null;
+    mediaId: string | null;
+    alt: string | null;
+    isCorrect: boolean;
+  }[];
+  acceptedAnswers: { text: string }[];
+}): QuestionIssue[] {
+  return questionIssues({
+    ...q,
+    media: { visual: q.visualMediaId, audio: q.audioMediaId },
+    numericValue: q.numericValue?.toNumber() ?? null,
+    numericTolerance: q.numericTolerance?.toNumber() ?? null,
+  });
 }

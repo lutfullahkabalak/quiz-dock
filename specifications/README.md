@@ -26,6 +26,7 @@ Read them in this order to discover the project:
 | 10 | **[SPECIFICATIONS-STORE.md](./SPECIFICATIONS-STORE.md)** | Community store (#21): the model (author repositories, registry, copy never reference), the decisions taken, what is delivered, the ordered road to opening | Product, backend, frontend |
 | 11 | **[SPECIFICATIONS-ROOM.md](./SPECIFICATIONS-ROOM.md)** | Multi-quiz room (#89): every session a room, the live state split between the room and each game, lifecycle, archives, the ordered pull requests | Backend, frontend, product |
 | 12 | **[SPECIFICATIONS-IMAGE-CHOICE.md](./SPECIFICATIONS-IMAGE-CHOICE.md)** | Image choice (`image_choice`): answers that are pictures, the decisions taken (alt per option, single or multiple, tiles, bundle v6), the phases | Backend, frontend, product |
+| 13 | **[SPECIFICATIONS-UI-SYSTEM.md](./SPECIFICATIONS-UI-SYSTEM.md)** | UI system: the cross-cutting rules (actions, vocabulary, frames, contrast, permissive validation in four levels) and the three-lot rework (live, authoring, entry/account/back office), decisions taken, open points | Design, frontend, product |
 
 > The documents refer to one another (for instance `technique §5`, `RG-13`, `données §2.10`). Any change of behaviour must update **the document it concerns, in the same commit** (see the "test & document" policy, technique §18).
 

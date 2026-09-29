@@ -1,6 +1,6 @@
 import { RoomStandingsPanel, roomLabel } from '../game/room-components';
 import { useParams } from '@tanstack/react-router';
-import { Maximize, Minimize, Users } from 'lucide-react';
+import { Loader2, Maximize, Minimize, Users } from 'lucide-react';
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { QRCodeSVG } from 'qrcode.react';
@@ -31,7 +31,7 @@ import { RoomVariables } from '../game/slide-variables';
 import { ReadinessMeter } from '../game/media/readiness-meter';
 import { anchorOf, followed } from '../game/media/followed';
 import { SoundUnlockOverlay } from '../game/media/sound-unlock-overlay';
-import { Surface } from '../game/surface';
+import { BACKDROP_EDGE, Surface } from '../game/surface';
 import { ImageChoiceGrid } from '../game/image-choice';
 import { useQuestionClock } from '../game/use-countdown';
 import { joinHostLabel, joinUrlFor } from '../game/join-url';
@@ -119,6 +119,7 @@ export function ScreenSurface({
   role,
   sound = true,
   embedded = false,
+  fit = 'window',
 }: {
   pin: string;
   view: GameView;
@@ -131,7 +132,13 @@ export function ScreenSurface({
    * which would hide the way back to their answers.
    */
   embedded?: boolean;
+  /**
+   * `box`: drawn in its container (the 1280×720 stage of a preview), sized and typeset
+   * by it rather than by the window; no fullscreen.
+   */
+  fit?: 'window' | 'box';
 }) {
+  const boxed = fit === 'box';
   const { t } = useTranslation('live');
   const playMedia = role === 'lead';
   // The projection tells the room where it is in the sound (the playheads elsewhere follow):
@@ -170,35 +177,16 @@ export function ScreenSurface({
   const joinUrl = joinUrlFor(view, pin);
   const joinHost = joinHostLabel(view);
 
-  // Rappel d'invitation (QR + PIN) ancré en bas de l'écran projeté : permet aux
-  // retardataires de rejoindre en cours de question (notamment quand l'énoncé n'a
-  // pas d'options affichées à l'écran, cf. « Réponds sur ton téléphone »).
-  const joinBar = (
-    <div className="qd-join absolute inset-x-0 bottom-0 flex items-center justify-center gap-[1em] border-t bg-background/80 p-[1em] backdrop-blur">
-      <div className="qd-join-qr rounded-md bg-white p-1.5 shadow">
-        <QRCodeSVG value={joinUrl} size={80} aria-label={t('screen.qrLabel')} />
-      </div>
-      <div className="flex flex-col items-start">
-        <span className="text-muted-foreground text-[0.8em] uppercase tracking-widest">
-          {joinHost}
-        </span>
-        <span className="qd-join-pin font-mono text-[2.25em] font-bold tracking-[0.2em]">
-          {pin}
-        </span>
-      </div>
-    </div>
-  );
-
   // This screen's own sound (#93): the projection, or a copy that plays it.
   const soundButton = role === 'lead' || (role === 'follow' && sound);
 
   const fullscreenBtn =
-    supported && !embedded ? (
+    supported && !embedded && !boxed ? (
       <Button
         type="button"
         variant="ghost"
         size="icon"
-        className="absolute right-4 top-4"
+        className={cn('bg-background absolute top-4 right-4 z-40', BACKDROP_EDGE)}
         aria-label={isFullscreen ? t('screen.exitFullscreen') : t('screen.fullscreen')}
         onClick={() => void toggle()}
       >
@@ -206,27 +194,92 @@ export function ScreenSurface({
       </Button>
     ) : null;
 
-  const counter =
-    view.answerCount && view.state === 'ANSWERING' ? (
-      <p className="text-muted-foreground text-[1.25em]">
-        {t('screen.answersReceived')}{' '}
-        <span className="tabular-nums">
-          {view.answerCount.answered} / {view.answerCount.total}
+  // ── The frame (UI system §2.2): top band · stage · bottom band, in every phase
+  // but a slide, which is the author's own full-screen composition.
+  const total = view.totalQuestions || view.outline.length;
+  const qNumber = (view.question?.questionIndex ?? view.questionIndex) + 1;
+  const reviewing = !!view.nav?.review;
+  const where = (step: string) => (
+    <div className="flex min-w-0 flex-col text-left leading-tight">
+      <span className="font-semibold">{step}</span>
+      {/* The room is the page's title: the heading a screen reader lands on. */}
+      <div className="text-muted-foreground truncate text-[0.7em]">
+        <h1 className="inline">{roomLabel(t, view.roomName, view.hostName)}</h1>
+        {view.quizTitle ? ` · ${view.quizTitle}` : null}
+      </div>
+    </div>
+  );
+  // The way in for latecomers, while the room takes newcomers (the lobby shows it in full).
+  const joinChip = view.joinLocked ? null : (
+    <div className="qd-join flex items-center justify-end gap-[0.6em]">
+      <div className="text-right leading-tight">
+        <span className="text-muted-foreground block text-[0.7em]">
+          {t('screen.joinAt')} {joinHost}
         </span>
-      </p>
-    ) : null;
+        <span className="qd-join-pin font-mono text-[1.3em] font-bold tracking-[0.15em]">
+          {pin}
+        </span>
+      </div>
+      <div className="qd-join-qr rounded-md bg-white p-1 shadow">
+        <QRCodeSVG value={joinUrl} size={56} aria-label={t('screen.qrLabel')} />
+      </div>
+    </div>
+  );
+  const band = (
+    side: 'top' | 'bottom',
+    left: React.ReactNode,
+    centre: React.ReactNode,
+    right: React.ReactNode,
+    tone?: 'warning',
+  ) => (
+    <div
+      className={cn(
+        'qd-band grid w-full shrink-0 grid-cols-[1fr_minmax(0,1.5fr)_1fr] items-center gap-[1em] px-[3.5em] py-[0.6em]',
+        side === 'top' ? 'border-b' : 'border-t',
+        tone === 'warning'
+          ? 'bg-warning/25'
+          : 'bg-background/85 on-backdrop:bg-card backdrop-blur [text-shadow:none]',
+      )}
+      data-band={side}
+    >
+      <div className="min-w-0">{left}</div>
+      <div className="text-center">{centre}</div>
+      <div className="min-w-0">{right}</div>
+    </div>
+  );
+  const bigStatus = (text: React.ReactNode, small?: React.ReactNode, warn?: boolean) => (
+    <span>
+      <span className={cn('text-[1.4em] font-bold tabular-nums', warn && 'text-warning-text')}>
+        {text}
+      </span>
+      {small ? <span className="text-muted-foreground ml-[0.8em]">{small}</span> : null}
+    </span>
+  );
 
-  let body: React.ReactNode;
+  let top: React.ReactNode = null;
+  let bottom: React.ReactNode = null;
+  let stage: React.ReactNode;
+  // A question's background owns the whole surface, bands included.
+  let onBackground = false;
 
   if (view.status === 'error') {
-    body = <p className="text-muted-foreground">{view.error ?? t('screen.sessionUnavailable')}</p>;
+    stage = <p className="text-muted-foreground">{view.error ?? t('screen.sessionUnavailable')}</p>;
   } else if (view.state === 'HOST_DISCONNECTED') {
-    body = <p className="text-[2em] font-semibold">{t('screen.paused')}</p>;
+    top = band('top', where(t('screen.stepQuestion', { n: qNumber, total })), null, joinChip);
+    stage = (
+      <div className="flex flex-col items-center gap-[0.8em] opacity-80">
+        <Loader2 aria-hidden className="text-muted-foreground size-[2.5em] animate-spin" />
+        <p className="text-[2em] font-bold">{t('screen.waitingHost')}</p>
+        <p className="text-muted-foreground text-[1.2em]">{t('screen.waitingHostText')}</p>
+      </div>
+    );
+    bottom = band('bottom', null, bigStatus(t('screen.waitingHost'), null, true), null);
   } else if (view.state === 'MEDIA_LOADING') {
     // A device that plays the coming question's sound or video is still loading it.
-    body = (
-      <div className="flex flex-col items-center gap-[1em]">
-        <p className="text-[2em] font-semibold">{t('screen.mediaLoading')}</p>
+    top = band('top', where(t('screen.stepQuestion', { n: qNumber, total })), null, joinChip);
+    stage = (
+      <div className="flex w-full max-w-[40em] flex-col items-center gap-[1em]">
+        <p className="text-[2.2em] font-bold">{t('screen.mediaComing', { n: qNumber })}</p>
         <ReadinessMeter
           readiness={view.readiness}
           until={view.mediaWait?.until ?? null}
@@ -234,10 +287,21 @@ export function ScreenSurface({
         />
       </div>
     );
+    bottom = view.readiness
+      ? band(
+          'bottom',
+          null,
+          bigStatus(
+            t('screen.devicesReady', { ready: view.readiness.ready, total: view.readiness.total }),
+          ),
+          null,
+        )
+      : null;
   } else if (view.state === 'ENDED') {
     // A room that played several quizzes closes on its own podium (#89).
     const series = view.standings && view.standings.quizzesPlayed > 1 ? view.standings : null;
-    body = series ? (
+    top = band('top', where(t('screen.phaseClosed')), null, null);
+    stage = series ? (
       <div className="flex w-full max-w-[28em] flex-col items-center gap-[1.5em]">
         <h2 className="text-[2em] font-bold">{t('screen.roomPodium')}</h2>
         <p className="text-muted-foreground text-[1.25em]">
@@ -247,7 +311,7 @@ export function ScreenSurface({
         <p className="text-[1.5em] font-semibold">{t('screen.thanks')}</p>
       </div>
     ) : (
-      <p className="text-[2em] font-semibold">{t('screen.thanks')}</p>
+      <p className="text-[2.4em] font-bold">{t('screen.thanks')}</p>
     );
   } else if (view.state === 'SLIDE_SHOW' && view.slide) {
     const slide = view.slide;
@@ -255,12 +319,12 @@ export function ScreenSurface({
     // A copy hears the slide only when asked to, and when its sound reaches remote devices.
     const copyHears =
       role === 'follow' && sound && !!slide.audioTarget && playsSound(slide.audioTarget, 'remote');
-    body = (
-      <div className="flex min-h-dvh w-full flex-1">
+    stage = (
+      <div className={cn('flex w-full flex-1', boxed ? 'min-h-full' : 'min-h-dvh')}>
         {/* Its videos and sound play as a question's do (#125): here, on the common start. */}
         <SlidePlaybackContext.Provider
           value={{
-            mode: role === 'preview' || view.nav?.review ? 'still' : view.paused ? 'pause' : 'play',
+            mode: role === 'preview' || reviewing ? 'still' : view.paused ? 'pause' : 'play',
             audible: role !== 'follow' || copyHears,
             startAt: slide.mediaStartAt ?? null,
             anchor: anchorOf(view, step),
@@ -274,12 +338,24 @@ export function ScreenSurface({
             <SlideView key={slide.slideIndex} slide={slide} />
           </RoomVariables>
         </SlidePlaybackContext.Provider>
+        {/* The one element of the frame a slide keeps: how to join (UI system §2.2). */}
+        {view.joinLocked ? null : (
+          <span
+            className={cn(
+              'qd-join absolute top-[1em] right-[4em] z-20 rounded-full bg-white px-[0.8em] py-[0.3em] text-[0.9em] text-neutral-900',
+              BACKDROP_EDGE,
+              'ring-1 ring-black/70 ring-offset-1 ring-offset-white/70',
+            )}
+          >
+            {t('screen.joinChip')} · <b className="qd-join-pin font-mono tracking-[0.1em]">{pin}</b>
+          </span>
+        )}
       </div>
     );
   } else if (view.state === 'PODIUM' && view.podium) {
-    body = (
-      <div className="flex w-full max-w-[28em] flex-col items-center gap-[1.5em]">
-        <h2 className="text-[2em] font-bold">{t('screen.podium')}</h2>
+    top = band('top', where(t('screen.phasePodium')), null, null);
+    stage = (
+      <div className="flex w-full max-w-[32em] flex-col items-center gap-[1.5em]">
         <Podium rows={view.podium.podium} />
         {/* Then the room's standings (#89) once it has played more than one quiz. */}
         {view.standings && view.standings.quizzesPlayed > 1 ? (
@@ -292,57 +368,104 @@ export function ScreenSurface({
             <LeaderboardList rows={view.leaderboard.top} />
           </div>
         ) : null}
-        {view.podium.credits?.length ? (
-          // Small, but seen by the room: the attribution a CC-BY licence asks for.
-          <p className="text-muted-foreground text-center text-[0.8em]">
-            {t('screen.credits')} {view.podium.credits.join(' · ')}
-          </p>
-        ) : null}
       </div>
     );
-  } else if (view.state === 'REVEAL' && view.question?.type === 'image_choice' && view.reveal) {
-    // The pictures stay where they were: the wrong ones dimmed, the right one(s)
-    // forward, each with its count — the grid fills the screen as during the question.
-    body = (
-      <div className="flex min-h-0 w-full max-w-[80em] flex-1 flex-col items-center gap-[1em]">
+    // Small, but seen by the room: the attribution a CC-BY licence asks for.
+    bottom = view.podium.credits?.length
+      ? band(
+          'bottom',
+          null,
+          <span className="text-muted-foreground text-[0.8em]">
+            {t('screen.credits')} {view.podium.credits.join(' · ')}
+          </span>,
+          null,
+        )
+      : null;
+  } else if (view.state === 'LEADERBOARD' && view.leaderboard && !reviewing) {
+    // A real leaderboard moment: the top ten, large, bars as long as the scores.
+    onBackground = !!view.question?.background;
+    top = band(
+      'top',
+      where(t('screen.stepAfter', { n: qNumber, total })),
+      <span className="text-[1.3em] font-bold">{t('screen.leaderboard')}</span>,
+      joinChip,
+    );
+    stage = (
+      <div className="w-full max-w-[48em] text-[1.25em]">
+        <LeaderboardList rows={view.leaderboard.top} max={10} />
+      </div>
+    );
+    bottom =
+      qNumber < total
+        ? band('bottom', null, bigStatus(t('screen.nextStep', { n: qNumber + 1 })), null)
+        : null;
+  } else if ((view.state === 'REVEAL' || view.state === 'LEADERBOARD') && view.question) {
+    onBackground = !!view.question.background;
+    const question = view.question;
+    const reveal = view.reveal;
+    const correct = reveal?.correctOptionIds ?? [];
+    const found = reveal ? correct.reduce((sum, id) => sum + (reveal.distribution[id] ?? 0), 0) : 0;
+    const answeredTotal = reveal
+      ? Object.values(reveal.distribution).reduce((a, b) => a + b, 0)
+      : 0;
+    top = band(
+      'top',
+      where(t('screen.stepQuestion', { n: qNumber, total })),
+      reviewing ? (
+        <span className="text-[1.2em] font-bold">{t('screen.lookingBackAt', { n: qNumber })}</span>
+      ) : (
+        <span className="text-muted-foreground">{t('screen.answerLabel')}</span>
+      ),
+      joinChip,
+      reviewing ? 'warning' : undefined,
+    );
+    stage = (
+      <div className="flex min-h-0 w-full max-w-[72em] flex-1 flex-col items-center justify-center gap-[1em]">
         <Markdown
           role="heading"
           aria-level={1}
           className="qd-prompt shrink-0 text-center text-[2em] font-semibold"
         >
-          {view.question.prompt}
+          {question.prompt}
         </Markdown>
-        <ImageChoiceGrid
-          fit="screen"
-          className="flex-1"
-          options={view.question.options ?? []}
-          correctIds={view.reveal.correctOptionIds ?? []}
-          counts={view.reveal.distribution}
-        />
-        <AnswerExplanation reveal={view.reveal} />
-      </div>
-    );
-  } else if ((view.state === 'REVEAL' || view.state === 'LEADERBOARD') && view.question) {
-    body = (
-      <div className="flex w-full max-w-[40em] flex-col items-center gap-[1.5em]">
-        <Markdown
-          role="heading"
-          aria-level={1}
-          className="qd-prompt text-center text-[2em] font-semibold"
-        >
-          {view.question.prompt}
-        </Markdown>
-        {view.reveal ? <RevealAnswer question={view.question} reveal={view.reveal} /> : null}
-        {view.reveal ? <AnswerExplanation reveal={view.reveal} /> : null}
-        {view.leaderboard ? (
-          <div className="flex w-full max-w-[28em] flex-col gap-[0.5em]">
-            <h3 className="text-muted-foreground font-semibold">{t('screen.leaderboard')}</h3>
-            <LeaderboardList rows={view.leaderboard.top} />
+        {reveal && question.type === 'image_choice' ? (
+          // The pictures stay where they were, each with its count.
+          <ImageChoiceGrid
+            fit="screen"
+            className="flex-1"
+            options={question.options ?? []}
+            correctIds={correct}
+            counts={reveal.distribution}
+          />
+        ) : reveal && question.options?.length && question.type !== 'ordering' ? (
+          // The tiles stay where they were, filled in proportion to their answers.
+          <div className="w-full text-[1.2em]">
+            <OptionGrid
+              options={question.options}
+              correctIds={correct}
+              counts={reveal.distribution}
+            />
           </div>
+        ) : reveal ? (
+          <RevealAnswer question={question} reveal={reveal} />
         ) : null}
+        {reveal ? <AnswerExplanation reveal={reveal} className="max-w-[48em]" /> : null}
       </div>
     );
+    bottom =
+      correct.length && answeredTotal
+        ? band(
+            'bottom',
+            null,
+            bigStatus(
+              t('screen.found', { count: found, total: answeredTotal }),
+              reviewing ? t('screen.gameGoesOn') : null,
+            ),
+            null,
+          )
+        : null;
   } else if ((view.state === 'ANSWERING' || view.state === 'QUESTION_SHOW') && view.question) {
+    onBackground = !!view.question.background;
     const visual = !!view.question.media?.visual;
     // A copy hears the question only when asked to (a remote participant) and when
     // its sound is meant for remote devices.
@@ -352,113 +475,123 @@ export function ScreenSurface({
       !!view.question.audioTarget &&
       playsSound(view.question.audioTarget, 'remote');
     const images = view.question.type === 'image_choice';
-    // Nobody scrolls a projector: the page is the screen's height, the answers keep
+    top = band(
+      'top',
+      where(t('screen.stepQuestion', { n: qNumber, total })),
+      clock ? <QuestionClockBar clock={clock} className="text-[1.3em]" /> : null,
+      joinChip,
+    );
+    // Nobody scrolls a projector: the stage is the screen's height, the answers keep
     // their room and the picture takes what is left (#92).
-    body = (
-      <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center gap-[1em]">
-        {clock ? (
-          <QuestionClockBar
-            clock={clock}
-            // Clear of the fullscreen button, top right, and of the sound button, top left.
-            className={cn('shrink-0 pr-[2.5em] text-[1.6em]', soundButton && 'pl-[2.5em]')}
+    stage = (
+      <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center justify-center gap-[1em]">
+        <Markdown
+          role="heading"
+          aria-level={1}
+          className="qd-prompt w-full shrink-0 text-[2em] leading-tight font-semibold"
+        >
+          {view.question.prompt}
+        </Markdown>
+        {/* Image or video in one box, the sound as its waveform; played here only. */}
+        <QuestionMediaStage
+          key={view.question.questionIndex}
+          media={view.question.media}
+          mode={role === 'preview' || reviewing ? 'still' : view.paused ? 'pause' : 'play'}
+          // A copy plays the sound only when asked (a remote participant), and only
+          // when the question's sound is for remote devices.
+          audible={role !== 'follow' || copyHears}
+          className={visual ? 'min-h-[6em] flex-1' : 'shrink-0'}
+          boxClassName={visual ? 'aspect-auto h-full min-h-0 w-full flex-1' : undefined}
+          resumeKey={playMedia ? `${pin}:${view.question.questionIndex}` : null}
+          // The projection plays on its own; the console's tab draws its position; a copy
+          // that plays the sound starts on the common instant and catches up with it,
+          // as a remote participant's phone does.
+          follow={
+            playMedia || copyHears
+              ? undefined
+              : followed(view, { questionIndex: view.question.questionIndex })
+          }
+          catchUp={
+            role === 'follow'
+              ? followed(view, { questionIndex: view.question.questionIndex })
+              : undefined
+          }
+          onPosition={playMedia ? sayPosition : undefined}
+          startAt={view.question.mediaStartAt ?? null}
+          anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
+        />
+        <AnswerRules question={view.question} className="shrink-0" />
+        {images ? (
+          // No picture of its own: the pictures are the answers, and take what is left.
+          <ImageChoiceGrid
+            fit="screen"
+            className="min-h-[8em] flex-1"
+            options={view.question.options ?? []}
           />
-        ) : null}
-        {/* Under the clock: centred when short, the picture filling what is left otherwise. */}
-        <div className="flex min-h-0 w-full flex-1 flex-col items-center justify-center gap-[1em]">
-          <Markdown
-            role="heading"
-            aria-level={1}
-            className="qd-prompt w-full shrink-0 text-[1.8em] leading-tight font-semibold"
-          >
-            {view.question.prompt}
-          </Markdown>
-          {/* Image or video in one box, the sound as its waveform; played here only. */}
-          <QuestionMediaStage
-            key={view.question.questionIndex}
-            media={view.question.media}
-            mode={role === 'preview' || view.nav?.review ? 'still' : view.paused ? 'pause' : 'play'}
-            // A copy plays the sound only when asked (a remote participant), and only
-            // when the question's sound is for remote devices.
-            audible={role !== 'follow' || copyHears}
-            className={visual ? 'min-h-[6em] flex-1' : 'shrink-0'}
-            boxClassName={visual ? 'aspect-auto h-full min-h-0 w-full flex-1' : undefined}
-            resumeKey={playMedia ? `${pin}:${view.question.questionIndex}` : null}
-            // The projection plays on its own; the console's tab draws its position; a copy
-            // that plays the sound starts on the common instant and catches up with it,
-            // as a remote participant's phone does.
-            follow={
-              playMedia || copyHears
-                ? undefined
-                : followed(view, { questionIndex: view.question.questionIndex })
-            }
-            catchUp={
-              role === 'follow'
-                ? followed(view, { questionIndex: view.question.questionIndex })
-                : undefined
-            }
-            onPosition={playMedia ? sayPosition : undefined}
-            startAt={view.question.mediaStartAt ?? null}
-            anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
-          />
-          <AnswerRules question={view.question} className="shrink-0" />
-          {images ? (
-            // No picture of its own: the pictures are the answers, and take what is left.
-            <ImageChoiceGrid
-              fit="screen"
-              className="min-h-[8em] flex-1"
-              options={view.question.options ?? []}
-            />
-          ) : view.question.options?.length ? (
-            <div className="w-full shrink-0">
-              <OptionGrid options={view.question.options} />
-            </div>
-          ) : (
-            <>
-              <p className="text-muted-foreground text-[1.5em]">{t('screen.answerOnPhone')}</p>
-              {joinBar}
-            </>
-          )}
-          <div className="shrink-0">{counter}</div>
-        </div>
+        ) : view.question.options?.length ? (
+          <div className="w-full shrink-0 text-[1.2em]">
+            <OptionGrid options={view.question.options} />
+          </div>
+        ) : (
+          <p className="text-[1.8em] font-semibold">{t('screen.answerOnPhone')}</p>
+        )}
       </div>
     );
+    bottom = view.paused
+      ? band('bottom', null, bigStatus(t('screen.pausedBig'), t('screen.pausedText'), true), null)
+      : view.answerCount && view.state === 'ANSWERING'
+        ? band(
+            'bottom',
+            null,
+            bigStatus(
+              t('screen.answered', {
+                answered: view.answerCount.answered,
+                total: view.answerCount.total,
+              }),
+            ),
+            null,
+          )
+        : null;
   } else {
     // LOBBY (et état initial) : invitation à rejoindre + liste des joueurs (§4.1).
     // The room's next quiz (#89): what comes, and where the room stands.
     const nextInRoom = view.standings ? view.standings : null;
-    body = (
-      <div className="qd-lobby flex flex-col items-center gap-[1.5em]">
-        {/* The room's name, then the quiz it plays (the next one, from its second). */}
-        <h1 className="text-[2.25em] font-bold">{roomLabel(t, view.roomName, view.hostName)}</h1>
-        {view.quizTitle ? (
-          <p className="-mt-[1em] text-[1.5em]">
-            <span className="text-muted-foreground">
-              {nextInRoom ? t('screen.nextQuiz') : t('screen.quizLabel')}
-            </span>{' '}
-            <span className="font-semibold">{view.quizTitle}</span>
-          </p>
-        ) : null}
-        <p className="text-[1.5em]">
-          {t('screen.joinAt')} <span className="font-semibold">{joinHost}</span>
-        </p>
-        <p className="qd-join-pin font-mono text-[4em] font-bold tracking-[0.3em]">{pin}</p>
-        <div className="qd-join-qr rounded-xl bg-white p-4 shadow">
-          <QRCodeSVG value={joinUrl} size={200} aria-label={t('screen.qrLabel')} />
-        </div>
-        <div className="text-muted-foreground flex items-center gap-[0.5em] text-[1.25em]">
-          <Users className="size-[1em]" />
-          <span data-testid="player-count">{view.players.length}</span>
-          <span>{t('screen.participants', { count: view.players.length })}</span>
+    top = band(
+      'top',
+      where(t('screen.phaseLobby')),
+      view.quizTitle ? (
+        <span className="text-[1.2em]">
+          <span className="text-muted-foreground">
+            {nextInRoom ? t('screen.nextQuiz') : t('screen.quizLabel')}
+          </span>{' '}
+          <b>{view.quizTitle}</b>
+        </span>
+      ) : null,
+      null,
+    );
+    stage = (
+      <div className="qd-lobby flex w-full flex-col items-center gap-[1.5em]">
+        <div className="flex flex-wrap items-center justify-center gap-[3em]">
+          <div className="qd-join-qr rounded-xl bg-white p-4 shadow">
+            <QRCodeSVG value={joinUrl} size={260} aria-label={t('screen.qrLabel')} />
+          </div>
+          <div className="flex flex-col items-start gap-[0.3em] text-left">
+            <span className="text-[1.4em]">{t('screen.joinAt')}</span>
+            <span className="text-[2em] font-bold">{joinHost}</span>
+            <span className="qd-join-pin font-mono text-[4.5em] leading-none font-bold tracking-[0.12em]">
+              {pin}
+            </span>
+          </div>
         </div>
         {/* The first question's sound or video, loaded on the devices that will play it. */}
         {view.readiness?.questionIndex === 0 ? (
           <ReadinessMeter readiness={view.readiness} className="text-[1em]" />
         ) : null}
-        <ul className="qd-roster flex max-w-[40em] flex-wrap justify-center gap-[0.5em]">
+        <ul className="qd-roster flex max-w-[56em] flex-wrap justify-center gap-[0.5em]">
           {view.players.map((p) => (
             <li
               key={p.playerId}
-              className="flex items-center gap-[0.5em] rounded-full border py-[0.25em] pl-[0.25em] pr-[0.75em] text-[1.1em]"
+              className="flex items-center gap-[0.5em] rounded-full border py-[0.25em] pr-[0.75em] pl-[0.25em] text-[1.1em]"
             >
               <Avatar name={p.avatar || p.nickname} size="2em" />
               {p.nickname}
@@ -474,26 +607,54 @@ export function ScreenSurface({
         ) : null}
       </div>
     );
+    bottom = band(
+      'bottom',
+      null,
+      bigStatus(
+        <>
+          <Users aria-hidden className="mr-[0.3em] inline size-[0.9em]" />
+          <span data-testid="player-count">{view.players.length}</span>{' '}
+          {t('screen.participants', { count: view.players.length })}
+        </>,
+        view.readiness?.lobby ? t('screen.readyOf', { ready: view.readiness.ready }) : null,
+      ),
+      null,
+    );
   }
+
+  const slide = view.state === 'SLIDE_SHOW';
+  const frame = (
+    <div className={cn('flex w-full flex-1 flex-col', !slide && 'min-h-0')}>
+      {top}
+      <div
+        className={cn(
+          'flex min-h-0 w-full flex-1 flex-col items-center',
+          slide ? 'items-stretch' : 'justify-center gap-[1.5em] px-[3.5em] py-[1.5em] text-center',
+          view.paused && !slide && 'opacity-60',
+        )}
+      >
+        {stage}
+      </div>
+      {bottom}
+    </div>
+  );
 
   return (
     <div
       ref={ref}
       data-state={view.state ?? 'none'}
       className={cn(
-        'qd-screen bg-background relative flex min-h-dvh flex-col',
-        // A question fits the screen exactly (see its body); the rest may grow.
-        (view.state === 'ANSWERING' ||
-          view.state === 'QUESTION_SHOW' ||
-          // An image choice's reveal keeps its grid on the screen, as the question did.
-          (view.state === 'REVEAL' && view.question?.type === 'image_choice')) &&
+        'qd-screen bg-background relative flex flex-col',
+        boxed ? 'h-full w-full overflow-hidden' : 'min-h-dvh',
+        // A question fits the screen exactly; the rest may grow.
+        !boxed &&
+          (view.state === 'ANSWERING' ||
+            view.state === 'QUESTION_SHOW' ||
+            view.state === 'REVEAL' ||
+            view.state === 'LEADERBOARD') &&
           'h-dvh',
         // One typographic base for the whole projected page; everything inside is in em.
-        TYPE_BASE.screen,
-        // A slide owns the whole surface; everything else is centred with breathing room.
-        view.state === 'SLIDE_SHOW'
-          ? 'items-stretch justify-stretch p-0'
-          : 'items-center justify-center gap-[1.5em] p-[1.5em] text-center',
+        boxed ? TYPE_BASE.stage : TYPE_BASE.screen,
       )}
     >
       {fullscreenBtn}
@@ -501,7 +662,7 @@ export function ScreenSurface({
         <SoundButton
           size="lg"
           align="start"
-          className="absolute top-4 left-4 z-40"
+          className={cn('absolute top-4 left-4 z-40', BACKDROP_EDGE)}
           onUnmute={() => void unlockAudio()}
         />
       ) : null}
@@ -514,26 +675,21 @@ export function ScreenSurface({
       view.state !== 'ENDED' ? (
         <SoundUnlockOverlay />
       ) : null}
-      {view.nav?.review ? (
-        // Top centre: the sound button holds the top left corner.
-        <span className="bg-muted text-muted-foreground absolute left-1/2 top-[1em] z-20 -translate-x-1/2 rounded-full px-[0.8em] py-[0.3em] text-[0.8em] font-medium">
-          {t('screen.review')}
-        </span>
-      ) : null}
-      {view.question?.background && view.state && QUESTION_STATES.has(view.state) ? (
-        // A question with a background owns the surface like a slide does.
+      {onBackground &&
+      view.question?.background &&
+      view.state &&
+      QUESTION_STATES.has(view.state) ? (
+        // A question with a background owns the surface, bands included.
         <Surface
           background={view.question.background}
           textTone={view.question.textTone}
           textOutline={view.question.textOutline}
-          className="absolute inset-0 flex items-center justify-center p-[2em]"
+          className="absolute inset-0"
         >
-          <div className="flex h-full w-full flex-col items-center justify-center gap-[1.5em]">
-            {body}
-          </div>
+          {frame}
         </Surface>
       ) : (
-        body
+        frame
       )}
     </div>
   );

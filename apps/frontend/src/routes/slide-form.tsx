@@ -26,7 +26,12 @@ import type {
   SlideTextSize,
   SlideTextTone,
 } from '@quiz-dock/contracts';
-import { SLIDE_VARIABLES, type quizVariables } from '@quiz-dock/contracts';
+import {
+  SLIDE_VARIABLES,
+  type quizVariables,
+  slideContentSchema,
+  slideIssues,
+} from '@quiz-dock/contracts';
 import { useQueryClient } from '@tanstack/react-query';
 import {
   AlignCenter,
@@ -44,8 +49,9 @@ import {
   Text,
   X,
 } from 'lucide-react';
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import { MediaEditsContext, useMediaEdits } from '@/lib/media-edits';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { Input } from '@/components/ui/input';
@@ -57,7 +63,16 @@ import { useFormDraft } from '@/lib/use-form-draft';
 import { clearDraft, loadDraft } from '@/lib/draft-store';
 import { FormActionBar } from '@/components/form-action-bar';
 import { DraftNotice } from '@/components/draft-notice';
-import { apiErrorText } from '../api/http';
+import { ApiError, apiErrorText, apiFieldErrors } from '../api/http';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { FieldMessage } from '@/components/ui/field-message';
+import {
+  type FieldIssue,
+  focusField,
+  issuesAsErrors,
+  issuesAsWarnings,
+  issuesFor,
+} from '@/lib/question-issues';
 import type { QuizDetailDtoSlidesItem } from '../api/generated/model';
 import { getQuizzesControllerGetQueryKey } from '../api/generated/quizzes/quizzes';
 import { useSlidesControllerAdd, useSlidesControllerUpdate } from '../api/generated/slides/slides';
@@ -103,6 +118,11 @@ function initialValues(s?: QuizDetailDtoSlidesItem): FormValues {
 
 type LeafKind = SlideLeafBlock['type'];
 
+/** How long a removed block can be taken back. */
+const UNDO_MS = 10_000;
+/** The server's refusal of an empty slide saved in a published quiz. */
+const INCOMPLETE_IN_READY = 'slide.incomplete_in_ready_quiz';
+
 function newLeaf(kind: LeafKind, level: 1 | 2 = 1): SlideLeafBlock {
   const id = blockId();
   if (kind === 'heading') return { type: 'heading', id, text: '', level };
@@ -110,14 +130,13 @@ function newLeaf(kind: LeafKind, level: 1 | 2 = 1): SlideLeafBlock {
   return { type: 'image', id, mediaId: '', size: 'large', align: 'center' };
 }
 
-/** Blocks the API would refuse (empty heading/text, image without media) are dropped on save. */
+/** A block with nothing in it yet: an empty heading or text, an image without its picture. */
+const leafEmpty = (b: SlideLeafBlock) =>
+  b.type === 'heading' ? !b.text.trim() : b.type === 'text' ? !b.md.trim() : !b.mediaId;
+
+/** Empty blocks are left out on save (UI system §1.5, level 2), and flagged until then. */
 function complete(blocks: SlideBlock[]): SlideBlock[] {
-  const leafOk = (b: SlideLeafBlock) =>
-    b.type === 'heading'
-      ? b.text.trim() !== ''
-      : b.type === 'text'
-        ? b.md.trim() !== ''
-        : b.mediaId !== '';
+  const leafOk = (b: SlideLeafBlock) => !leafEmpty(b);
   return blocks.flatMap((b): SlideBlock[] => {
     if (b.type !== 'columns') return leafOk(b) ? [b] : [];
     const columns = b.columns.map((c) => c.filter(leafOk));
@@ -134,11 +153,16 @@ export function SlideForm({
   quizId,
   slide,
   quizFields,
+  quizStatus = 'draft',
+  onMoveToDraft,
   onClose,
   onDirtyChange,
 }: {
   quizId: string;
   slide?: QuizDetailDtoSlidesItem;
+  /** A published quiz only takes slides that show something: else back to draft, or keep editing. */
+  quizStatus?: string;
+  onMoveToDraft?: () => Promise<void>;
   /** The quiz's fields its variables read in the preview; the room's stay as written. */
   quizFields?: Parameters<typeof quizVariables>[0];
   onClose: () => void;
@@ -149,6 +173,17 @@ export function SlideForm({
   const add = useSlidesControllerAdd();
   const update = useSlidesControllerUpdate();
   const [error, setError] = useState<string | null>(null);
+  // What blocks the save, by field; what is left to finish shows once saved or tried.
+  const [errors, setErrors] = useState<FieldIssue[]>([]);
+  const [checked, setChecked] = useState(!!slide);
+  const [askDraft, setAskDraft] = useState(false);
+  // The last removal, to take back (UI system §1.1: a reversible gesture gets Undo).
+  const [undo, setUndo] = useState<SlideBlock[] | null>(null);
+  useEffect(() => {
+    if (!undo) return;
+    const timer = window.setTimeout(() => setUndo(null), UNDO_MS);
+    return () => window.clearTimeout(timer);
+  }, [undo]);
   const [showStage, setShowStage] = useState(() => {
     try {
       return localStorage.getItem('slide.preview') !== 'hidden';
@@ -170,7 +205,13 @@ export function SlideForm({
   const draftKey = `quiz:${quizId}:slide:${slide?.id ?? 'new'}`;
   const [restored, setRestored] = useState(() => loadDraft<FormValues>(draftKey));
   const [values, setValues] = useState<FormValues>(restored ?? initial);
-  const dirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  const formDirty = useFormDraft(draftKey, initial, values, onDirtyChange);
+  // Alt texts and credits typed here wait for the Save, and count as changes.
+  const mediaEdits = useMediaEdits();
+  const dirty = formDirty || mediaEdits.dirty;
+  useEffect(() => {
+    if (mediaEdits.dirty) onDirtyChange?.(true);
+  }, [mediaEdits.dirty, onDirtyChange]);
   // Back to what was loaded: the draft goes with the changes.
   const discardDraft = () => {
     setRestored(null);
@@ -185,37 +226,86 @@ export function SlideForm({
     onClose();
   };
 
+  const payload = () => ({
+    blocks: complete(values.blocks),
+    mediaId: values.mediaId,
+    gradient: values.gradient,
+    videoMediaId: values.videoMediaId,
+    videoLoop: values.videoLoop,
+    videoSound: values.videoSound,
+    audioMediaId: values.videoMediaId && values.videoSound ? null : values.audioMediaId,
+    waveformSize: values.waveformSize,
+    audioTarget: values.audioTarget,
+    textTone: values.textTone,
+    textOutline: values.textOutline,
+    displayDelayS: values.displayDelayS,
+  });
+
   const submit = async () => {
     setError(null);
-    const data = {
-      blocks: complete(values.blocks),
-      mediaId: values.mediaId,
-      gradient: values.gradient,
-      videoMediaId: values.videoMediaId,
-      videoLoop: values.videoLoop,
-      videoSound: values.videoSound,
-      audioMediaId: values.videoMediaId && values.videoSound ? null : values.audioMediaId,
-      waveformSize: values.waveformSize,
-      audioTarget: values.audioTarget,
-      textTone: values.textTone,
-      textOutline: values.textOutline,
-      displayDelayS: values.displayDelayS,
-    };
+    setErrors([]);
+    setChecked(true);
+    const data = payload();
+    // The server's own schema: what no slide may break is said here, under its field.
+    const parsed = slideContentSchema.safeParse(data);
+    if (!parsed.success) {
+      const found = issuesAsErrors(parsed.error.issues);
+      setErrors(found);
+      focusField(found[0].field);
+      return;
+    }
+    if (quizStatus === 'ready' && slideIssues(parsed.data).length > 0) {
+      setAskDraft(true);
+      return;
+    }
+    await save(data);
+  };
+  const save = async (data: ReturnType<typeof payload>) => {
     try {
+      // The media's alt and credit, edited here, are saved with the slide.
+      await mediaEdits.flush();
       if (slide) await update.mutateAsync({ sid: slide.id, data });
       else await add.mutateAsync({ id: quizId, data });
       await queryClient.invalidateQueries({ queryKey: getQuizzesControllerGetQueryKey(quizId) });
       clearDraft(draftKey);
       onClose();
     } catch (err) {
+      if (
+        err instanceof ApiError &&
+        (err.data as { code?: string })?.code === INCOMPLETE_IN_READY
+      ) {
+        setAskDraft(true);
+        return;
+      }
+      const found = apiFieldErrors(err).map(
+        (e): FieldIssue => ({ field: e.field, text: e.message, tone: 'error' }),
+      );
+      setErrors(found);
       setError(apiErrorText(err, t('slideForm.invalidError')));
+      if (found[0]) focusField(found[0].field);
     }
   };
+  const moveToDraftAndSave = async () => {
+    setAskDraft(false);
+    try {
+      await onMoveToDraft?.();
+    } catch (err) {
+      setError(apiErrorText(err));
+      return;
+    }
+    await save(payload());
+  };
+  // Under each section: what blocks the save, then what is left to finish.
+  const issues = [...errors, ...(checked ? issuesAsWarnings(slideIssues(payload())) : [])];
+  const issuesAt = (field: string) => issuesFor(issues, field);
 
   // ── blocks ──
   const setBlock = (id: string, next: SlideBlock) =>
     patch({ blocks: values.blocks.map((b) => (b.id === id ? next : b)) });
-  const removeBlock = (id: string) => patch({ blocks: values.blocks.filter((b) => b.id !== id) });
+  const removeBlock = (id: string) => {
+    setUndo(values.blocks);
+    patch({ blocks: values.blocks.filter((b) => b.id !== id) });
+  };
   const addBlock = (b: SlideBlock) => patch({ blocks: [...values.blocks, b] });
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 4 } }),
@@ -244,91 +334,135 @@ export function SlideForm({
   };
 
   return (
-    <form
-      className="flex flex-col gap-6"
-      onSubmit={(e) => {
-        e.preventDefault();
-        void submit();
-      }}
-    >
-      {/* Enregistrer est en haut, collant, comme pour une question : l'aperçu, les
+    <MediaEditsContext.Provider value={mediaEdits.edits}>
+      <form
+        className="flex flex-col gap-6"
+        onSubmit={(e) => {
+          e.preventDefault();
+          void submit();
+        }}
+      >
+        {/* Enregistrer est en haut, collant, comme pour une question : l'aperçu, les
           blocs et le média poussent le bas de la page hors d'atteinte. La barre dit
           aussi ce qu'on édite — hors tiroir, le formulaire n'a pas de titre. */}
-      <FormActionBar
-        title={slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
-        // Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
-        // bas de page où plus personne ne regarde.
-        error={error}
-        dirty={dirty}
-        busy={add.isPending || update.isPending}
-        submitLabel={slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
-        onCancel={cancel}
-      />
+        <FormActionBar
+          title={slide ? t('slideForm.titleEdit') : t('slideForm.titleAdd')}
+          // Le refus d'enregistrer se lit à côté du bouton qui l'a provoqué, pas en
+          // bas de page où plus personne ne regarde.
+          error={error}
+          issues={issues}
+          onIssue={focusField}
+          dirty={dirty}
+          busy={add.isPending || update.isPending}
+          submitLabel={slide ? t('slideForm.submitUpdate') : t('slideForm.submitAdd')}
+          onCancel={cancel}
+        />
 
-      {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
-      {/* What the projected screen will show, at slide proportions — foldable, remembered. */}
-      <div className="flex flex-col gap-2">
-        <div className="flex items-center justify-between">
-          <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
-            {t('slideForm.previewLegend')}
-          </span>
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2 text-xs"
-            aria-pressed={showStage}
-            onClick={toggleStage}
-          >
-            {showStage ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
-            {showStage ? t('slideForm.hidePreview') : t('slideForm.showPreview')}
-          </Button>
+        {restored ? <DraftNotice onDiscard={discardDraft} /> : null}
+        {/* What the projected screen will show, at slide proportions — foldable, remembered. */}
+        <div className="flex flex-col gap-2">
+          <div className="flex items-center justify-between">
+            <span className="text-muted-foreground text-xs font-semibold tracking-wider uppercase">
+              {t('slideForm.previewLegend')}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs"
+              aria-pressed={showStage}
+              onClick={toggleStage}
+            >
+              {showStage ? <EyeOff className="size-3.5" /> : <Eye className="size-3.5" />}
+              {showStage ? t('slideForm.hidePreview') : t('slideForm.showPreview')}
+            </Button>
+          </div>
+          {showStage ? <SlideStage className="rounded-xl border" slide={stage} /> : null}
         </div>
-        {showStage ? <SlideStage className="rounded-xl border" slide={stage} /> : null}
-      </div>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
-          {t('slideForm.blocksLegend')}
-        </legend>
-        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-          <SortableContext
-            items={values.blocks.map((b) => b.id)}
-            strategy={verticalListSortingStrategy}
-          >
-            {values.blocks.map((b) => (
-              <SortableBlock key={b.id} id={b.id} onRemove={() => removeBlock(b.id)}>
-                <BlockEditor block={b} onChange={(next) => setBlock(b.id, next)} />
-              </SortableBlock>
-            ))}
-          </SortableContext>
-        </DndContext>
-        <AddBlockBar onAdd={addBlock} />
-        <VariablesHelp />
-      </fieldset>
+        <fieldset id="qf-blocks" className="flex flex-col gap-3">
+          <legend className="text-muted-foreground mb-2 text-xs font-semibold tracking-wider uppercase">
+            {t('slideForm.blocksLegend')}
+          </legend>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={onDragEnd}>
+            <SortableContext
+              items={values.blocks.map((b) => b.id)}
+              strategy={verticalListSortingStrategy}
+            >
+              {values.blocks.map((b) => (
+                <SortableBlock key={b.id} id={b.id} onRemove={() => removeBlock(b.id)}>
+                  <BlockEditor
+                    block={b}
+                    onChange={(next) => setBlock(b.id, next)}
+                    onRemoving={() => setUndo(values.blocks)}
+                  />
+                </SortableBlock>
+              ))}
+            </SortableContext>
+          </DndContext>
+          {undo ? (
+            <div
+              role="status"
+              className="bg-foreground text-background flex items-center gap-3 self-center rounded-md px-3 py-1.5 text-sm"
+            >
+              {t('slideForm.blockRemoved')}
+              <button
+                type="button"
+                className="font-semibold underline"
+                onClick={() => {
+                  patch({ blocks: undo });
+                  setUndo(null);
+                }}
+              >
+                {t('slideForm.undo')}
+              </button>
+            </div>
+          ) : null}
+          <FieldMessage issues={issuesAt('blocks')} />
+          <AddBlockBar onAdd={addBlock} />
+          <VariablesHelp />
+        </fieldset>
+        {/* Media refusals point at the video or the sound: both lead here. */}
+        <div id="qf-videoMediaId">
+          <div id="qf-audioMediaId" className="flex flex-col gap-1.5">
+            <SlideMediaField
+              value={values}
+              onChange={(p) => patch(p)}
+              peaks={audioPeaks}
+              onPeaks={setAudioPeaks}
+            />
+            <FieldMessage issues={[...issuesAt('audioMediaId'), ...issuesAt('videoMediaId')]} />
+          </div>
+        </div>
 
-      <SlideMediaField
-        value={values}
-        onChange={(p) => patch(p)}
-        peaks={audioPeaks}
-        onPeaks={setAudioPeaks}
-      />
+        <div id="qf-gradient" className="flex flex-col gap-1.5">
+          <BackgroundField
+            value={{
+              mediaId: values.mediaId,
+              gradient: values.gradient,
+              textTone: values.textTone,
+              textOutline: values.textOutline,
+            }}
+            onChange={(b) => patch(b)}
+          />
+          <FieldMessage issues={[...issuesAt('gradient'), ...issuesAt('mediaId')]} />
+        </div>
 
-      <BackgroundField
-        value={{
-          mediaId: values.mediaId,
-          gradient: values.gradient,
-          textTone: values.textTone,
-          textOutline: values.textOutline,
-        }}
-        onChange={(b) => patch(b)}
-      />
-
-      <DisplayTimeField
-        value={values.displayDelayS}
-        onChange={(v) => patch({ displayDelayS: v })}
-      />
-    </form>
+        <DisplayTimeField
+          value={values.displayDelayS}
+          onChange={(v) => patch({ displayDelayS: v })}
+        />
+        <ConfirmDialog
+          open={askDraft}
+          title={t('slideForm.moveToDraft.title')}
+          description={t('slideForm.moveToDraft.description')}
+          confirmLabel={t('questionForm.moveToDraft.confirmLabel')}
+          cancelLabel={t('questionForm.moveToDraft.cancelLabel')}
+          onCancel={() => setAskDraft(false)}
+          onConfirm={() => void moveToDraftAndSave()}
+        />
+      </form>
+    </MediaEditsContext.Provider>
   );
 }
 
@@ -490,9 +624,12 @@ function SortableBlock({
 function BlockEditor({
   block,
   onChange,
+  onRemoving,
 }: {
   block: SlideBlock;
   onChange: (next: SlideBlock) => void;
+  /** Called before a block inside a column goes, so the removal can be undone. */
+  onRemoving: () => void;
 }) {
   const { t } = useTranslation('editor');
   if (block.type !== 'columns') return <LeafEditor block={block} onChange={onChange} />;
@@ -538,12 +675,13 @@ function BlockEditor({
                   size="icon"
                   className="size-7 shrink-0"
                   aria-label={t('slideForm.removeBlock')}
-                  onClick={() =>
+                  onClick={() => {
+                    onRemoving();
                     setCol(
                       i,
                       col.filter((l) => l.id !== leaf.id),
-                    )
-                  }
+                    );
+                  }}
                 >
                   <X className="size-3.5" />
                 </Button>
@@ -572,6 +710,25 @@ function BlockEditor({
 }
 
 function LeafEditor({
+  block,
+  onChange,
+}: {
+  block: SlideLeafBlock;
+  onChange: (next: SlideLeafBlock) => void;
+}) {
+  const { t } = useTranslation('editor');
+  // An empty block is not an error: it is left out of the slide, and says so.
+  return (
+    <div className="flex flex-col gap-1">
+      <LeafFields block={block} onChange={onChange} />
+      {leafEmpty(block) ? (
+        <p className="text-muted-foreground text-xs">{t('slideForm.emptySkipped')}</p>
+      ) : null}
+    </div>
+  );
+}
+
+function LeafFields({
   block,
   onChange,
 }: {
@@ -646,18 +803,11 @@ function LeafEditor({
               <option value="full">{t('slideForm.size.full')}</option>
             </Select>
           </Label>
-          <Label className="flex-row items-center gap-2">
-            {t('slideForm.imageAlign')}
-            <Select
-              className="w-32"
-              value={block.align}
-              onChange={(e) => onChange({ ...block, align: e.target.value as typeof block.align })}
-            >
-              <option value="left">{t('slideForm.align.left')}</option>
-              <option value="center">{t('slideForm.align.center')}</option>
-              <option value="right">{t('slideForm.align.right')}</option>
-            </Select>
-          </Label>
+          <AlignPicker
+            label={t('slideForm.imageAlign')}
+            value={block.align}
+            onChange={(align) => onChange({ ...block, align })}
+          />
         </div>
       );
   }
@@ -666,9 +816,12 @@ function LeafEditor({
 /** Left / centre / right for a text-like block; centre is the default. */
 function AlignPicker({
   value,
+  label,
   onChange,
 }: {
   value: SlideTextAlign | undefined;
+  /** Its name for a screen reader; a text's alignment by default. */
+  label?: string;
   onChange: (align: SlideTextAlign) => void;
 }) {
   const { t } = useTranslation('editor');
@@ -682,7 +835,7 @@ function AlignPicker({
     <Segmented
       size="sm"
       className="shrink-0"
-      label={t('slideForm.textAlign')}
+      label={label ?? t('slideForm.textAlign')}
       value={current}
       onChange={onChange}
       options={items.map(({ align, icon }) => ({
