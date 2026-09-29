@@ -178,5 +178,10 @@
     "busy": "Un import est déjà en cours. Attendez qu’il se termine.",
     "import_failed": "Le quiz n’a pas pu être importé. Consultez les journaux du serveur.",
     "rate_limit": "Trop de requêtes du connecteur. Réessayez dans une minute."
+  },
+  "community": {
+    "disabled": "Le catalogue communautaire est désactivé.",
+    "download_failed": "Le quiz n’a pas pu être téléchargé ou vérifié.",
+    "busy": "Le catalogue communautaire est occupé. Réessayez dans un instant."
   }
 }

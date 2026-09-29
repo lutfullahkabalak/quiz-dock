@@ -178,5 +178,10 @@
     "busy": "An import is already running. Wait for it to finish.",
     "import_failed": "The quiz could not be imported. Check the server logs.",
     "rate_limit": "Too many connector requests. Try again in a minute."
+  },
+  "community": {
+    "disabled": "The community store is disabled.",
+    "download_failed": "The quiz could not be downloaded or verified.",
+    "busy": "The community store is busy. Try again shortly."
   }
 }

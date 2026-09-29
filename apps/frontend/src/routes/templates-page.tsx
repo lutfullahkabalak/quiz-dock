@@ -19,6 +19,7 @@ import { Segmented } from '@/components/ui/segmented';
 import { FilterField } from '@/components/ui/filter-field';
 import { Select } from '@/components/ui/select';
 import { TagFilter, tagsOf } from '@/components/tag-filter';
+import { hasCommunityStore } from '../config';
 import { fold } from '@/lib/text';
 import { useStoredView } from '@/lib/use-stored-view';
 import { cn } from '@/lib/utils';
@@ -93,6 +94,11 @@ export function TemplatesPage() {
       <header className="flex flex-col gap-1">
         <PageTitle>{t('title')}</PageTitle>
         <p className="text-muted-foreground max-w-prose text-sm">{t('intro')}</p>
+        {hasCommunityStore() ? (
+          <Link to="/community" className="underline text-sm">
+            {t('community.title')}
+          </Link>
+        ) : null}
       </header>
 
       {error ? (

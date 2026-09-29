@@ -2024,6 +2024,88 @@
         ]
       }
     },
+    "/api/v1/community-store": {
+      "get": {
+        "operationId": "CommunityController_list",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityCatalogueDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "community-store"
+        ]
+      }
+    },
+    "/api/v1/community-store/{key}": {
+      "get": {
+        "operationId": "CommunityController_preview",
+        "parameters": [
+          {
+            "name": "key",
+            "required": true,
+            "in": "path",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CommunityPreviewDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "community-store"
+        ]
+      }
+    },
+    "/api/v1/community-store/take": {
+      "post": {
+        "operationId": "CommunityController_take",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommunityTakeDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "community-store"
+        ]
+      }
+    },
     "/api/v1/quizzes/{id}/questions": {
       "post": {
         "operationId": "QuestionsController_add",
@@ -2524,6 +2606,9 @@
       "AuthConfigDto": {
         "type": "object",
         "properties": {
+          "communityStore": {
+            "type": "boolean"
+          },
           "mode": {
             "type": "string",
             "enum": [
@@ -2551,6 +2636,7 @@
           }
         },
         "required": [
+          "communityStore",
           "mode",
           "demo",
           "standalone",
@@ -6667,6 +6753,158 @@
           "slides",
           "media",
           "invalid"
+        ]
+      },
+      "CommunityCatalogueDto": {
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "key": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "title": {
+                  "type": "string"
+                },
+                "description": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "language": {
+                  "type": "string"
+                },
+                "tags": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                },
+                "license": {
+                  "type": "string"
+                },
+                "questionCount": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "author": {
+                  "type": "string"
+                },
+                "registry": {
+                  "type": "string"
+                },
+                "source": {
+                  "type": "string"
+                },
+                "homepage": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "reportUrl": {
+                  "type": "string",
+                  "nullable": true
+                },
+                "updatedAt": {
+                  "type": "string"
+                },
+                "size": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "key",
+                "id",
+                "title",
+                "description",
+                "language",
+                "tags",
+                "license",
+                "questionCount",
+                "author",
+                "registry",
+                "source",
+                "homepage",
+                "reportUrl",
+                "updatedAt",
+                "size"
+              ]
+            }
+          },
+          "unavailable": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "enabled",
+          "entries",
+          "unavailable"
+        ]
+      },
+      "CommunityPreviewDto": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "type": "string",
+                  "enum": [
+                    "question",
+                    "slide"
+                  ]
+                },
+                "text": {
+                  "type": "string"
+                },
+                "options": {
+                  "type": "array",
+                  "items": {
+                    "type": "string"
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "text",
+                "options"
+              ]
+            }
+          }
+        },
+        "required": [
+          "title",
+          "items"
+        ]
+      },
+      "CommunityTakeDto": {
+        "type": "object",
+        "properties": {
+          "key": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        },
+        "required": [
+          "key"
         ]
       },
       "CreateQuestionDto": {

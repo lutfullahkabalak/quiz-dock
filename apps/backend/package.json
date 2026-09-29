@@ -36,6 +36,7 @@
     "fast-xml-parser": "^5.11.1",
     "fflate": "^0.8.2",
     "ioredis": "^5.11.1",
+    "ipaddr.js": "^2.5.0",
     "jose": "^5.10.0",
     "nestjs-zod": "^5.4.0",
     "pg": "^8.21.0",

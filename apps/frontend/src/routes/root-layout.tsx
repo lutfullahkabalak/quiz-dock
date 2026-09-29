@@ -14,6 +14,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/live': 'live',
   '/profile': 'profile',
   '/templates': 'templates',
+  '/community': 'templates',
   '/templates/$templateId': 'template',
   '/quizzes/$quizId': 'editor',
   '/quizzes/$quizId/preview': 'preview',

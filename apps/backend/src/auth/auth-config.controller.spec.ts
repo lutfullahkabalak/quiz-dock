@@ -12,6 +12,7 @@ describe('AuthConfigController', () => {
     process.env = { ...env, AUTH_MODE: 'none' };
     expect(controller.config()).toEqual({
       mode: 'none',
+      communityStore: true,
       demo: null,
       standalone: false,
       anonymousParticipants: false,
@@ -27,6 +28,7 @@ describe('AuthConfigController', () => {
     };
     expect(controller.config()).toEqual({
       mode: 'oidc',
+      communityStore: true,
       demo: null,
       standalone: false,
       anonymousParticipants: false,
@@ -44,10 +46,16 @@ describe('AuthConfigController', () => {
     process.env = { ...env, AUTH_MODE: 'none', DEMO_MODE: 'true' };
     expect(controller.config()).toEqual({
       mode: 'none',
+      communityStore: true,
       demo: { user: 'demo_user' },
       standalone: false,
       anonymousParticipants: false,
     });
+  });
+
+  it('hides the community store when registries are explicitly empty', () => {
+    process.env = { ...env, QUIZ_STORE_URL: '' };
+    expect(controller.config().communityStore).toBe(false);
   });
 
   it('says it is the all-in-one image, which the demo page lists as a limitation', () => {

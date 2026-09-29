@@ -116,3 +116,11 @@ export function configureAnonymousParticipants(value: boolean): void {
 export function allowsAnonymousParticipants(): boolean {
   return anonymousParticipants;
 }
+
+let communityStore = false;
+export function configureCommunityStore(value: boolean): void {
+  communityStore = value;
+}
+export function hasCommunityStore(): boolean {
+  return communityStore;
+}
