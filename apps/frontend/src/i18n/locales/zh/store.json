@@ -38,5 +38,15 @@
   "unreadable": "此模板无法完整读取：创建副本会被拒绝（{{where}}）。",
   "unreadableItem": "第 {{n}} 项",
   "unreadableManifest": "其清单",
-  "more": "更多操作"
+  "more": "更多操作",
+  "community": {
+    "title": "社区题库",
+    "intro": "其他作者发布的测验。创建独立副本前，请检查来源、许可和答案。",
+    "empty": "社区目录为空。",
+    "unavailable": "部分来源无法加载，请稍后重试。",
+    "source": "来源：{{source}}",
+    "report": "报告问题",
+    "closePreview": "关闭预览",
+    "previewHint": "文本预览。图片和音频可在导入的草稿中查看。"
+  }
 }

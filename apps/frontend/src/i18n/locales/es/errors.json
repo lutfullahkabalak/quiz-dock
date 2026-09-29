@@ -178,5 +178,10 @@
     "busy": "Ya hay una importación en curso. Espera a que termine.",
     "import_failed": "No se pudo importar el cuestionario. Consulta los registros del servidor.",
     "rate_limit": "Demasiadas solicitudes del conector. Inténtalo de nuevo en un minuto."
+  },
+  "community": {
+    "disabled": "El catálogo de la comunidad está desactivado.",
+    "download_failed": "No se pudo descargar o verificar el quiz.",
+    "busy": "El catálogo de la comunidad está ocupado. Inténtalo de nuevo en un momento."
   }
 }

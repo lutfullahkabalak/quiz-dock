@@ -18,6 +18,7 @@ import {
   APP_NAME,
   configureAnonymousParticipants,
   configureDemo,
+  configureCommunityStore,
   configureStandalone,
 } from './config';
 import { MotionRoot } from './game/motion/motion-root';
@@ -51,6 +52,7 @@ async function bootstrap(): Promise<void> {
     const { data } = await authConfigControllerConfig();
     mode = data.mode;
     configureDemo(data.demo ?? null);
+    configureCommunityStore(data.communityStore === true);
     configureStandalone(data.standalone === true);
     configureAnonymousParticipants(data.anonymousParticipants === true);
     forgetStoredTokens();

@@ -8,6 +8,7 @@ import { z } from 'zod';
  * d'env du backend.
  */
 export const authConfigSchema = z.object({
+  communityStore: z.boolean(),
   mode: z.enum(['none', 'oidc']),
   /** Démo publique : le compte hôte que tous les visiteurs partagent. */
   demo: z.object({ user: z.string() }).nullable(),
