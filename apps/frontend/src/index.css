@@ -43,6 +43,10 @@
   --answer-pink: oklch(59.2% 0.249 0.584);
   --answer-teal: oklch(60% 0.118 184.704);
   --answer-none: oklch(44.6% 0.043 257.281);
+  /* A wrong answer at the reveal: low contrast, never see-through (UI system §1.4). */
+  --answer-off: oklch(0.93 0 0);
+  --answer-off-fill: oklch(0.85 0 0);
+  --answer-off-text: oklch(0.45 0 0);
   /* The podium's steps: first, second, third. */
   --podium-1: oklch(76.9% 0.188 70.08);
   --podium-2: oklch(70.4% 0.04 256.788);
@@ -149,6 +153,7 @@
   --color-answer-pink: var(--answer-pink);
   --color-answer-teal: var(--answer-teal);
   --color-answer-none: var(--answer-none);
+  --color-answer-off-text: var(--answer-off-text);
   --color-podium-1: var(--podium-1);
   --color-podium-2: var(--podium-2);
   --color-podium-3: var(--podium-3);

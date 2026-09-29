@@ -499,7 +499,8 @@ describe('ControlPage (console hôte)', () => {
     hookState.value = view({});
     renderApp('/session/482913/console');
 
-    const lock = await screen.findByRole('switch', {
+    // One control for it in every phase (UI system §2.1): the second row's toggle button.
+    const lock = await screen.findByRole('button', {
       name: 'Fermer le salon aux nouveaux participants',
     });
     act(() => fireEvent.click(lock));

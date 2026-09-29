@@ -67,6 +67,7 @@ export function OptionGrid({
   correctIds,
   highlightIds,
   disabled,
+  counts,
   layout = 'tiles',
 }: {
   options: PublicOption[];
@@ -81,6 +82,12 @@ export function OptionGrid({
    */
   highlightIds?: string[];
   disabled?: boolean;
+  /**
+   * The reveal as gauges (UI system §2.2): with `correctIds`, each tile fills in
+   * proportion to its answers and shows the count; the right one keeps its colour,
+   * the others turn a low-contrast grey — never see-through.
+   */
+  counts?: Record<string, number>;
   /** `tiles`: the coloured tiles. `list` (a participant's reveal): the answers one under the other. */
   layout?: 'tiles' | 'list';
 }) {
@@ -91,6 +98,8 @@ export function OptionGrid({
   }
   const many = options.length > 4;
   const long = options.some((o) => (o.text ?? '').length > OPTION_TILE_MAX_CHARS);
+  const gauges = counts && correctIds;
+  const total = gauges ? Object.values(counts).reduce((a, b) => a + b, 0) : 0;
   return (
     <div className={cn('qd-answers', ANSWER_GRID)}>
       {options.map((o, i) => {
@@ -99,6 +108,8 @@ export function OptionGrid({
         const isHinted = highlightIds?.includes(o.id); // indice animateur (outline verte)
         const dimmed = correctIds && !isCorrect; // au reveal, estompe les mauvaises
         const Tag = onPick ? 'button' : 'div';
+        const n = counts?.[o.id] ?? 0;
+        const pct = total > 0 ? Math.round((n / total) * 100) : 0;
         return (
           <Tag
             key={o.id}
@@ -118,11 +129,13 @@ export function OptionGrid({
               COLOR_BG[o.color] ?? OPTION_BG_FALLBACK,
               onPick && !disabled && 'hover:brightness-110 active:scale-[0.98] cursor-pointer',
               // Greyed, not see-through: a faded tile would melt into a background.
-              dimmed && 'brightness-75 grayscale',
+              dimmed && !gauges && 'brightness-75 grayscale',
+              gauges && !isCorrect && 'text-answer-off-text font-medium',
               isPicked ? PICKED_RING : BACKDROP_EDGE,
               isHinted && 'outline-success outline outline-2 outline-offset-2',
             )}
-            aria-label={optionLabel(o)}
+            aria-label={gauges ? `${optionLabel(o)} · ${n}` : optionLabel(o)}
+            style={gauges ? { background: gaugeFill(o.color, pct, !!isCorrect) } : undefined}
           >
             <span aria-hidden className="shrink-0 text-[1.35em] leading-none">
               <ShapeIcon shape={o.shape} />
@@ -135,12 +148,30 @@ export function OptionGrid({
                 {o.text}
               </Markdown>
             ) : null}
-            {isCorrect ? <CorrectMark className="ml-auto" /> : null}
+            {isCorrect ? <CorrectMark className={gauges ? undefined : 'ml-auto'} /> : null}
+            {gauges ? (
+              <span className="ml-auto shrink-0 text-right leading-none tabular-nums">
+                {n}
+                <span className="ml-[0.4em] text-[0.65em] font-medium opacity-85">{pct} %</span>
+              </span>
+            ) : null}
           </Tag>
         );
       })}
     </div>
   );
+}
+
+/**
+ * A reveal tile's fill: its share of the answers from the left. The right answer
+ * in its own colour over a darker shade of it; a wrong one in two light greys.
+ */
+function gaugeFill(color: string, pct: number, correct: boolean): string {
+  if (!correct) {
+    return `linear-gradient(to right, var(--answer-off-fill) ${pct}%, var(--answer-off) ${pct}%)`;
+  }
+  const c = COLOR_BG[color] ? `var(--answer-${color})` : 'var(--answer-none)';
+  return `linear-gradient(to right, ${c} ${pct}%, color-mix(in oklab, ${c} 55%, black) ${pct}%)`;
 }
 
 /** The answers, in reading order, keyed by colour and shape (the phone's legend for the tiles). */
