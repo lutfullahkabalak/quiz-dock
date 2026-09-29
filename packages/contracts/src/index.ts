@@ -428,6 +428,18 @@ export interface OutlineQuestion {
   correctOptionIds: string[];
 }
 
+/** A slide in the host's outline, placed before the question it leads to. */
+export interface OutlineSlide {
+  /** Its index among the quiz's slides (the `slideIndex` of a `GameStep`). */
+  slideIndex: number;
+  /** The question it comes before; the question count when it closes the quiz. */
+  beforeQuestionIndex: number;
+  /** Its first heading, else the start of its first text; empty when it has neither. */
+  title: string;
+  /** Seconds it stays in auto mode; null = the default duration. */
+  displayDelayS: number | null;
+}
+
 /** Sommaire du quiz pour la console hôte (récap + carrousel d'avancement). */
 export interface GameOutlinePayload {
   /** Quiz being played — the host console links back to its editor. */
@@ -435,6 +447,8 @@ export interface GameOutlinePayload {
   title: string;
   description: string | null;
   questions: OutlineQuestion[];
+  /** The quiz's slides, so the outline shows every step. */
+  slides: OutlineSlide[];
 }
 
 export interface PersonalResult {

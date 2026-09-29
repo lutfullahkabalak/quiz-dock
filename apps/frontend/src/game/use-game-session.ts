@@ -14,6 +14,7 @@ import type {
   MediaPreloadPayload,
   MediaReadinessPayload,
   OutlineQuestion,
+  OutlineSlide,
   ParticipantAccess,
   PersonalResult,
   PlayerPresence,
@@ -110,6 +111,8 @@ export interface GameView {
   joinBaseUrl: string | null;
   /** Sommaire des questions (console hôte uniquement). */
   outline: OutlineQuestion[];
+  /** The quiz's slides, placed among the questions of the outline (host console only). */
+  outlineSlides: OutlineSlide[];
   /** Media of the next question, to fetch ahead (projection and console only). */
   preload: MediaPreloadPayload | null;
   /** Last host command on the current media; `seq` changes with each one. */
@@ -183,6 +186,7 @@ const INITIAL: GameView = {
   quizDescription: null,
   joinBaseUrl: null,
   outline: [],
+  outlineSlides: [],
   preload: null,
   mediaControl: null,
   quizHasSound: null,
@@ -324,6 +328,7 @@ export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boo
         quizTitle: p.title,
         quizDescription: p.description,
         outline: p.questions,
+        outlineSlides: p.slides ?? [],
       });
     // Ajustement du chrono : on remplace les timings de la question courante (le
     // décompte est dérivé de `endsAt`), sans toucher au reste de son contenu.
