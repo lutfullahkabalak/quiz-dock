@@ -17,7 +17,8 @@
     "deleteQuiz": "删除测验",
     "preview": "预览",
     "export": "导出",
-    "exportError": "无法导出测验。"
+    "exportError": "无法导出测验。",
+    "more": "更多"
   },
   "settings": {
     "title": "设置",
@@ -65,7 +66,9 @@
     "sharedLabel": "与本实例的其他主持人共享",
     "sharedHelp": "他们会在自己的测验中看到它（只读），并可创建自己的副本。不勾选则只有你能看到。",
     "sharedOn": "已共享",
-    "sharedOff": "私有"
+    "sharedOff": "私有",
+    "saving": "正在保存…",
+    "saved": "已保存"
   },
   "broadcast": {
     "title": "广播",
@@ -111,7 +114,8 @@
     "empty": "还没有题目。添加一道吧！",
     "collapseList": "收起列表",
     "expandList": "展开列表",
-    "unfinished": "未完成"
+    "unfinished": "未完成",
+    "itemActions": "“{{label}}”的操作"
   },
   "slides": {
     "formTitle": "幻灯片",

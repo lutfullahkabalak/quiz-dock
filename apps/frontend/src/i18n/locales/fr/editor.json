@@ -17,7 +17,8 @@
     "deleteQuiz": "Supprimer le quiz",
     "preview": "Aperçu",
     "export": "Exporter",
-    "exportError": "Impossible d’exporter le quiz."
+    "exportError": "Impossible d’exporter le quiz.",
+    "more": "Plus"
   },
   "settings": {
     "title": "Réglages",
@@ -65,7 +66,9 @@
     "sharedLabel": "Partager avec les autres animateurs de l’instance",
     "sharedHelp": "Ils le voient dans leurs quiz, en lecture seule, et peuvent en créer leur propre copie. Décoché, il reste à vous seul.",
     "sharedOn": "Partagé",
-    "sharedOff": "Privé"
+    "sharedOff": "Privé",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré"
   },
   "broadcast": {
     "title": "Diffusion",
@@ -111,7 +114,8 @@
     "empty": "Aucune question. Ajoutez-en une !",
     "collapseList": "Réduire la liste",
     "expandList": "Déplier la liste",
-    "unfinished": "Inachevée"
+    "unfinished": "Inachevée",
+    "itemActions": "Actions pour « {{label}} »"
   },
   "slides": {
     "formTitle": "Slide",

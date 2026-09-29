@@ -17,7 +17,8 @@
     "deleteQuiz": "Eliminar quiz",
     "preview": "Vista previa",
     "export": "Exportar",
-    "exportError": "No se pudo exportar el quiz."
+    "exportError": "No se pudo exportar el quiz.",
+    "more": "Más"
   },
   "settings": {
     "title": "Ajustes",
@@ -65,7 +66,9 @@
     "sharedLabel": "Compartir con los otros anfitriones de la instancia",
     "sharedHelp": "Lo ven en sus quiz, en solo lectura, y pueden crear su propia copia. Sin marcar, solo es tuyo.",
     "sharedOn": "Compartido",
-    "sharedOff": "Privado"
+    "sharedOff": "Privado",
+    "saving": "Guardando…",
+    "saved": "Guardado"
   },
   "broadcast": {
     "title": "Difusión",
@@ -111,7 +114,8 @@
     "empty": "No hay preguntas. ¡Añade una!",
     "collapseList": "Reducir la lista",
     "expandList": "Desplegar la lista",
-    "unfinished": "Sin terminar"
+    "unfinished": "Sin terminar",
+    "itemActions": "Acciones de «{{label}}»"
   },
   "slides": {
     "formTitle": "Diapositiva",

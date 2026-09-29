@@ -17,7 +17,8 @@
     "deleteQuiz": "Delete quiz",
     "preview": "Preview",
     "export": "Export",
-    "exportError": "Could not export the quiz."
+    "exportError": "Could not export the quiz.",
+    "more": "More"
   },
   "settings": {
     "title": "Settings",
@@ -65,7 +66,9 @@
     "sharedLabel": "Share with the instance’s other hosts",
     "sharedHelp": "They see it in their quizzes, read-only, and can create their own copy from it. Unchecked, it stays yours alone.",
     "sharedOn": "Shared",
-    "sharedOff": "Private"
+    "sharedOff": "Private",
+    "saving": "Saving…",
+    "saved": "Saved"
   },
   "broadcast": {
     "title": "Broadcast",
@@ -111,7 +114,8 @@
     "empty": "No questions. Add one!",
     "collapseList": "Collapse the list",
     "expandList": "Expand the list",
-    "unfinished": "Unfinished"
+    "unfinished": "Unfinished",
+    "itemActions": "Actions for “{{label}}”"
   },
   "slides": {
     "formTitle": "Slide",

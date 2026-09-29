@@ -96,6 +96,7 @@ import { ImageChoiceOptions } from './image-choice-options';
 import { CheckboxField } from '@/components/ui/checkbox-field';
 import { CorrectToggle } from '@/components/ui/correct-toggle';
 import { Notice } from '@/components/ui/notice';
+import { MenuItem } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Segmented } from '@/components/ui/segmented';
 import { Switch } from '@/components/ui/switch';
@@ -1321,33 +1322,6 @@ function PromptImageNotice({
         {t('questionForm.promptImageMove')}
       </Button>
     </div>
-  );
-}
-
-/** One line of a `⋯` menu. */
-function MenuItem({
-  destructive,
-  disabled,
-  onClick,
-  children,
-}: {
-  destructive?: boolean;
-  disabled?: boolean;
-  onClick: () => void;
-  children: ReactNode;
-}) {
-  return (
-    <button
-      type="button"
-      disabled={disabled}
-      onClick={onClick}
-      className={cn(
-        'hover:bg-accent flex items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm disabled:pointer-events-none disabled:opacity-50',
-        destructive && 'text-destructive',
-      )}
-    >
-      {children}
-    </button>
   );
 }
 

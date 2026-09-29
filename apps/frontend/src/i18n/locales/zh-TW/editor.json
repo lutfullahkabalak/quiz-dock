@@ -17,7 +17,8 @@
     "deleteQuiz": "刪除測驗",
     "preview": "預覽",
     "export": "匯出",
-    "exportError": "無法匯出測驗。"
+    "exportError": "無法匯出測驗。",
+    "more": "更多"
   },
   "settings": {
     "title": "設定",
@@ -65,7 +66,9 @@
     "sharedLabel": "與本實例的其他主持人共享",
     "sharedHelp": "他們會在自己的測驗中看到它（唯讀），並可建立自己的副本。不勾選則只有你能看到。",
     "sharedOn": "已共享",
-    "sharedOff": "私人"
+    "sharedOff": "私人",
+    "saving": "正在儲存…",
+    "saved": "已儲存"
   },
   "broadcast": {
     "title": "廣播",
@@ -111,7 +114,8 @@
     "empty": "還沒有題目。新增一道吧！",
     "collapseList": "收起清單",
     "expandList": "展開清單",
-    "unfinished": "未完成"
+    "unfinished": "未完成",
+    "itemActions": "「{{label}}」的操作"
   },
   "slides": {
     "formTitle": "簡報",
