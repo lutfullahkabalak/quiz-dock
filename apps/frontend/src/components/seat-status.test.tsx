@@ -53,4 +53,28 @@ describe('SeatStatus (topbar, local mode)', () => {
     expect(screen.getByRole('button', { name: /^Prolonger$/ })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Libérer le siège/ })).toBeInTheDocument();
   });
+
+  it('releasing the seat can be taken back for a few seconds (UI system §1.1)', async () => {
+    const fetchMock = mockApi([
+      {
+        method: 'GET',
+        path: '/auth/host-seat',
+        body: { holder: 'Marc', expiresAt: null, claimedAt: null },
+      },
+      { method: 'GET', path: '/quizzes', body: [] },
+    ]);
+    renderApp('/quizzes');
+    fireEvent.click(await screen.findByRole('button', { name: /Marc/ }));
+    fireEvent.click(await screen.findByRole('button', { name: /Libérer le siège/ }));
+    // Said where it stays in view (the top bar), and in the menu.
+    expect((await screen.findAllByText('Siège libéré.')).length).toBeGreaterThan(0);
+    fireEvent.click(screen.getAllByRole('button', { name: 'Rétablir' })[0]);
+    expect(screen.queryByText('Siège libéré.')).toBeNull();
+    // Nothing was sent: the seat stays.
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, opts]) => String(url).includes('/auth/host-seat/release') && opts?.method === 'POST',
+      ),
+    ).toBe(false);
+  });
 });

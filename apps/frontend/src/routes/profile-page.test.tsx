@@ -23,6 +23,12 @@ describe('ProfilePage', () => {
     vi.unstubAllGlobals();
   });
 
+  it('a profile that cannot be read says so, and offers to try again', async () => {
+    mockApi([{ method: 'GET', path: '/me', status: 500, body: { code: 'internal' } }]);
+    renderApp('/profile');
+    expect(await screen.findByRole('button', { name: 'Réessayer' })).toBeInTheDocument();
+  });
+
   it('montre identité, sujet du compte et rôle d’animateur', async () => {
     mockApi([{ method: 'GET', path: '/me', body: me() }]);
     renderApp('/profile');

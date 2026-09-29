@@ -14,7 +14,8 @@ import {
 } from '../api/generated/me/me';
 import { useAuth } from '../auth/auth-context';
 import { APP_NAME, allowsAnonymousParticipants, getDemo } from '../config';
-import { PageLoading } from '@/components/ui/loading';
+import { LoadFailed, PageLoading } from '@/components/ui/loading';
+import { UserRound } from 'lucide-react';
 import { PageTitle } from '@/components/ui/page-title';
 
 /**
@@ -30,53 +31,57 @@ export function ProfilePage() {
   /** Lecture d'une feuille : `t()` d'une clé à enfants est typé `string | objet`. */
   const s = (key: string, vars?: Record<string, string>) => String(t(key, vars ?? {}));
   const { mode, user } = useAuth();
-  const { data, isPending } = useMeControllerMe({ query: { retry: false } });
+  const { data, isPending, error, refetch } = useMeControllerMe({ query: { retry: false } });
   const me = data?.data;
+  const roles = me ? (me.roles.length ? me.roles : ['player']) : [];
 
   return (
     <section className="content-md flex flex-col gap-6">
       <PageTitle>{s('profile.title')}</PageTitle>
 
       {isPending ? <PageLoading /> : null}
+      {error ? <LoadFailed error={error} onRetry={() => void refetch()} /> : null}
 
       {me ? (
         <>
+          {/* Who I am here and what I may do, in plain words; the identifiers fold. */}
           <Card>
-            <CardHeader>
-              <CardTitle>{s('profile.identity')}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3 text-sm">
-              <Field label={s('profile.displayName')} value={me.displayName} />
-              <Field label={s('profile.email')} value={me.email ?? s('profile.noEmail')} />
-              {/* Le sujet est ce qu'un opérateur tape dans `user:set-role`. */}
-              <Field label={s('profile.subject')} value={me.subject} mono />
-              <p className="text-muted-foreground text-xs">
-                {mode === 'oidc' ? t('profile.fromProvider') : t('profile.fromLocalName')}
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <CardTitle>{s('profile.role')}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-2 text-sm">
-              {/* Un ensemble vide est un participant ; `[admin, host]` porte les deux. */}
-              <span className="flex flex-wrap gap-2">
-                {(me.roles.length ? me.roles : ['player']).map((role) => (
-                  <Badge key={role} variant={role === 'player' ? 'muted' : 'success'}>
-                    {s(`profile.roles.${role}`)}
-                  </Badge>
-                ))}
-              </span>
-              {(me.roles.length ? me.roles : ['player']).map((role) => (
-                <p key={role} className="text-muted-foreground">
-                  {s(`profile.roleHelp.${role}`)}
-                </p>
+            <CardContent className="flex flex-col gap-3 pt-6 text-sm">
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="bg-primary/10 text-primary flex size-10 items-center justify-center rounded-full">
+                  <UserRound className="size-5" />
+                </span>
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{me.displayName}</p>
+                  <p className="text-muted-foreground text-xs">
+                    {mode === 'oidc' ? t('profile.signedInProvider') : t('profile.signedInLocal')}
+                  </p>
+                </div>
+                <span className="flex flex-wrap gap-2">
+                  {roles.map((role) => (
+                    <Badge key={role} variant={role === 'player' ? 'muted' : 'success'}>
+                      {s(`profile.roles.${role}`)}
+                    </Badge>
+                  ))}
+                </span>
+              </div>
+              {roles.map((role) => (
+                <p key={role}>{s(`profile.roleHelp.${role}`)}</p>
               ))}
               <p className="text-muted-foreground text-xs">
+                {mode === 'oidc' ? t('profile.fromProvider') : t('profile.fromLocalName')}{' '}
                 {s('profile.roleGranted', { app: APP_NAME })}
               </p>
+              <details className="text-xs">
+                <summary className="text-muted-foreground cursor-pointer">
+                  {s('profile.technical')}
+                </summary>
+                <div className="mt-2 flex flex-col gap-1">
+                  <Field label={s('profile.email')} value={me.email ?? s('profile.noEmail')} />
+                  {/* Le sujet est ce qu'un opérateur tape dans `user:set-role`. */}
+                  <Field label={s('profile.subject')} value={me.subject} mono />
+                </div>
+              </details>
             </CardContent>
           </Card>
 
