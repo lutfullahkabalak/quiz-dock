@@ -562,7 +562,8 @@
       "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒",
       "muted": "静音"
-    }
+    },
+    "empty": "还没有题目。"
   },
   "publishChecklist": {
     "title_one": "发布前还有 1 个步骤要完成",

@@ -62,6 +62,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button, buttonVariants } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { QuizStatusBadge } from '@/components/quiz-status-badge';
 import { MenuItem, MenuSeparator } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Modal } from '@/components/ui/modal';
@@ -435,9 +436,6 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
       ? t('questions.formTitle')
       : t('slides.formTitle');
 
-  const statusVariant =
-    quiz.status === 'ready' ? 'success' : quiz.status === 'archived' ? 'muted' : 'default';
-
   return (
     <div className="flex w-full flex-col gap-6">
       <ChromiumNotice />
@@ -465,9 +463,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           </div>
           <div className="flex flex-wrap items-center gap-1">
             {/* L'état du quiz se lit sur la même ligne que ce qu'on peut en faire. */}
-            <Badge variant={statusVariant} className="mr-2">
-              {t(`common:quizStatus.${quiz.status}`, { defaultValue: quiz.status })}
-            </Badge>
+            <QuizStatusBadge status={quiz.status} className="mr-2" />
             <a
               className={cn(buttonVariants({ variant: 'ghost', size: 'sm' }))}
               href={`/quizzes/${quiz.id}/preview`}

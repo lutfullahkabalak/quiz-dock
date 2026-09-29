@@ -562,7 +562,8 @@
       "seconds_one": "{{count}} 秒",
       "seconds_other": "{{count}} 秒",
       "muted": "靜音"
-    }
+    },
+    "empty": "還沒有題目。"
   },
   "publishChecklist": {
     "title_one": "發布前還有 1 個步驟要完成",

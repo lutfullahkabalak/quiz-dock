@@ -21,7 +21,7 @@ import {
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
+import { QuizStatusBadge } from '@/components/quiz-status-badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
@@ -57,12 +57,6 @@ import { PageTitle } from '@/components/ui/page-title';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
-
-const STATUS_VARIANT: Record<string, 'default' | 'success' | 'muted'> = {
-  draft: 'default',
-  ready: 'success',
-  archived: 'muted',
-};
 
 export function DashboardPage() {
   const { t, i18n } = useTranslation(['dashboard', 'common', 'editor']);
@@ -484,7 +478,7 @@ export function DashboardPage() {
                     {lock}
                     {titleLink}
                   </span>
-                  <StatusBadge status={quiz.status} />
+                  <QuizStatusBadge status={quiz.status} />
                 </span>
                 {quiz.description ? (
                   <span className="text-muted-foreground line-clamp-2 text-sm">
@@ -506,7 +500,7 @@ export function DashboardPage() {
                 <span className="flex min-w-0 items-center gap-2">
                   {lock}
                   {titleLink}
-                  <StatusBadge status={quiz.status} />
+                  <QuizStatusBadge status={quiz.status} />
                 </span>
                 {facts}
               </span>
@@ -543,15 +537,6 @@ const ME = '\u0000me';
 
 /** Whose a quiz is, as the owner filter reads it. */
 const ownerKey = (q: QuizDto) => (q.editable === false ? (q.ownerName ?? '') : ME);
-
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation('common');
-  return (
-    <Badge variant={STATUS_VARIANT[status] ?? 'default'} className="shrink-0">
-      {t(`quizStatus.${status}`, { defaultValue: status })}
-    </Badge>
-  );
-}
 
 /** The quiz's cover, or a neutral tile: a list of pictures reads faster than titles alone. */
 function QuizCover({ quiz, className }: { quiz: QuizDto; className?: string }) {

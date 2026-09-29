@@ -562,7 +562,8 @@
       "seconds_one": "{{count}} segundo",
       "seconds_other": "{{count}} segundos",
       "muted": "silenciado"
-    }
+    },
+    "empty": "Todavía no hay preguntas."
   },
   "publishChecklist": {
     "title_one": "1 paso por terminar antes de publicar",
