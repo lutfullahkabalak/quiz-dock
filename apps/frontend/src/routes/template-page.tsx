@@ -1,6 +1,6 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { ArrowLeft, CopyPlus, Ellipsis, Trash2 } from 'lucide-react';
+import { ArrowLeft, CopyPlus, EllipsisVertical, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Badge } from '@/components/ui/badge';
@@ -126,7 +126,7 @@ function TemplateHeader({ template }: { template: StorePreviewDto }) {
                   aria-expanded={open}
                   onClick={toggle}
                 >
-                  <Ellipsis className="size-4" />
+                  <EllipsisVertical className="size-4" />
                 </Button>
               )}
             >

@@ -21,7 +21,7 @@ import {
   AlertTriangle,
   Archive,
   Check,
-  Ellipsis,
+  EllipsisVertical,
   PackageCheck,
   ArrowDown,
   ArrowUp,
@@ -466,7 +466,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                   aria-expanded={open}
                   onClick={toggle}
                 >
-                  <Ellipsis className="size-4" />
+                  <EllipsisVertical className="size-4" />
                   {t('header.more')}
                 </Button>
               )}
@@ -1264,7 +1264,7 @@ function ItemMenu({
           aria-expanded={open}
           onClick={toggle}
         >
-          <Ellipsis className="size-4" />
+          <EllipsisVertical className="size-4" />
         </Button>
       )}
     >

@@ -12,7 +12,7 @@
 - **One primary action per screen**, always in the same place for a given screen. Its label is a **verb + object**: *Start quiz*, *Reveal answer*, *Show Q2*, *Next quiz…*, *Back to live*, *Present*, *Join the room*.
 - **Colour of an action says what it does**: green (`main-action`) = go live (*Present*, *Start quiz*, *Start anyway*, *Next quiz…*); blue (`default`) = any other primary action.
 - **Destructive actions** use a red outline (`destructive-outline`), are never next to the primary action, and sit after a separator in a menu when they are rare.
-- **Rare actions** go in a `⋯` menu; nothing is reachable only on hover.
+- **Rare actions** go in a `⋯` menu; nothing is reachable only on hover. A menu that drops down opens from **vertical dots** (`EllipsisVertical`, ⋮), with or without a label (*⋮ More*).
 - A **reversible** gesture (remove a block, release the host seat) gets an *Undo* notice instead of a confirmation; an **irreversible** one keeps its confirmation.
 - A control is **never hidden then shown** because of the state: it is greyed with its reason (a *Pause* with nothing to pause, a *Delete* a room is using).
 

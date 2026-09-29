@@ -51,7 +51,7 @@ import { useTranslation } from 'react-i18next';
 import {
   ArrowDown,
   ArrowUp,
-  Ellipsis,
+  EllipsisVertical,
   GripVertical,
   Image as ImageIcon,
   Monitor,
@@ -613,7 +613,7 @@ export function QuestionForm({
                         aria-expanded={open}
                         onClick={toggle}
                       >
-                        <Ellipsis className="size-4" />
+                        <EllipsisVertical className="size-4" />
                       </Button>
                     )}
                   >
