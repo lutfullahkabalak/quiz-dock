@@ -195,10 +195,11 @@ export function ScreenSurface({
   const where = (step: string) => (
     <div className="flex min-w-0 flex-col text-left leading-tight">
       <span className="font-semibold">{step}</span>
-      <span className="text-muted-foreground truncate text-[0.7em]">
-        {roomLabel(t, view.roomName, view.hostName)}
+      {/* The room is the page's title: the heading a screen reader lands on. */}
+      <div className="text-muted-foreground truncate text-[0.7em]">
+        <h1 className="inline">{roomLabel(t, view.roomName, view.hostName)}</h1>
         {view.quizTitle ? ` · ${view.quizTitle}` : null}
-      </span>
+      </div>
     </div>
   );
   // The way in for latecomers, while the room takes newcomers (the lobby shows it in full).
