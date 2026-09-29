@@ -365,7 +365,11 @@
     "video": "題目影片",
     "sound": "聲音 · {{seconds}} 秒",
     "steps": "步驟",
-    "backToEditor": "返回編輯器"
+    "backToEditor": "返回編輯器",
+    "device": "裝置",
+    "projection": "投影",
+    "phone": "手機",
+    "showAnswer": "顯示答案"
   },
   "media": {
     "alt": "題目媒體",

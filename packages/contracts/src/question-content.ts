@@ -63,6 +63,25 @@ export const TIME_LIMIT_S = { min: 5, max: 120, default: 20 } as const;
 export const REVEAL_DELAY_S = { min: 1, max: 300 } as const;
 
 export const POINTS_MODES = ['standard', 'double', 'none', 'fixed'] as const;
+export type PointsModeName = (typeof POINTS_MODES)[number];
+
+/** A question's base points by its mode: 1000, 2000 when doubled, none in a poll. */
+export function basePointsFor(mode: PointsModeName): number {
+  return mode === 'double' ? 2000 : mode === 'none' ? 0 : 1000;
+}
+
+/**
+ * A typed answer as it is compared (RG-06): lower case, no accents, spaces
+ * collapsed. The server computes it; the screens show the accepted answers so.
+ */
+export function normalizeAnswer(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ');
+}
 export const SCORINGS = ['standard', 'closest', 'partial', 'lenient'] as const;
 export type Scoring = (typeof SCORINGS)[number];
 

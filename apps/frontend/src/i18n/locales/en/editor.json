@@ -365,7 +365,11 @@
     "video": "Question video",
     "sound": "Sound · {{seconds}} s",
     "steps": "Steps",
-    "backToEditor": "Back to the editor"
+    "backToEditor": "Back to the editor",
+    "device": "Device",
+    "projection": "Projection",
+    "phone": "Phone",
+    "showAnswer": "Show the answer"
   },
   "media": {
     "alt": "question media",

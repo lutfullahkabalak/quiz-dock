@@ -119,6 +119,7 @@ export function ScreenSurface({
   role,
   sound = true,
   embedded = false,
+  fit = 'window',
 }: {
   pin: string;
   view: GameView;
@@ -131,7 +132,13 @@ export function ScreenSurface({
    * which would hide the way back to their answers.
    */
   embedded?: boolean;
+  /**
+   * `box`: drawn in its container (the 1280×720 stage of a preview), sized and typeset
+   * by it rather than by the window; no fullscreen.
+   */
+  fit?: 'window' | 'box';
 }) {
+  const boxed = fit === 'box';
   const { t } = useTranslation('live');
   const playMedia = role === 'lead';
   // The projection tells the room where it is in the sound (the playheads elsewhere follow):
@@ -174,7 +181,7 @@ export function ScreenSurface({
   const soundButton = role === 'lead' || (role === 'follow' && sound);
 
   const fullscreenBtn =
-    supported && !embedded ? (
+    supported && !embedded && !boxed ? (
       <Button
         type="button"
         variant="ghost"
@@ -313,7 +320,7 @@ export function ScreenSurface({
     const copyHears =
       role === 'follow' && sound && !!slide.audioTarget && playsSound(slide.audioTarget, 'remote');
     stage = (
-      <div className="flex min-h-dvh w-full flex-1">
+      <div className={cn('flex w-full flex-1', boxed ? 'min-h-full' : 'min-h-dvh')}>
         {/* Its videos and sound play as a question's do (#125): here, on the common start. */}
         <SlidePlaybackContext.Provider
           value={{
@@ -637,15 +644,17 @@ export function ScreenSurface({
       ref={ref}
       data-state={view.state ?? 'none'}
       className={cn(
-        'qd-screen bg-background relative flex min-h-dvh flex-col',
+        'qd-screen bg-background relative flex flex-col',
+        boxed ? 'h-full w-full overflow-hidden' : 'min-h-dvh',
         // A question fits the screen exactly; the rest may grow.
-        (view.state === 'ANSWERING' ||
-          view.state === 'QUESTION_SHOW' ||
-          view.state === 'REVEAL' ||
-          view.state === 'LEADERBOARD') &&
+        !boxed &&
+          (view.state === 'ANSWERING' ||
+            view.state === 'QUESTION_SHOW' ||
+            view.state === 'REVEAL' ||
+            view.state === 'LEADERBOARD') &&
           'h-dvh',
         // One typographic base for the whole projected page; everything inside is in em.
-        TYPE_BASE.screen,
+        boxed ? TYPE_BASE.stage : TYPE_BASE.screen,
       )}
     >
       {fullscreenBtn}

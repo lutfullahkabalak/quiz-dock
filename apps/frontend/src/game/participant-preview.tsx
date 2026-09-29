@@ -23,7 +23,16 @@ import type { GameView } from './use-game-session';
  * game: a phone-sized column with the same components as the player page,
  * minus the personal parts (no answer, no personal score).
  */
-export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string }) {
+export function ParticipantPreview({
+  view,
+  pin,
+  note = true,
+}: {
+  view: GameView;
+  pin?: string;
+  /** The console's line saying it is live and read-only; a quiz preview has its own. */
+  note?: boolean;
+}) {
   const { t } = useTranslation('live');
   const clock = useQuestionClock(view);
   const q = view.question;
@@ -83,7 +92,7 @@ export function ParticipantPreview({ view, pin }: { view: GameView; pin?: string
   }
   return (
     <div className="flex flex-col items-center gap-3">
-      <p className="text-muted-foreground text-sm">{t('preview.note')}</p>
+      {note ? <p className="text-muted-foreground text-sm">{t('preview.note')}</p> : null}
       {/* A phone-sized frame with the participant's typographic base. */}
       <div
         className={cn(

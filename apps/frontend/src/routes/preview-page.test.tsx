@@ -63,20 +63,25 @@ describe('PreviewPage', () => {
     vi.unstubAllGlobals();
   });
 
-  it('rend la question en vue participant (énoncé, options, temps, bonne réponse)', async () => {
+  it('draws the real projection, the answer on request, and the phone', async () => {
     mockApi([{ method: 'GET', path: '/quizzes/q1', body: detail() }]);
-    renderApp('/quizzes/q1/preview');
+    const { container } = renderApp('/quizzes/q1/preview');
 
-    // On stage, as the projection titles it (the step list names it too).
-    expect(
-      await screen.findByRole('heading', { name: 'Capitale de la France ?' }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Retour à l’éditeur/ })).toBeInTheDocument();
-    expect(screen.getByText('Paris')).toBeInTheDocument();
-    expect(screen.getByText('Lyon')).toBeInTheDocument();
-    expect(screen.getByText('⏱ 20 s')).toBeInTheDocument();
-    // l'option correcte est marquée
-    expect(screen.getByLabelText('bonne réponse')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: /Retour à l’éditeur/ })).toBeInTheDocument();
+    const projection = () => container.querySelector('.qd-screen') as HTMLElement;
+    expect(within(projection()).getByText('Capitale de la France ?')).toBeInTheDocument();
+    expect(within(projection()).getByText('Paris')).toBeInTheDocument();
+    expect(container.querySelector('[data-correct="true"]')).toBeNull();
+
+    // The answer, as the room sees it once revealed.
+    fireEvent.click(screen.getByRole('switch', { name: 'Montrer la réponse' }));
+    expect(projection().dataset.state).toBe('REVEAL');
+    expect(container.querySelector('.qd-answer[data-correct="true"]')).toHaveTextContent('Paris');
+
+    // A participant's phone.
+    fireEvent.click(screen.getByRole('button', { name: 'Téléphone' }));
+    expect(container.querySelector('.qd-screen')).toBeNull();
+    expect(screen.getAllByText('Paris').length).toBeGreaterThan(0);
   });
 
   it('propose le plein écran et déclenche requestFullscreen', async () => {

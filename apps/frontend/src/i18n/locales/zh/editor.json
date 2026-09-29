@@ -365,7 +365,11 @@
     "video": "题目视频",
     "sound": "声音 · {{seconds}} 秒",
     "steps": "步骤",
-    "backToEditor": "返回编辑器"
+    "backToEditor": "返回编辑器",
+    "device": "设备",
+    "projection": "投影",
+    "phone": "手机",
+    "showAnswer": "显示答案"
   },
   "media": {
     "alt": "题目媒体",

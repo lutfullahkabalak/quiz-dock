@@ -151,7 +151,8 @@ export interface GameView {
   rateable: { quizId: string | null; feedbackEnabled: boolean } | null;
 }
 
-const INITIAL: GameView = {
+/** A view before anything arrived; the base of a preview drawn without a game. */
+export const INITIAL_VIEW: GameView = {
   status: 'connecting',
   error: null,
   state: null,
@@ -247,7 +248,7 @@ const sessionNotFound = () => i18next.t('live:errors.sessionNotFound');
  */
 export function useGameSession(pin: string, role: LiveRole, opts: { follow?: boolean } = {}) {
   const follow = opts.follow === true;
-  const [view, setView] = useState<GameView>(INITIAL);
+  const [view, setView] = useState<GameView>(INITIAL_VIEW);
   const socketRef = useRef<GameSocket | null>(null);
 
   useEffect(() => {

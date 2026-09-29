@@ -13,12 +13,5 @@ export {
   type QuestionContent,
   questionContentSchema,
   questionIssues,
+  normalizeAnswer,
 } from '@quiz-dock/contracts';
-
-/**
- * Normalise une réponse texte pour comparaison (RG-06) : minuscule, sans accent,
- * espaces superflus retirés. Calculé côté serveur (le client n'envoie que `text`).
- */
-export function normalizeAnswer(text: string): string {
-  return text.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().trim().replace(/\s+/g, ' ');
-}

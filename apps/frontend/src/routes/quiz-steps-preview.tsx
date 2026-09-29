@@ -1,13 +1,28 @@
-import { ChevronLeft, ChevronRight, LayoutTemplate, Maximize, Minimize } from 'lucide-react';
-import { type ReactNode, useEffect, useState } from 'react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  LayoutTemplate,
+  Maximize,
+  Minimize,
+  Monitor,
+  Smartphone,
+} from 'lucide-react';
+import { type ReactNode, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
 import { Button } from '@/components/ui/button';
+import { Segmented } from '@/components/ui/segmented';
+import { Switch } from '@/components/ui/switch';
+import { useMediaUrl } from '@/lib/media-url';
 import { type QuizItem, quizItems, slideLabel } from '@/lib/quiz-items';
 import { useFullscreen } from '@/lib/use-fullscreen';
 import { cn } from '@/lib/utils';
 import type { QuizDetailDtoQuestionsItem, QuizDetailDtoSlidesItem } from '../api/generated/model';
-import { StepStage, type StepQuiz } from './quiz-stage-preview';
+import { ParticipantPreview } from '../game/participant-preview';
+import { ScaledStage } from '../game/slide-stage';
+import type { StepQuiz } from './quiz-stage-preview';
+import { ScreenSurface } from './screen-page';
+import { stepView } from './step-view';
 
 /** What the preview walks: a quiz, or a template read as the quiz a copy would make. */
 export type PreviewQuiz = StepQuiz & {
@@ -34,6 +49,10 @@ export function QuizStepsPreview({
   const items = quizItems(quiz);
   const total = items.length;
   const [index, setIndex] = useState(0);
+  // What the room sees: the projection, or a participant's phone; a question with its answer.
+  const [device, setDevice] = useState<'projection' | 'phone'>('projection');
+  const [answer, setAnswer] = useState(false);
+  const url = useMediaUrl();
   const step = (delta: number) => setIndex((i) => Math.min(total - 1, Math.max(0, i + delta)));
   const { ref, isFullscreen, toggle, supported } = useFullscreen<HTMLDivElement>();
 
@@ -56,6 +75,12 @@ export function QuizStepsPreview({
   }, [total]);
 
   const item = items[index];
+  // One view per step: the live screens key their media and clocks on it.
+  const view = useMemo(
+    () => (total > 0 ? stepView(items, index, quiz, url, { reveal: answer }) : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [quiz, index, answer, url],
+  );
   return (
     <div className="flex w-full flex-col gap-6">
       {header}
@@ -118,14 +143,42 @@ export function QuizStepsPreview({
                 </Button>
               </div>
             </nav>
-            {/* 16:9 like the projection, as wide as the window's height allows: the whole
-                stage stays in view under the buttons. */}
-            <div
-              className="mx-auto w-full"
-              style={{ maxWidth: `calc((100dvh - ${isFullscreen ? 8 : 14}rem) * 16 / 9)` }}
-            >
-              <StepStage item={item} index={index} quiz={quiz} />
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <Segmented
+                size="sm"
+                label={t('preview.device')}
+                value={device}
+                onChange={setDevice}
+                options={[
+                  { value: 'projection', label: t('preview.projection'), icon: Monitor },
+                  { value: 'phone', label: t('preview.phone'), icon: Smartphone },
+                ]}
+              />
+              {item.kind === 'question' ? (
+                <label className="flex items-center gap-2 text-sm">
+                  <Switch
+                    checked={answer}
+                    onCheckedChange={setAnswer}
+                    aria-label={t('preview.showAnswer')}
+                  />
+                  {t('preview.showAnswer')}
+                </label>
+              ) : null}
             </div>
+            {view === null ? null : device === 'projection' ? (
+              // 16:9 like the projection, as wide as the window's height allows: the whole
+              // stage stays in view under the buttons.
+              <div
+                className="mx-auto w-full"
+                style={{ maxWidth: `calc((100dvh - ${isFullscreen ? 10 : 16}rem) * 16 / 9)` }}
+              >
+                <ScaledStage className="rounded-xl border">
+                  <ScreenSurface pin="" view={view} socket={null} role="preview" fit="box" />
+                </ScaledStage>
+              </div>
+            ) : (
+              <ParticipantPreview view={view} note={false} />
+            )}
           </div>
         </div>
       )}
