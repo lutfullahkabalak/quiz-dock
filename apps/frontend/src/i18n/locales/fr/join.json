@@ -2,9 +2,9 @@
   "title": "Rejoindre un salon",
   "pinLabel": "PIN, 6 chiffres",
   "continue": "Continuer",
-  "hint": "Tapez le PIN affiché sur le grand écran",
+  "hint": "Tape le PIN affiché sur le grand écran",
   "checking": "Recherche du salon…",
-  "notFound": "Aucun salon ouvert avec ce PIN. Vérifiez le grand écran.",
+  "notFound": "Aucun salon ouvert avec ce PIN. Vérifie le grand écran.",
   "locked": "Ce salon n’accepte plus de nouveaux participants ; un participant qui revient y entre encore.",
   "checkedAt6": "Vérifié dès le 6ᵉ chiffre."
 }

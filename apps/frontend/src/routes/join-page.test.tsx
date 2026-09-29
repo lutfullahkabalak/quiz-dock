@@ -55,7 +55,7 @@ describe('JoinPage (saisie du PIN)', () => {
       target: { value: '000000' },
     });
     expect(
-      await screen.findByText('Aucun salon ouvert avec ce PIN. Vérifiez le grand écran.'),
+      await screen.findByText('Aucun salon ouvert avec ce PIN. Vérifie le grand écran.'),
     ).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Continuer/ })).toBeNull();
   });

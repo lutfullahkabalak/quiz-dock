@@ -131,7 +131,7 @@ describe('PlayerPage (client participant)', () => {
     fireEvent.change(await screen.findByPlaceholderText('Votre pseudo'), {
       target: { value: 'Alice' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /C'est parti/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Rejoindre le salon/ }));
 
     await waitFor(() =>
       expect(joinSession).toHaveBeenCalledWith('771122', 'Alice', undefined, 'room'),
@@ -153,7 +153,7 @@ describe('PlayerPage (client participant)', () => {
     fireEvent.change(screen.getByPlaceholderText('Votre pseudo'), {
       target: { value: 'Alice' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /C'est parti/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Rejoindre le salon/ }));
 
     await waitFor(() =>
       expect(joinSession).toHaveBeenCalledWith('771122', 'Alice', undefined, 'remote'),
@@ -266,6 +266,33 @@ describe('PlayerPage (client participant)', () => {
     expect(await screen.findByText('La question arrive…')).toBeInTheDocument();
   });
 
+  it('removed from the room: says so, and offers another room (UI system §4)', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    hookState.value = view({ state: GameState.Lobby, kicked: { minutes: 5 } });
+    renderApp('/join/771122');
+    expect(await screen.findByRole('link', { name: 'Rejoindre un autre salon' })).toHaveAttribute(
+      'href',
+      '/join',
+    );
+  });
+
+  it('the host gone: it waits, and shows it', async () => {
+    loadPlayerSession.mockReturnValue({
+      pin: '771122',
+      nickname: 'Bob',
+      sessionToken: 't',
+      playerId: 'p1',
+    });
+    hookState.value = view({ state: GameState.HostDisconnected, hostName: 'Claire' });
+    renderApp('/join/771122');
+    expect(await screen.findByText(/dès que Claire revient/)).toBeInTheDocument();
+  });
+
   it('LOBBY : salle d’attente avec le pseudo', async () => {
     loadPlayerSession.mockReturnValue({
       pin: '771122',
@@ -276,8 +303,8 @@ describe('PlayerPage (client participant)', () => {
     hookState.value = view({ state: GameState.Lobby });
     renderApp('/join/771122');
 
-    expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
-    expect(screen.getByText(/« Bob »/)).toBeInTheDocument();
+    expect(await screen.findByText(/^dans /)).toBeInTheDocument();
+    expect(screen.getAllByText('Bob').length).toBeGreaterThan(0);
   });
 
   it('leaving closes this device’s connection for good, so it can join another game (audit F1)', async () => {
@@ -342,7 +369,7 @@ describe('PlayerPage (client participant)', () => {
       loadPlayerSession.mockReturnValue(session);
       hookState.value = view({ state: GameState.Lobby });
       renderApp('/join/771122');
-      fireEvent.click(await screen.findByRole('button', { name: 'Je suis prêt !' }));
+      fireEvent.click(await screen.findByRole('button', { name: 'Je suis prêt' }));
       await waitFor(() => expect(markReady).toHaveBeenCalledWith(true));
       expect(fakeSocket.emitWithAck).toHaveBeenCalledWith('player:ready', {
         pin: '771122',
@@ -368,7 +395,7 @@ describe('PlayerPage (client participant)', () => {
       loadPlayerSession.mockReturnValue(session);
       hookState.value = view({ state: GameState.Lobby });
       renderApp('/join/771122');
-      await screen.findByText(/Tu es dans le salon/);
+      await screen.findByText(/^dans /);
       const topbarAvatar = () =>
         document.getElementById('participant-topbar')?.querySelector('svg, img')?.outerHTML;
       const before = topbarAvatar();
@@ -427,9 +454,9 @@ describe('PlayerPage (client participant)', () => {
       fireEvent.click(await screen.findByRole('button', { name: 'Afficher le grand écran' }));
       // The projection's lobby: the PIN in big, the room's name as its title.
       expect(await screen.findByRole('heading', { name: 'Salon de Billy' })).toBeInTheDocument();
-      expect(screen.queryByText(/Tu es dans le salon/)).toBeNull();
+      expect(screen.queryByText(/^dans /)).toBeNull();
       fireEvent.click(screen.getByRole('button', { name: 'Revenir à mes réponses' }));
-      expect(await screen.findByText(/Tu es dans le salon/)).toBeInTheDocument();
+      expect(await screen.findByText(/^dans /)).toBeInTheDocument();
     });
   });
 

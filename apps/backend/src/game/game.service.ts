@@ -11,6 +11,8 @@ import {
 import {
   GameState,
   type ParticipantAccess,
+  NICKNAME_MAX,
+  NICKNAME_MIN,
   type PlayerPeek,
   type PlayerPresence,
   type RoomSoundsSettings,
@@ -45,8 +47,6 @@ import {
 const PIN_ALLOC_ATTEMPTS = 10;
 /** Games whose snapshot stays parsed in memory (a room plays one at a time). */
 const SNAPSHOT_CACHE_MAX = 50;
-const NICKNAME_MIN = 2;
-const NICKNAME_MAX = 20;
 /** Homonymes distingués par un suffixe avant de refuser (noms venus des comptes). */
 const NICKNAME_HOMONYM_MAX = 20;
 /** Borne de la graine d'avatar (client-fournie, stockée Redis + diffusée). */

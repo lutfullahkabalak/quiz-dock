@@ -1,7 +1,11 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
-import { type PlayerPresence, playsSound } from '@quiz-dock/contracts';
+import { NICKNAME_MAX, type PlayerPresence, playsSound } from '@quiz-dock/contracts';
 import {
+  Ban,
   Check,
+  Loader2,
+  PartyPopper,
+  Trophy,
   ListChecks,
   LogIn,
   LogOut,
@@ -20,9 +24,8 @@ import { type FormEvent, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { Markdown } from '@/components/markdown';
-import { Button } from '@/components/ui/button';
+import { Button, buttonVariants } from '@/components/ui/button';
 import { ConfirmDialog } from '@/components/ui/confirm-dialog';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { hasGameSounds, useRoomMedia } from '../game/media/use-room-media';
@@ -34,6 +37,7 @@ import {
   loadNickname,
   loadPlayerSession,
   peekSession,
+  type SessionPeek,
   saveAvatarSeed,
   disconnectGame,
 } from '../game/game-client';
@@ -121,6 +125,8 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   const [joining, setJoining] = useState(false);
   // Asked only when the quiz plays sound: a remote player then gets it on their device.
   const [hasSound, setHasSound] = useState(false);
+  // Whose room this PIN opens, said on the nickname form (the peek tells before joining).
+  const [peek, setPeek] = useState<SessionPeek | null>(null);
   const [wantedPresence, setPresence] = useState<PlayerPresence>('room');
   // This device's own sound (SPECIFICATIONS-MEDIA §9.2): its mute, kept on it.
   const { muted } = useDeviceSound();
@@ -246,6 +252,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
           return;
         }
         setHasSound(res.hasSound);
+        setPeek(res);
       })
       .catch(() => undefined);
     return () => {
@@ -549,38 +556,52 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   // ── Écran « Rejoindre » (pas de session locale valide) ─────────────────────
   if (view.status === 'no-session') {
     return wrap(
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>{t('player.yourNickname')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <form className="flex flex-col gap-4 text-left" onSubmit={(e) => void onJoin(e)}>
-            <div className="flex flex-col items-center gap-2">
-              <Avatar name={avatarPreview} size={88} />
-              <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
-                <Shuffle className="size-4" />
-                {t('player.randomAvatar')}
-              </Button>
-            </div>
-            <Label>
-              {t('player.nickname')}
-              <Input
-                autoFocus
-                value={nickname}
-                onChange={(e) => setNickname(e.target.value)}
-                placeholder={t('player.nicknamePlaceholder')}
-                required
-              />
-            </Label>
-            <PresenceChoice value={wantedPresence} onChange={setPresence} />
-            {error ? <p className="text-destructive text-sm">{error}</p> : null}
-            <Button type="submit" disabled={joining || !nickname.trim()}>
-              <LogIn className="size-4" />
-              {joining ? t('player.connecting') : t('player.letsGo')}
-            </Button>
-          </form>
-        </CardContent>
-      </Card>,
+      <form
+        className="flex w-full flex-1 flex-col gap-4 text-left"
+        onSubmit={(e) => void onJoin(e)}
+      >
+        {/* Who is being joined, before anything is asked (UI system §4). */}
+        <div className="flex flex-col items-center gap-0.5 text-center">
+          <span className="text-muted-foreground text-sm">{t('player.joining')}</span>
+          <h1 className="text-[1.3em] font-bold">
+            {roomLabel(t, peek?.roomName ?? view.roomName, peek?.hostName ?? view.hostName)}
+          </h1>
+          <span className="text-muted-foreground text-sm">
+            {t('player.pinLine', { pin })} ·{' '}
+            <Link to="/join" className="underline underline-offset-2">
+              {t('player.changePin')}
+            </Link>
+          </span>
+        </div>
+        <div className="flex flex-col items-center gap-2">
+          <Avatar name={avatarPreview} size={88} />
+          <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
+            <Shuffle className="size-4" />
+            {t('player.randomAvatar')}
+          </Button>
+        </div>
+        <Label>
+          {t('player.nickname')}
+          <Input
+            autoFocus
+            value={nickname}
+            maxLength={NICKNAME_MAX}
+            onChange={(e) => setNickname(e.target.value)}
+            placeholder={t('player.nicknamePlaceholder')}
+            required
+          />
+          {/* The limit is shown before it is met, never refused after. */}
+          <span className="text-muted-foreground self-end text-xs tabular-nums">
+            {nickname.length} / {NICKNAME_MAX}
+          </span>
+        </Label>
+        <PresenceChoice value={wantedPresence} onChange={setPresence} />
+        {error ? <p className="text-destructive text-sm">{error}</p> : null}
+        <Button type="submit" size="lg" className="mt-auto" disabled={joining || !nickname.trim()}>
+          <LogIn className="size-4" />
+          {joining ? t('player.connecting') : t('player.joinRoom')}
+        </Button>
+      </form>,
     );
   }
 
@@ -592,13 +613,17 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   if (view.kicked) {
     return wrap(
       <>
-        <span className="text-[4.5em] leading-none" aria-hidden>
-          🚫
+        <span className="bg-muted flex size-16 items-center justify-center rounded-full">
+          <Ban className="text-muted-foreground size-8" aria-hidden />
         </span>
         <p className="text-xl font-semibold">{t('player.kickedTitle')}</p>
         <p className="text-muted-foreground">
           {t('player.kickedDescription', { count: view.kicked.minutes })}
         </p>
+        {/* Never a dead end: another room is one tap away. */}
+        <Link to="/join" className={cn(buttonVariants({ size: 'lg' }), 'w-full')}>
+          {t('player.joinAnother')}
+        </Link>
       </>,
     );
   }
@@ -652,11 +677,27 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
       </div>
     );
   }
+  // Waiting states show that they wait: a spinner and what is awaited.
   if (view.state === 'HOST_DISCONNECTED') {
-    return wrap(<p className="text-xl font-semibold">{t('player.hostDisconnected')}</p>);
+    return wrap(
+      <>
+        <Loader2 className="text-primary size-8 animate-spin" aria-hidden />
+        <p className="text-xl font-semibold">{t('player.waitingHost')}</p>
+        <p className="text-muted-foreground">
+          {t('player.hostBack', { host: view.hostName ?? t('player.theHost') })}
+        </p>
+      </>,
+      { center: true },
+    );
   }
   if (view.state === 'MEDIA_LOADING') {
-    return wrap(<p className="text-xl font-semibold">{t('player.questionComing')}</p>);
+    return wrap(
+      <>
+        <Loader2 className="text-primary size-8 animate-spin" aria-hidden />
+        <p className="text-xl font-semibold">{t('player.questionComing')}</p>
+      </>,
+      { center: true },
+    );
   }
   // Fin de partie (podium ou terminée) : on propose de noter le quiz. Les deux états
   // partagent la même structure pour que le panneau d'avis (et le commentaire en
@@ -666,9 +707,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
       <>
         {view.state === 'PODIUM' ? (
           <>
-            <span className="text-[4.5em] leading-none" aria-hidden>
-              🏆
-            </span>
+            <Trophy className="text-podium-1 size-14" aria-hidden />
             <Avatar name={avatarName} size={72} />
             <h2 className="text-[1.5em] font-bold">{t('player.podium')}</h2>
             {view.podium?.you ? (
@@ -684,10 +723,11 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
           </>
         ) : (
           <>
-            <span className="text-[4.5em] leading-none" aria-hidden>
-              🎉
-            </span>
+            <PartyPopper className="text-primary size-14" aria-hidden />
             <p className="text-xl font-semibold">{t('player.thanks')}</p>
+            <p className="text-muted-foreground">
+              {t('player.roomClosed', { room: roomLabel(t, view.roomName, view.hostName) })}
+            </p>
           </>
         )}
         {/* Only a quiz they played, keyed by it: a room plays several under one PIN. */}
@@ -697,7 +737,7 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
         {/* Only once the room is closed: at a podium the participant is still in it (the host
             may open the next quiz), and leaving goes through "Leave", which really leaves. */}
         {view.state === 'ENDED' ? (
-          <Link to="/join" className="text-muted-foreground text-sm underline underline-offset-2">
+          <Link to="/join" className={cn(buttonVariants({ variant: 'outline' }), 'w-full')}>
             {t('player.joinAnother')}
           </Link>
         ) : null}
@@ -900,157 +940,149 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
   }
 
   // ── LOBBY / attente ──────────────────────────────────────────────────────────
+  // Who I am first, then what the room waits for; « I'm ready » is the one action, at the
+  // bottom within the thumb's reach; the rest (sound, the projection elsewhere) is secondary.
+  const players = view.lobbyCount?.total ?? view.players.length;
   return wrap(
     <>
-      <Card className="w-full">
-        <CardHeader>
-          <CardTitle>{t('player.inSession')}</CardTitle>
-          <p className="text-lg font-semibold">{roomLabel(t, view.roomName, view.hostName)}</p>
-        </CardHeader>
-        <CardContent className="flex flex-col items-center gap-2">
-          <Avatar name={avatarPreview} size={72} />
-          {nickname ? <p className="text-lg font-semibold">« {nickname} »</p> : null}
-          {/* Avatar modifiable tant que la partie n'a pas démarré : on randomise en local
+      <div className="flex flex-col items-center gap-1.5">
+        <Avatar name={avatarPreview} size={80} />
+        {nickname ? <p className="text-[1.3em] font-bold">{nickname}</p> : null}
+        <p className="text-muted-foreground text-sm">
+          {t('player.inRoom', { room: roomLabel(t, view.roomName, view.hostName) })}
+        </p>
+        {/* Avatar modifiable tant que la partie n'a pas démarré : on randomise en local
             puis on synchronise explicitement (évite d'inonder le serveur à chaque clic). */}
-          <div className="flex flex-wrap items-center justify-center gap-2">
-            <Button type="button" variant="outline" size="sm" onClick={randomizeAvatar}>
-              <Shuffle className="size-4" />
-              {t('player.randomAvatar')}
-            </Button>
-            {avatarSeed !== syncedSeed ? (
-              <>
-                <Button
-                  type="button"
-                  size="icon"
-                  onClick={commitAvatar}
-                  aria-label={t('player.saveAvatar')}
-                  title={t('player.saveAvatar')}
-                >
-                  <Check className="size-4" />
-                </Button>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  onClick={cancelAvatar}
-                  aria-label={t('player.cancelAvatar')}
-                  title={t('player.cancelAvatar')}
-                >
-                  <X className="size-4" />
-                </Button>
-              </>
-            ) : null}
-          </div>
-          {/* Between two quizzes of a room (#89): where they stand, then what comes. */}
-          {view.standings?.you ? (
-            <p className="text-muted-foreground">
-              {t('player.roomRank', {
-                rank: view.standings.you.rank,
-                score: view.standings.you.score,
-              })}
-            </p>
-          ) : null}
-          <p className="text-muted-foreground">
-            {view.standings ? t('player.waitingNextQuiz') : t('player.waitingHost')}
-          </p>
-          {/* The next quiz plays sound and this device never enabled it (it joined a
-            silent one): the tap is the only way a phone lets it play later. */}
-          {(view.quizHasSound || gameSoundsHere) && !soundReady && !muted ? (
-            <div className="flex flex-col items-center gap-1">
-              <Button type="button" variant="outline" size="sm" onClick={claimSound}>
-                <Volume2 className="size-4" />
-                {t('player.enableSound')}
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <Button type="button" variant="ghost" size="sm" onClick={randomizeAvatar}>
+            <Shuffle className="size-4" />
+            {t('player.randomAvatar')}
+          </Button>
+          {avatarSeed !== syncedSeed ? (
+            <>
+              <Button
+                type="button"
+                size="icon"
+                onClick={commitAvatar}
+                aria-label={t('player.saveAvatar')}
+                title={t('player.saveAvatar')}
+              >
+                <Check className="size-4" />
               </Button>
-              {/* The tap still readies the phone; its sound stays off until the sound button. */}
               <Button
                 type="button"
                 variant="ghost"
-                size="sm"
-                onClick={() => {
-                  claimSound();
-                  setDeviceMuted(true);
-                }}
+                size="icon"
+                onClick={cancelAvatar}
+                aria-label={t('player.cancelAvatar')}
+                title={t('player.cancelAvatar')}
               >
-                {t('media.withoutSound')}
+                <X className="size-4" />
               </Button>
-            </div>
+            </>
           ) : null}
-          <p className="text-muted-foreground border-t pt-2 text-sm">{trackingNotice(t, view)}</p>
-          {/* "Ready!" (#104): the host sees one count and still starts when they choose. */}
-          <div className="flex w-full flex-col items-center gap-1 border-t pt-3">
-            {view.youReady ? (
-              // What the wait is about, once ready: the quiz to come and the room filling up.
-              <div className="qd-pop bg-muted/40 flex w-full flex-col items-center gap-1.5 rounded-lg border p-3">
-                <p className="text-success flex items-center gap-1.5 font-semibold">
-                  <Check className="size-4" />
-                  {t('player.readyDone')}
-                </p>
-                {view.quizTitle ? (
-                  <p className="text-sm font-medium">
-                    {t('player.upNext', { title: view.quizTitle })}
-                  </p>
-                ) : null}
-                <p className="text-muted-foreground flex items-center gap-1.5 text-sm">
-                  <Users className="size-4" />
-                  {t('player.lobbyPlayers', {
-                    count: view.lobbyCount?.total ?? view.players.length,
-                  })}
-                  {view.lobbyCount ? (
-                    <span>
-                      {' · '}
-                      {t('player.lobbyReady', view.lobbyCount)}
-                    </span>
-                  ) : null}
-                </p>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => void sayReady(false)}
-                >
-                  {t('player.notYet')}
-                </Button>
-              </div>
-            ) : (
-              // Breathes until pressed: the one thing the room waits for from this phone.
-              <Button
-                type="button"
-                variant="main-action"
-                className="qd-breathe transition-transform active:scale-95"
-                onClick={() => void sayReady(true)}
-              >
-                {t('player.ready')}
-              </Button>
-            )}
-          </div>
-          {/* The whole question, big, on a tablet or a computer (#104). The link
-              carries the PIN, never this participant's seat. */}
-          <div className="flex w-full flex-col items-center gap-2 border-t pt-3">
+        </div>
+      </div>
+
+      {/* What the wait is about: the quiz to come and the room filling up. */}
+      <div className="bg-muted flex w-full flex-col items-center gap-1 rounded-lg px-3 py-2.5 text-sm">
+        {view.youReady ? (
+          <p className="text-success flex items-center gap-1.5 font-semibold">
+            <Check className="size-4" />
+            {t('player.readyDone')}
+          </p>
+        ) : null}
+        {view.quizTitle ? (
+          <p className="font-medium">{t('player.upNext', { title: view.quizTitle })}</p>
+        ) : (
+          <p>{view.standings ? t('player.waitingNextQuiz') : t('player.waitingHost')}</p>
+        )}
+        <p className="text-muted-foreground flex items-center gap-1.5">
+          <Users className="size-4" />
+          {t('player.lobbyPlayers', { count: players })}
+          {view.lobbyCount ? <span>· {t('player.lobbyReady', view.lobbyCount)}</span> : null}
+        </p>
+        {/* Between two quizzes of a room (#89): where they stand. */}
+        {view.standings?.you ? (
+          <p className="text-muted-foreground">
+            {t('player.roomRank', {
+              rank: view.standings.you.rank,
+              score: view.standings.you.score,
+            })}
+          </p>
+        ) : null}
+      </div>
+
+      <div className="flex w-full flex-wrap items-start justify-center gap-2">
+        {/* The next quiz plays sound and this device never enabled it (it joined a
+            silent one): the tap is the only way a phone lets it play later. */}
+        {(view.quizHasSound || gameSoundsHere) && !soundReady && !muted ? (
+          <>
+            <Button type="button" variant="outline" size="sm" onClick={claimSound}>
+              <Volume2 className="size-4" />
+              {t('player.enableSound')}
+            </Button>
+            {/* The tap still readies the phone; its sound stays off until the sound button. */}
             <Button
               type="button"
-              variant="outline"
+              variant="ghost"
               size="sm"
-              onClick={() => void shareProjection()}
+              onClick={() => {
+                claimSound();
+                setDeviceMuted(true);
+              }}
             >
-              <Share2 className="size-4" />
-              {t('player.shareProjection')}
+              {t('media.withoutSound')}
             </Button>
-            <p className="text-muted-foreground text-xs">{t('player.shareProjectionHint')}</p>
-            {sharedLink ? (
-              <div className="flex flex-col items-center gap-1">
-                <div className="rounded-md bg-white p-2">
-                  <QRCodeSVG
-                    value={sharedLink}
-                    size={120}
-                    aria-label={t('player.shareProjection')}
-                  />
-                </div>
-                <p className="text-muted-foreground text-xs">{t('player.projectionLinkCopied')}</p>
-              </div>
-            ) : null}
+          </>
+        ) : null}
+        {/* The whole question, big, on a tablet or a computer (#104). The link
+            carries the PIN, never this participant's seat. */}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          title={t('player.shareProjectionHint')}
+          onClick={() => void shareProjection()}
+        >
+          <Share2 className="size-4" />
+          {t('player.shareProjection')}
+        </Button>
+      </div>
+      {sharedLink ? (
+        <div className="flex flex-col items-center gap-1">
+          <div className="rounded-md bg-white p-2">
+            <QRCodeSVG value={sharedLink} size={120} aria-label={t('player.shareProjection')} />
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-muted-foreground text-xs">{t('player.projectionLinkCopied')}</p>
+        </div>
+      ) : null}
+
+      {/* "Ready!" (#104): the host sees one count and still starts when they choose. */}
+      <div className="mt-auto flex w-full flex-col items-center gap-2">
+        {view.youReady ? (
+          <Button
+            type="button"
+            variant="outline"
+            className="w-full"
+            onClick={() => void sayReady(false)}
+          >
+            {t('player.notYet')}
+          </Button>
+        ) : (
+          // Breathes until pressed: the one thing the room waits for from this phone.
+          <Button
+            type="button"
+            size="lg"
+            variant="main-action"
+            className="qd-breathe w-full transition-transform active:scale-95"
+            onClick={() => void sayReady(true)}
+          >
+            {t('player.ready')}
+          </Button>
+        )}
+        <p className="text-muted-foreground text-xs">{trackingNotice(t, view)}</p>
+      </div>
       {/* The host moved on while they were rating the quiz just played: it stays open. */}
       {view.rateable?.feedbackEnabled ? (
         <RatingPanel pin={pin} quizId={view.rateable.quizId} socket={socket} hideWhenDone />

@@ -205,6 +205,10 @@ export interface PublicOption {
   media?: { url: string; kind: 'image'; alt?: string | null } | null;
 }
 
+/** A participant's nickname, in characters: what the server takes and the phone counts. */
+export const NICKNAME_MIN = 2;
+export const NICKNAME_MAX = 20;
+
 /**
  * What a player learns of a room before joining (#57): whether the quiz plays
  * sound (the form then asks where they are), whether an account is needed, and
