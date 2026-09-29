@@ -65,7 +65,7 @@
       "thQuizzes": "Quizler",
       "exportCsv": "Sıralamayı dışa aktar (CSV)",
       "csvFilename": "oda",
-      "defaultName": "{{host}}'un odası"
+      "defaultName": "{{host}} tarafından açılan oda"
     }
   },
   "player": {

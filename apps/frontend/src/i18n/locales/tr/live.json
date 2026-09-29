@@ -397,7 +397,7 @@
     "standingsTitle": "Oda sıralamaları",
     "afterQuizzes_one": "{{count}} quizden sonra",
     "afterQuizzes_other": "{{count}} quizden sonra",
-    "defaultName": "{{host}}'un odası",
+    "defaultName": "{{host}} tarafından açılan oda",
     "fallbackName": "Oda"
   },
   "sound": {
