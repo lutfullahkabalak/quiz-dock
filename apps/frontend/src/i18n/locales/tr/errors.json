@@ -173,5 +173,10 @@
     "not_found": "Bu öğe artık mevcut değil: bu arada silindi.",
     "conflict": "Başka biri aynı anda değişiklik kaydetti. Tekrar deneyin.",
     "invalid_reference": "Bu, artık var olmayan bir şeye işaret eder."
+  },
+  "mcp": {
+    "busy": "Bağlayıcı meşgul. Biraz sonra tekrar deneyin.",
+    "import_failed": "Quiz içe aktarılamadı.",
+    "rate_limit": "Çok fazla içe aktarma isteği gönderildi. Biraz sonra tekrar deneyin."
   }
 }
