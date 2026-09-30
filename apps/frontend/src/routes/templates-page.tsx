@@ -122,8 +122,8 @@ export function TemplatesPage() {
               />
             </label>
             {languages.length > 1 ? (
-              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-                {t('dashboard:filterLanguage')}
+              <label className="text-muted-foreground flex flex-col gap-1">
+                <span className="text-xs">{t('dashboard:filterLanguage')}</span>
                 <Select
                   value={language}
                   onChange={(e) => {
@@ -140,8 +140,8 @@ export function TemplatesPage() {
                 </Select>
               </label>
             ) : null}
-            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
-              {t('sortBy')}
+            <label className="text-muted-foreground flex flex-col gap-1">
+              <span className="text-xs">{t('sortBy')}</span>
               <Select
                 value={sort}
                 onChange={(e) => {

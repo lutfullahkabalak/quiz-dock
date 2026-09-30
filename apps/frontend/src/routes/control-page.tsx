@@ -553,7 +553,7 @@ function HostConsole({
             ) : null}
             {/* Who hears the sound, for this game — only when the quiz has something to hear. */}
             {view.quizHasSound && view.gameAudioTarget ? (
-              <label className="flex flex-col gap-2 rounded-lg border p-3 text-sm">
+              <label className="flex flex-col gap-2 rounded-lg border p-3 text-[1em]">
                 <span className="font-medium">{t('control.audioTargetLabel')}</span>
                 <Select
                   className="h-8 w-auto"
@@ -1391,7 +1391,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
         }}
         onCancel={() => setOpen(false)}
       >
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 text-[1em]">
           <span className="font-medium">{t('control.banDuration')}</span>
           <input
             type="number"
@@ -1399,7 +1399,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
             max={1440}
             value={minutes}
             onChange={(e) => setMinutes(Math.min(1440, Math.max(1, Number(e.target.value) || 1)))}
-            className="border-input w-20 rounded-md border px-2 py-1"
+            className="border-input w-20 rounded-md border px-2 py-1 text-[1em]"
           />
           <span className="text-muted-foreground">{t('control.banMinutes')}</span>
         </label>

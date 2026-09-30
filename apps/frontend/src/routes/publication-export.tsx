@@ -205,7 +205,7 @@ function SlugField({
   const changed = report.slugSet && value !== report.slug;
   const id = useId();
   return (
-    <div className="flex flex-col gap-1 text-sm">
+    <div className="flex flex-col gap-1 text-[1em]">
       <label htmlFor={id} className="font-medium">
         {t('publication.slugLabel')}
       </label>

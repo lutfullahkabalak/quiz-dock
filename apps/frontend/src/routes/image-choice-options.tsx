@@ -166,7 +166,7 @@ export function ImageChoiceOptions<T extends ImageOptionValue>({
                       {t('questionForm.imageRequired')}
                     </p>
                   ) : null}
-                  <label className="flex flex-col gap-1 text-sm">
+                  <label className="flex flex-col gap-1 text-[1em]">
                     <span className="font-medium">{t('questionForm.imageAltLabel')}</span>
                     <Input
                       aria-label={t('questionForm.imageAltAria', { index: i + 1 })}
