@@ -275,7 +275,8 @@ auto-generated OpenAPI client (Orval) and a shared TypeScript WebSocket contract
 
 ## 🛠️ Development
 
-Dev runs backend (NestJS, hot-reload) and frontend (Vite) as separate services:
+Dev runs backend (NestJS, hot-reload) and frontend (Vite) as separate services. To send a
+change, see [CONTRIBUTING.md](CONTRIBUTING.md): pull requests go to `dev`.
 
 ```bash
 pnpm install
