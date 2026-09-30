@@ -173,5 +173,10 @@
     "not_found": "Este elemento ya no existe: se eliminó mientras tanto.",
     "conflict": "Otra persona guardó al mismo tiempo. Inténtalo de nuevo.",
     "invalid_reference": "Esto hace referencia a algo que ya no existe."
+  },
+  "mcp": {
+    "busy": "Ya hay una importación en curso. Espera a que termine.",
+    "import_failed": "No se pudo importar el cuestionario. Consulta los registros del servidor.",
+    "rate_limit": "Demasiadas solicitudes del conector. Inténtalo de nuevo en un minuto."
   }
 }
