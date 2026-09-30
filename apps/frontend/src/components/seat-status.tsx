@@ -178,7 +178,7 @@ export function SeatMenuRow({ user }: { user: string }) {
       <div className="flex items-center gap-1.5">
         <Select
           aria-label={t('seat.extendLabel')}
-          className="h-7 flex-1 "
+          className="h-7 flex-1"
           value={forMinutes}
           onChange={(e) => setForMinutes(Number(e.target.value))}
         >

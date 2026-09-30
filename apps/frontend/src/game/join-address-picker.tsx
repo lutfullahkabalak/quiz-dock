@@ -83,7 +83,7 @@ export function JoinAddressPicker({
         </label>
         <Select
           id="join-address"
-          className="h-8 w-auto min-w-[14rem] "
+          className="h-8 w-auto min-w-[14rem]"
           value={isCustom ? CUSTOM : current}
           onChange={(e) => {
             if (e.target.value === CUSTOM) setCustom(current);
@@ -108,7 +108,7 @@ export function JoinAddressPicker({
             }}
           >
             <Input
-              className="h-8 w-56 "
+              className="h-8 w-56"
               placeholder="https://quiz.example.org"
               value={custom || (isCustom ? current : '')}
               onChange={(e) => setCustom(e.target.value)}

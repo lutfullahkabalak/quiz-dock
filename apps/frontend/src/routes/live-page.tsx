@@ -118,8 +118,8 @@ export function LivePage() {
                 className="pl-8"
               />
             </label>
-            <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
-              {t('filterState')}
+            <label className="text-muted-foreground flex flex-col gap-1">
+              <span className="text-xs">{t('filterState')}</span>
               <Select
                 value={state}
                 onChange={(e) => narrow(() => setState(e.target.value as typeof state))}
@@ -129,8 +129,8 @@ export function LivePage() {
                 <option value="playing">{t('statePlaying')}</option>
               </Select>
             </label>
-            <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
-              {t('sortBy')}
+            <label className="text-muted-foreground flex flex-col gap-1">
+              <span className="text-xs">{t('sortBy')}</span>
               <Select
                 value={sort}
                 onChange={(e) => narrow(() => setSort(e.target.value as typeof sort))}

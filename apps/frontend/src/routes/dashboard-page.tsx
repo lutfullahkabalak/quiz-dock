@@ -315,8 +315,8 @@ export function DashboardPage() {
               />
             </div>
             {others.length > 0 ? (
-              <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
-                {t('filterOwner')}
+              <label className="text-muted-foreground flex flex-col gap-1">
+                <span className="text-xs">{t('filterOwner')}</span>
                 {others.length > OWNER_SELECT_MAX ? (
                   // Many hosts share: a list to type into rather than to scroll.
                   <Combobox
@@ -339,8 +339,8 @@ export function DashboardPage() {
               </label>
             ) : null}
             {languages.length > 1 ? (
-              <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
-                {t('filterLanguage')}
+              <label className="text-muted-foreground flex flex-col gap-1">
+                <span className="text-xs">{t('filterLanguage')}</span>
                 <Select
                   value={language}
                   onChange={(e) => narrow(() => setLanguage(e.target.value))}
@@ -354,8 +354,8 @@ export function DashboardPage() {
                 </Select>
               </label>
             ) : null}
-            <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
-              {t('sortBy')}
+            <label className="text-muted-foreground flex flex-col gap-1">
+              <span className="text-xs">{t('sortBy')}</span>
               <Select
                 value={sort}
                 onChange={(e) => narrow(() => setSort(e.target.value as typeof sort))}

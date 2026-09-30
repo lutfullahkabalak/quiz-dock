@@ -747,7 +747,7 @@ function LeafFields({
             </span>
             <Select
               aria-label={t('slideForm.headingLevel')}
-              className="h-7 w-16 shrink-0 px-2 py-0 "
+              className="h-7 w-16 shrink-0 px-2 py-0"
               value={String(block.level)}
               onChange={(e) => onChange({ ...block, level: Number(e.target.value) as 1 | 2 })}
             >
