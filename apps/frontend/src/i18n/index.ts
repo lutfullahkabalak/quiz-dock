@@ -10,11 +10,11 @@ import { appConfig } from '../config';
  * ni de bascule par utilisateur : l'instance est self-hosted et le contenu des
  * quiz n'est pas multilingue, on évite donc toute incohérence langue UI / contenu.
  * Langues fournies : `en` (défaut), `fr`, `es`, `zh` (chinois simplifié),
- * `zh-TW` (chinois traditionnel). Vocabulaire et arbitrages : `GLOSSARY.md`.
+ * `zh-TW` (chinois traditionnel), `tr` (turc). Vocabulaire et arbitrages : `GLOSSARY.md`.
  *
  * Chaque langue est un fichier à part, chargé à la demande (audit E16) : le
  * navigateur ne télécharge que celle de l'instance, et l'anglais pour une clé qui
- * manquerait, au lieu des cinq. `loadLanguages()` les charge avant le premier
+ * manquerait, au lieu des six. `loadLanguages()` les charge avant le premier
  * rendu (`main.tsx`, et le setup des tests) : `t()` reste alors synchrone.
  */
 const files = import.meta.glob<{ default: Record<string, unknown> }>('./locales/*/*.json');
@@ -33,7 +33,7 @@ export const namespaces = [
   'validation',
 ] as const;
 
-export const supportedLngs = ['en', 'fr', 'es', 'zh', 'zh-TW'] as const;
+export const supportedLngs = ['en', 'fr', 'es', 'zh', 'zh-TW', 'tr'] as const;
 export type AppLang = (typeof supportedLngs)[number];
 
 const DEFAULT_LANG: AppLang = 'en';

@@ -150,10 +150,13 @@ export class MediaService implements OnModuleInit {
     ownerId: string,
     file: UploadFile | undefined,
     fields: Record<string, unknown> = {},
-    /** Straight into the instance's media (#62): an administrator's upload. */
-    options: { instance?: boolean } = {},
+    /**
+     * `instance`: straight into the instance's media (#62), an administrator's upload.
+     * `seeding`: the application's own files (the samples), taken on a demo too.
+     */
+    options: { instance?: boolean; seeding?: boolean } = {},
   ): Promise<{ mediaId: string; url: string; kind: MediaKind }> {
-    if (isDemoMode()) {
+    if (isDemoMode() && !options.seeding) {
       throw new ForbiddenException('media.demo_disabled');
     }
     if (!file) {

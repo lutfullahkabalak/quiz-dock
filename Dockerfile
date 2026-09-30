@@ -37,6 +37,8 @@ RUN pnpm --filter @quiz-dock/contracts build \
  # Schéma + config + migrations dans /out → consommés par le service `migrate`.
  && cp -r apps/backend/prisma /out/prisma \
  && cp apps/backend/prisma.config.ts /out/prisma.config.ts \
+ # The sample quizzes and their media, seeded into the catalogue at start.
+ && cp -r apps/backend/samples /out/samples \
  && (cd /out && node_modules/.bin/prisma generate --schema prisma/schema.prisma) \
  # SPA buildé → servi par Nest (CLIENT_DIR).
  && cp -r apps/frontend/dist /out/client \
@@ -58,6 +60,7 @@ COPY --from=build --chown=65532:65532 /out/dist ./dist
 COPY --from=build --chown=65532:65532 /out/client ./client
 COPY --from=build --chown=65532:65532 /out/prisma ./prisma
 COPY --from=build --chown=65532:65532 /out/prisma.config.ts ./prisma.config.ts
+COPY --from=build --chown=65532:65532 /out/samples ./samples
 COPY --from=build --chown=65532:65532 /data/media /data/media
 COPY --from=build --chown=65532:65532 /data/store /data/store
 # Admin CLI as a plain command: `docker compose exec quizdock qd <cmd>`.

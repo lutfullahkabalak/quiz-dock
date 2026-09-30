@@ -117,7 +117,7 @@ cmd_init() {
   fi
   info "QuizDock setup ($want_mode mode)"
   ask app_name "Application name" "QuizDock"
-  ask app_lang "Instance language (en, fr, es, zh, zh-TW)" "en"
+  ask app_lang "Instance language (en, fr, es, zh, zh-TW, tr)" "en"
   ask port "HTTP port on this host" "18080"
   if [ "$want_mode" = full ]; then
     auth_mode=oidc

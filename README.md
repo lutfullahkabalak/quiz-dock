@@ -33,7 +33,7 @@ runs on **your** infrastructure as a single Docker image; the questions, the ans
 the results never leave your servers.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/demo.gif" width="800" alt="A session on the big screen: players join with the PIN, a question with its timer, the reveal with the leaderboard, the podium" />
+  <img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/demo.gif" width="800" alt="A session on the big screen: the intro slide, questions with their timers and answers coming in, the reveals" />
 </p>
 
 ## 🎮 Try it online
@@ -58,7 +58,9 @@ your phone to play.
   text, numeric, reorder, poll, and image choice — pictures as the answers), images with
   alternative text, Markdown everywhere, content
   slides between questions, backgrounds, answer explanations at the reveal. A new quiz
-  starts from a draft: an intro slide and a first question to complete.
+  starts from a draft: an intro slide and a first question to complete. Three sample
+  quizzes wait in the templates (France, Taiwan, and Türkiye in Turkish), every question
+  type in them, with pictures and sounds from Wikimedia Commons.
 - 🎧 **Video & sound** — videos and sounds in questions and slides,
   loudness-matched, drawn as a waveform with a playhead; played on the projection and on
   the devices of **remote participants** (who hears what is set per quiz, per question and
@@ -80,7 +82,7 @@ your phone to play.
   own standings across the quizzes, shown live and kept in *History* with the results.
 - 🏠 **Self-hosted and private** — one Docker image (`amd64` / `arm64`), no SaaS, no
   tracking, no ads; interface in English, French, Spanish, Simplified and Traditional
-  Chinese; rebrand name, logo and CSS without a rebuild.
+  Chinese, and Turkish; rebrand name, logo and CSS without a rebuild.
 
 ## 📈 Performance
 
@@ -105,7 +107,7 @@ Same image, one switch: `AUTH_MODE` decides who can host.
 | Setup | none — start the container and play | point the app at your OpenID Connect provider (Keycloak, Authentik, Entra ID, Google…) |
 | Who hosts | one **host seat**: a host signs in with just a name and takes it; released when done | as many hosts as you like, each signing in through your IdP with their own quizzes |
 | Host rights | whoever holds the seat | the `host` role, granted from the IdP |
-| Sample quizzes | included | — |
+| Sample quizzes | in the templates | in the templates |
 
 Players sign in only in OIDC mode, and there too a host can open a game to the PIN and a
 nickname alone once the admin allows it (`ALLOW_ANONYMOUS_PARTICIPANTS=true`). Details: [authentication](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/auth.md).
@@ -174,7 +176,7 @@ copy it to `.env` and adjust. The settings you are most likely to touch:
 | Variable | Default | Purpose |
 |---|---|---|
 | `APP_NAME` | `QuizDock` | App name shown in the UI (white-label) |
-| `APP_LANG` | `en` | Instance language: `en` · `fr` · `es` · `zh` · `zh-TW` |
+| `APP_LANG` | `en` | Instance language: `en` · `fr` · `es` · `zh` · `zh-TW` · `tr` |
 | `APP_LOGO_URL` | — | Logo served from elsewhere; empty = look in the mounted `branding/` folder |
 | `APP_FEEDBACK_URL` | — | Where the home page's *report a bug / suggest a feature…* links lead; empty = this repository, `none` = hidden |
 | `AUTH_MODE` | `none` | `none` (local mode) or `oidc` (any OpenID Connect provider) |
@@ -207,7 +209,7 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/admin-media.png" alt="Instance media" /><br /><sub><b>Instance media</b> — disk, clean-up, every file with its owners, the global media</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/participant-access.png" alt="Participant access at launch" /><br /><sub><b>Who can join</b> — with an account, or with the PIN and a nickname alone</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-lobby.png" alt="Projection — lobby" /><br /><sub><b>Projection</b> — the big screen while players join and get ready</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — closed room" /><br /><sub><b>Close the room</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
   </tr>
   <tr>
@@ -223,8 +225,8 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-big-screen.png" alt="Remote player — the question, or the big screen" /><br /><sub><b>Remote player</b> — the whole question on their phone, or the big screen itself</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-room-next.png" alt="Host console — the next quiz in the room" /><br /><sub><b>The next quiz</b> — same room, same players, the standings carried over</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-background-sound.png" alt="Slide with a background and a sound" /><br /><sub><b>Slides</b> — pictures, columns, backgrounds, a video or a sound</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-podium.png" alt="Podium" /><br /><sub><b>Podium</b> — final results on the big screen</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-gradient.png" alt="Slide with a picture" /><br /><sub><b>Slides</b> — pictures, text, backgrounds, a video or a sound</sub></td>
   </tr>
 </table>
 
@@ -261,8 +263,8 @@ ordering and feedback screens, the global media, the account preferences:
 - 🔎 **History & exploration** — browse archived sessions: per-question success rates, average times, per-player answer sheets.
 - 📤 **CSV export** — overall results and per-player answer sheets.
 - 🏷️ **Licence, tags and language of a quiz** — set in the quiz settings and carried with it, so whoever receives a copy knows what they may do with it and what it is about.
-- 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot or another tool? A [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import.
-- 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the five.
+- 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot? Its spreadsheet template imports as a draft, the rows to finish flagged. From another tool, a [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import.
+- 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the six.
 - 🎨 **White-label** — name, logo and CSS via env + a mounted folder, no rebuild.
 - 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
 - 🔒 **Hardened runtime** — distroless image, non-root, read-only root FS, all Linux capabilities dropped, `no-new-privileges`; a Content-Security-Policy on every page (no inline script, no `eval`).

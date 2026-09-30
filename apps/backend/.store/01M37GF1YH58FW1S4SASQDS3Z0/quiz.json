@@ -1,12 +1,12 @@
 {
   "format": "quizdock/quiz",
-  "version": 2,
+  "version": 6,
   "quiz": {
     "title": "Discover Taiwan",
     "description": "Sample quiz — geography, history and culture of Taiwan.",
     "language": "en",
     "license": "CC-BY-4.0",
-    "revision": 1,
+    "revision": 2,
     "feedbackEnabled": true,
     "cover": null
   },
@@ -24,17 +24,14 @@
         {
           "type": "text",
           "id": "intro-text",
-          "md": "Ten quick questions about *Formosa* — from Taipei 101 to Taroko Gorge.",
+          "md": "Quick questions about *Formosa* — from Taipei 101 to Taroko Gorge.",
           "align": "center",
           "size": "large"
         }
       ],
-      "backgroundGradient": {
-        "angle": 135,
-        "colors": ["#0b7a3b", "#f5f5f5", "#d02a2a"]
-      },
       "textTone": "light",
-      "textOutline": true
+      "textOutline": true,
+      "backgroundImage": "media/taipei-twilight.webp"
     },
     {
       "kind": "question",
@@ -71,7 +68,8 @@
           "isCorrect": false
         }
       ],
-      "acceptedAnswers": []
+      "acceptedAnswers": [],
+      "media": "media/taipei.webp"
     },
     {
       "kind": "question",
@@ -110,7 +108,47 @@
       "numericValue": 101,
       "numericTolerance": 0,
       "options": [],
-      "acceptedAnswers": []
+      "acceptedAnswers": [],
+      "media": "media/taipei-101.webp"
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "image_choice",
+      "prompt": "Which of these skyscrapers is Taipei 101?",
+      "answerExplanation": "Taipei 101 was the world’s tallest building from 2004 to 2010.",
+      "options": [
+        {
+          "media": "media/petronas.webp",
+          "alt": "Two identical steel towers linked by a sky bridge, lit at night",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false
+        },
+        {
+          "media": "media/shanghai-tower.webp",
+          "alt": "A glass tower twisting as it rises",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": false
+        },
+        {
+          "media": "media/taipei-101-choice.webp",
+          "alt": "A tower of stacked segments like a bamboo stalk, above a city at dusk",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": true
+        },
+        {
+          "media": "media/burj-khalifa.webp",
+          "alt": "A very slender tower rising above a desert city",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false
+        }
+      ]
     },
     {
       "kind": "question",
@@ -147,7 +185,8 @@
           "isCorrect": false
         }
       ],
-      "acceptedAnswers": []
+      "acceptedAnswers": [],
+      "media": "media/night-market.webp"
     },
     {
       "kind": "question",
@@ -159,14 +198,39 @@
       "pointsMode": "standard",
       "scoring": "lenient",
       "options": [],
-      "acceptedAnswers": [
+      "acceptedAnswers": ["Taroko", "Taroko Gorge"],
+      "media": "media/taroko.webp"
+    },
+    {
+      "kind": "slide",
+      "blocks": [
         {
-          "text": "Taroko"
+          "type": "heading",
+          "id": "tea-title",
+          "text": "Born in Taiwan",
+          "level": 2,
+          "align": "center"
         },
         {
-          "text": "Taroko Gorge"
+          "type": "image",
+          "id": "tea-picture",
+          "media": "media/bubble-tea.webp",
+          "size": "medium",
+          "align": "center"
+        },
+        {
+          "type": "text",
+          "id": "tea-text",
+          "md": "Bubble tea — *zhēnzhū nǎichá* — was first served in Taichung in the 1980s.",
+          "align": "center"
         }
-      ]
+      ],
+      "textTone": "light",
+      "textOutline": true,
+      "backgroundGradient": {
+        "angle": 135,
+        "colors": ["#065f46", "#022c22"]
+      }
     },
     {
       "kind": "question",
@@ -345,5 +409,57 @@
       ],
       "acceptedAnswers": []
     }
-  ]
+  ],
+  "media": {
+    "media/taipei-twilight.webp": {
+      "name": "taipei-twilight.webp",
+      "alt": "Taipei 101 above the city at twilight",
+      "credit": "Ken Marshall · CC BY 4.0 · Wikimedia Commons"
+    },
+    "media/taipei.webp": {
+      "name": "taipei.webp",
+      "alt": "Taipei’s towers and avenues seen from above",
+      "credit": "othree · CC BY 2.0 · Wikimedia Commons"
+    },
+    "media/taipei-101.webp": {
+      "name": "taipei-101.webp",
+      "alt": "Taipei 101 seen from its foot, rising into the sky",
+      "credit": "Balon Greyjoy · CC0 · Wikimedia Commons"
+    },
+    "media/night-market.webp": {
+      "name": "night-market.webp",
+      "alt": "A crowded night market street under rows of yellow lanterns",
+      "credit": "Bigmorr · CC0 · Wikimedia Commons"
+    },
+    "media/taroko.webp": {
+      "name": "taroko.webp",
+      "alt": "The marble cliffs of Taroko Gorge above a river",
+      "credit": "Balon Greyjoy · CC0 · Wikimedia Commons"
+    },
+    "media/petronas.webp": {
+      "name": "petronas.webp",
+      "alt": "Two identical steel towers linked by a sky bridge, lit at night",
+      "credit": "Vlad Shapochnikov vladshap · CC0 · Wikimedia Commons"
+    },
+    "media/shanghai-tower.webp": {
+      "name": "shanghai-tower.webp",
+      "alt": "A glass tower twisting as it rises",
+      "credit": "Ermell · CC0 · Wikimedia Commons"
+    },
+    "media/taipei-101-choice.webp": {
+      "name": "taipei-101-choice.webp",
+      "alt": "A tower of stacked segments like a bamboo stalk, above a city",
+      "credit": "Sinchen.Lin · CC BY 2.0 · Wikimedia Commons"
+    },
+    "media/burj-khalifa.webp": {
+      "name": "burj-khalifa.webp",
+      "alt": "A very slender tower rising above a desert city",
+      "credit": "Tim Reckmann from Hamm, Deutschland · CC BY 2.0 · Wikimedia Commons"
+    },
+    "media/bubble-tea.webp": {
+      "name": "bubble-tea.webp",
+      "alt": "A tall glass of milk tea with tapioca pearls",
+      "credit": "Battlesnake1 · CC0 · Wikimedia Commons"
+    }
+  }
 }

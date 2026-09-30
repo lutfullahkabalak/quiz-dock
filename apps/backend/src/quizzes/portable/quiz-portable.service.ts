@@ -120,6 +120,8 @@ export class QuizPortableService {
   async importBundle(
     ownerId: string,
     file: BundleFile | undefined,
+    /** The application's own bundle (a sample): its media are taken on a demo too. */
+    options: { seeding?: boolean } = {},
   ): Promise<Quiz & { importReport?: KahootImportReport }> {
     if (!file) throw new BadRequestException('import.file_missing');
     const kahoot = kahootSpreadsheet(file.buffer, file.originalname);
@@ -154,6 +156,7 @@ export class QuizPortableService {
             loudnessLufs: meta?.loudnessLufs,
             peakDbfs: meta?.peakDbfs,
           },
+          { seeding: options.seeding },
         );
       } catch (err) {
         if (err instanceof BadRequestException || err instanceof PayloadTooLargeException) {

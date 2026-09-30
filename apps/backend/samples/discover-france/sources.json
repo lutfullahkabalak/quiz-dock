@@ -1,0 +1,93 @@
+{
+  "media": [
+    {
+      "file": "eiffel-night.webp",
+      "commons": "File:Eiffel Tower and Pont Alexandre III at night.jpg",
+      "alt": "The Eiffel Tower and the Pont Alexandre III lit up at night over the Seine",
+      "license": "CC BY 2.0",
+      "author": "Getfunky Paris",
+      "page": "https://commons.wikimedia.org/wiki/File:Eiffel_Tower_and_Pont_Alexandre_III_at_night.jpg"
+    },
+    {
+      "file": "paris.webp",
+      "commons": "File:Le Tout-Paris, view to Seine and west.jpg",
+      "alt": "Paris seen from above, the Seine winding west",
+      "license": "CC0",
+      "author": "Gerda Arendt",
+      "page": "https://commons.wikimedia.org/wiki/File:Le_Tout-Paris,_view_to_Seine_and_west.jpg"
+    },
+    {
+      "file": "eiffel.webp",
+      "commons": "File:Tour Eiffel Wikimedia Commons.jpg",
+      "alt": "The Eiffel Tower seen from the Champ de Mars",
+      "license": "Public domain",
+      "author": "Benh LIEU SONG",
+      "page": "https://commons.wikimedia.org/wiki/File:Tour_Eiffel_Wikimedia_Commons.jpg"
+    },
+    {
+      "file": "chambord.webp",
+      "commons": "File:Château de Chambord (2019).jpg",
+      "alt": "The Château de Chambord, a Renaissance castle with many towers",
+      "width": 640,
+      "square": true,
+      "license": "CC BY 2.0",
+      "author": "xiquinhosilva",
+      "page": "https://commons.wikimedia.org/wiki/File:Ch%C3%A2teau_de_Chambord_(2019).jpg"
+    },
+    {
+      "file": "mont-saint-michel.webp",
+      "commons": "File:Mont St Michel 3, Brittany, France - July 2011.jpg",
+      "alt": "A rocky island crowned by an abbey, surrounded by salt meadows",
+      "width": 640,
+      "square": true,
+      "license": "Public domain",
+      "author": "Diliff",
+      "page": "https://commons.wikimedia.org/wiki/File:Mont_St_Michel_3,_Brittany,_France_-_July_2011.jpg"
+    },
+    {
+      "file": "pont-du-gard.webp",
+      "commons": "File:Pont du Gard 004.jpg",
+      "alt": "A three-tiered Roman aqueduct bridge over a river",
+      "width": 640,
+      "square": true,
+      "license": "CC BY 2.5",
+      "author": "Marc Ryckaert",
+      "page": "https://commons.wikimedia.org/wiki/File:Pont_du_Gard_004.jpg"
+    },
+    {
+      "file": "palais-des-papes.webp",
+      "commons": "File:Palais-des-Papes-Avignon-June-2012.jpg",
+      "alt": "The Gothic towers of the Palais des Papes in Avignon",
+      "width": 640,
+      "square": true,
+      "license": "CC BY 4.0",
+      "author": "Acediscovery",
+      "page": "https://commons.wikimedia.org/wiki/File:Palais-des-Papes-Avignon-June-2012.jpg"
+    },
+    {
+      "file": "lavender.webp",
+      "commons": "File:Lavender field in Provence, France (51695613559).jpg",
+      "alt": "Rows of lavender in bloom under a blue sky",
+      "license": "CC BY 2.0",
+      "author": "dronepicr",
+      "page": "https://commons.wikimedia.org/wiki/File:Lavender_field_in_Provence,_France_(51695613559).jpg"
+    },
+    {
+      "file": "comte-cellar.webp",
+      "commons": "File:Cave comté.jpg",
+      "alt": "Wheels of Comté ageing on wooden shelves in a cellar",
+      "license": "Public domain",
+      "author": "Killersam",
+      "page": "https://commons.wikimedia.org/wiki/File:Cave_comt%C3%A9.jpg"
+    },
+    {
+      "file": "marseillaise.mp3",
+      "commons": "File:La Marseillaise Rouget de Lisle Musique de la Garde Républicaine.ogg",
+      "start": 0,
+      "duration": 25,
+      "license": "Public domain",
+      "author": "Musique de la Garde républicaine",
+      "page": "https://commons.wikimedia.org/wiki/File:La_Marseillaise_Rouget_de_Lisle_Musique_de_la_Garde_R%C3%A9publicaine.ogg"
+    }
+  ]
+}

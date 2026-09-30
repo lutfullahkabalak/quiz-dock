@@ -1,0 +1,42 @@
+{
+  "title": "Paylaşılan şablonlar",
+  "intro": "Bu kurulumdaki sunucuların paylaştığı quizler. Bir şablonu aldığınızda listenize bağımsız bir kopya eklenir; dilediğiniz gibi düzenleyip sunabilirsiniz. Değişiklikleriniz özgün şablonu etkilemez.",
+  "emptyTitle": "Henüz şablon yok",
+  "empty": "Bu kurulumda henüz şablon paylaşılmadı. “Hazır” durumundaki bir quizi şablon olarak paylaşabilirsiniz.",
+  "withdraw": "Geri çek",
+  "questionCount_one": "{{count}} soru",
+  "questionCount_other": "{{count}} soru",
+  "takeFailed": "Bu şablonun kopyası alınamadı.",
+  "withdrawFailed": "Bu şablon geri çekilemedi.",
+  "withdrawConfirm": {
+    "title": "Bu şablon geri çekilsin mi?",
+    "description": "Şablon katalogdan kaldırılır; yeni kopya alınamaz. Daha önce alınan kopyalar etkilenmez."
+  },
+  "share": "Şablon olarak paylaş",
+  "shareConfirm": {
+    "title": "Bu quiz şablon olarak paylaşılsın mı?",
+    "description": "Quizinizin bir kopyası bu kurulumun kataloğuna eklenir. Diğer sunucular kendi kopyalarını alıp değiştirebilir; yaptıkları değişiklikler quizinizi etkilemez. Yeniden paylaşmak katalogdaki sürümü günceller. Geri çekmek daha önce alınan kopyaları silmez."
+  },
+  "shared": "Şablon olarak paylaşıldı (revizyon {{n}}).",
+  "shareFailed": "Bu quiz paylaşılamadı.",
+  "search": "Şablon arayın",
+  "sortBy": "Sırala",
+  "sortRecent": "Son paylaşılanlar",
+  "sortTitle": "Başlık (A’dan Z’ye)",
+  "sortQuestions": "Çoğu soru",
+  "templateCount_one": "{{count}} şablon",
+  "templateCount_other": "{{count}} şablon",
+  "noMatch": "Bu aramayla eşleşen şablon yok.",
+  "sharedBy": "{{name}} tarafından {{date}} tarihinde paylaşıldı",
+  "backToCatalogue": "Şablonlara geri dön",
+  "slideCount_one": "{{count}} slayt",
+  "slideCount_other": "{{count}} slayt",
+  "licence": "Lisans: {{name}}",
+  "notFound": "Bu şablon artık katalogda yer almıyor.",
+  "takeNeedsHost": "Bir şablondan quiz oluşturmak bir sunucu eylemidir.",
+  "createFrom": "Bu quizden yeni bir quiz oluştur",
+  "unreadable": "Bu şablonun tamamı okunamıyor: kopyası kabul edilmez ({{where}}).",
+  "unreadableItem": "{{n}}. öğe",
+  "unreadableManifest": "bildirim dosyası",
+  "more": "Diğer işlemler"
+}

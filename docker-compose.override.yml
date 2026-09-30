@@ -52,6 +52,8 @@ services:
       - ./apps/backend/tsconfig.json:/app/apps/backend/tsconfig.json:ro
       - ./apps/backend/prisma.config.ts:/app/apps/backend/prisma.config.ts:ro
       - ./apps/backend/prisma:/app/apps/backend/prisma:ro
+      # The sample quizzes and their media (samples.ts).
+      - ./apps/backend/samples:/app/apps/backend/samples:ro
       # Sources (hot-reload).
       - ./apps/backend/src:/app/apps/backend/src
       - ./packages/contracts/src:/app/packages/contracts/src

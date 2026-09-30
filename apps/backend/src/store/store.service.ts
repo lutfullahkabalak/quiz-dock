@@ -15,9 +15,8 @@ import { unzipSync, zipSync } from 'fflate';
 import { isDemoMode } from '../demo/demo.config';
 import { isManager, type RoleSet } from '../auth/roles';
 import { PrismaService } from '../prisma/prisma.service';
-import { BUNDLE_FORMAT, BUNDLE_VERSION } from '../quizzes/portable/quiz-bundle.schema';
 import { QuizPortableService } from '../quizzes/portable/quiz-portable.service';
-import { SAMPLE_QUIZZES, type SampleQuiz } from '../quizzes/samples/sample-quizzes.data';
+import { loadSamples, questionCountOf, type SampleBundle } from '../quizzes/samples/samples';
 import { type TemplateSteps, templateSteps } from './store-preview';
 
 /** One entry of the catalogue, as `index.json` holds it. */
@@ -54,57 +53,14 @@ const SAMPLE_SUBJECT = 'system:samples';
 /** Les modèles d'usine sont signés par l'auteur du projet, pas par l'instance :
  *  le nom de l'application est configurable (white-label), celui-ci non. */
 const SAMPLE_AUTHOR = 'fchaussin';
-
-/**
- * Bundle d'un quiz d'exemple, construit depuis sa définition : aucun compte
- * n'est propriétaire d'un modèle du catalogue, il n'y a donc rien en base.
- */
-function sampleBundle(sample: SampleQuiz): unknown {
-  const items: unknown[] = [
-    {
-      kind: 'slide',
-      blocks: sample.intro.blocks,
-      backgroundGradient: sample.intro.gradient ?? null,
-      textTone: sample.intro.textTone,
-      textOutline: sample.intro.textOutline,
-    },
-    ...sample.questions.map((q) => ({
-      kind: 'question',
-      type: q.type,
-      prompt: q.prompt,
-      answerExplanation: q.answerExplanation ?? null,
-      timeLimitS: q.timeLimitS,
-      revealDelayS: q.revealDelayS ?? null,
-      pointsMode: q.pointsMode,
-      scoring: q.scoring,
-      numericValue: q.numericValue ?? undefined,
-      numericTolerance: q.numericTolerance ?? undefined,
-      options: q.options?.map((o) => ({
-        text: o.text,
-        color: o.color,
-        shape: o.shape,
-        isCorrect: o.isCorrect ?? false,
-        correctOrderIndex: o.correctOrderIndex ?? undefined,
-      })),
-      // Le bundle porte des chaînes ; le schéma d'API des objets `{ text }`.
-      acceptedAnswers: q.acceptedAnswers?.map((a) => a.text),
-    })),
-  ];
-  return {
-    format: BUNDLE_FORMAT,
-    version: BUNDLE_VERSION,
-    quiz: {
-      title: sample.title,
-      description: sample.description,
-      language: sample.language,
-      license: SAMPLE_LICENSE,
-      revision: 1,
-      feedbackEnabled: true,
-      cover: null,
-    },
-    items,
-  };
-}
+/** Which sample each seeded template is (`samples.json`): its id (null once withdrawn), its revision. */
+const SEEDED = 'samples.json';
+type Seeded = Record<string, { id: string | null; revision: number }>;
+/** The samples of the releases before `samples.json`, by the title they were seeded under. */
+const LEGACY_SAMPLES: [string, string][] = [
+  ['discover-france', 'Discover France'],
+  ['discover-taiwan', 'Discover Taiwan'],
+];
 
 /** Un élément de bundle, tel que l'aperçu a besoin de le lire (lecture tolérante). */
 interface BundleItem {
@@ -271,42 +227,91 @@ export class StoreService implements OnModuleInit {
   }
 
   /**
-   * Amorce un catalogue vide avec les quiz d'exemple. Ils ne sont plus versés
-   * d'office dans la banque de chaque nouvel arrivant : ils vivent ici, et qui en
-   * veut s'en prend une copie. Une instance neuve montre donc à quoi sert la
-   * bibliothèque au lieu d'une page vide, et personne n'hérite d'un contenu qu'il
-   * n'a pas demandé.
-   *
-   * Ne s'exécute que si le catalogue est vide : un opérateur qui a tout retiré ne
-   * les voit pas revenir au prochain démarrage.
+   * The sample quizzes in the catalogue. A fresh catalogue gets every sample; a
+   * later release brings the samples it adds, and a new revision of a sample
+   * replaces the old one in place (same template, so a copy taken earlier stays
+   * linked). A sample the operator withdrew is not brought back. What was seeded
+   * is kept in `samples.json`, next to the index.
    */
   private async seedSamples(): Promise<void> {
     // An unreadable index is the operator's to repair: seeding over it would lose it.
-    const current = await this.readIndex().catch(() => null);
-    if (current === null || current.length > 0) return;
-    const entries: StoreEntry[] = [];
-    for (const sample of SAMPLE_QUIZZES) {
-      const id = ulid();
-      const bundle = sampleBundle(sample);
-      await mkdir(join(this.dir, id), { recursive: true });
-      await writeFile(join(this.dir, id, MANIFEST), JSON.stringify(bundle, null, 2), 'utf8');
-      entries.push({
-        id,
-        title: sample.title,
-        description: sample.description,
-        language: sample.language,
-        tags: [],
-        questionCount: sample.questions.length,
-        license: SAMPLE_LICENSE,
-        author: { name: SAMPLE_AUTHOR, subject: SAMPLE_SUBJECT },
-        revision: 1,
-        sharedAt: new Date().toISOString(),
-        cover: null,
-        first: firstItemOf((bundle as { items?: BundleItem[] }).items),
-      });
+    const entries = await this.readIndex().catch(() => null);
+    if (entries === null) return;
+    const seeded = await this.readSeeded(entries);
+    let changed = false;
+    for (const sample of loadSamples()) {
+      const known = seeded[sample.key];
+      const revision = sample.manifest.quiz.revision ?? 1;
+      if (known === undefined) {
+        const id = ulid();
+        await this.writeSample(id, sample);
+        await this.updateIndex((current) => [...current, this.sampleEntry(id, sample)]);
+        seeded[sample.key] = { id, revision };
+        changed = true;
+      } else if (known.id && !entries.some((e) => e.id === known.id)) {
+        seeded[sample.key] = { id: null, revision: known.revision };
+        changed = true;
+      } else if (known.id && known.revision < revision) {
+        const id = known.id;
+        await this.writeSample(id, sample);
+        await this.updateIndex((current) =>
+          current.map((e) =>
+            e.id === id ? { ...this.sampleEntry(id, sample), sharedAt: e.sharedAt } : e,
+          ),
+        );
+        seeded[sample.key] = { id, revision };
+        changed = true;
+      }
     }
-    await this.updateIndex(() => entries);
-    this.log.log(`Template catalogue seeded with ${entries.length} sample(s)`);
+    if (!changed) return;
+    await writeFile(join(this.dir, SEEDED), JSON.stringify(seeded, null, 2), 'utf8');
+    this.log.log(`Template catalogue: samples ${Object.keys(seeded).join(', ')} up to date`);
+  }
+
+  /**
+   * What `samples.json` says was seeded. Before it existed, the samples were the
+   * entries signed `system:samples`, recognised by title; on such a catalogue a
+   * sample it no longer holds was withdrawn by the operator.
+   */
+  private async readSeeded(entries: StoreEntry[]): Promise<Seeded> {
+    const raw = await readFile(join(this.dir, SEEDED), 'utf8').catch(() => null);
+    if (raw) return parseOr<Seeded>(raw, {});
+    const seeded: Seeded = {};
+    if (entries.length === 0) return seeded;
+    for (const [key, title] of LEGACY_SAMPLES) {
+      const entry = entries.find((e) => e.author?.subject === SAMPLE_SUBJECT && e.title === title);
+      seeded[key] = { id: entry?.id ?? null, revision: entry?.revision ?? 1 };
+    }
+    return seeded;
+  }
+
+  /** A sample's bundle, as a template folder: `quiz.json` and its `media/`. */
+  private async writeSample(id: string, sample: SampleBundle): Promise<void> {
+    const folder = join(this.dir, id);
+    await rm(join(folder, 'media'), { recursive: true, force: true });
+    await mkdir(join(folder, 'media'), { recursive: true });
+    for (const [path, bytes] of Object.entries(sample.files)) {
+      await writeFile(join(folder, path), bytes);
+    }
+    await writeFile(join(folder, MANIFEST), sample.manifestText, 'utf8');
+  }
+
+  private sampleEntry(id: string, sample: SampleBundle): StoreEntry {
+    const quiz = sample.manifest.quiz;
+    return {
+      id,
+      title: quiz.title,
+      description: quiz.description ?? null,
+      language: quiz.language ?? 'en',
+      tags: [],
+      questionCount: questionCountOf(sample),
+      license: quiz.license ?? SAMPLE_LICENSE,
+      author: { name: SAMPLE_AUTHOR, subject: SAMPLE_SUBJECT },
+      revision: quiz.revision ?? 1,
+      sharedAt: new Date().toISOString(),
+      cover: null,
+      first: firstItemOf(sample.manifest.items as BundleItem[]),
+    };
   }
 
   /**

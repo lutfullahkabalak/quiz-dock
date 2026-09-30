@@ -1,7 +1,8 @@
 # Glossary
 
-The vocabulary of QuizDock's interface, in the five shipped locales, and the
-choices behind it. It extends the canonical glossary ratified in
+The vocabulary of QuizDock's interface, in the six shipped locales, and the
+choices behind it. The tables below cover the original five locales; the Turkish
+terms are listed after them. It extends the canonical glossary ratified in
 [ADR 0001](../../../../docs/adr/0001-i18n-et-glossaire.md) (quiz / session /
 participant / animateur / PIN) to every term the interface has grown since. Keep it in step with the `locales/*.json` files: when a term
 changes, change it here and everywhere it appears (the parity test only checks
@@ -68,6 +69,32 @@ reference, the others follow its sense, not its words.
 | fixed points   | Fixed (no speed bonus) | Fixe (sans bonus vitesse) | Fijo (sin bonus de velocidad) | 固定（无速度加分） | 固定（無速度加分） |
 
 ## Decisions
+
+### Turkish (`tr`)
+
+| Concept | Turkish | Usage |
+| --- | --- | --- |
+| quiz | quiz | The authored content, distinct from the room and archived session. |
+| my quizzes | Quizlerim | The quiz bank. |
+| host | sunucu | The person presenting; never the server computer. |
+| host seat | sunucu yetkisi | The single-host lock in local mode. |
+| participant | katılımcı | The person answering, not “oyuncu”. |
+| nickname | takma ad | The name chosen when joining. |
+| room | oda | The live room joined with a PIN; it can run several quizzes. |
+| session | oturum | One completed quiz as shown in History. |
+| console | kontrol paneli | The host's control screen. |
+| projection | yansıtma ekranı | The shared screen seen by the room. |
+| reveal | yanıtları göster | The action that shows correct answers. |
+| leaderboard | sıralama | Live standings. |
+| podium | ödül kürsüsü | Final standings. |
+| reviews | değerlendirmeler | Ratings and comments from participants. |
+| history | geçmiş | Archived sessions and results. |
+| question / slide / option | soru / slayt / seçenek | Quiz content. |
+| scoring / partial credit | puanlama / kısmi puan | How points are awarded. |
+
+Turkish strings use natural sentence order around `{{placeholders}}`, retain PIN
+and established product names, and use Turkish plural forms only where the UI
+needs distinct forms. The locale checker enforces key and placeholder parity.
 
 - **quiz, not questionnaire.** Product name and common usage; "questionnaire"
   reads like a survey. Kept as `quiz` in every locale (it is a loanword in

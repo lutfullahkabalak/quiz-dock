@@ -1,0 +1,177 @@
+{
+  "auth": {
+    "required": "Giriş yapmanız gerekiyor.",
+    "login_failed": "Oturum açma işlemi tamamlanamadı. Lütfen tekrar deneyin.",
+    "cross_origin": "Bu istek uygulamanın kendi sayfasından gelmedi.",
+    "host_required": "Sunucu rolü gerekli.",
+    "host_only": "Bu işlem sunucu yetkisi gerektirir. Yönetici rolü tek başına quiz sunma yetkisi vermez.",
+    "admin_required": "Yönetici rolü gerekli.",
+    "oidc_disabled": "Bu kurulumda kimlik sağlayıcısıyla oturum açma etkin değil."
+  },
+  "host": {
+    "auth_required": "Sunucu girişi gerekli.",
+    "forbidden": "Bu odanın sunucusu değilsiniz."
+  },
+  "quiz": {
+    "not_found": "Quiz bulunamadı.",
+    "not_ready": "Oynatmak için quiz “hazır” durumda olmalıdır (RG-02).",
+    "empty": "Bu quizde soru yok.",
+    "requires_question": "Bir quizin “hazır” olması için en az bir soru içermesi gerekir (RG-02).",
+    "transition_forbidden": "Yasak durum geçişi: {{from}} → {{target}}.",
+    "in_use": "Bu quiz bir odada oynanıyor: önce odayı kapatın.",
+    "item_not_in_quiz": "Bu öğe artık bu quize ait değil: sayfayı yeniden yükleyin.",
+    "reorder_incomplete": "Gönderilen sıralamada bazı öğeler eksik: sayfayı yeniden yükleyip tekrar deneyin.",
+    "incomplete_one": "1 adım tamamlanmamış: quizi yayımlamak için tamamlayın.",
+    "incomplete_other": "{{count}} adım tamamlanmamış: quizi yayımlamak için tamamlayın."
+  },
+  "session": {
+    "not_found": "Oda bulunamadı veya kapatılmadı.",
+    "ended": "Oda kapalı.",
+    "banned": "Sunucu tarafından bu odadan çıkarıldınız.",
+    "join_required": "Cevap vermeden önce odaya katılın.",
+    "already_started": "Quiz çoktan başladı.",
+    "reveal_required": "Bu işlem ancak yanıtlar gösterildikten sonra yapılabilir.",
+    "timer_not_adjustable": "Zamanlayıcı yalnızca bir soru sırasında ayarlanabilir.",
+    "snapshot_not_found": "Oturumun anlık görüntüsü bulunamadı.",
+    "capture_locked": "Tam yakalama yalnızca quiz başlamadan önce değiştirilebilir.",
+    "options_locked": "Bu seçenekler yalnızca quiz başlamadan önce değiştirilebilir.",
+    "join_url_invalid": "Geçersiz davet adresi (http:// veya https:// ile başlayan bir adres olmalı).",
+    "archive_quiz_gone": "Quiz oynatılırken silindi: arşiv olmadan sona erdi.",
+    "locked": "Bu odaya artık yeni katılımcı kabul edilmemektedir.",
+    "open_access_forbidden": "Bu sunucuda açık erişime izin verilmiyor.",
+    "open_access_guests_only": "Açık erişimde katılımcı hesabı bulunmaz; bireysel takip veya hesaptan alınan ad kullanılamaz.",
+    "next_quiz_unavailable": "Bu quiz bu odada sıradaki quiz olarak oynatılamaz.",
+    "review_unavailable": "Bir adımı yalnızca iki soru arasında yeniden gösterebilirsiniz.",
+    "step_not_played": "Bu adım henüz oynanmadı."
+  },
+  "participant": {
+    "not_found": "Katılımcı bulunamadı."
+  },
+  "nickname": {
+    "taken": "Bu takma ad bu odada zaten alınmış.",
+    "invalid_length": "Takma ad {{min}} ile {{max}} karakter arasında olmalıdır."
+  },
+  "pin": {
+    "unavailable": "PIN tahsis edilemedi, lütfen tekrar deneyin.",
+    "too_many_attempts": "Bu adresten çok fazla yanlış PIN girildi. Bir dakika sonra tekrar deneyin."
+  },
+  "media": {
+    "unsupported_type": "Desteklenmeyen format: bir görüntü, bir MP4 video (H.264) veya bir ses (MP3, M4A). Düzenleyici, bu tarayıcının okuyabileceği diğer dosyaları dönüştürür; SVG kabul edilmez.",
+    "file_missing": "Eksik dosya (“dosya” alanı).",
+    "file_too_large": "Dosya çok büyük (bu tür medya için en fazla {{maxMb}} MB).",
+    "not_found": "Medya bulunamadı.",
+    "demo_disabled": "Demo örneğinde medya yüklemeleri devre dışı bırakıldı.",
+    "video_with_audio": "Bir video zaten kendi sesini taşır: ses parçasını veya videoyu kaldırın.",
+    "wrong_kind": "Bu medya bu slotun aldığı türden değil.",
+    "embeds_disabled": "Bu kurulumda YouTube ve Vimeo videoları kapalı.",
+    "invalid": "Sorunun medyası geçerli değil.",
+    "quicktime": "QuickTime dosyaları (.mov) kabul edilmez. Videoyu örneğin HandBrake (handbrake.fr) ile MP4 (H.264) olarak dışa aktarın.",
+    "unsupported_video_codec": "Desteklenmeyen video codec bileşeni ({{codec}}). Her yerde yalnızca H.264 oynuyor. iPhone'da çekilen bir video genellikle HEVC'dir: örneğin HandBrake (handbrake.fr) ile MP4 H.264'e dönüştürün veya kamerayı \"En Uyumlu\" olarak ayarlayın.",
+    "unsupported_audio_codec": "Bu videonun sesi ({{codec}}) AAC değil. Örneğin HandBrake (handbrake.fr) ile MP4 H.264 + AAC olarak tekrar dışa aktarın.",
+    "no_video_track": "Bu dosyada video bulunmuyor. Kendi başına bir ses için ses yuvasını kullanın.",
+    "unreadable_mp3": "Bu ses okunamıyor: dosya hasarlı görünüyor.",
+    "metadata_invalid": "Seste ölçülen değer geçerli değil ({{field}}). Yüklemeyi tekrar deneyin.",
+    "cannot_read": "Bu tarayıcı bu dosyayı okuyamıyor. Başka bir tarayıcı deneyin veya önce onu özel bir araçla dönüştürün (videolar için HandBrake, sesler için Audacity).",
+    "cannot_convert_video": "Bu tarayıcı bu videoyu MP4 H.264'e dönüştüremez. Chrome, Edge veya Safari kullanın veya önce HandBrake (handbrake.fr) ile dönüştürün.",
+    "cannot_convert_audio": "Bu tarayıcı bu sesi AAC'ye dönüştüremez. Başka bir tarayıcı deneyin veya önce Audacity (audacityteam.org) ile dönüştürün.",
+    "too_long": "Bu tür medya için {{maxMb}} MB sınırına sığmayacak kadar uzun, sıkıştırılmış olsa bile. Önce kısaltın.",
+    "canceled": "Dönüşüm iptal edildi.",
+    "in_use": "Bu medya hâlâ bir quiz veya oturum tarafından kullanılıyor: önce onu oradan kaldırın.",
+    "playing": "Şu anda bir oda bu medyayı oynatıyor: kapandıktan sonra tekrar deneyin.",
+    "not_adopted_yet": "Bu dosya paylaşılan depolama alanına taşınıyor; birazdan tekrar deneyin.",
+    "embed_bounds": "Videonun başlangıcı ve bitişi uygun değil: bitiş, başlangıçtan sonra olmalıdır."
+  },
+  "import": {
+    "file_missing": "Eksik dosya (“dosya” alanı).",
+    "invalid_bundle": "QuizDock paketi değil (quiz.json + media/, sıkıştırılmış).",
+    "bundle_too_large": "Bu paket açıldığında çok büyük oluyor veya çok fazla dosya içeriyor.",
+    "media_missing": "“{{path}}” medyasına başvuruluyor ancak pakette yok.",
+    "media_unsupported": "Desteklenmeyen medya “{{path}}” (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
+    "invalid_item": "Paketin {{item}} öğesi geçersiz ({{field}}).",
+    "kahoot_template": "Tek sayfalı özgün Kahoot elektronik tablo şablonunu (.xlsx) kullanın.",
+    "kahoot_empty": "Geçerli soru bulunamadı. {{row}}. satırı ve Kahoot şablonunu kontrol edin."
+  },
+  "question": {
+    "not_in_quiz": "Soru, quizin bir parçası değil.",
+    "invalid_permutation": "Konumlar 0..n-1 permütasyonunu oluşturmalıdır.",
+    "reorder_incomplete": "Yeniden sıralamada quizin tüm soruları listelenmelidir.",
+    "not_found": "Soru bulunamadı.",
+    "accepted_answers": {
+      "not_allowed": "Kabul edilen yanıtlar yalnızca yazılı yanıt sorularında kullanılabilir.",
+      "required": "En az bir kabul edilen yanıt ekleyin."
+    },
+    "image": {
+      "alt_required": "Bu görseli göremeyenler için açıklayın.",
+      "count": "Görsel seçimi sorusunda 2 veya 4 görsel olmalıdır.",
+      "no_text": "Görsel yanıt metin içermez.",
+      "no_visual": "Görsel seçimi sorusunun kendine ait görseli veya videosu olmaz: görseller yanıtlarıdır.",
+      "picture_required": "Bu yanıt için bir görsel seçin."
+    },
+    "incomplete_in_ready_quiz": "Bu quiz yayımlanmış: tamamlanmamış bir soruyu kaydetmek için quizi taslağa döndürün.",
+    "multi_select": {
+      "not_allowed": "Birden fazla doğru görsel yalnızca görsel seçimi sorularında kullanılabilir."
+    },
+    "numeric": {
+      "not_allowed": "Hedef değer ve tolerans yalnızca sayısal sorularda kullanılabilir.",
+      "tolerance_required": "Toleransı belirleyin (tam sayı eşleşmesi için 0).",
+      "value_required": "Bulunacak sayıyı belirleyin."
+    },
+    "options": {
+      "not_allowed": "Bu soru türünde seçilebilecek yanıtlar yoktur.",
+      "one_correct": "Doğru yanıtı işaretleyin.",
+      "some_correct": "En az bir doğru yanıtı işaretleyin.",
+      "too_few": "En az 2 yanıt ekleyin."
+    },
+    "ordering": {
+      "positions": "Her yanıtın doğru sıralamada kendine ait bir yeri olmalıdır."
+    },
+    "poll": {
+      "no_correct": "Anketin doğru yanıtı yoktur."
+    },
+    "prompt": {
+      "required": "Soruyu yazın veya soruyu soran bir görsel ya da ses ekleyin."
+    },
+    "scoring": {
+      "not_available": "Bu puanlama bu soru türünde kullanılamaz."
+    },
+    "true_false": {
+      "two_options": "Doğru/yanlış sorusunda tam olarak 2 yanıt olmalıdır."
+    }
+  },
+  "validation": "Bazı alanlar geçersiz.",
+  "internal": "Dahili hata.",
+  "error": "Bir hata oluştu.",
+  "host_seat": {
+    "taken": "Sunucu yetkisi zaten alınmış.",
+    "manager_forbidden": "Yönetici sunucu yetkisini alamaz."
+  },
+  "store": {
+    "demo_disabled": "Demo örneğinde paylaşım kapalı.",
+    "not_ready": "Yalnızca \"hazır\" olarak işaretlenen bir quiz paylaşılabilir.",
+    "license_required": "Paylaşmadan önce lisans seçin. Böylece şablonu alanlar yeniden kullanım koşullarını bilir.",
+    "entry_not_found": "Bu şablon artık katalogda yer almıyor.",
+    "not_yours": "Bir şablonu yalnızca yazarı veya yöneticisi geri çekebilir.",
+    "invalid_id": "Geçersiz şablon tanımlayıcı.",
+    "index_unreadable": "Katalog dizini okunamıyor; yöneticinize sorun."
+  },
+  "publication": {
+    "slug_invalid": "Kısa ad küçük harf, rakam ve tirelerden oluşmalıdır.",
+    "not_ready": "Yalnızca hazır bir quiz yayınlanmak üzere dışa aktarılabilir.",
+    "license": "Yayınlanmak üzere dışa aktarmadan önce bir lisans (CC0, CC BY veya CC BY-SA) seçin.",
+    "language": "Quiz dili geçerli değil.",
+    "tags": "Yayınlanmak üzere dışa aktarmadan önce en az bir etiket ekleyin.",
+    "too_large": "Quiz topluluk mağazası için çok büyük."
+  },
+  "slide": {
+    "two_sounds": "Bir slayt aynı anda bir ses çalar: videosunun sesini kapatın veya sesini kaldırın.",
+    "background_conflict": "Arka plan görsel veya renk geçişi olabilir, ikisi birden olamaz.",
+    "empty": "Slayt hiçbir şey göstermiyor: başlık, metin, görsel, arka plan veya video ekleyin.",
+    "not_found": "Bu slayt artık mevcut değil: bu sırada silinmiş.",
+    "incomplete_in_ready_quiz": "Bu quiz yayımlanmış: hiçbir şey göstermeyen bir slaytı kaydetmek için quizi taslağa döndürün."
+  },
+  "record": {
+    "not_found": "Bu öğe artık mevcut değil: bu arada silindi.",
+    "conflict": "Başka biri aynı anda değişiklik kaydetti. Tekrar deneyin.",
+    "invalid_reference": "Bu, artık var olmayan bir şeye işaret eder."
+  }
+}
