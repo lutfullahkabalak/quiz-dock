@@ -45,8 +45,6 @@
     "empty": "社区目录为空。",
     "unavailable": "部分来源无法加载，请稍后重试。",
     "source": "来源：{{source}}",
-    "report": "报告问题",
-    "closePreview": "关闭预览",
-    "previewHint": "文本预览。图片和音频可在导入的草稿中查看。"
+    "report": "报告问题"
   }
 }

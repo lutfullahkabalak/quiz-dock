@@ -139,7 +139,7 @@ Which setup offers what: [where participants connect](invitation-address.md).
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `QUIZ_STORE_URL` | Official registry at `https://raw.githubusercontent.com/quizdock/quiz-store/main/registry.json` | Comma-separated registry URLs. Set to an **empty string** to hide the community page and prevent all outgoing store requests. |
+| `QUIZ_STORE_URL` | _(unset; disabled)_ | Comma-separated registry URLs. Leave unset or empty to hide the community page and prevent all outgoing store requests. Enabling contacts the listed services from the server: its IP is visible, no user data is sent. |
 | `QUIZ_STORE_HOSTS` | `github.com,release-assets.githubusercontent.com` | Additional exact host names allowed for source indexes, artifacts and redirects. Registry hosts are allowed automatically. |
 
 See [Community store](community-store.md) for the formats, download checks and a private organisation's catalogue.

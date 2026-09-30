@@ -15,6 +15,41 @@ export function allowedUrl(value: string, hosts: Set<string>): URL {
     throw new Error('Disallowed store URL');
   return url;
 }
+/** Bundle URLs are trusted only within the source index's own directory. */
+export function sourceBase(index: string): URL {
+  return new URL('.', index);
+}
+export function allowedArtifactUrl(value: string, base: URL): URL {
+  const url = new URL(value);
+  const decoded = decodeURIComponent(url.pathname);
+  if (
+    url.protocol !== 'https:' ||
+    url.username ||
+    url.password ||
+    url.hash ||
+    url.origin !== base.origin ||
+    !url.pathname.startsWith(base.pathname) ||
+    /%2f|%5c/i.test(url.pathname) ||
+    decoded.split('/').some((part) => part === '..' || part === '.')
+  )
+    throw new Error('Bundle outside source base');
+  return url;
+}
+
+/** The asset CDN is a transfer hop, never a source an index can name directly. */
+export function artifactRedirect(value: string, current: URL, base: URL, hosts: Set<string>): URL {
+  const url = allowedUrl(value, hosts);
+  if (url.origin === base.origin) return allowedArtifactUrl(url.href, base);
+  // Other origins must be explicitly allowed, and reached through the source
+  // or that same transfer host; another repository on the source host is refused.
+  if (
+    url.hostname === base.hostname ||
+    (current.origin !== base.origin && url.origin !== current.origin)
+  )
+    throw new Error('Bundle redirect outside source');
+  return url;
+}
+
 export function publicAddress(address: string): boolean {
   try {
     return ipaddr.process(address).range() === 'unicast';
@@ -29,9 +64,11 @@ export async function downloadStore(
   hosts: Set<string>,
   maxBytes: number,
   timeoutMs = 15_000,
+  base?: URL,
 ): Promise<Buffer> {
   const deadline = Date.now() + Math.min(timeoutMs, 15_000);
   let url = allowedUrl(value, hosts);
+  if (base) allowedArtifactUrl(url.href, base);
   for (let redirect = 0; redirect <= 4; redirect++) {
     if (Date.now() >= deadline) throw new Error('Store timeout');
     let dnsTimer: ReturnType<typeof setTimeout> | undefined;
@@ -108,7 +145,8 @@ export async function downloadStore(
       req.end();
     });
     if (response.bytes) return response.bytes;
-    url = allowedUrl(new URL(response.location!, url).href, hosts);
+    const next = new URL(response.location!, url).href;
+    url = base ? artifactRedirect(next, url, base, hosts) : allowedUrl(next, hosts);
   }
   throw new Error('Too many store redirects');
 }

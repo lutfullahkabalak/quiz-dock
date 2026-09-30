@@ -1,7 +1,5 @@
-export const OFFICIAL_REGISTRY =
-  'https://raw.githubusercontent.com/quizdock/quiz-store/main/registry.json';
 export function communityRegistries(): string[] {
-  return (process.env.QUIZ_STORE_URL ?? OFFICIAL_REGISTRY)
+  return (process.env.QUIZ_STORE_URL ?? '')
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean)

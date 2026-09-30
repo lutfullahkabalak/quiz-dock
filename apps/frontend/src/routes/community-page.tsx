@@ -1,16 +1,21 @@
 import { useMemo, useState } from 'react';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { useQueryClient } from '@tanstack/react-query';
+import { ArrowLeft, CopyPlus, LayoutGrid, List as ListIcon } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Select } from '@/components/ui/select';
+import { Notice } from '@/components/ui/notice';
+import { PageTitle } from '@/components/ui/page-title';
 import { Pagination } from '@/components/ui/pagination';
+import { Segmented } from '@/components/ui/segmented';
+import { Select } from '@/components/ui/select';
 import { TagFilter, tagsOf } from '@/components/tag-filter';
 import { ListSkeleton, LoadFailed } from '@/components/ui/loading';
+import { useStoredView } from '@/lib/use-stored-view';
 import {
   useCommunityControllerList,
-  useCommunityControllerPreview,
   useCommunityControllerTake,
 } from '../api/generated/community-store/community-store';
 import { getQuizzesControllerListQueryKey } from '../api/generated/quizzes/quizzes';
@@ -18,18 +23,19 @@ import { apiErrorText } from '../api/http';
 import { useRole } from '../auth/use-role';
 import { hasCommunityStore } from '../config';
 import { fold } from '@/lib/text';
+import { cn } from '@/lib/utils';
 
 export function CommunityPage() {
-  const { t } = useTranslation(['store', 'dashboard']);
-  const list = useCommunityControllerList({ query: { enabled: hasCommunityStore() } });
+  const { t, i18n } = useTranslation(['store', 'dashboard']);
+  const { isHost } = useRole();
+  const list = useCommunityControllerList({ query: { enabled: hasCommunityStore() && isHost } });
   const take = useCommunityControllerTake();
-  const [selected, setSelected] = useState('');
-  const preview = useCommunityControllerPreview(selected, { query: { enabled: !!selected } });
   const [search, setSearch] = useState('');
   const [language, setLanguage] = useState('');
   const [tags, setTags] = useState<string[]>([]);
   const [page, setPage] = useState(1);
-  const { isHost } = useRole();
+  const [sort, setSort] = useState('recent');
+  const [view, setView] = useStoredView('quizdock.community.view', 'grid');
   const navigate = useNavigate();
   const client = useQueryClient();
   const entries = useMemo(() => list.data?.data.entries ?? [], [list.data]);
@@ -40,6 +46,13 @@ export function CommunityPage() {
       (!language || e.language === language) &&
       tags.every((tag) => e.tags.includes(tag)) &&
       fold(`${e.title} ${e.description ?? ''} ${e.author}`).includes(fold(search)),
+  );
+  filtered.sort((a, b) =>
+    sort === 'title'
+      ? a.title.localeCompare(b.title, i18n.language)
+      : sort === 'questions'
+        ? b.questionCount - a.questionCount
+        : b.updatedAt.localeCompare(a.updatedAt),
   );
   const pages = Math.max(1, Math.ceil(filtered.length / 20));
   const current = Math.min(page, pages);
@@ -55,47 +68,87 @@ export function CommunityPage() {
   if (!hasCommunityStore()) return null;
   return (
     <section className="flex flex-col gap-4">
-      <Link to="/templates" className="underline">
-        {t('backToCatalogue')}
-      </Link>
-      <h1 className="text-2xl font-bold">{t('community.title')}</h1>
-      <p className="text-muted-foreground">{t('community.intro')}</p>
-      {list.isPending ? <ListSkeleton variant="list" rows={4} /> : null}
+      <header className="flex flex-col gap-2">
+        <Link
+          to="/templates"
+          className="text-muted-foreground flex w-fit items-center gap-1 text-sm"
+        >
+          <ArrowLeft className="size-4" />
+          {t('backToCatalogue')}
+        </Link>
+        <PageTitle>{t('community.title')}</PageTitle>
+        <p className="text-muted-foreground max-w-prose text-sm">{t('community.intro')}</p>
+      </header>
+      {!isHost ? <Notice tone="warning">{t('takeNeedsHost')}</Notice> : null}
+      {isHost && list.isPending ? <ListSkeleton variant="grid" rows={6} /> : null}
       {list.isError ? <LoadFailed error={list.error} /> : null}
-      {list.data?.data.unavailable.length ? <p role="alert">{t('community.unavailable')}</p> : null}
+      {list.data?.data.unavailable.length ? (
+        <Notice tone="warning">{t('community.unavailable')}</Notice>
+      ) : null}
       {take.error ? (
-        <p role="alert" className="text-destructive">
+        <p role="alert" className="text-destructive text-sm">
           {apiErrorText(take.error, t('takeFailed'))}
         </p>
       ) : null}
-      {list.isSuccess && !entries.length ? <p>{t('community.empty')}</p> : null}
+      {list.isSuccess && !entries.length ? (
+        <p className="text-muted-foreground rounded-lg border border-dashed p-6">
+          {t('community.empty')}
+        </p>
+      ) : null}
       {entries.length ? (
         <>
-          <div className="flex gap-3 flex-wrap">
-            <Input
-              aria-label={t('search')}
-              placeholder={t('search')}
-              value={search}
-              onChange={(e) => {
-                setSearch(e.target.value);
-                setPage(1);
-              }}
+          <div className="flex flex-wrap items-end gap-3">
+            <label className="min-w-[12rem] flex-1">
+              <span className="sr-only">{t('search')}</span>
+              <Input
+                placeholder={t('search')}
+                value={search}
+                onChange={(e) => {
+                  setSearch(e.target.value);
+                  setPage(1);
+                }}
+              />
+            </label>
+            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              {t('dashboard:filterLanguage')}
+              <Select
+                value={language}
+                onChange={(e) => {
+                  setLanguage(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="">{t('dashboard:languageAll')}</option>
+                {languages.map((l) => (
+                  <option key={l} value={l}>
+                    {l.toUpperCase()}
+                  </option>
+                ))}
+              </Select>
+            </label>
+            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              {t('sortBy')}
+              <Select
+                value={sort}
+                onChange={(e) => {
+                  setSort(e.target.value);
+                  setPage(1);
+                }}
+              >
+                <option value="recent">{t('sortRecent')}</option>
+                <option value="title">{t('sortTitle')}</option>
+                <option value="questions">{t('sortQuestions')}</option>
+              </Select>
+            </label>
+            <Segmented
+              label={t('dashboard:display')}
+              value={view}
+              onChange={setView}
+              options={[
+                { value: 'list', label: t('dashboard:viewList'), icon: ListIcon },
+                { value: 'grid', label: t('dashboard:viewGrid'), icon: LayoutGrid },
+              ]}
             />
-            <Select
-              aria-label={t('dashboard:filterLanguage')}
-              value={language}
-              onChange={(e) => {
-                setLanguage(e.target.value);
-                setPage(1);
-              }}
-            >
-              <option value="">{t('dashboard:languageAll')}</option>
-              {languages.map((l) => (
-                <option key={l} value={l}>
-                  {l}
-                </option>
-              ))}
-            </Select>
           </div>
           <TagFilter
             label={t('dashboard:filterTags')}
@@ -106,74 +159,67 @@ export function CommunityPage() {
               setPage(1);
             }}
           />
-          <ul className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <p className="text-muted-foreground text-sm" role="status">
+            {t('templateCount', { count: filtered.length })}
+          </p>
+          {!filtered.length ? (
+            <p className="text-muted-foreground rounded-lg border border-dashed p-6">
+              {t('noMatch')}
+            </p>
+          ) : null}
+          <ul
+            className={
+              view === 'grid' ? 'grid gap-4 sm:grid-cols-2 lg:grid-cols-3' : 'flex flex-col gap-2'
+            }
+          >
             {filtered.slice((current - 1) * 20, current * 20).map((entry) => (
-              <li key={entry.key} className="border rounded-lg p-4 flex flex-col gap-2">
-                <h2 className="font-semibold">{entry.title}</h2>
-                <p>{entry.description}</p>
-                <p className="text-sm">
-                  {entry.author} · {entry.language} ·{' '}
-                  {t('questionCount', { count: entry.questionCount })}
-                </p>
-                <p className="text-sm">{t('licence', { name: entry.license })}</p>
-                <a
-                  href={entry.source}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="underline text-sm break-all"
+              <li
+                key={entry.key}
+                className={cn(
+                  'bg-card flex overflow-hidden rounded-xl border',
+                  view === 'grid' ? 'flex-col' : 'flex-col sm:flex-row sm:items-center',
+                )}
+              >
+                <Link
+                  to="/community/$key"
+                  params={{ key: entry.key }}
+                  className="hover:bg-accent flex min-w-0 flex-1 flex-col gap-2 p-4 transition-colors"
                 >
-                  {t('community.source', { source: entry.id })}
-                </a>
-                {entry.reportUrl ? (
-                  <a
-                    href={entry.reportUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="underline text-sm"
+                  <span className="font-semibold">{entry.title}</span>
+                  {entry.description ? (
+                    <span className="text-muted-foreground line-clamp-2 text-sm">
+                      {entry.description}
+                    </span>
+                  ) : null}
+                  <span className="flex flex-wrap items-center gap-3">
+                    <Badge variant="muted">{entry.language}</Badge>
+                    <span className="text-muted-foreground text-sm">
+                      {t('questionCount', { count: entry.questionCount })}
+                    </span>
+                  </span>
+                  <span className="text-muted-foreground text-xs">
+                    {entry.author} · {t('licence', { name: entry.license })}
+                  </span>
+                  <span className="text-muted-foreground break-all text-xs">
+                    {t('community.source', { source: entry.id })}
+                  </span>
+                </Link>
+                <div className={view === 'grid' ? 'border-t p-3' : 'border-t p-3 sm:border-t-0'}>
+                  <Button
+                    size="sm"
+                    className={view === 'grid' ? 'w-full' : 'w-full sm:w-auto'}
+                    disabled={take.isPending}
+                    onClick={() => void create(entry.key)}
                   >
-                    {t('community.report')}
-                  </a>
-                ) : null}
-                <Button variant="outline" onClick={() => setSelected(entry.key)}>
-                  {t('open')}
-                </Button>
-                {isHost ? (
-                  <Button disabled={take.isPending} onClick={() => void create(entry.key)}>
+                    <CopyPlus className="size-4" />
                     {t('createFrom')}
                   </Button>
-                ) : null}
+                </div>
               </li>
             ))}
           </ul>
           <Pagination page={current} pages={pages} onChange={setPage} />
         </>
-      ) : null}
-      {selected ? (
-        <div className="border rounded-lg p-4 space-y-3">
-          <Button variant="outline" onClick={() => setSelected('')}>
-            {t('community.closePreview')}
-          </Button>
-          {preview.isPending ? <ListSkeleton variant="list" rows={3} /> : null}
-          {preview.error ? <LoadFailed error={preview.error} /> : null}
-          {preview.data ? (
-            <>
-              <h2 className="font-semibold">{preview.data.data.title}</h2>
-              <p>{t('community.previewHint')}</p>
-              <ol className="list-decimal pl-5 space-y-3">
-                {preview.data.data.items.map((item, i) => (
-                  <li key={i}>
-                    <p className="whitespace-pre-wrap">{item.text || t('slide')}</p>
-                    <ul className="list-disc pl-5">
-                      {item.options.map((o, j) => (
-                        <li key={j}>{o}</li>
-                      ))}
-                    </ul>
-                  </li>
-                ))}
-              </ol>
-            </>
-          ) : null}
-        </div>
       ) : null}
     </section>
   );

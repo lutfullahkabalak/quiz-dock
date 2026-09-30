@@ -1,3 +1,4 @@
+import { sniffMedia, type SniffResult } from '@quiz-dock/contracts';
 import { createHash } from 'node:crypto';
 import { BadRequestException, Injectable, NotFoundException, HttpException } from '@nestjs/common';
 import { z } from 'zod';
@@ -8,7 +9,8 @@ import { quizBundleSchema, type QuizBundle } from '../../quizzes/portable/quiz-b
 import { collectMediaPaths, fromBundle } from '../../quizzes/portable/quiz-bundle';
 import { readArchive, archiveLimits } from '../../quizzes/portable/bundle-archive';
 import { communityHosts, communityRegistries } from './community-config';
-import { allowedUrl, downloadStore } from './safe-download';
+import { allowedArtifactUrl, sourceBase, downloadStore } from './safe-download';
+import { templateSteps } from '../store-preview';
 import { CommunityCatalogueDto, CommunityPreviewDto, communityEntrySchema } from './community.dto';
 
 const short = z.string().min(1).max(200);
@@ -47,7 +49,16 @@ const indexSchema = z.object({
     )
     .max(500),
 });
-type Entry = CommunityCatalogueDto['entries'][number] & { url: string; sha256: string };
+type Entry = CommunityCatalogueDto['entries'][number] & { url: string; sha256: string; base: URL };
+interface LoadedBundle {
+  bytes: Buffer;
+  bundle: QuizBundle;
+  files: Record<string, Uint8Array>;
+  mediaTypes: Map<string, Extract<SniffResult, { ok: true }>>;
+}
+const BUNDLE_CACHE_MS = 5 * 60_000;
+const BUNDLE_CACHE_BYTES = 128 * 1024 * 1024;
+const BUNDLE_CACHE_ENTRIES = 4;
 
 @Injectable()
 export class CommunityService {
@@ -57,6 +68,11 @@ export class CommunityService {
     entries: Map<string, Entry>;
   } | null = null;
   private downloads = 0;
+  private readonly bundles = new Map<
+    string,
+    { expires: number; cost: number; value: LoadedBundle }
+  >();
+  private readonly pendingBundles = new Map<string, Promise<LoadedBundle>>();
   private pending: Promise<CommunityCatalogueDto> | null = null;
   constructor(private readonly portable: QuizPortableService) {}
 
@@ -100,7 +116,8 @@ export class CommunityService {
                     quiz.size > publicationMaxBytes()
                   )
                     continue;
-                  allowedUrl(quiz.url, hosts);
+                  const base = sourceBase(source.index);
+                  allowedArtifactUrl(quiz.url, base);
                   const key = createHash('sha256')
                     .update(`${registry}\n${source.index}\n${quiz.id}`)
                     .digest('hex');
@@ -134,6 +151,7 @@ export class CommunityService {
                     size: quiz.size,
                     url: quiz.url,
                     sha256: quiz.sha256,
+                    base,
                   });
                 }
               } catch {
@@ -154,16 +172,21 @@ export class CommunityService {
     this.snapshot = { expires: Date.now() + 60_000, catalogue, entries };
     return catalogue;
   }
-  private async loadBundle(key: string): Promise<{ bytes: Buffer; bundle: QuizBundle }> {
+  private async entry(key: string): Promise<Entry> {
     if (!communityRegistries().length) throw new NotFoundException('community.disabled');
     await this.list();
     const entry = this.snapshot?.entries.get(key);
     if (!entry) throw new NotFoundException('store.entry_not_found');
+    return entry;
+  }
+  private async loadBundle(entry: Entry): Promise<LoadedBundle> {
     try {
       const bytes = await downloadStore(
         entry.url,
         communityHosts(),
         Math.min(entry.size, publicationMaxBytes()),
+        15_000,
+        entry.base,
       );
       if (
         bytes.length !== entry.size ||
@@ -183,53 +206,87 @@ export class CommunityService {
         bundle.items.filter((item) => item.kind === 'question').length !== entry.questionCount
       )
         throw new Error('Index metadata mismatch');
-      for (const path of collectMediaPaths(bundle))
+      const mediaTypes: LoadedBundle['mediaTypes'] = new Map();
+      for (const path of collectMediaPaths(bundle)) {
         if (!files[path]) throw new Error('Missing media');
+        const sniffed = sniffMedia(files[path]);
+        if (!sniffed.ok) throw new Error('Unsupported media');
+        mediaTypes.set(path, sniffed);
+      }
       fromBundle(
         bundle,
         () => '01ARZ3NDEKTSV4RRFFQ69G5FAV',
-        (p) => (/\.(mp3|m4a)$/i.test(p) ? 'audio' : /\.mp4$/i.test(p) ? 'video' : 'image'),
+        (path) => mediaTypes.get(path)?.kind ?? 'image',
       );
-      return { bytes, bundle };
+      return { bytes, bundle, files, mediaTypes };
     } catch {
       throw new BadRequestException('community.download_failed');
     }
   }
-  private async download(key: string): Promise<{ bytes: Buffer; bundle: QuizBundle }> {
+  private async download(entry: Entry): Promise<LoadedBundle> {
+    const cacheKey = `${entry.source}\n${entry.url}\n${entry.sha256}\n${entry.size}`;
+    const now = Date.now();
+    for (const [key, cached] of this.bundles) if (cached.expires <= now) this.bundles.delete(key);
+    const cached = this.bundles.get(cacheKey);
+    if (cached) {
+      this.bundles.delete(cacheKey);
+      this.bundles.set(cacheKey, cached);
+      return cached.value;
+    }
+    const pending = this.pendingBundles.get(cacheKey);
+    if (pending) return pending;
     if (this.downloads >= 4) throw new HttpException('community.busy', 429);
     this.downloads++;
+    const work = this.loadBundle(entry).then((value) => {
+      const cost =
+        value.bytes.length + Object.values(value.files).reduce((n, b) => n + b.length, 0);
+      if (cost > BUNDLE_CACHE_BYTES) throw new BadRequestException('community.download_failed');
+      let total = [...this.bundles.values()].reduce((n, b) => n + b.cost, 0);
+      while (
+        this.bundles.size &&
+        (this.bundles.size >= BUNDLE_CACHE_ENTRIES || total + cost > BUNDLE_CACHE_BYTES)
+      ) {
+        const oldest = this.bundles.keys().next().value!;
+        total -= this.bundles.get(oldest)!.cost;
+        this.bundles.delete(oldest);
+      }
+      this.bundles.set(cacheKey, { expires: Date.now() + BUNDLE_CACHE_MS, cost, value });
+      return value;
+    });
+    this.pendingBundles.set(cacheKey, work);
     try {
-      return await this.loadBundle(key);
+      return await work;
     } finally {
+      this.pendingBundles.delete(cacheKey);
       this.downloads--;
     }
   }
   async take(ownerId: string, key: string) {
-    const { bytes } = await this.download(key);
+    const { bytes } = await this.download(await this.entry(key));
     return this.portable.importBundle(ownerId, { buffer: bytes, mimetype: 'application/zip' });
   }
   async preview(key: string): Promise<CommunityPreviewDto> {
-    const { bundle } = await this.download(key);
+    const entry = await this.entry(key);
+    const { bundle, mediaTypes } = await this.download(entry);
+    const urlOf = (path: string) =>
+      mediaTypes.has(path)
+        ? `/api/v1/community-store/${key}/media/${encodeURIComponent(path.slice(6))}`
+        : null;
+    const steps = templateSteps(bundle, key, urlOf);
     return {
-      title: bundle.quiz.title,
-      items: bundle.items.map((item) => ({
-        kind: item.kind,
-        text:
-          item.kind === 'question'
-            ? (item.prompt ?? '')
-            : (item.blocks
-                ?.flatMap((b) => {
-                  if (!b || typeof b !== 'object') return [];
-                  const block = b as Record<string, unknown>;
-                  return typeof block.md === 'string'
-                    ? [block.md]
-                    : typeof block.text === 'string'
-                      ? [block.text]
-                      : [];
-                })
-                .join('\n') ?? ''),
-        options: item.kind === 'question' ? (item.options?.map((o) => o.text ?? '') ?? []) : [],
-      })),
+      ...communityEntrySchema.parse(entry),
+      ...steps,
+      coverUrl: bundle.quiz.cover ? urlOf(bundle.quiz.cover) : null,
+      slideCount: steps.slides.length,
     };
+  }
+  async readMedia(key: string, name: string): Promise<{ bytes: Buffer; mime: string }> {
+    if (!/^[A-Za-z0-9][A-Za-z0-9._-]{0,120}$/.test(name))
+      throw new NotFoundException('store.entry_not_found');
+    const loaded = await this.download(await this.entry(key));
+    const path = `media/${name}`;
+    const type = loaded.mediaTypes.get(path);
+    if (!type || !loaded.files[path]) throw new NotFoundException('store.entry_not_found');
+    return { bytes: Buffer.from(loaded.files[path]), mime: type.mime };
   }
 }

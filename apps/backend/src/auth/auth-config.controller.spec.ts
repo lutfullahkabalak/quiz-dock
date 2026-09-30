@@ -12,7 +12,7 @@ describe('AuthConfigController', () => {
     process.env = { ...env, AUTH_MODE: 'none' };
     expect(controller.config()).toEqual({
       mode: 'none',
-      communityStore: true,
+      communityStore: false,
       demo: null,
       standalone: false,
       anonymousParticipants: false,
@@ -28,7 +28,7 @@ describe('AuthConfigController', () => {
     };
     expect(controller.config()).toEqual({
       mode: 'oidc',
-      communityStore: true,
+      communityStore: false,
       demo: null,
       standalone: false,
       anonymousParticipants: false,
@@ -46,11 +46,18 @@ describe('AuthConfigController', () => {
     process.env = { ...env, AUTH_MODE: 'none', DEMO_MODE: 'true' };
     expect(controller.config()).toEqual({
       mode: 'none',
-      communityStore: true,
+      communityStore: false,
       demo: { user: 'demo_user' },
       standalone: false,
       anonymousParticipants: false,
     });
+  });
+
+  it('enables community access only when a registry is explicitly configured', () => {
+    process.env = { ...env, QUIZ_STORE_URL: 'https://store.example/registry.json' };
+    expect(controller.config().communityStore).toBe(true);
+    delete process.env.QUIZ_STORE_URL;
+    expect(controller.config().communityStore).toBe(false);
   });
 
   it('hides the community store when registries are explicitly empty', () => {

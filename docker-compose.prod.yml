@@ -136,7 +136,7 @@ services:
       MEDIA_MAX_VIDEO_MB: ${MEDIA_MAX_VIDEO_MB:-50}
       MEDIA_MAX_AUDIO_MB: ${MEDIA_MAX_AUDIO_MB:-10}
       IMPORT_MAX_BYTES: ${IMPORT_MAX_BYTES:-52428800}
-      QUIZ_STORE_URL: ${QUIZ_STORE_URL-https://raw.githubusercontent.com/quizdock/quiz-store/main/registry.json}
+      QUIZ_STORE_URL: ${QUIZ_STORE_URL:-}
       QUIZ_STORE_HOSTS: ${QUIZ_STORE_HOSTS-github.com,release-assets.githubusercontent.com}
       PUBLICATION_MAX_MB: ${PUBLICATION_MAX_MB:-20}
       MEDIA_LIBRARY_LINKS: ${MEDIA_LIBRARY_LINKS:-}
