@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import type { GameSocket } from './game-client';
+import { BACKDROP_EDGE } from './surface';
 
 /**
  * Avis de fin de partie (§2.11) : note Likert 5 étoiles + commentaire facultatif.
@@ -83,7 +84,7 @@ export function RatingPanel({
 
   const shown = hover || rating;
   return (
-    <Card className="w-full">
+    <Card className={cn('w-full [text-shadow:none] on-backdrop:backdrop-blur-md', BACKDROP_EDGE)}>
       <CardHeader>
         <CardTitle>{t('rating.title')}</CardTitle>
       </CardHeader>

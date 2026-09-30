@@ -10,7 +10,8 @@ import { livePinOf } from '../game/game.keys';
 import { MediaService } from '../media/media.service';
 import { assertAssets, expectImage } from '../media/assert-assets';
 import { PrismaService } from '../prisma/prisma.service';
-import { questionMediaHeld } from '../questions/question-data';
+import { questionMediaHeld, storedQuestionIssues } from '../questions/question-data';
+import { slideIssues } from '../slides/dto/slide-content.schema';
 import { QUESTION_INCLUDE, toQuestionOutput } from '../questions/questions.service';
 import { RedisService } from '../redis/redis.service';
 import { slideMediaIds } from '../slides/slide-media';
@@ -539,8 +540,13 @@ export class QuizzesService {
     if (target === QuizStatus.ready && quiz.questionCount < 1) {
       throw new BadRequestException('quiz.requires_question');
     }
-    // TODO (P2-BACK-3) : refuser aussi le passage à "ready" si une question est
-    // invalide selon son type (nb d'options, réponse correcte, etc.).
+    // Every question complete (UI system §1.5, level 3): the editor lists what is missing.
+    if (target === QuizStatus.ready) {
+      const incomplete = await this.incompleteQuestions(id);
+      if (incomplete > 0) {
+        throw new BadRequestException({ code: 'quiz.incomplete', params: { count: incomplete } });
+      }
+    }
     return this.prisma.quiz.update({
       where: { id },
       data: {
@@ -553,6 +559,25 @@ export class QuizzesService {
               : undefined,
       },
     });
+  }
+
+  /** How many of the quiz's steps (questions and slides) miss something to be played. */
+  private async incompleteQuestions(quizId: string): Promise<number> {
+    const questions = await this.prisma.question.findMany({
+      where: { quizId },
+      include: {
+        options: { select: { text: true, mediaId: true, alt: true, isCorrect: true } },
+        acceptedAnswers: { select: { text: true } },
+      },
+    });
+    const slides = await this.prisma.slide.findMany({
+      where: { quizId },
+      select: { blocks: true, mediaId: true, gradient: true, videoMediaId: true },
+    });
+    return (
+      questions.filter((q) => storedQuestionIssues(q).length > 0).length +
+      slides.filter((s) => slideIssues({ ...s, blocks: s.blocks as unknown[] }).length > 0).length
+    );
   }
 
   /** Récupère un quiz en garantissant l'appartenance au animateur (sinon 404). */

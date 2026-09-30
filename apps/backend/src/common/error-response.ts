@@ -11,7 +11,8 @@ import { uploadCeiling } from '../media/media.config';
  *
  * - `code` : code domaine (`session.not_found`, `quiz.transition_forbidden`, `validation`…).
  * - `params` : valeurs d'interpolation pour les codes paramétrés.
- * - `errors` : détail par champ pour le code `validation` (codes Zod génériques).
+ * - `errors` : détail par champ d'une validation (code Zod générique, ou code domaine
+ *   d'une règle métier), le champ gardé pour que l'éditeur le montre sous lui.
  */
 export interface ErrorBody {
   code: string;
@@ -61,15 +62,15 @@ export function toErrorResponse(exception: unknown): { status: number; body: Err
       ).errors ?? [];
     // A rule of the domain written as a refinement (`media.video_with_audio`)
     // carries its own code: it says more than a generic `custom` field error.
-    const domain = issues.find((i) => i.code === 'custom' && DOMAIN_CODE.test(i.message ?? ''));
-    if (domain) {
-      return { status: exception.getStatus(), body: { code: domain.message as string } };
-    }
+    // A business rule answers with its own code; every issue keeps the field it is about.
+    const codeOf = (i: (typeof issues)[number]) =>
+      i.code === 'custom' && DOMAIN_CODE.test(i.message ?? '') ? (i.message as string) : i.code;
+    const domain = issues.map(codeOf).find((c) => DOMAIN_CODE.test(c));
     return {
       status: exception.getStatus(),
       body: {
-        code: 'validation',
-        errors: issues.map((i) => ({ field: i.path.join('.') || '_', code: i.code })),
+        code: domain ?? 'validation',
+        errors: issues.map((i) => ({ field: i.path.join('.') || '_', code: codeOf(i) })),
       },
     };
   }

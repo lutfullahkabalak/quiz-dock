@@ -25,7 +25,7 @@ Why it will get worse: every game feature adds tests to this file, each with its
 1. **Sleeps instead of events.** A test waits a fixed time and then checks a state, instead of awaiting the event
    that proves it. Too short, it flakes under load; long enough, it wastes time on every run.
 2. **Question timers of 5 s.** Two tests let a question run out (`timeLimitS: 5`, the minimum the API accepts) and
-   sleep 6 s. A shorter limit cannot be seeded: the database itself checks 5..120 (`question_time_limit_s_check`).
+   sleep 6 s. A shorter limit cannot be seeded: the database itself checks 5..240 (`question_time_limit_s_check`).
    The host's `host:adjust-time` can shorten a live question instead, down to a 1 s floor.
 3. **An assertion on the client clock.** The flaky test measures, on the client, that the podium came at least
    1,000 ms after the answer. The server schedules the next step from its own instant, and Node timers may fire a

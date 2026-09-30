@@ -13,14 +13,16 @@
   "list": {
     "title": "Historique des sessions",
     "backToEditor": "Retour à l’éditeur",
-    "loadError": "Historique indisponible.",
     "empty": "Aucune session archivée pour ce quiz. À la fin d’une session, choisissez « Archiver les résultats » pour la retrouver ici.",
     "capture": "Capture",
-    "participantCount_one": "{{count}} participant",
-    "participantCount_other": "{{count}} participants",
-    "successRate": "Réussite {{rate}}",
     "inRoom_one": "Salon · {{count}} quiz",
-    "inRoom_other": "Salon · {{count}} quiz"
+    "inRoom_other": "Salon · {{count}} quiz",
+    "pin": "PIN {{pin}}",
+    "thDate": "Date",
+    "thStatus": "État",
+    "thPlayers": "Participants",
+    "thSuccess": "Réussite",
+    "presentIt": "Présenter ce quiz"
   },
   "detail": {
     "notFound": "Session introuvable.",
@@ -43,7 +45,6 @@
     "thScore": "Score",
     "thCorrect": "Bonnes",
     "thStreak": "Série",
-    "participantDetailAria": "Détail de {{nickname}}",
     "csvGlobal": {
       "rank": "Rang",
       "nickname": "Pseudo",

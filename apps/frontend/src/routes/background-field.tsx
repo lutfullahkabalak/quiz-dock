@@ -165,15 +165,17 @@ export function BackgroundField({
 
       {kind !== 'none' ? (
         <div className="flex flex-wrap items-center gap-4 border-t pt-3">
-          <Select
-            aria-label={t('slideForm.contrastLegend')}
-            className="w-64"
-            value={value.textTone}
-            onChange={(e) => onChange({ ...value, textTone: e.target.value as SlideTextTone })}
-          >
-            <option value="light">{t('slideForm.tone.light')}</option>
-            <option value="dark">{t('slideForm.tone.dark')}</option>
-          </Select>
+          <label className="flex items-center gap-2 text-sm">
+            <span className="font-medium">{t('slideForm.contrastLegend')}</span>
+            <Select
+              className="h-8 w-auto"
+              value={value.textTone}
+              onChange={(e) => onChange({ ...value, textTone: e.target.value as SlideTextTone })}
+            >
+              <option value="light">{t('slideForm.tone.light')}</option>
+              <option value="dark">{t('slideForm.tone.dark')}</option>
+            </Select>
+          </label>
           <label className="flex items-center gap-2 text-sm">
             <Switch
               checked={value.textOutline}

@@ -5,7 +5,7 @@
  * attendu par le code généré (`{ data, status, headers }`).
  */
 
-import { errorText, validationFieldErrors } from './error-text';
+import { type FieldError, errorText, validationFieldErrors } from './error-text';
 
 let authHeaders: Record<string, string> = {};
 let onUnauthorized: (() => void) | null = null;
@@ -59,12 +59,21 @@ export function apiErrorText(err: unknown, fallback?: string): string {
       errors?: { field: string; code: string }[];
     };
     // Validation : on traduit chaque code de champ (ADR 0001), agrégés en une ligne.
-    if (d.code === 'validation' && Array.isArray(d.errors) && d.errors.length > 0) {
+    if (Array.isArray(d.errors) && d.errors.length > 0) {
       return [...new Set(validationFieldErrors(d.errors).map((e) => e.message))].join(' ');
     }
     if (typeof d.code === 'string') return errorText(d.code, d.params);
   }
   return fallback ?? errorText('error');
+}
+
+/** The fields a refused save points at, each with its text (empty for any other error). */
+export function apiFieldErrors(err: unknown): FieldError[] {
+  if (!(err instanceof ApiError) || !err.data || typeof err.data !== 'object') return [];
+  const errors = (err.data as { errors?: unknown }).errors;
+  return Array.isArray(errors)
+    ? validationFieldErrors(errors as { field: string; code: string }[])
+    : [];
 }
 
 export const customFetch = async <T>(url: string, options: RequestInit): Promise<T> => {

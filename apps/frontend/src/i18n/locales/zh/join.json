@@ -1,7 +1,10 @@
 {
-  "title": "加入会话",
-  "pinCardTitle": "您的 PIN 码",
-  "pinLabel": "PIN 码",
-  "pinPlaceholder": "123456",
-  "continue": "继续"
+  "title": "加入房间",
+  "pinLabel": "PIN，6 位数字",
+  "continue": "继续",
+  "hint": "输入大屏幕上显示的 PIN",
+  "checking": "正在查找房间…",
+  "notFound": "没有使用此 PIN 的开放房间。请看大屏幕。",
+  "locked": "此房间不再接受新参与者；返回的参与者仍可进入。",
+  "checkedAt6": "输入第 6 位数字后立即检查。"
 }

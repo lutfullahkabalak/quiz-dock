@@ -120,7 +120,7 @@ source, never a required one.
 | `type` | enum `question_type` | NN | see §3 |
 | `prompt` | text | NN | The prompt |
 | `media_id` | char(26) | FK→`media_asset.id`, nullable | An illustration |
-| `time_limit_s` | int | NN, DEF 20, CHECK 5–120 | The time limit *(RG-03)* |
+| `time_limit_s` | int | NN, DEF 20, CHECK 5–240 | The time limit *(RG-03)* |
 | `points_mode` | enum `points_mode` | NN, DEF `standard` | `standard` \| `double` \| `none` (a poll) |
 | `numeric_value` | numeric | nullable | The target (`numeric` questions) |
 | `numeric_tolerance` | numeric | nullable, CHECK ≥ 0 | The ± tolerance (`numeric` questions) |

@@ -17,7 +17,8 @@
     "deleteQuiz": "Supprimer le quiz",
     "preview": "Aperçu",
     "export": "Exporter",
-    "exportError": "Impossible d’exporter le quiz."
+    "exportError": "Impossible d’exporter le quiz.",
+    "more": "Plus"
   },
   "settings": {
     "title": "Réglages",
@@ -65,7 +66,9 @@
     "sharedLabel": "Partager avec les autres animateurs de l’instance",
     "sharedHelp": "Ils le voient dans leurs quiz, en lecture seule, et peuvent en créer leur propre copie. Décoché, il reste à vous seul.",
     "sharedOn": "Partagé",
-    "sharedOff": "Privé"
+    "sharedOff": "Privé",
+    "saving": "Enregistrement…",
+    "saved": "Enregistré"
   },
   "broadcast": {
     "title": "Diffusion",
@@ -91,9 +94,6 @@
     "backToEditor": "Retour à l’éditeur",
     "loadError": "Impossible de charger les avis.",
     "noneForFilter": "Aucun avis avec cette note.",
-    "previous": "Précédent",
-    "next": "Suivant",
-    "pagePosition": "Page {{page}} / {{pages}}",
     "count_one": "{{count}} avis",
     "count_other": "{{count}} avis"
   },
@@ -110,7 +110,9 @@
     "formTitle": "Question",
     "empty": "Aucune question. Ajoutez-en une !",
     "collapseList": "Réduire la liste",
-    "expandList": "Déplier la liste"
+    "expandList": "Déplier la liste",
+    "unfinished": "Inachevée",
+    "itemActions": "Actions pour « {{label}} »"
   },
   "slides": {
     "formTitle": "Slide",
@@ -123,8 +125,8 @@
     "bodyPlaceholder": "Texte à afficher…",
     "contrastLegend": "Contraste du texte",
     "tone": {
-      "light": "Texte clair sur image assombrie",
-      "dark": "Texte sombre sur image éclaircie"
+      "light": "Texte clair",
+      "dark": "Texte sombre"
     },
     "outline": "Contour (halo, comme des sous-titres)",
     "displayLegend": "Enchaînement (mode automatique)",
@@ -204,6 +206,13 @@
       "remaining": "Le nombre de questions restantes, la suivante comprise",
       "date": "La date du jour",
       "time": "L’heure"
+    },
+    "blockRemoved": "Bloc retiré.",
+    "undo": "Rétablir",
+    "emptySkipped": "Vide — ignoré à l’enregistrement.",
+    "moveToDraft": {
+      "title": "Enregistrer cette diapositive vide ?",
+      "description": "Ce quiz est publié : il peut être présenté à tout moment, et une diapositive doit montrer quelque chose. Repassez le quiz en brouillon pour enregistrer celle-ci telle quelle, ou continuez à la modifier."
     }
   },
   "discardConfirm": {
@@ -262,8 +271,8 @@
     "optionPlaceholder": "Option {{index}}",
     "colorAriaLabel": "couleur {{index}}",
     "shapeAriaLabel": "forme {{index}}",
-    "orderAriaLabel": "rang {{index}}",
-    "correct": "correcte",
+    "orderAriaLabel": "Place de la réponse {{index}} dans le bon ordre",
+    "correct": "Correcte",
     "removeOption": "Retirer l’option {{index}}",
     "addOption": "Ajouter une option",
     "acceptedAnswersLegend": "Réponses acceptées",
@@ -300,11 +309,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "Crédit partiel : chaque bonne case rapporte sa part, chaque mauvaise en annule une.",
-      "ordering": "Crédit partiel : part des éléments à la bonne position.",
-      "text_input": "Tolérant aux fautes : 1 lettre jusqu’à 5 lettres, 2 au-delà (après normalisation casse/accents).",
-      "numeric": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse.",
-      "image_choice": "Crédit partiel (plusieurs bonnes images) : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
+      "multiple_choice": {
+        "standard": "Tout ou rien : toutes les bonnes réponses cochées, et aucune mauvaise.",
+        "partial": "Crédit partiel : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
+      },
+      "ordering": {
+        "standard": "Tout ou rien : chaque élément à sa place.",
+        "partial": "Crédit partiel : part des éléments à la bonne position."
+      },
+      "text_input": {
+        "standard": "Réponse exacte, sans tenir compte de la casse ni des accents.",
+        "lenient": "Tolérant aux fautes : 1 lettre jusqu’à 5 lettres, 2 au-delà (après normalisation casse/accents)."
+      },
+      "numeric": {
+        "standard": "Dans la tolérance, la réponse est juste ; les points suivent la rapidité.",
+        "closest": "Le plus proche gagne : noté à la révélation — exact (dans la tolérance) = points pleins, puis 75 / 50 / 30 %, 10 % au-delà ; sans bonus vitesse."
+      },
+      "image_choice": {
+        "standard": "Tout ou rien : toutes les bonnes images cochées, et aucune mauvaise.",
+        "partial": "Crédit partiel (plusieurs bonnes images) : chaque bonne case rapporte sa part, chaque mauvaise en annule une."
+      }
     },
     "removeOptionConfirm": {
       "title": "Supprimer cette option ?",
@@ -330,14 +354,38 @@
     "imageAltAria": "Texte alternatif de l’image {{index}}",
     "imageAltPlaceholder": "Ce que montre l’image, pour qui ne la voit pas",
     "imageAltRequired": "Décrivez l’image : c’est la réponse pour qui ne la voit pas.",
-    "imagesIncomplete": "Chaque réponse demande une image et son texte alternatif.",
     "imageCountConfirm": {
       "title": "Garder seulement 2 images ?",
       "description": "Les deux dernières réponses et leurs images seront retirées.",
       "confirmLabel": "Retirer"
     },
     "trueOption": "Vrai",
-    "falseOption": "Faux"
+    "falseOption": "Faux",
+    "clampedTime": "Ramené à {{value}} s : une question dure de {{min}} à {{max}} s.",
+    "clampedReveal": "Ramené à {{value}} s : la pause dure de {{min}} à {{max}} s.",
+    "addOptionMax": "{{max}} réponses max",
+    "addAnswerMax": "{{max}} réponses max",
+    "moveToDraft": {
+      "title": "Enregistrer cette question inachevée ?",
+      "description": "Ce quiz est publié : il peut être présenté à tout moment et n’accepte que des questions complètes. Repassez-le en brouillon pour enregistrer celle-ci telle quelle, ou continuez à la modifier.",
+      "confirmLabel": "Passer en brouillon et enregistrer",
+      "cancelLabel": "Continuer à modifier"
+    },
+    "optionActions": "Actions de l’option {{index}}",
+    "removeOptionShort": "Retirer",
+    "ticksCleared": "Le type a changé : les bonnes réponses ont été décochées. Cochez-les à nouveau selon les nouvelles règles.",
+    "explanationWritten": "Rédigée",
+    "explanationEmpty": "Vide",
+    "numericLegend": "Réponse",
+    "decimalsAllowed": "Les décimales sont acceptées : 3,14, 0,5…",
+    "timingSummary": "{{time}} s",
+    "timingSummaryStretched": "{{time}} s ({{total}} s avec le média)",
+    "revealDelayAuto": "délai de révélation auto",
+    "revealDelaySummary": "révélation après {{seconds}} s",
+    "place_ordinal_one": "{{count}}er",
+    "place_ordinal_two": "{{count}}e",
+    "place_ordinal_few": "{{count}}e",
+    "place_ordinal_other": "{{count}}e"
   },
   "preview": {
     "view": "Aperçu (vue participant)",
@@ -353,7 +401,14 @@
     "numericTarget": "Cible : {{value}} (± {{tolerance}})",
     "credits": "Crédits",
     "video": "Vidéo de la question",
-    "sound": "Son · {{seconds}} s"
+    "sound": "Son · {{seconds}} s",
+    "steps": "Étapes",
+    "backToEditor": "Retour à l’éditeur",
+    "device": "Appareil",
+    "projection": "Projection",
+    "phone": "Téléphone",
+    "showAnswer": "Montrer la réponse",
+    "title": "Aperçu"
   },
   "media": {
     "alt": "média de la question",
@@ -498,12 +553,39 @@
   },
   "readOnly": {
     "notice": "Quiz de {{owner}} : vous pouvez le consulter, pas le modifier.",
-    "createFrom": "Créer à partir de ce quiz",
+    "createFrom": "Créer un quiz à partir de ceci",
     "props": {
       "orderShown": "Listées dans le bon ordre.",
       "seconds_one": "{{count}} seconde",
       "seconds_other": "{{count}} secondes",
       "muted": "sans le son"
+    },
+    "empty": "Pas encore de question."
+  },
+  "publishChecklist": {
+    "title_one": "1 étape à finir avant de publier",
+    "title_other": "{{count}} étapes à finir avant de publier",
+    "description": "Un quiz publié peut être présenté à tout moment : chaque question doit donc être complète. Un brouillon garde tout ce que vous enregistrez.",
+    "untitled": "Question sans texte",
+    "open": "Ouvrir"
+  },
+  "formIssues": {
+    "errors_one": "1 erreur",
+    "errors_other": "{{count}} erreurs",
+    "toFinish_one": "1 point à finir",
+    "toFinish_other": "{{count}} points à finir"
+  },
+  "importReport": {
+    "imported_one": "1 question importée de Kahoot.",
+    "imported_other": "{{count}} questions importées de Kahoot.",
+    "media": "Les images et les sons ne sont pas repris.",
+    "incomplete_one": "1 question à finir avant de publier : elle est signalée dans la liste.",
+    "incomplete_other": "{{count}} questions à finir avant de publier : elles sont signalées dans la liste.",
+    "skipped": "Ligne {{row}} laissée de côté : {{reason}}",
+    "reasons": {
+      "invalid_time": "durée hors de {{min}} à {{max}} secondes",
+      "formula": "les formules ne sont pas lues",
+      "invalid_content": "texte trop long pour QuizDock"
     }
   }
 }

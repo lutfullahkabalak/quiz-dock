@@ -5,7 +5,8 @@
     "cross_origin": "Cette requête ne vient pas d’une page de l’application.",
     "host_required": "Rôle animateur requis.",
     "host_only": "Action réservée aux animateurs : un administrateur gère l’instance, il ne présente pas.",
-    "admin_required": "Rôle administrateur requis."
+    "admin_required": "Rôle administrateur requis.",
+    "oidc_disabled": "La connexion par un fournisseur d’identité n’est pas activée sur cette instance."
   },
   "host": {
     "auth_required": "Authentification animateur requise.",
@@ -17,7 +18,11 @@
     "empty": "Le quiz ne comporte aucune question.",
     "requires_question": "Un quiz doit comporter au moins une question pour passer à « prêt » (RG-02).",
     "transition_forbidden": "Transition d’état interdite : {{from}} → {{target}}.",
-    "in_use": "Ce quiz est en cours dans un salon : fermez d’abord le salon."
+    "in_use": "Ce quiz est en cours dans un salon : fermez d’abord le salon.",
+    "item_not_in_quiz": "Cet élément n’appartient plus à ce quiz : rechargez la page.",
+    "reorder_incomplete": "L’ordre envoyé ne contient pas tous les éléments : rechargez la page et réessayez.",
+    "incomplete_one": "1 étape est inachevée : complétez-la pour publier le quiz.",
+    "incomplete_other": "{{count}} étapes sont inachevées : complétez-les pour publier le quiz."
   },
   "session": {
     "not_found": "Salon introuvable ou fermé.",
@@ -34,7 +39,10 @@
     "archive_quiz_gone": "Le quiz a été supprimé pendant qu’il était joué : il s’est terminé sans archive.",
     "locked": "Ce salon n’accepte plus de nouveaux participants.",
     "open_access_forbidden": "L’accès libre n’est pas autorisé sur ce serveur.",
-    "open_access_guests_only": "En accès libre, les participants n’ont pas de compte : ni suivi individuel, ni nom tiré d’un compte."
+    "open_access_guests_only": "En accès libre, les participants n’ont pas de compte : ni suivi individuel, ni nom tiré d’un compte.",
+    "next_quiz_unavailable": "Ce quiz ne peut pas être joué ensuite dans cette salle.",
+    "review_unavailable": "On ne peut revenir sur une étape qu’entre deux questions.",
+    "step_not_played": "Cette étape n’a pas encore été jouée."
   },
   "participant": {
     "not_found": "Participant introuvable."
@@ -70,7 +78,8 @@
     "canceled": "Conversion annulée.",
     "in_use": "Ce média est encore utilisé par un quiz ou une partie : retirez-le d’abord de là.",
     "playing": "Un salon joue ce média en ce moment : réessayez une fois qu’il sera fermé.",
-    "not_adopted_yet": "Ce fichier est en cours de déplacement vers le stockage partagé : réessayez dans un instant."
+    "not_adopted_yet": "Ce fichier est en cours de déplacement vers le stockage partagé : réessayez dans un instant.",
+    "embed_bounds": "Le début et la fin de la vidéo ne vont pas : la fin doit venir après le début."
   },
   "import": {
     "file_missing": "Fichier manquant (champ « file »).",
@@ -78,13 +87,56 @@
     "bundle_too_large": "Ce bundle est trop volumineux une fois décompressé, ou contient trop de fichiers.",
     "media_missing": "Le média « {{path}} » est référencé mais absent du bundle.",
     "media_unsupported": "Média « {{path}} » non pris en charge (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
-    "invalid_item": "L’élément {{item}} du bundle est invalide ({{field}})."
+    "invalid_item": "L’élément {{item}} du bundle est invalide ({{field}}).",
+    "kahoot_template": "Utilisez le modèle de tableur Kahoot original (.xlsx), avec une seule feuille.",
+    "kahoot_empty": "Aucune question valide. Vérifiez la ligne {{row}} et le modèle Kahoot."
   },
   "question": {
     "not_in_quiz": "Question hors du quiz.",
     "invalid_permutation": "Les positions doivent former une permutation 0..n-1.",
     "reorder_incomplete": "Le réordonnancement doit lister toutes les questions du quiz.",
-    "not_found": "Question introuvable."
+    "not_found": "Question introuvable.",
+    "accepted_answers": {
+      "not_allowed": "Seule une question à réponse tapée prend des réponses acceptées.",
+      "required": "Ajoutez au moins une réponse acceptée."
+    },
+    "image": {
+      "alt_required": "Décrivez cette image pour qui ne peut pas la voir.",
+      "count": "Un choix d’images prend 2 ou 4 images.",
+      "no_text": "Une réponse image n’a pas de texte.",
+      "no_visual": "Un choix d’images n’a ni image ni vidéo propre : ses réponses sont les images.",
+      "picture_required": "Choisissez une image pour cette réponse."
+    },
+    "incomplete_in_ready_quiz": "Ce quiz est publié : repassez-le en brouillon pour enregistrer une question inachevée.",
+    "multi_select": {
+      "not_allowed": "Plusieurs bonnes images ne concernent qu’un choix d’images."
+    },
+    "numeric": {
+      "not_allowed": "Seule une question numérique prend une cible et une tolérance.",
+      "tolerance_required": "Indiquez la tolérance (0 pour le nombre exact).",
+      "value_required": "Indiquez le nombre à trouver."
+    },
+    "options": {
+      "not_allowed": "Ce type de question n’a pas de réponses à choisir.",
+      "one_correct": "Cochez la bonne réponse.",
+      "some_correct": "Cochez au moins une bonne réponse.",
+      "too_few": "Ajoutez au moins 2 réponses."
+    },
+    "ordering": {
+      "positions": "Chaque réponse doit avoir sa propre place dans le bon ordre."
+    },
+    "poll": {
+      "no_correct": "Un sondage n’a pas de bonne réponse."
+    },
+    "prompt": {
+      "required": "Écrivez la question, ou ajoutez une image ou un son qui la pose."
+    },
+    "scoring": {
+      "not_available": "Ce barème ne s’applique pas à ce type de question."
+    },
+    "true_false": {
+      "two_options": "Vrai ou faux prend exactement 2 réponses."
+    }
   },
   "validation": "Certains champs sont invalides.",
   "internal": "Erreur interne.",
@@ -111,7 +163,11 @@
     "too_large": "Le quiz est trop volumineux pour le catalogue communautaire."
   },
   "slide": {
-    "two_sounds": "Une slide joue un seul son à la fois : coupez le son de sa vidéo ou retirez son son."
+    "two_sounds": "Une slide joue un seul son à la fois : coupez le son de sa vidéo ou retirez son son.",
+    "background_conflict": "Un fond est une image ou un dégradé, pas les deux.",
+    "empty": "La diapositive n’affiche rien : ajoutez un titre, un texte, une image, un fond ou une vidéo.",
+    "not_found": "Cette diapositive n’existe plus : elle a été supprimée entre-temps.",
+    "incomplete_in_ready_quiz": "Ce quiz est publié : repassez-le en brouillon pour enregistrer une diapositive qui ne montre rien."
   },
   "record": {
     "not_found": "Cet élément n’existe plus : il a été supprimé entre-temps.",

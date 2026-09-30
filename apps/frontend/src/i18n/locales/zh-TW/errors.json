@@ -5,7 +5,8 @@
     "cross_origin": "此請求並非來自本應用程式的頁面。",
     "host_required": "需要主持人角色。",
     "host_only": "此操作僅限主持人：管理員管理執行個體，不進行主持。",
-    "admin_required": "需要管理員角色。"
+    "admin_required": "需要管理員角色。",
+    "oidc_disabled": "此執行個體未啟用身分提供者登入。"
   },
   "host": {
     "auth_required": "需要主持人身份驗證。",
@@ -17,7 +18,11 @@
     "empty": "測驗沒有任何題目。",
     "requires_question": "測驗至少需要一道題目才能變為「就緒」（RG-02）。",
     "transition_forbidden": "禁止的狀態轉換：{{from}} → {{target}}。",
-    "in_use": "此測驗正在某個房間中進行：請先關閉房間。"
+    "in_use": "此測驗正在某個房間中進行：請先關閉房間。",
+    "item_not_in_quiz": "此項目已不屬於該測驗：請重新整理頁面。",
+    "reorder_incomplete": "送出的順序缺少部分項目：請重新整理頁面後再試。",
+    "incomplete_one": "有 1 個步驟未完成：請完成後再發布測驗。",
+    "incomplete_other": "有 {{count}} 個步驟未完成：請完成後再發布測驗。"
   },
   "session": {
     "not_found": "未找到房間或房間已關閉。",
@@ -34,7 +39,10 @@
     "archive_quiz_gone": "測驗在進行中被刪除：結束時沒有歸檔。",
     "locked": "此房間不再接受新的參與者。",
     "open_access_forbidden": "此伺服器不允許開放存取。",
-    "open_access_guests_only": "開放存取時參與者沒有帳號：沒有個人追蹤，也不使用帳號名稱。"
+    "open_access_guests_only": "開放存取時參與者沒有帳號：沒有個人追蹤，也不使用帳號名稱。",
+    "next_quiz_unavailable": "此測驗不能作為本房間的下一個測驗。",
+    "review_unavailable": "只能在兩道題之間回看已進行的步驟。",
+    "step_not_played": "此步驟尚未進行。"
   },
   "participant": {
     "not_found": "未找到玩家。"
@@ -70,7 +78,8 @@
     "canceled": "已取消轉換。",
     "in_use": "這個媒體仍被測驗或遊戲使用：請先從那裡移除。",
     "playing": "某個房間正在播放此媒體：請在其關閉後重試。",
-    "not_adopted_yet": "這個檔案正在移至共用儲存空間：請稍後再試。"
+    "not_adopted_yet": "這個檔案正在移至共用儲存空間：請稍後再試。",
+    "embed_bounds": "影片的開始與結束時間不符：結束必須在開始之後。"
   },
   "import": {
     "file_missing": "缺少檔案（「file」欄位）。",
@@ -78,13 +87,56 @@
     "bundle_too_large": "此套件解壓縮後過大，或包含的檔案過多。",
     "media_missing": "媒體「{{path}}」被引用但不在套件中。",
     "media_unsupported": "不支援的媒體「{{path}}」（png、jpg、gif、webp、avif、mp3、ogg、wav、m4a）。",
-    "invalid_item": "套件中第 {{item}} 項無效（{{field}}）。"
+    "invalid_item": "套件中第 {{item}} 項無效（{{field}}）。",
+    "kahoot_template": "請使用只有一個工作表的原始 Kahoot 試算表範本（.xlsx）。",
+    "kahoot_empty": "沒有有效題目。請檢查第 {{row}} 列和 Kahoot 範本。"
   },
   "question": {
     "not_in_quiz": "該題目不屬於本測驗。",
     "invalid_permutation": "位置必須構成 0..n-1 的排列。",
     "reorder_incomplete": "重新排序必須包含測驗的所有題目。",
-    "not_found": "未找到題目。"
+    "not_found": "未找到題目。",
+    "accepted_answers": {
+      "not_allowed": "只有輸入答案的題目才有可接受答案。",
+      "required": "請至少新增一個可接受答案。"
+    },
+    "image": {
+      "alt_required": "請為看不到圖片的人描述這張圖片。",
+      "count": "圖片選擇題需要 2 張或 4 張圖片。",
+      "no_text": "圖片答案不含文字。",
+      "no_visual": "圖片選擇題沒有自己的圖片或影片：它的答案就是圖片。",
+      "picture_required": "請為這個答案選擇一張圖片。"
+    },
+    "incomplete_in_ready_quiz": "此測驗已發布：請先改回草稿，才能儲存未完成的題目。",
+    "multi_select": {
+      "not_allowed": "多張正確圖片僅適用於圖片選擇題。"
+    },
+    "numeric": {
+      "not_allowed": "只有數字題才有目標值和容許誤差。",
+      "tolerance_required": "請設定容許誤差（0 表示精確數字）。",
+      "value_required": "請設定要猜的數字。"
+    },
+    "options": {
+      "not_allowed": "此題型沒有可供選擇的答案。",
+      "one_correct": "請勾選正確答案。",
+      "some_correct": "請至少勾選一個正確答案。",
+      "too_few": "請至少新增 2 個答案。"
+    },
+    "ordering": {
+      "positions": "每個答案在正確順序中都需要自己的位置。"
+    },
+    "poll": {
+      "no_correct": "投票沒有正確答案。"
+    },
+    "prompt": {
+      "required": "請寫下題目，或新增一張提出問題的圖片或聲音。"
+    },
+    "scoring": {
+      "not_available": "此計分方式不適用於該題型。"
+    },
+    "true_false": {
+      "two_options": "是非題需要恰好 2 個答案。"
+    }
   },
   "validation": "部分欄位無效。",
   "internal": "內部錯誤。",
@@ -111,7 +163,11 @@
     "too_large": "測驗對社群目錄來說過大。"
   },
   "slide": {
-    "two_sounds": "一張簡報一次只播放一個聲音：請將影片靜音或移除其聲音。"
+    "two_sounds": "一張簡報一次只播放一個聲音：請將影片靜音或移除其聲音。",
+    "background_conflict": "背景只能是圖片或漸層，不能同時使用。",
+    "empty": "投影片沒有任何內容：請加入標題、文字、圖片、背景或影片。",
+    "not_found": "此投影片已不存在：它已被刪除。",
+    "incomplete_in_ready_quiz": "此測驗已發布：請先改回草稿，才能儲存不顯示任何內容的投影片。"
   },
   "record": {
     "not_found": "此項目已不存在：在此期間已被刪除。",

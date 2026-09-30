@@ -118,6 +118,22 @@ describe('AdminMediaPage', () => {
     );
   });
 
+  it('a file a room is playing cannot be deleted: the button is greyed, the reason said', async () => {
+    mockApi([
+      me(['admin']),
+      overview,
+      files,
+      {
+        method: 'GET',
+        path: '/admin/media/files/m1/usages',
+        body: { quizzes: [], archivedSessions: 0, playing: true },
+      },
+    ]);
+    renderPage();
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer night-market.webp' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Supprimer' })).toBeDisabled());
+  });
+
   it('tells a host the page is for administrators', async () => {
     mockApi([me(['host']), overview, files]);
     renderPage();

@@ -189,6 +189,9 @@ export interface RoomSounds {
   sfxLevel: number;
   musicMuted: boolean;
   sfxMuted: boolean;
+  mediaLevel: number;
+  mediaMuted: boolean;
+  muted: boolean;
 }
 
 /**
@@ -214,6 +217,10 @@ export const DEFAULT_ROOM_SOUNDS: RoomSounds = {
   sfxLevel: 0.8,
   musicMuted: false,
   sfxMuted: false,
+  // The quiz's own sound at full level: the loudness target already evens it out.
+  mediaLevel: 1,
+  mediaMuted: false,
+  muted: false,
 };
 
 /** The room fields, as the game view (`GameMeta`) carries them. */

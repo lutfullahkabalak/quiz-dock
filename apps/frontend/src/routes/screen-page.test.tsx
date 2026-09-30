@@ -41,6 +41,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   connectionLost: false,
   mode: 'manual',
   paused: false,
+  still: false,
   pausedRemainingMs: null,
   autoNextAt: null,
   autoNextMs: null,
@@ -48,6 +49,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   quizId: null,
   quizDescription: null,
   outline: [],
+  outlineSlides: [],
   preload: null,
   mediaControl: null,
   quizHasSound: null,
@@ -156,6 +158,14 @@ describe('ScreenPage: the branding hooks (lot 5)', () => {
     expect($('.qd-timer[data-tone="ok"]')).not.toBeNull();
     expect($('.qd-prompt')).toHaveTextContent('Sur fond ?');
     expect($('.qd-answers .qd-answer[data-color="red"]')).toHaveTextContent('Oui');
+  });
+
+  it('has no sound button of its own: the console controls its sound (#150)', async () => {
+    hookState.value = view({ state: GameState.Lobby });
+    renderApp('/session/482913/projection');
+    expect(await screen.findByText('482913')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Couper le son' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Rétablir le son' })).toBeNull();
   });
 
   it('the lobby: how to join, and who is in', async () => {

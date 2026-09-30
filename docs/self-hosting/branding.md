@@ -8,7 +8,7 @@ Three things are brandable **at runtime**, without rebuilding the image:
 | What | How |
 |---|---|
 | **Name** | `APP_NAME` (header, tab, share messages). |
-| **Language** | `APP_LANG` (`en`/`fr`/`es`/`zh`/`zh-TW`). |
+| **Language** | `APP_LANG` (`en`/`fr`/`es`/`zh`/`zh-TW`/`tr`). |
 | **Logo & CSS** | files served at fixed paths — replace them via a mounted folder, or point `APP_LOGO_URL` at a logo hosted elsewhere. |
 
 ## How it works
@@ -103,7 +103,8 @@ own**: only yours. States are `data-*` attributes.
 | `qd-player` | the participant's phone | `data-state` |
 | `qd-console` | the host's console | `data-state` |
 | `qd-lobby`, `qd-roster` | the projection's lobby, its list of participants | |
-| `qd-join`, `qd-join-pin`, `qd-join-qr` | how to join: the bar during a question, the PIN, the QR code | |
+| `qd-join`, `qd-join-pin`, `qd-join-qr` | how to join: the reminder in the projection's top band (a chip on a slide), the PIN, the QR code | |
+| `qd-band` | the projection's top and bottom bands | `data-band`: `top`, `bottom` |
 | `qd-timer` | a question's clock | `data-tone`: `ok`, `warning`, `critical`, `paused` |
 | `qd-chrono` | the console's clock and its ± buttons | |
 | `qd-prompt` | a question's text | |
@@ -121,6 +122,12 @@ own**: only yours. States are `data-*` attributes.
 `qd-player` and `qd-console` generate no box of their own (the page lays itself out):
 use them to scope a rule (`.qd-player .qd-answer`), and `.qd-shell[data-shell="participant"]`
 for the phone's background.
+
+A question's or a slide's background carries `data-scheme`: `dark` under light text,
+`light` under dark text. Inside it the neutral tokens (`--background`, `--foreground`,
+`--card`, `--muted`, `--muted-foreground`, `--border`, `--input`…) are that local
+palette's, set by QuizDock; your brand colours (`--primary`, `--answer-*`,
+`--success`…) are kept as they are.
 
 Example `branding/override.css`:
 

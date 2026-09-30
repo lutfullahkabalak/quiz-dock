@@ -42,7 +42,8 @@
     "live": "开放的房间",
     "templates": "模板",
     "profile": "我的账号",
-    "template": "模板"
+    "template": "模板",
+    "instanceMedia": "实例媒体"
   },
   "demo": {
     "banner": "公开演示——所有访客共用一个主持人账号；每小时清空一次。"
@@ -50,5 +51,13 @@
   "chromiumOnly": "此页面专为 Chrome、Edge 或其他 Chromium 浏览器设计。在当前浏览器中，视频和声音的上传与播放可能无法正常工作。",
   "play": "播放",
   "pause": "暂停",
-  "position": "声音中的位置"
+  "position": "声音中的位置",
+  "fallback": {
+    "notFoundTitle": "此页面不存在",
+    "notFoundText": "链接可能已过期，或其指向的内容已被删除。",
+    "errorTitle": "出了点问题",
+    "errorText": "此页面已停止运行。已保存的内容是安全的。",
+    "backHome": "返回首页",
+    "tryAgain": "重试"
+  }
 }

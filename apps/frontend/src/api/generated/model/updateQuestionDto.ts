@@ -18,10 +18,7 @@ import type { UpdateQuestionDtoWaveformSize } from './updateQuestionDtoWaveformS
 
 export interface UpdateQuestionDto {
   type: UpdateQuestionDtoType;
-  /**
-     * @minLength 1
-     * @maxLength 1000
-     */
+  /** @maxLength 1000 */
   prompt: string;
   /**
      * @maxLength 2000
@@ -41,7 +38,7 @@ export interface UpdateQuestionDto {
   media?: UpdateQuestionDtoMedia;
   /**
      * @minimum 5
-     * @maximum 120
+     * @maximum 240
      */
   timeLimitS?: number;
   /**

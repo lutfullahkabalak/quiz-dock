@@ -415,3 +415,23 @@ export function refreshSnapshotForm(frozen: QuizSnapshot, current: QuizWithConte
     slides,
   };
 }
+
+/**
+ * A slide's name in the host's outline: its first heading, else the start of its
+ * first text (Markdown marks removed), columns included; empty when it has neither.
+ */
+export function slideTitle(blocks: SlideBlock[]): string {
+  const leaves = blocks.flatMap((b) => (b.type === 'columns' ? b.columns.flat() : [b]));
+  const heading = leaves.find((b) => b.type === 'heading' && b.text.trim());
+  if (heading && heading.type === 'heading') return heading.text.trim();
+  const text = leaves.find((b) => b.type === 'text' && b.md.trim());
+  if (text && text.type === 'text') {
+    const plain = text.md
+      .replace(/!?\[([^\]]*)\]\([^)]*\)/g, '$1')
+      .replace(/[*_`#>~]/g, '')
+      .replace(/\s+/g, ' ')
+      .trim();
+    return plain.length > 80 ? `${plain.slice(0, 79)}…` : plain;
+  }
+  return '';
+}

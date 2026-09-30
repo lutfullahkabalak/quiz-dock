@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} 名玩家",
   "playerCount_other": "{{count}} 名玩家",
   "resume": "继续",
-  "stop": "停止",
+  "stop": "关闭房间…",
   "stopConfirmTitle": "关闭房间？",
   "stopConfirmDescription": "房间将对所有已连接的参与者关闭。",
   "stopConfirmLabel": "关闭房间",
@@ -18,7 +18,6 @@
   "empty": "还没有测验。创建一个吧！",
   "questionCount_one": "{{count}} 道题",
   "questionCount_other": "{{count}} 道题",
-  "edit": "编辑",
   "present": "演示",
   "running_one": "{{count}} 个房间开放中",
   "running_other": "{{count}} 个房间开放中",
@@ -63,7 +62,6 @@
   "seeAllSessions": "查看所有房间",
   "allQuizzes": "全部测验",
   "ownedBy": "来自 {{name}}",
-  "view": "查看",
   "browseTemplates": "浏览模板库",
   "browseTemplatesHint": "现成的测验，可据此创建自己的；不主动取用则不会进入你的题库。",
   "mediaAdmin": {
@@ -184,12 +182,14 @@
     "answer1": "答案 1",
     "answer2": "答案 2"
   },
-  "createFrom": "基于此测验创建",
+  "createFrom": "以此创建测验",
   "readOnly": "只读：由其他主持人共享",
   "filterOwner": "所有者",
   "ownerAll": "全部",
   "ownerMe": "我",
   "ownerNone": "没有该所有者",
   "statusCount_one": "{{count}} 个状态",
-  "statusCount_other": "{{count}} 个状态"
+  "statusCount_other": "{{count}} 个状态",
+  "publishToPresent": "发布后演示",
+  "quizActions": "“{{title}}”的操作"
 }

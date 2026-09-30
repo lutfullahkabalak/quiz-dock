@@ -26,6 +26,7 @@ const TITLE_KEYS: Record<string, string> = {
   '/join': 'join',
   '/join/$pin': 'join',
   '/join/$pin/screen': 'screen',
+  '/admin/media': 'instanceMedia',
 };
 
 export function RootLayout() {
@@ -61,7 +62,14 @@ export function RootLayout() {
   }
 
   return (
-    <div className="qd-shell flex min-h-screen flex-col" data-shell={shell}>
+    <div
+      className={cn(
+        'qd-shell flex min-h-screen flex-col',
+        // A phone is read outdoors: its hints a step darker (light theme; the dark one keeps its own).
+        shell === 'participant' && 'not-dark:[--muted-foreground:oklch(0.45_0_0)]',
+      )}
+      data-shell={shell}
+    >
       {/* La barre traverse l'écran — c'est la limite du cadre — mais son contenu
           suit exactement les marges de `main` : la marque s'aligne sur le titre
           de la page. Le nom s'efface sous `sm` pour laisser la place à la
@@ -114,18 +122,20 @@ export function RootLayout() {
       {demo ? (
         <p
           role="note"
-          className="border-b bg-amber-500/15 px-6 py-1.5 text-center text-xs text-amber-700 dark:text-amber-400"
+          className="bg-warning/15 text-warning-text border-b px-6 py-1.5 text-center text-xs"
         >
           {t('common:demo.banner', { user: demo.user })}
         </p>
       ) : null}
       {/* Wide but bounded: ~1440px, the usual ceiling for app layouts. Pages fill it;
-          only the ones that would look lost in it narrow themselves (see `content-*`). */}
+          only the ones that would look lost in it narrow themselves (see `content-*`).
+          A participant's page gets the whole viewport under the header: a question's
+          background covers it edge to edge, and the page centres its own phone column. */}
       <main
         className={cn(
           'qd-main',
           shell === 'participant'
-            ? 'content-phone flex-1 px-4 py-4'
+            ? 'flex flex-1 flex-col'
             : 'content-shell flex-1 px-6 py-6 lg:px-10',
         )}
       >

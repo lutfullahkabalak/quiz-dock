@@ -1,16 +1,13 @@
-import { ChevronLeft, ChevronRight, Maximize, Minimize } from 'lucide-react';
-import { useState } from 'react';
+import { Link } from '@tanstack/react-router';
+import { ArrowLeft } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import { quizItems } from '@/lib/quiz-items';
-import { useFullscreen } from '@/lib/use-fullscreen';
+import { PageTitle } from '@/components/ui/page-title';
+import { LoadFailed, PageLoading } from '@/components/ui/loading';
 import type { QuizDetailDto } from '../api/generated/model';
-import { StepStage } from './quiz-stage-preview';
+import { useMediaControllerCredits } from '../api/generated/media/media';
 import { useQuizzesControllerGet } from '../api/generated/quizzes/quizzes';
 import { previewRoute } from '../router';
-import { useMediaControllerCredits } from '../api/generated/media/media';
-import { LoadFailed, PageLoading } from '@/components/ui/loading';
+import { QuizStepsPreview } from './quiz-steps-preview';
 
 export function PreviewPage() {
   const { t } = useTranslation(['editor', 'common']);
@@ -24,79 +21,30 @@ export function PreviewPage() {
 
 function QuizPreview({ quiz }: { quiz: QuizDetailDto }) {
   const { t } = useTranslation('editor');
-  const [index, setIndex] = useState(0);
-  // The preview walks the full sequence — questions and slides (#7) — like the live game.
-  const items = quizItems(quiz);
-  const total = items.length;
-  const item = items[index];
-  const { ref, isFullscreen, toggle, supported } = useFullscreen<HTMLDivElement>();
-
   return (
-    <div
-      ref={ref}
-      className={cn(
-        'content-lg flex flex-col gap-4',
-        // En plein écran : occupe tout l'écran (projeté / grand écran), contenu centré.
-        isFullscreen && 'max-w-none justify-center overflow-auto bg-background p-6 sm:p-12',
-      )}
-    >
-      <header className="flex items-center justify-between gap-2 border-b pb-2 text-muted-foreground">
-        <span>{t('preview.view')}</span>
-        <div className="flex items-center gap-3">
-          <strong className="text-foreground">{quiz.title}</strong>
-          {supported && (
-            <Button type="button" variant="outline" size="sm" onClick={() => void toggle()}>
-              {isFullscreen ? <Minimize className="size-4" /> : <Maximize className="size-4" />}
-              {isFullscreen ? t('preview.exitFullscreen') : t('preview.fullscreen')}
-            </Button>
-          )}
-        </div>
-      </header>
-
-      {/* La description est du texte brut : on l'affiche tel qu'il a été tapé,
-          sans rien interpréter. */}
-      <p className="text-muted-foreground text-sm whitespace-pre-line">{quiz.description}</p>
-
-      {total === 0 ? (
-        <p className="text-muted-foreground">{t('preview.noQuestions')}</p>
-      ) : (
-        <>
-          {/* Above the stage: the buttons stay put whatever the step shows. */}
-          <nav className="flex items-center justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              disabled={index === 0}
-              onClick={() => setIndex((i) => i - 1)}
-            >
-              <ChevronLeft className="size-4" />
-              {t('preview.previous')}
-            </Button>
-            <span className="text-sm text-muted-foreground">
-              {t('preview.questionPosition', { index: index + 1, total })}
-            </span>
-            <Button
-              type="button"
-              variant="outline"
-              disabled={index >= total - 1}
-              onClick={() => setIndex((i) => i + 1)}
-            >
-              {t('preview.next')}
-              <ChevronRight className="size-4" />
-            </Button>
-          </nav>
-          {/* 16:9 like the projection, questions and slides alike, as wide as the
-              window's height allows: the whole stage stays in view under the buttons. */}
-          <div
-            className="mx-auto w-full"
-            style={{ maxWidth: `calc((100dvh - ${isFullscreen ? 10 : 16}rem) * 16 / 9)` }}
+    <QuizStepsPreview
+      quiz={quiz}
+      header={
+        <header className="flex flex-col gap-2">
+          <Link
+            to="/quizzes/$quizId"
+            params={{ quizId: quiz.id }}
+            className="text-muted-foreground flex w-fit items-center gap-1 text-sm"
           >
-            <StepStage item={item} index={index} quiz={quiz} />
-          </div>
-        </>
-      )}
-      <QuizCredits quizId={quiz.id} />
-    </div>
+            <ArrowLeft className="size-4" />
+            {t('preview.backToEditor')}
+          </Link>
+          <PageTitle>{quiz.title}</PageTitle>
+          {/* La description est du texte brut : on l'affiche tel qu'il a été tapé. */}
+          {quiz.description ? (
+            <p className="text-muted-foreground max-w-prose text-sm whitespace-pre-line">
+              {quiz.description}
+            </p>
+          ) : null}
+        </header>
+      }
+      footer={<QuizCredits quizId={quiz.id} />}
+    />
   );
 }
 

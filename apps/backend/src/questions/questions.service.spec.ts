@@ -23,7 +23,12 @@ const content = (over: Partial<QuestionContent> = {}): QuestionContent =>
 
 function makePrisma() {
   return {
-    quiz: { findFirst: jest.fn(), update: jest.fn() },
+    quiz: {
+      findFirst: jest.fn(),
+      // The quiz's status: a draft unless a test says otherwise.
+      findUnique: jest.fn(async () => ({ status: 'draft' })),
+      update: jest.fn(),
+    },
     question: {
       findFirst: jest.fn(),
       // The question as read back after its creation.
@@ -101,6 +106,28 @@ describe('QuestionsService', () => {
       const data = prisma.question.create.mock.calls[0][0].data;
       expect(data.pointsMode).toBe('none');
       expect(data.orderIndex).toBe(0);
+    });
+
+    it('a draft takes an incomplete question, a ready quiz does not (UI system §1.5)', async () => {
+      prisma.quiz.findFirst.mockResolvedValue({ id: 'quiz-1' });
+      prisma.question.aggregate.mockResolvedValue({ _max: { orderIndex: null } });
+      prisma.question.create.mockResolvedValue({ id: 'new' });
+      prisma.quiz.update.mockResolvedValue({});
+      const noAnswer = content({
+        options: [
+          { color: 'red', shape: 'triangle', isCorrect: false },
+          { color: 'blue', shape: 'circle', isCorrect: false },
+        ],
+      });
+      await service.add(OWNER, 'quiz-1', noAnswer);
+      expect(prisma.question.create).toHaveBeenCalled();
+
+      prisma.question.create.mockClear();
+      prisma.quiz.findUnique.mockResolvedValueOnce({ status: 'ready' });
+      await expect(service.add(OWNER, 'quiz-1', noAnswer)).rejects.toMatchObject({
+        response: { message: 'question.incomplete_in_ready_quiz' },
+      });
+      expect(prisma.question.create).not.toHaveBeenCalled();
     });
   });
 

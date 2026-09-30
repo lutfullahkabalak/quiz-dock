@@ -19,7 +19,7 @@ import { Markdown } from '@/components/markdown';
 import { COLOR_BG, COLOR_BG_SOFT, COLOR_TEXT, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
 import { Avatar } from './avatar';
-import { Surface } from './surface';
+import { BACKDROP_EDGE, BACKDROP_PANEL, PICKED_RING, Surface } from './surface';
 import { SlideVariablesContext } from './slide-variables';
 import { SlidePlaybackContext, SlideSound, SlideVideoLayer, showsVideo } from './media/slide-media';
 import { ShapeIcon } from '@/components/shape-icon';
@@ -67,6 +67,7 @@ export function OptionGrid({
   correctIds,
   highlightIds,
   disabled,
+  counts,
   layout = 'tiles',
 }: {
   options: PublicOption[];
@@ -81,6 +82,12 @@ export function OptionGrid({
    */
   highlightIds?: string[];
   disabled?: boolean;
+  /**
+   * The reveal as gauges (UI system §2.2): with `correctIds`, each tile fills in
+   * proportion to its answers and shows the count; the right one keeps its colour,
+   * the others turn a low-contrast grey — never see-through.
+   */
+  counts?: Record<string, number>;
   /** `tiles`: the coloured tiles. `list` (a participant's reveal): the answers one under the other. */
   layout?: 'tiles' | 'list';
 }) {
@@ -91,6 +98,8 @@ export function OptionGrid({
   }
   const many = options.length > 4;
   const long = options.some((o) => (o.text ?? '').length > OPTION_TILE_MAX_CHARS);
+  const gauges = counts && correctIds;
+  const total = gauges ? Object.values(counts).reduce((a, b) => a + b, 0) : 0;
   return (
     <div className={cn('qd-answers', ANSWER_GRID)}>
       {options.map((o, i) => {
@@ -99,6 +108,8 @@ export function OptionGrid({
         const isHinted = highlightIds?.includes(o.id); // indice animateur (outline verte)
         const dimmed = correctIds && !isCorrect; // au reveal, estompe les mauvaises
         const Tag = onPick ? 'button' : 'div';
+        const n = counts?.[o.id] ?? 0;
+        const pct = total > 0 ? Math.round((n / total) * 100) : 0;
         return (
           <Tag
             key={o.id}
@@ -110,19 +121,21 @@ export function OptionGrid({
             data-correct={correctIds ? String(!!isCorrect) : undefined}
             data-picked={isPicked || undefined}
             className={cn(
-              'qd-answer flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.45em] text-left leading-[1em] font-semibold text-white shadow transition',
+              'qd-answer flex items-center gap-[0.6em] rounded-[0.75em] px-[0.9em] py-[0.45em] text-left leading-[1em] font-semibold text-white shadow transition [text-shadow:none]',
               // Five answers and more: lower tiles, so four rows still leave room above.
               many ? 'min-h-[2.6em]' : 'min-h-[3.25em]',
               long ? 'text-[0.95em]' : many ? 'text-[1em]' : 'text-[1.125em]',
               lastOdd(i, options.length),
               COLOR_BG[o.color] ?? OPTION_BG_FALLBACK,
               onPick && !disabled && 'hover:brightness-110 active:scale-[0.98] cursor-pointer',
-              dimmed && 'opacity-40',
-              isCorrect && 'ring-4 ring-white',
-              isPicked && 'ring-4 ring-black/60',
+              // Greyed, not see-through: a faded tile would melt into a background.
+              dimmed && !gauges && 'brightness-75 grayscale',
+              gauges && !isCorrect && 'text-answer-off-text font-medium',
+              isPicked ? PICKED_RING : BACKDROP_EDGE,
               isHinted && 'outline-success outline outline-2 outline-offset-2',
             )}
-            aria-label={optionLabel(o)}
+            aria-label={gauges ? `${optionLabel(o)} · ${n}` : optionLabel(o)}
+            style={gauges ? { background: gaugeFill(o.color, pct, !!isCorrect) } : undefined}
           >
             <span aria-hidden className="shrink-0 text-[1.35em] leading-none">
               <ShapeIcon shape={o.shape} />
@@ -135,12 +148,30 @@ export function OptionGrid({
                 {o.text}
               </Markdown>
             ) : null}
-            {isCorrect ? <span className="ml-auto">✓</span> : null}
+            {isCorrect ? <CorrectMark className={gauges ? undefined : 'ml-auto'} /> : null}
+            {gauges ? (
+              <span className="ml-auto shrink-0 text-right leading-none tabular-nums">
+                {n}
+                <span className="ml-[0.4em] text-[0.65em] font-medium opacity-85">{pct} %</span>
+              </span>
+            ) : null}
           </Tag>
         );
       })}
     </div>
   );
+}
+
+/**
+ * A reveal tile's fill: its share of the answers from the left. The right answer
+ * in its own colour over a darker shade of it; a wrong one in two light greys.
+ */
+function gaugeFill(color: string, pct: number, correct: boolean): string {
+  if (!correct) {
+    return `linear-gradient(to right, var(--answer-off-fill) ${pct}%, var(--answer-off) ${pct}%)`;
+  }
+  const c = COLOR_BG[color] ? `var(--answer-${color})` : 'var(--answer-none)';
+  return `linear-gradient(to right, ${c} ${pct}%, color-mix(in oklab, ${c} 55%, black) ${pct}%)`;
 }
 
 /** The answers, in reading order, keyed by colour and shape (the phone's legend for the tiles). */
@@ -159,7 +190,10 @@ export function OptionKey({
   const { t } = useTranslation('live');
   const picked = (id: string) => selectedIds?.includes(id) ?? false;
   return (
-    <ol className="qd-answers flex w-full flex-col gap-[0.4em] text-left" data-layout="list">
+    <ol
+      className={cn('qd-answers flex w-full flex-col gap-[0.4em] text-left', BACKDROP_PANEL)}
+      data-layout="list"
+    >
       {options.map((o) => (
         <li
           key={o.id}
@@ -190,11 +224,7 @@ export function OptionKey({
             <span className="min-w-0 flex-1 [overflow-wrap:anywhere]">{o.media.alt}</span>
           ) : null}
           {/* At the reveal: the right answer(s) and what this participant picked. */}
-          {correctIds?.includes(o.id) ? (
-            <span className="bg-success inline-flex size-[1.3em] shrink-0 items-center justify-center rounded-full text-[0.85em] text-white">
-              ✓
-            </span>
-          ) : null}
+          {correctIds?.includes(o.id) ? <CorrectMark /> : null}
           {showPick && picked(o.id) ? (
             <span className="text-muted-foreground shrink-0 text-[0.8em]">
               {t('reveal.yourPick')}
@@ -242,24 +272,50 @@ export function OptionTiles({
             data-correct={correctIds ? String(!!isCorrect) : undefined}
             data-picked={isPicked || undefined}
             className={cn(
-              'qd-answer flex items-center justify-center rounded-[0.75em] text-[1.6em] leading-none text-white shadow transition',
+              'qd-answer relative flex items-center justify-center rounded-[0.75em] text-[1.6em] leading-none text-white shadow transition [text-shadow:none]',
               // Low enough to leave the prompt its room; five answers and more, lower still.
               many ? 'min-h-[2em]' : 'min-h-[2.75em]',
               lastOdd(i, options.length),
               COLOR_BG[o.color] ?? OPTION_BG_FALLBACK,
               onPick && !disabled && 'hover:brightness-110 active:scale-[0.97] cursor-pointer',
-              correctIds && !isCorrect && 'opacity-40',
-              isCorrect && 'ring-4 ring-white',
-              isPicked && 'ring-4 ring-black/60',
+              correctIds && !isCorrect && 'brightness-75 grayscale',
+              isPicked ? PICKED_RING : BACKDROP_EDGE,
             )}
           >
             <span aria-hidden>
               <ShapeIcon shape={o.shape} />
             </span>
+            {/* A state is a mark, never a ring colour alone. */}
+            {isCorrect ? (
+              <CorrectMark className="absolute -top-[0.3em] -left-[0.3em] text-[0.5em]" />
+            ) : null}
+            {isPicked ? (
+              <span
+                aria-hidden
+                className="absolute -top-[0.3em] -right-[0.3em] inline-flex size-[1.3em] items-center justify-center rounded-full bg-white text-[0.5em] font-bold text-neutral-900 ring-2 ring-black"
+              >
+                ✓
+              </span>
+            ) : null}
           </Tag>
         );
       })}
     </div>
+  );
+}
+
+/** The right answer's mark: a filled tick with a two-tone edge, readable on a tile or a background. */
+function CorrectMark({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn(
+        'bg-success text-success-foreground inline-flex size-[1.3em] shrink-0 items-center justify-center rounded-full text-[0.85em] font-bold ring-1 ring-black/70 ring-offset-1 ring-offset-white/70 [text-shadow:none]',
+        className,
+      )}
+    >
+      ✓
+    </span>
   );
 }
 
@@ -285,7 +341,7 @@ export function Distribution({
 }) {
   const total = Object.values(reveal.distribution).reduce((a, b) => a + b, 0) || 1;
   return (
-    <ul className="qd-distribution flex w-full flex-col gap-[0.5em]">
+    <ul className={cn('qd-distribution flex w-full flex-col gap-[0.5em]', BACKDROP_PANEL)}>
       {options.map((o) => {
         const n = reveal.distribution[o.id] ?? 0;
         const pct = Math.round((n / total) * 100);
@@ -339,7 +395,7 @@ export function Distribution({
               aria-label={isCorrect ? '✓' : undefined}
               className={cn(
                 'inline-flex size-[1.4em] shrink-0 items-center justify-center rounded-full text-[0.95em]',
-                isCorrect && 'bg-success text-white',
+                isCorrect && 'bg-success text-success-foreground',
               )}
             >
               {isCorrect ? '✓' : ''}
@@ -399,7 +455,7 @@ export function ClosestList({ rows }: { rows: ClosestRow[] }) {
   const { t } = useTranslation('live');
   if (rows.length === 0) return null;
   return (
-    <div className="qd-closest flex w-full max-w-[28em] flex-col gap-[0.4em]">
+    <div className={cn('qd-closest flex w-full max-w-[28em] flex-col gap-[0.4em]', BACKDROP_PANEL)}>
       <h3 className="text-muted-foreground text-[0.9em] font-semibold">
         {t('reveal.closestTitle')}
       </h3>
@@ -586,7 +642,7 @@ export function TimerBar({
         className,
       )}
     >
-      <div className="bg-muted h-[0.5em] flex-1 overflow-hidden rounded-full">
+      <div className={cn('bg-muted h-[0.5em] flex-1 overflow-hidden rounded-full', BACKDROP_EDGE)}>
         <div
           className={cn(
             'h-full rounded-full transition-[width,background-color] duration-1000 ease-linear',
@@ -648,7 +704,14 @@ export function AnswerRules({
     >
       <span>{t(ruleKey, { defaultValue: t(`rules.${kind}`) })}</span>
       {badge ? (
-        <span className="bg-warning/20 text-warning-text rounded-full px-[0.6em] py-[0.1em] text-[0.85em] font-semibold">
+        <span
+          className={cn(
+            'bg-warning/20 text-warning-text rounded-full px-[0.6em] py-[0.1em] text-[0.85em] font-semibold',
+            // Opaque on a background: a tint would take the colour of whatever is behind.
+            'on-backdrop:bg-warning on-backdrop:text-neutral-950 [text-shadow:none]',
+            BACKDROP_EDGE,
+          )}
+        >
           {badge}
         </span>
       ) : null}
@@ -675,6 +738,7 @@ export function AnswerExplanation({
       aria-label={t('reveal.explanation')}
       className={cn(
         'qd-explanation w-full rounded-[0.5em] border bg-muted/40 px-[1em] py-[0.75em] text-left',
+        BACKDROP_PANEL,
         className,
       )}
     >
@@ -708,7 +772,7 @@ export function SlideView({ slide }: { slide: SlideShowPayload }) {
       // No explicit height: a flex parent stretches it (`h-full` would opt out of stretching).
       className="qd-slide w-full flex-1"
     >
-      <article className="flex h-full min-h-full w-full flex-col justify-center gap-[1.5em] p-[2em]">
+      <article className="flex w-full flex-1 flex-col justify-center gap-[1.5em] p-[2em]">
         {blocks.map((b) =>
           b.type === 'columns' ? (
             <div
@@ -829,7 +893,7 @@ export function LeaderboardList({
   const shown = rows.slice(0, max);
   const topScore = Math.max(0, ...shown.map((r) => r.score));
   return (
-    <ol className="qd-leaderboard flex w-full flex-col gap-[0.4em]">
+    <ol className={cn('qd-leaderboard flex w-full flex-col gap-[0.4em]', BACKDROP_PANEL)}>
       {shown.map((r) => {
         const pct = topScore > 0 ? Math.round((r.score / topScore) * 100) : 0;
         const me = r.rank === highlightRank;
@@ -878,7 +942,8 @@ export function Podium({ rows }: { rows: LeaderboardRow[] }) {
             <span className="text-muted-foreground text-[0.875em] tabular-nums">{r.score}</span>
             <div
               className={cn(
-                'flex w-full items-start justify-center rounded-t-[0.5em] pt-[0.5em] text-[1.5em] font-bold text-white',
+                'flex w-full items-start justify-center rounded-t-[0.5em] pt-[0.5em] text-[1.5em] font-bold text-white [text-shadow:none]',
+                BACKDROP_EDGE,
                 heights[i],
                 r.rank === 1 ? 'bg-podium-1' : r.rank === 2 ? 'bg-podium-2' : 'bg-podium-3',
               )}

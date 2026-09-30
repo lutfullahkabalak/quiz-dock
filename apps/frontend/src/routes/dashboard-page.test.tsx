@@ -33,7 +33,7 @@ describe('DashboardPage', () => {
     expect(await screen.findByText('Histoire')).toBeInTheDocument();
   });
 
-  it('a quiz another host shares: a lock, read-only, and « Créer à partir de ce quiz »', async () => {
+  it('a quiz another host shares: a lock, read-only, and « Créer un quiz à partir de ceci »', async () => {
     const fetchMock = mockApi([
       {
         method: 'POST',
@@ -69,7 +69,7 @@ describe('DashboardPage', () => {
     // Nothing of an owner's: no editing, no presenting.
     expect(screen.queryByRole('button', { name: /Éditer/ })).toBeNull();
     expect(screen.queryByRole('button', { name: /Présenter/ })).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: /Créer à partir de ce quiz/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Créer un quiz à partir de ceci/ }));
     await waitFor(() =>
       expect(
         fetchMock.mock.calls.some(
@@ -78,6 +78,56 @@ describe('DashboardPage', () => {
         ),
       ).toBe(true),
     );
+  });
+
+  it('one action per card, the rest in its ⋮; the card opens the quiz (UI system §3)', async () => {
+    const fetchMock = mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes',
+        body: [
+          quiz({ id: 'd1', title: 'Brouillon' }),
+          quiz({ id: 'r1', title: 'Prêt', status: 'ready' }),
+        ],
+      },
+      { method: 'PATCH', path: '/quizzes/r1/status', body: quiz({ id: 'r1', status: 'archived' }) },
+      { method: 'DELETE', path: '/quizzes/d1', body: {} },
+    ]);
+    const { router } = renderApp('/quizzes');
+
+    // The title's link is the card's.
+    expect(await screen.findByRole('link', { name: 'Brouillon' })).toHaveAttribute(
+      'href',
+      '/quizzes/d1',
+    );
+    expect(screen.getByRole('button', { name: /Présenter/ })).toBeInTheDocument();
+    const publish = screen.getByRole('button', { name: /Publier pour présenter/ });
+
+    // Archive, from the ready one's ⋮.
+    fireEvent.click(screen.getByRole('button', { name: 'Actions pour « Prêt »' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Archiver' }));
+    await waitFor(() =>
+      expect(
+        fetchMock.mock.calls.some(
+          ([url, o]) =>
+            String(url).endsWith('/quizzes/r1/status') && (o as RequestInit)?.method === 'PATCH',
+        ),
+      ).toBe(true),
+    );
+
+    // Delete asks first.
+    fireEvent.click(screen.getByRole('button', { name: 'Actions pour « Brouillon »' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Supprimer le quiz' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Supprimer' }));
+    await waitFor(() =>
+      expect(fetchMock.mock.calls.some(([, o]) => (o as RequestInit)?.method === 'DELETE')).toBe(
+        true,
+      ),
+    );
+
+    // Publishing a draft happens in its editor (which lists what is missing, if anything).
+    fireEvent.click(publish);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/quizzes/d1'));
   });
 
   it('filters by owner: me first, then the others, everyone by default', async () => {
@@ -255,6 +305,42 @@ describe('DashboardPage', () => {
     expect(await screen.findByDisplayValue('Importé')).toBeInTheDocument();
   });
 
+  it('opens a Kahoot sheet’s draft with what became of its rows, until closed', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/kahoot',
+        body: { ...quiz({ id: 'kahoot', title: 'Capitales' }), questions: [], slides: [] },
+      },
+      { method: 'GET', path: '/quizzes', body: [] },
+      {
+        method: 'POST',
+        path: '/quizzes/import',
+        status: 201,
+        body: quiz({
+          id: 'kahoot',
+          title: 'Capitales',
+          importReport: {
+            source: 'kahoot',
+            converted: 2,
+            incomplete: [10],
+            skipped: [{ row: 12, reason: 'formula' }],
+          },
+        }),
+      },
+    ]);
+    renderApp('/quizzes');
+    const input = await screen.findByLabelText('Importer');
+    expect(input).toHaveAttribute('accept', expect.stringContaining('.xlsx'));
+    fireEvent.change(input, { target: { files: [new File(['x'], 'quiz.xlsx')] } });
+    expect(await screen.findByDisplayValue('Capitales')).toBeInTheDocument();
+    expect(screen.getByText('2 questions importées de Kahoot.')).toBeInTheDocument();
+    expect(screen.getByText(/1 question à finir avant de publier/)).toBeInTheDocument();
+    expect(screen.getByText(/Ligne 12 laissée de côté/)).toHaveTextContent('formules');
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    await waitFor(() => expect(screen.queryByText(/importées de Kahoot/)).toBeNull());
+  });
+
   it('shows the tokenised import error', async () => {
     mockApi([
       { method: 'GET', path: '/quizzes', body: [] },
@@ -337,7 +423,7 @@ describe('DashboardPage', () => {
     renderApp('/quizzes');
     fireEvent.click((await screen.findAllByRole('button', { name: /Nouveau quiz/ }))[0]);
     expect(await screen.findByRole('alert')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: /Créer à partir de ce quiz/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Créer un quiz à partir de ceci/ }));
     await waitFor(() => expect(screen.getAllByRole('alert')).toHaveLength(2));
   });
 });

@@ -313,7 +313,18 @@ describe('QuizPortableService', () => {
         service.importBundle(OWNER, { buffer: zipOf({ format: 'x' }), mimetype: '' }),
       ).rejects.toMatchObject({ response: { code: 'import.invalid_bundle' } });
       const bad = manifest({
-        items: [{ kind: 'question', type: 'single_choice', prompt: 'No options' }],
+        // A draft may be incomplete, never broken: a poll has no right answer.
+        items: [
+          {
+            kind: 'question',
+            type: 'poll',
+            prompt: 'Right answer?',
+            options: [
+              { text: 'A', color: 'red', shape: 'triangle', isCorrect: true },
+              { text: 'B', color: 'blue', shape: 'diamond' },
+            ],
+          },
+        ],
       });
       await expect(
         service.importBundle(OWNER, { buffer: zipOf(bad), mimetype: '' }),

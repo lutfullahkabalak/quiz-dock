@@ -66,7 +66,7 @@ const DEFAULT_QUESTIONS: Prisma.QuizUncheckedCreateInput['questions'] = {
     type: 'single_choice',
     prompt: 'Capitale de la France ?',
     answerExplanation: 'Paris est la **capitale**.',
-    timeLimitS: 5, // the smallest limit the API accepts (5..120)
+    timeLimitS: 5, // the smallest limit the API accepts (5..240)
     options: {
       create: [
         { orderIndex: 0, text: 'Paris', color: 'red', shape: 'triangle', isCorrect: true },

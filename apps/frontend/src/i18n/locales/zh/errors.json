@@ -5,7 +5,8 @@
     "cross_origin": "此请求并非来自本应用的页面。",
     "host_required": "需要主持人角色。",
     "host_only": "此操作仅限主持人：管理员管理实例，不进行主持。",
-    "admin_required": "需要管理员角色。"
+    "admin_required": "需要管理员角色。",
+    "oidc_disabled": "此实例未启用身份提供方登录。"
   },
   "host": {
     "auth_required": "需要主持人身份验证。",
@@ -17,7 +18,11 @@
     "empty": "测验没有任何题目。",
     "requires_question": "测验至少需要一道题目才能变为“就绪”（RG-02）。",
     "transition_forbidden": "禁止的状态转换：{{from}} → {{target}}。",
-    "in_use": "此测验正在某个房间中进行：请先关闭房间。"
+    "in_use": "此测验正在某个房间中进行：请先关闭房间。",
+    "item_not_in_quiz": "此项目已不属于该测验：请刷新页面。",
+    "reorder_incomplete": "提交的顺序缺少部分项目：请刷新页面后重试。",
+    "incomplete_one": "有 1 个步骤未完成：请完成后再发布测验。",
+    "incomplete_other": "有 {{count}} 个步骤未完成：请完成后再发布测验。"
   },
   "session": {
     "not_found": "未找到房间或房间已关闭。",
@@ -34,7 +39,10 @@
     "archive_quiz_gone": "测验在进行中被删除：结束时没有归档。",
     "locked": "此房间不再接受新的参与者。",
     "open_access_forbidden": "此服务器不允许开放访问。",
-    "open_access_guests_only": "开放访问时参与者没有账号：没有个人跟踪，也不使用账号名称。"
+    "open_access_guests_only": "开放访问时参与者没有账号：没有个人跟踪，也不使用账号名称。",
+    "next_quiz_unavailable": "此测验不能作为本房间的下一个测验。",
+    "review_unavailable": "只能在两道题之间回看已进行的步骤。",
+    "step_not_played": "此步骤尚未进行。"
   },
   "participant": {
     "not_found": "未找到玩家。"
@@ -70,7 +78,8 @@
     "canceled": "转换已取消。",
     "in_use": "此媒体仍被测验或游戏使用：请先从那里移除。",
     "playing": "某个房间正在播放此媒体：请在其关闭后重试。",
-    "not_adopted_yet": "此文件正在移至共享存储：请稍后重试。"
+    "not_adopted_yet": "此文件正在移至共享存储：请稍后重试。",
+    "embed_bounds": "视频的开始和结束时间不匹配：结束必须在开始之后。"
   },
   "import": {
     "file_missing": "缺少文件（“file”字段）。",
@@ -78,13 +87,56 @@
     "bundle_too_large": "该包解压后过大，或包含的文件过多。",
     "media_missing": "媒体“{{path}}”被引用但不在包中。",
     "media_unsupported": "不支持的媒体“{{path}}”（png、jpg、gif、webp、avif、mp3、ogg、wav、m4a）。",
-    "invalid_item": "包中第 {{item}} 项无效（{{field}}）。"
+    "invalid_item": "包中第 {{item}} 项无效（{{field}}）。",
+    "kahoot_template": "请使用只有一个工作表的原始 Kahoot 电子表格模板（.xlsx）。",
+    "kahoot_empty": "没有有效题目。请检查第 {{row}} 行和 Kahoot 模板。"
   },
   "question": {
     "not_in_quiz": "该题目不属于本测验。",
     "invalid_permutation": "位置必须构成 0..n-1 的排列。",
     "reorder_incomplete": "重新排序必须包含测验的所有题目。",
-    "not_found": "未找到题目。"
+    "not_found": "未找到题目。",
+    "accepted_answers": {
+      "not_allowed": "只有输入答案的题目才有可接受答案。",
+      "required": "请至少添加一个可接受答案。"
+    },
+    "image": {
+      "alt_required": "请为看不到图片的人描述这张图片。",
+      "count": "图片选择题需要 2 张或 4 张图片。",
+      "no_text": "图片答案不含文字。",
+      "no_visual": "图片选择题没有自己的图片或视频：它的答案就是图片。",
+      "picture_required": "请为这个答案选择一张图片。"
+    },
+    "incomplete_in_ready_quiz": "此测验已发布：请先改回草稿，才能保存未完成的题目。",
+    "multi_select": {
+      "not_allowed": "多张正确图片仅适用于图片选择题。"
+    },
+    "numeric": {
+      "not_allowed": "只有数字题才有目标值和容差。",
+      "tolerance_required": "请设置容差（0 表示精确数字）。",
+      "value_required": "请设置要猜的数字。"
+    },
+    "options": {
+      "not_allowed": "此题型没有可供选择的答案。",
+      "one_correct": "请勾选正确答案。",
+      "some_correct": "请至少勾选一个正确答案。",
+      "too_few": "请至少添加 2 个答案。"
+    },
+    "ordering": {
+      "positions": "每个答案在正确顺序中都需要自己的位置。"
+    },
+    "poll": {
+      "no_correct": "投票没有正确答案。"
+    },
+    "prompt": {
+      "required": "请写下题目，或添加一张提出问题的图片或声音。"
+    },
+    "scoring": {
+      "not_available": "此计分方式不适用于该题型。"
+    },
+    "true_false": {
+      "two_options": "判断题需要恰好 2 个答案。"
+    }
   },
   "validation": "部分字段无效。",
   "internal": "内部错误。",
@@ -111,7 +163,11 @@
     "too_large": "测验对社区目录来说过大。"
   },
   "slide": {
-    "two_sounds": "一张幻灯片一次只播放一个声音：请将视频静音或移除其声音。"
+    "two_sounds": "一张幻灯片一次只播放一个声音：请将视频静音或移除其声音。",
+    "background_conflict": "背景只能是图片或渐变，不能同时使用。",
+    "empty": "幻灯片没有任何内容：请添加标题、文字、图片、背景或视频。",
+    "not_found": "此幻灯片已不存在：它已被删除。",
+    "incomplete_in_ready_quiz": "此测验已发布：请先改回草稿，才能保存不显示任何内容的幻灯片。"
   },
   "record": {
     "not_found": "该项目已不存在：在此期间已被删除。",

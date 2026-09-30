@@ -1,5 +1,5 @@
 import { Link } from '@tanstack/react-router';
-import { LogOut, Menu, X } from 'lucide-react';
+import { HardDrive, LogOut, Menu, UserRound, X } from 'lucide-react';
 import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { LiveSessions } from '@/components/live-sessions';
@@ -7,6 +7,7 @@ import { SeatCountdown, SeatMenuRow } from '@/components/seat-status';
 import { UserMenu } from '@/components/user-menu';
 import { cn } from '@/lib/utils';
 import type { AuthMode } from '../auth/auth-context';
+import { useRole } from '../auth/use-role';
 
 interface NavProps {
   user: string;
@@ -22,6 +23,7 @@ interface NavProps {
  */
 export function AppNav({ user, mode, onLogout }: NavProps) {
   const { t } = useTranslation('auth');
+  const { isManager } = useRole();
   return (
     <div className="flex items-center gap-2">
       {/* Ce qui signale une échéance ou une partie en cours reste visible à toutes
@@ -39,8 +41,9 @@ export function AppNav({ user, mode, onLogout }: NavProps) {
 
       <BurgerMenu label={t('nav.menu')}>
         {(close) => (
-          <div className="flex flex-col gap-1" onClick={close}>
-            <NavLinks stacked />
+          // A link closes the menu; adjusting the seat does not (its list, its buttons).
+          <div className="flex flex-col gap-1">
+            <NavLinks stacked onNavigate={close} />
             {mode === 'none' ? (
               <>
                 <Separator />
@@ -52,12 +55,31 @@ export function AppNav({ user, mode, onLogout }: NavProps) {
             ) : null}
             <Separator />
             <p className="text-muted-foreground truncate px-2 pt-1.5 text-xs">{user}</p>
-            <Link to="/profile" className="hover:bg-accent rounded-md px-2 py-2 text-sm">
+            {/* The same entries as the user menu (UI system §4). */}
+            {isManager ? (
+              <Link
+                to="/admin/media"
+                onClick={close}
+                className="hover:bg-accent flex items-center gap-2 rounded-md px-2 py-2 text-sm"
+              >
+                <HardDrive className="size-4" />
+                {t('nav.instanceMedia')}
+              </Link>
+            ) : null}
+            <Link
+              to="/profile"
+              onClick={close}
+              className="hover:bg-accent flex items-center gap-2 rounded-md px-2 py-2 text-sm"
+            >
+              <UserRound className="size-4" />
               {t('nav.profile')}
             </Link>
             <button
               type="button"
-              onClick={onLogout}
+              onClick={() => {
+                close();
+                onLogout();
+              }}
               className="hover:bg-accent flex w-full items-center gap-2 rounded-md px-2 py-2 text-left text-sm"
             >
               <LogOut className="size-4" />
@@ -70,17 +92,17 @@ export function AppNav({ user, mode, onLogout }: NavProps) {
   );
 }
 
-function NavLinks({ stacked = false }: { stacked?: boolean }) {
+function NavLinks({ stacked = false, onNavigate }: { stacked?: boolean; onNavigate?: () => void }) {
   const { t } = useTranslation('auth');
   const className = stacked
     ? 'hover:bg-accent rounded-md px-2 py-2 text-sm'
     : 'whitespace-nowrap hover:underline';
   return (
     <>
-      <Link to="/quizzes" className={className}>
+      <Link to="/quizzes" className={className} onClick={onNavigate}>
         {t('nav.myQuizzes')}
       </Link>
-      <Link to="/templates" className={className}>
+      <Link to="/templates" className={className} onClick={onNavigate}>
         {t('nav.templates')}
       </Link>
     </>

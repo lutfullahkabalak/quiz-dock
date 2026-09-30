@@ -25,7 +25,16 @@ export function useRoomMedia(
   view: GameView,
   pin: string,
   socket: GameSocket | null,
-  { sounds, preload }: { sounds: boolean; preload: 'off' | 'fetch' | 'ready' },
+  {
+    sounds,
+    preload,
+    room = false,
+  }: {
+    sounds: boolean;
+    preload: 'off' | 'fetch' | 'ready';
+    /** The projection itself: the console's master mute and MEDIA bus apply here (#150). */
+    room?: boolean;
+  },
 ): void {
   useEffect(() => {
     if (view.state === 'LOBBY') clearRoomPositions(pin);
@@ -45,6 +54,7 @@ export function useRoomMedia(
       anchor: view.question && anchorOf(view, { questionIndex: view.question.questionIndex }),
     },
     sounds,
+    room,
   );
 
   useEffect(() => {

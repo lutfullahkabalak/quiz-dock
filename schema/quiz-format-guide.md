@@ -24,7 +24,7 @@ structure is also published as a JSON Schema: https://raw.githubusercontent.com/
 Every question:
 
 - `prompt` — required, Markdown, at most 1000 characters.
-- `timeLimitS` — whole seconds, 5 to 120; 20 when left out.
+- `timeLimitS` — whole seconds, 5 to 240; 20 when left out.
 - `pointsMode` — `standard` (faster answers score more), `double` (twice that), `none` (no points), `fixed` (full points whatever the speed); `standard` when left out.
 - `scoring` — `standard` when left out; also `partial` for multiple_choice, `lenient` for text_input, `closest` for numeric, `partial` for ordering.
 - `answerExplanation` — optional, Markdown, shown at the reveal, at most 2000 characters.
@@ -95,7 +95,7 @@ QuizDock. Never write these fields (a zipped export carries them, with its files
 Go through it before handing the file over; an item that fails makes the whole
 import fail.
 
-- [ ] Every `timeLimitS` is a whole number from 5 to 120: a longer time is written 120.
+- [ ] Every `timeLimitS` is a whole number from 5 to 240: a longer time is written 240.
 - [ ] Every `prompt` has 1000 characters at most, every option `text` 500.
 - [ ] Every question with options has 2 to 8 of them.
 - [ ] `single_choice` and `true_false`: exactly one `"isCorrect": true`; `multiple_choice`: at least one; `poll`: none.

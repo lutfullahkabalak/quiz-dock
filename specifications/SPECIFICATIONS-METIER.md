@@ -170,7 +170,7 @@ SCHEDULED/IMMEDIATE → LOBBY → RUNNING → FINISHED → ARCHIVED
 ### 8.1 Quizzes & the bank
 - A quiz belongs to **one host**, who alone sees and edits it. It is never shared by reference: what circulates is a copy (§8.1 bis).
 - A quiz must hold **≥ 1 valid question** to be **READY** and launchable.
-- Bounds: `time limit` 5–120 s; **2 to 6 options** depending on the type; **≥ 1 right answer** (except polls).
+- Bounds: `time limit` 5–240 s; **2 to 6 options** depending on the type; **≥ 1 right answer** (except polls).
 - Duplicating creates an independent copy as a **DRAFT**.
 
 ### 8.1 bis Sharing a quiz — two verbs, never one
@@ -342,7 +342,7 @@ Available to the host, **frozen**:
 |---|-------|
 | RG-01 | A quiz is private and belongs to a single host (v1). |
 | RG-02 | A launchable quiz has ≥ 1 valid question (state READY). |
-| RG-03 | Time limit per question ∈ [5, 120] s; 2–6 options; ≥ 1 right answer (polls aside). |
+| RG-03 | Time limit per question ∈ [5, 240] s; 2–6 options; ≥ 1 right answer (polls aside). |
 | RG-04 | A unique 6-digit PIN, used once, expiring (30 min in the lobby). |
 | RG-05 | 10–200 participants per session; individual mode. |
 | RG-06 | One nickname per session, filtered; one answer per question; no changing their mind. |

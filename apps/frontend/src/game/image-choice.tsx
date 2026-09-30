@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import { ShapeIcon } from '@/components/shape-icon';
 import { COLOR_BG, OPTION_BG_FALLBACK } from '@/lib/option-style';
 import { cn } from '@/lib/utils';
+import { BACKDROP_EDGE } from './surface';
 
 /**
  * An answer's colour and shape over a picture: a white shape in a square of the
@@ -69,8 +70,9 @@ export function ImageTile({
         'qd-answer relative w-full overflow-hidden rounded-[0.5em] p-[0.2em] transition-[opacity,box-shadow]',
         COLOR_BG[color] ?? OPTION_BG_FALLBACK,
         // Put forward whatever the page behind: a ring in the success colour, clear of the frame.
-        state === 'correct' &&
-          'ring-success ring-offset-background ring-[0.25em] ring-offset-[0.2em]',
+        state === 'correct'
+          ? 'ring-success ring-offset-background ring-[0.25em] ring-offset-[0.2em]'
+          : BACKDROP_EDGE,
         className,
       )}
       style={{ aspectRatio: TILE_RATIO }}

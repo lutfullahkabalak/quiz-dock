@@ -1,4 +1,4 @@
-import { slideContentSchema } from './slide-content.schema';
+import { slideIssues, slideContentSchema } from './slide-content.schema';
 
 describe('slideContentSchema', () => {
   it('text outline is on by default (readable over any background)', () => {
@@ -9,8 +9,11 @@ describe('slideContentSchema', () => {
     expect(parsed.textTone).toBe('light');
   });
 
-  it('refuses an empty slide and a double background', () => {
-    expect(slideContentSchema.safeParse({}).success).toBe(false);
+  it('an empty slide saves as a draft, flagged; a double background never saves', () => {
+    expect(slideContentSchema.safeParse({}).success).toBe(true);
+    expect(slideIssues(slideContentSchema.parse({}))).toEqual([
+      { code: 'slide.empty', path: ['blocks'] },
+    ]);
     expect(
       slideContentSchema.safeParse({
         mediaId: '01ARZ3NDEKTSV4RRFFQ69G5FAV',

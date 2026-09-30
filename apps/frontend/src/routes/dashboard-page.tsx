@@ -1,24 +1,32 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import {
+  Archive,
+  ArchiveRestore,
   CopyPlus,
-  Eye,
+  EllipsisVertical,
+  ExternalLink,
+  History,
   LayoutGrid,
   List as ListIcon,
   ListChecks,
   Lock,
-  Pencil,
   Play,
   Plus,
   Search,
+  Send,
   Sparkles,
+  Trash2,
   Upload,
 } from 'lucide-react';
 import { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Badge } from '@/components/ui/badge';
+import { QuizStatusBadge } from '@/components/quiz-status-badge';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ConfirmDialog } from '@/components/ui/confirm-dialog';
+import { MenuItem, MenuSeparator } from '@/components/ui/menu-item';
+import { Popover } from '@/components/ui/popover';
 import { Combobox } from '@/components/ui/combobox';
 import { MultiSelect } from '@/components/ui/multi-select';
 import { Input } from '@/components/ui/input';
@@ -38,23 +46,20 @@ import {
   useQuizzesControllerCreate,
   useQuizzesControllerImportQuiz,
   useQuizzesControllerList,
+  useQuizzesControllerRemove,
+  useQuizzesControllerTransition,
 } from '../api/generated/quizzes/quizzes';
 import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
 import { ListSkeleton } from '@/components/ui/loading';
 import { mediaUrl } from '@/lib/media-url';
+import { PageTitle } from '@/components/ui/page-title';
 
 /** Rows per page: enough to scan, short enough to stay on one screen. */
 const PAGE_SIZE = 20;
 
-const STATUS_VARIANT: Record<string, 'default' | 'success' | 'muted'> = {
-  draft: 'default',
-  ready: 'success',
-  archived: 'muted',
-};
-
 export function DashboardPage() {
-  const { t, i18n } = useTranslation(['dashboard', 'common']);
+  const { t, i18n } = useTranslation(['dashboard', 'common', 'editor']);
   const queryClient = useQueryClient();
   const { data, isLoading, error } = useQuizzesControllerList();
   const create = useQuizzesControllerCreate();
@@ -137,7 +142,8 @@ export function DashboardPage() {
   const invalidateList = () =>
     queryClient.invalidateQueries({ queryKey: getQuizzesControllerListQueryKey() });
 
-  // A bundle (zip, or a bare quiz.json) becomes a new draft: straight to its editor.
+  // A bundle (zip, or a bare quiz.json) or a Kahoot sheet becomes a new draft: straight
+  // to its editor, which shows what became of the sheet's rows.
   const onImportFile = (file: File | undefined) => {
     if (!file) return;
     importQuiz.mutate(
@@ -145,7 +151,11 @@ export function DashboardPage() {
       {
         onSuccess: (res) => {
           invalidateList();
-          void navigate({ to: '/quizzes/$quizId', params: { quizId: res.data.id } });
+          void navigate({
+            to: '/quizzes/$quizId',
+            params: { quizId: res.data.id },
+            state: { importReport: res.data.importReport },
+          });
         },
       },
     );
@@ -166,20 +176,39 @@ export function DashboardPage() {
           await queryClient.invalidateQueries({
             queryKey: getQuizzesControllerListQueryKey(),
           });
+          // Straight to what was created: its editor.
+          void navigate({ to: '/quizzes/$quizId', params: { quizId: res.data.id } });
         },
       },
     );
   };
 
+  // The rare actions of a card (its ⋮): archive or restore, delete after a confirmation.
+  const transition = useQuizzesControllerTransition();
+  const remove = useQuizzesControllerRemove();
+  const [pendingDelete, setPendingDelete] = useState<QuizDto | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+  const act = async (action: () => Promise<unknown>) => {
+    setActionError(null);
+    try {
+      await action();
+      await invalidateList();
+    } catch (e) {
+      setActionError(apiErrorText(e));
+    }
+  };
+  const setStatus = (quiz: QuizDto, status: 'draft' | 'archived') =>
+    act(() => transition.mutateAsync({ id: quiz.id, data: { status } }));
+
   return (
     <section className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">{isManager ? t('allQuizzes') : t('title')}</h1>
+        <PageTitle>{isManager ? t('allQuizzes') : t('title')}</PageTitle>
         <div className={cn('flex flex-wrap items-center gap-2', managerOnly && 'hidden')}>
           <input
             ref={fileInput}
             type="file"
-            accept=".zip,.json,application/zip,application/json"
+            accept=".zip,.json,.xlsx,application/zip,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="hidden"
             aria-label={t('import')}
             onChange={(e) => {
@@ -208,6 +237,11 @@ export function DashboardPage() {
         </p>
       ) : null}
       {/* A quiz that could not be created or copied says why (the server's reason, or a generic one). */}
+      {actionError ? (
+        <p className="text-destructive text-sm" role="alert">
+          {actionError}
+        </p>
+      ) : null}
       {[create.error, copyError].map((err, i) =>
         err ? (
           <p key={i} className="text-destructive text-sm" role="alert">
@@ -368,89 +402,110 @@ export function DashboardPage() {
           const lock = readOnly ? (
             <Lock className="text-muted-foreground size-3.5 shrink-0" aria-label={t('readOnly')} />
           ) : null;
+          // One action in view (UI system §3): present a ready quiz, publish a draft to present
+          // it, copy someone else's; the rest in the card's ⋮. The card itself opens the quiz.
+          const main = managerOnly ? null : readOnly ? (
+            quiz.shared ? (
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                disabled={copying}
+                onClick={() => copy(quiz.id)}
+              >
+                <CopyPlus className="size-4" />
+                {t('createFrom')}
+              </Button>
+            ) : null
+          ) : quiz.status === 'ready' ? (
+            <Button
+              type="button"
+              size="sm"
+              variant="main-action"
+              disabled={isLaunching}
+              onClick={() => void launch(quiz.id)}
+            >
+              <Play className="size-4" />
+              {t('present')}
+            </Button>
+          ) : quiz.status === 'draft' ? (
+            <Button
+              type="button"
+              size="sm"
+              onClick={() =>
+                void navigate({
+                  to: '/quizzes/$quizId',
+                  params: { quizId: quiz.id },
+                  search: { publish: true },
+                })
+              }
+            >
+              <Send className="size-4" />
+              {t('publishToPresent')}
+            </Button>
+          ) : null;
           const actions = (
-            <span className="flex flex-wrap gap-2">
-              <Link to="/quizzes/$quizId" params={{ quizId: quiz.id }}>
-                <Button type="button" size="sm" variant="outline">
-                  {readOnly ? <Eye className="size-4" /> : <Pencil className="size-4" />}
-                  {readOnly ? t('view') : t('edit')}
-                </Button>
-              </Link>
-              {readOnly && quiz.shared && !managerOnly ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  disabled={copying}
-                  onClick={() => copy(quiz.id)}
-                >
-                  <CopyPlus className="size-4" />
-                  {t('createFrom')}
-                </Button>
-              ) : null}
-              {!managerOnly && !readOnly && quiz.status === 'ready' && (
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="main-action"
-                  disabled={isLaunching}
-                  onClick={() => void launch(quiz.id)}
-                >
-                  <Play className="size-4" />
-                  {t('present')}
-                </Button>
-              )}
+            // Above the card's link, so they stay their own buttons.
+            <span className="relative z-10 flex items-center gap-2">
+              {main}
+              <QuizMenu
+                quiz={quiz}
+                own={!readOnly && !managerOnly}
+                onStatus={(status) => void setStatus(quiz, status)}
+                onDelete={() => setPendingDelete(quiz)}
+              />
             </span>
           );
           const facts = <QuizFacts quiz={quiz} date={date} />;
+          // The title's link covers the whole card: one target, no link wrapping buttons.
+          const titleLink = (
+            <Link
+              to="/quizzes/$quizId"
+              params={{ quizId: quiz.id }}
+              className="min-w-0 truncate font-semibold after:absolute after:inset-0 after:content-['']"
+            >
+              {quiz.title}
+            </Link>
+          );
           return view === 'grid' ? (
-            <li key={quiz.id} className="flex flex-col overflow-hidden rounded-lg border">
-              <Link
-                to="/quizzes/$quizId"
-                params={{ quizId: quiz.id }}
-                className="hover:bg-accent flex flex-1 flex-col transition-colors"
-              >
-                <QuizFirstStep
-                  quizId={quiz.id}
-                  hasCover={!!quiz.coverMediaId}
-                  fallback={<QuizCover quiz={quiz} className="aspect-video w-full" />}
-                />
-                <span className="flex flex-1 flex-col gap-2 p-4">
-                  <span className="flex items-start justify-between gap-2">
-                    <span className="flex items-center gap-1.5 font-semibold">
-                      {lock}
-                      {quiz.title}
-                    </span>
-                    <StatusBadge status={quiz.status} />
+            <li
+              key={quiz.id}
+              className="hover:bg-accent relative flex flex-col overflow-hidden rounded-lg border transition-colors"
+            >
+              <QuizFirstStep
+                quizId={quiz.id}
+                hasCover={!!quiz.coverMediaId}
+                fallback={<QuizCover quiz={quiz} className="aspect-video w-full" />}
+              />
+              <span className="flex flex-1 flex-col gap-2 p-4">
+                <span className="flex items-start justify-between gap-2">
+                  <span className="flex min-w-0 items-center gap-1.5">
+                    {lock}
+                    {titleLink}
                   </span>
-                  {quiz.description ? (
-                    <span className="text-muted-foreground line-clamp-2 text-sm">
-                      {quiz.description}
-                    </span>
-                  ) : null}
-                  <span className="mt-auto pt-1">{facts}</span>
+                  <QuizStatusBadge status={quiz.status} />
                 </span>
-              </Link>
-              <span className="border-t p-3">{actions}</span>
+                {quiz.description ? (
+                  <span className="text-muted-foreground line-clamp-2 text-sm">
+                    {quiz.description}
+                  </span>
+                ) : null}
+                <span className="mt-auto pt-1">{facts}</span>
+              </span>
+              <span className="flex justify-end border-t p-3">{actions}</span>
             </li>
           ) : (
             <li
               key={quiz.id}
-              className="hover:bg-accent flex flex-col gap-3 rounded-lg border p-3 transition-colors sm:flex-row sm:items-center sm:gap-4"
+              className="hover:bg-accent relative flex flex-col gap-3 rounded-lg border p-3 transition-colors sm:flex-row sm:items-center sm:gap-4"
             >
               <QuizCover quiz={quiz} className="hidden size-14 shrink-0 rounded-md sm:flex" />
               {/* Le titre peut être long : il tronque au lieu de pousser les actions hors écran. */}
               <span className="flex min-w-0 flex-1 flex-col gap-1">
                 <span className="flex min-w-0 items-center gap-2">
                   {lock}
-                  <Link
-                    to="/quizzes/$quizId"
-                    params={{ quizId: quiz.id }}
-                    className="min-w-0 truncate font-semibold"
-                  >
-                    {quiz.title}
-                  </Link>
-                  <StatusBadge status={quiz.status} />
+                  {titleLink}
+                  <QuizStatusBadge status={quiz.status} />
                 </span>
                 {facts}
               </span>
@@ -459,6 +514,20 @@ export function DashboardPage() {
           );
         })}
       </ul>
+
+      <ConfirmDialog
+        open={pendingDelete !== null}
+        destructive
+        title={t('editor:deleteConfirm.title')}
+        description={t('editor:deleteConfirm.description', { title: pendingDelete?.title ?? '' })}
+        confirmLabel={t('editor:deleteConfirm.confirmLabel')}
+        onCancel={() => setPendingDelete(null)}
+        onConfirm={() => {
+          const quiz = pendingDelete;
+          setPendingDelete(null);
+          if (quiz) void act(() => remove.mutateAsync({ id: quiz.id }));
+        }}
+      />
 
       <Pagination page={current} pages={pageCount} onChange={setPage} />
     </section>
@@ -473,15 +542,6 @@ const ME = '\u0000me';
 
 /** Whose a quiz is, as the owner filter reads it. */
 const ownerKey = (q: QuizDto) => (q.editable === false ? (q.ownerName ?? '') : ME);
-
-function StatusBadge({ status }: { status: string }) {
-  const { t } = useTranslation('common');
-  return (
-    <Badge variant={STATUS_VARIANT[status] ?? 'default'} className="shrink-0">
-      {t(`quizStatus.${status}`, { defaultValue: status })}
-    </Badge>
-  );
-}
 
 /** The quiz's cover, or a neutral tile: a list of pictures reads faster than titles alone. */
 function QuizCover({ quiz, className }: { quiz: QuizDto; className?: string }) {
@@ -518,5 +578,99 @@ function QuizFacts({ quiz, date }: { quiz: QuizDto; date: (iso: string) => strin
       ))}
       {quiz.tags.length > 3 ? <span>+{quiz.tags.length - 3}</span> : null}
     </span>
+  );
+}
+
+/** A quiz card's ⋮: preview, history, archive or restore, then delete. */
+function QuizMenu({
+  quiz,
+  own,
+  onStatus,
+  onDelete,
+}: {
+  quiz: QuizDto;
+  /** The caller's own quiz: they may archive and delete it. */
+  own: boolean;
+  onStatus: (status: 'draft' | 'archived') => void;
+  onDelete: () => void;
+}) {
+  const { t } = useTranslation(['dashboard', 'editor']);
+  const navigate = useNavigate();
+  return (
+    <Popover
+      align="end"
+      trigger={({ open, toggle }) => (
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="size-8"
+          aria-label={t('quizActions', { title: quiz.title })}
+          aria-expanded={open}
+          onClick={toggle}
+        >
+          <EllipsisVertical className="size-4" />
+        </Button>
+      )}
+    >
+      {(close) => (
+        <div className="flex min-w-48 flex-col">
+          <MenuItem
+            onClick={() => {
+              close();
+              window.open(`/quizzes/${quiz.id}/preview`, '_blank', 'noopener');
+            }}
+          >
+            <ExternalLink className="size-4" />
+            {t('editor:header.preview')}
+          </MenuItem>
+          <MenuItem
+            onClick={() => {
+              close();
+              void navigate({ to: '/quizzes/$quizId/history', params: { quizId: quiz.id } });
+            }}
+          >
+            <History className="size-4" />
+            {t('editor:header.history')}
+          </MenuItem>
+          {own ? (
+            <>
+              {quiz.status === 'archived' ? (
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    onStatus('draft');
+                  }}
+                >
+                  <ArchiveRestore className="size-4" />
+                  {t('editor:broadcast.restore')}
+                </MenuItem>
+              ) : (
+                <MenuItem
+                  onClick={() => {
+                    close();
+                    onStatus('archived');
+                  }}
+                >
+                  <Archive className="size-4" />
+                  {t('editor:broadcast.archive')}
+                </MenuItem>
+              )}
+              <MenuSeparator />
+              <MenuItem
+                destructive
+                onClick={() => {
+                  close();
+                  onDelete();
+                }}
+              >
+                <Trash2 className="size-4" />
+                {t('editor:header.deleteQuiz')}
+              </MenuItem>
+            </>
+          ) : null}
+        </div>
+      )}
+    </Popover>
   );
 }

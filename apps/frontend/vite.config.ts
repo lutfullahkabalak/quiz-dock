@@ -43,5 +43,8 @@ export default defineConfig({
     // Whole pages (the editor) take ~0.4 s alone, but more than 5 s when the pre-push
     // hook runs the backend's suite alongside: a slow machine is not a failing test.
     testTimeout: 15_000,
+    // From Node 25 on, Node has a `localStorage` of its own, which shadows jsdom's:
+    // a test would write to one while the code reads the other. jsdom's, always.
+    poolOptions: { forks: { execArgv: ['--no-experimental-webstorage'] } },
   },
 });

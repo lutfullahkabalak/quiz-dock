@@ -50,6 +50,8 @@ export function useQuestionClock(view: {
   state: string | null;
   paused: boolean;
   pausedRemainingMs: number | null;
+  /** Drawn with no game (a preview): the clock stands at its full time. */
+  still?: boolean;
   question: {
     startedAt: number;
     endsAt: number;
@@ -58,12 +60,15 @@ export function useQuestionClock(view: {
   } | null;
 }): QuestionClock | null {
   const q = view.question;
-  const live = view.state === 'ANSWERING' && !view.paused && q !== null;
+  const live = view.state === 'ANSWERING' && !view.paused && !view.still && q !== null;
   const toEnd = useCountdown(live ? q.endsAt : null);
   const toOpen = useCountdown(live && q.listenFirst ? q.startedAt : null);
   const frozen = view.paused && view.pausedRemainingMs != null;
-  if (!q || (!live && !frozen)) return null;
+  const still = !!view.still && (view.state === 'QUESTION_SHOW' || view.state === 'ANSWERING');
+  if (!q || (!live && !frozen && !still)) return null;
   const windowS = (q.endsAt - q.startedAt) / 1000;
+  // A preview: the whole time, standing, neither counting nor paused.
+  if (still) return { listening: false, paused: false, remaining: windowS, totalS: windowS };
   const listenS = (q.startedAt - (q.mediaStartAt ?? q.startedAt)) / 1000;
   if (frozen) {
     const leftS = (view.pausedRemainingMs ?? 0) / 1000;

@@ -158,6 +158,10 @@ Contributors changing the bundle schema or a content schema run
   (typos tolerated). `pointsMode` accepts `standard`, `double`, `none`, `fixed`
   (full points, no speed weighting).
 - An invalid bundle is refused as a whole, with the offending item and field.
+- An imported quiz is a **draft**: a step may still miss what it needs to be played
+  (a question's right answer, target number, picture or alt text; a slide that shows
+  nothing). The editor marks it *Unfinished*, and publishing the quiz waits until every
+  step is complete.
 
 ## Store fields
 

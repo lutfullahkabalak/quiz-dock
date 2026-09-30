@@ -10,7 +10,7 @@
   "playerCount_one": "{{count}} participant",
   "playerCount_other": "{{count}} participants",
   "resume": "Reprendre",
-  "stop": "Arrêter",
+  "stop": "Fermer le salon…",
   "stopConfirmTitle": "Fermer le salon ?",
   "stopConfirmDescription": "Le salon sera fermé pour tous les participants connectés.",
   "stopConfirmLabel": "Fermer le salon",
@@ -18,7 +18,6 @@
   "empty": "Aucun quiz pour l’instant. Créez-en un !",
   "questionCount_one": "{{count}} question",
   "questionCount_other": "{{count}} questions",
-  "edit": "Éditer",
   "present": "Présenter",
   "running_one": "{{count}} salon ouvert",
   "running_other": "{{count}} salons ouverts",
@@ -63,7 +62,6 @@
   "seeAllSessions": "Voir tous les salons",
   "allQuizzes": "Tous les quiz",
   "ownedBy": "de {{name}}",
-  "view": "Consulter",
   "browseTemplates": "Parcourir les modèles",
   "browseTemplatesHint": "Des quiz tout faits pour créer le vôtre — rien n’arrive dans votre banque sans que vous le demandiez.",
   "mediaAdmin": {
@@ -184,12 +182,14 @@
     "answer1": "Réponse 1",
     "answer2": "Réponse 2"
   },
-  "createFrom": "Créer à partir de ce quiz",
+  "createFrom": "Créer un quiz à partir de ceci",
   "readOnly": "Lecture seule : partagé par un autre animateur",
   "filterOwner": "Propriétaire",
   "ownerAll": "Tous",
   "ownerMe": "Moi",
   "ownerNone": "Aucun propriétaire de ce nom",
   "statusCount_one": "{{count}} statut",
-  "statusCount_other": "{{count}} statuts"
+  "statusCount_other": "{{count}} statuts",
+  "publishToPresent": "Publier pour présenter",
+  "quizActions": "Actions pour « {{title}} »"
 }

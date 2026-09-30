@@ -1,7 +1,10 @@
 {
-  "title": "Join a session",
-  "pinCardTitle": "Your PIN code",
-  "pinLabel": "PIN code",
-  "pinPlaceholder": "123456",
-  "continue": "Continue"
+  "title": "Join a room",
+  "pinLabel": "PIN, 6 digits",
+  "continue": "Continue",
+  "hint": "Type the PIN shown on the big screen",
+  "checking": "Looking for the room…",
+  "notFound": "No open room with this PIN. Check the big screen.",
+  "locked": "This room is closed to newcomers; a participant coming back still gets in.",
+  "checkedAt6": "Checked as soon as the 6th digit is in."
 }

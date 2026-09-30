@@ -1,6 +1,8 @@
 @import 'tailwindcss';
 
 @custom-variant dark (&:is(.dark *));
+/* Inside a surface that carries a background (question or slide, game/surface.tsx). */
+@custom-variant on-backdrop (&:where([data-scheme] *));
 
 :root {
   --radius: 0.625rem;
@@ -21,7 +23,9 @@
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.985 0 0);
   --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
+  /* A field's outline must reach 3:1 against the page (WCAG 1.4.11); --border stays for
+     decorative separators. */
+  --input: oklch(0.6 0 0);
   --ring: oklch(0.55 0.22 264);
   --success: oklch(0.6 0.17 150);
   --success-foreground: oklch(0.985 0 0);
@@ -39,6 +43,10 @@
   --answer-pink: oklch(59.2% 0.249 0.584);
   --answer-teal: oklch(60% 0.118 184.704);
   --answer-none: oklch(44.6% 0.043 257.281);
+  /* A wrong answer at the reveal: low contrast, never see-through (UI system §1.4). */
+  --answer-off: oklch(0.93 0 0);
+  --answer-off-fill: oklch(0.85 0 0);
+  --answer-off-text: oklch(0.45 0 0);
   /* The podium's steps: first, second, third. */
   --podium-1: oklch(76.9% 0.188 70.08);
   --podium-2: oklch(70.4% 0.04 256.788);
@@ -67,6 +75,51 @@
   --ring: oklch(0.7 0.18 264);
   --success: oklch(0.7 0.17 150);
   --success-foreground: oklch(0.145 0 0);
+  /* Amber words on a dark ground: the light one would sink into it. */
+  --warning-text: oklch(0.82 0.15 75);
+}
+
+/*
+ * Local palette of a surface that carries a background (game/surface.tsx). The
+ * author's text tone picks it — light text means a dark background, so a dark
+ * palette — and it re-themes that subtree only. Neutrals only: the brand's
+ * colours (primary, answers, success…) stay the instance's. `--card` is the
+ * translucent panel the UI sits on; `--qd-halo` the subtitle-like outline of
+ * text laid on the background.
+ */
+[data-scheme='dark'] {
+  color-scheme: dark;
+  --background: oklch(0.145 0 0);
+  --foreground: oklch(0.985 0 0);
+  --card: oklch(0.2 0 0 / 0.84);
+  --card-foreground: oklch(0.985 0 0);
+  --secondary: oklch(0.269 0 0);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.269 0 0);
+  --muted-foreground: oklch(0.84 0 0);
+  --accent: oklch(0.269 0 0);
+  --accent-foreground: oklch(0.985 0 0);
+  --border: oklch(1 0 0 / 25%);
+  --input: oklch(1 0 0 / 45%);
+  --qd-halo: 0 0 2px rgb(0 0 0 / 0.95), 0 0 8px rgb(0 0 0 / 0.9), 0 2px 2px rgb(0 0 0 / 0.9);
+}
+[data-scheme='light'] {
+  color-scheme: light;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.145 0 0);
+  --card: oklch(1 0 0 / 0.86);
+  --card-foreground: oklch(0.145 0 0);
+  --secondary: oklch(0.95 0 0);
+  --secondary-foreground: oklch(0.205 0 0);
+  --muted: oklch(0.95 0 0);
+  --muted-foreground: oklch(0.4 0 0);
+  --accent: oklch(0.95 0 0);
+  --accent-foreground: oklch(0.205 0 0);
+  --border: oklch(0 0 0 / 20%);
+  --input: oklch(0 0 0 / 40%);
+  --qd-halo:
+    0 0 2px rgb(255 255 255 / 0.95), 0 0 8px rgb(255 255 255 / 0.9),
+    0 2px 2px rgb(255 255 255 / 0.9);
 }
 
 @theme inline {
@@ -102,6 +155,7 @@
   --color-answer-pink: var(--answer-pink);
   --color-answer-teal: var(--answer-teal);
   --color-answer-none: var(--answer-none);
+  --color-answer-off-text: var(--answer-off-text);
   --color-podium-1: var(--podium-1);
   --color-podium-2: var(--podium-2);
   --color-podium-3: var(--podium-3);
@@ -167,24 +221,6 @@
   width: 100%;
   max-width: var(--container-phone);
   margin-inline: auto;
-}
-
-/* Aperçu d'un modèle : une grille qui se lit de gauche à droite puis vers le bas
-   — le multi-colonnes remplissait une colonne entière avant de passer à la
-   suivante, ce qui inverse l'ordre des questions. Deux colonnes dès qu'il y a
-   450 px pour chacune, une seule en dessous. La numérotation vient d'un compteur
-   CSS : elle suit l'ordre du document, sans dépendre du rendu. */
-@utility quiz-items {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fit, minmax(min(450px, 100%), 1fr));
-  counter-reset: quiz-item;
-}
-@utility quiz-item {
-  counter-increment: quiz-item;
-}
-.quiz-item-number::before {
-  content: counter(quiz-item);
 }
 
 /* TipTap (MarkdownEditor): Tailwind's preflight strips list and code styling,

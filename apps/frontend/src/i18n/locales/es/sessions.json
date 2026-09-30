@@ -13,14 +13,16 @@
   "list": {
     "title": "Historial de sesiones",
     "backToEditor": "Volver al editor",
-    "loadError": "Historial no disponible.",
     "empty": "No hay sesiones archivadas para este quiz. Al finalizar una sesión, elige «Archivar resultados» para encontrarla aquí.",
     "capture": "Captura",
-    "participantCount_one": "{{count}} jugador",
-    "participantCount_other": "{{count}} jugadores",
-    "successRate": "Acierto {{rate}}",
     "inRoom_one": "Sala · {{count}} quiz",
-    "inRoom_other": "Sala · {{count}} quizzes"
+    "inRoom_other": "Sala · {{count}} quizzes",
+    "pin": "PIN {{pin}}",
+    "thDate": "Fecha",
+    "thStatus": "Estado",
+    "thPlayers": "Participantes",
+    "thSuccess": "Aciertos",
+    "presentIt": "Presentar este cuestionario"
   },
   "detail": {
     "notFound": "Sesión no encontrada.",
@@ -43,7 +45,6 @@
     "thScore": "Puntuación",
     "thCorrect": "Correctas",
     "thStreak": "Racha",
-    "participantDetailAria": "Detalle de {{nickname}}",
     "csvGlobal": {
       "rank": "Puesto",
       "nickname": "Apodo",

@@ -171,7 +171,7 @@ copy it to `.env` and adjust. The settings you are most likely to touch:
 | Variable | Default | Purpose |
 |---|---|---|
 | `APP_NAME` | `QuizDock` | App name shown in the UI (white-label) |
-| `APP_LANG` | `en` | Instance language: `en` · `fr` · `es` · `zh` · `zh-TW` |
+| `APP_LANG` | `en` | Instance language: `en` · `fr` · `es` · `zh` · `zh-TW` · `tr` |
 | `APP_LOGO_URL` | — | Logo served from elsewhere; empty = look in the mounted `branding/` folder |
 | `APP_FEEDBACK_URL` | — | Where the home page's *report a bug / suggest a feature…* links lead; empty = this repository, `none` = hidden |
 | `AUTH_MODE` | `none` | `none` (local mode) or `oidc` (any OpenID Connect provider) |
@@ -259,7 +259,7 @@ ordering and feedback screens, the global media, the account preferences:
 - 📤 **CSV export** — overall results and per-player answer sheets.
 - 🏷️ **Licence, tags and language of a quiz** — set in the quiz settings and carried with it, so whoever receives a copy knows what they may do with it and what it is about.
 - 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot or another tool? A [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import.
-- 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the five.
+- 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the six.
 - 🎨 **White-label** — name, logo and CSS via env + a mounted folder, no rebuild.
 - 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
 - 🔒 **Hardened runtime** — distroless image, non-root, read-only root FS, all Linux capabilities dropped, `no-new-privileges`; a Content-Security-Policy on every page (no inline script, no `eval`).
@@ -275,7 +275,8 @@ auto-generated OpenAPI client (Orval) and a shared TypeScript WebSocket contract
 
 ## 🛠️ Development
 
-Dev runs backend (NestJS, hot-reload) and frontend (Vite) as separate services:
+Dev runs backend (NestJS, hot-reload) and frontend (Vite) as separate services. To send a
+change, see [CONTRIBUTING.md](CONTRIBUTING.md): pull requests go to `dev`.
 
 ```bash
 pnpm install

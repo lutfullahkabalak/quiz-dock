@@ -1,34 +1,21 @@
-import { LogIn } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
-import { PinForm } from '@/components/pin-form';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { JoinPin } from '@/components/join-pin';
+import { Card, CardContent } from '@/components/ui/card';
+import { PageTitle } from '@/components/ui/page-title';
 
 /**
- * Saisie du PIN (§5.1, 1ʳᵉ étape). Le pseudo et la salle d'attente vivent sur
- * `/join/$pin` (atteignable aussi par QR), qui décide reprise vs nouveau join.
+ * Saisie du PIN (§5.1, 1ʳᵉ étape), the same as the home page's. The nickname and
+ * the lobby live on `/join/$pin` (reached by the QR code too), which decides
+ * between taking a place back and a new join.
  */
 export function JoinPage() {
   const { t } = useTranslation(['join', 'common']);
   return (
-    <section className="flex flex-col items-center gap-6 py-8 text-center">
-      <h1 className="text-3xl font-bold">{t('title')}</h1>
+    <section className="content-phone flex flex-col items-center gap-6 px-4 py-12 text-center">
+      <PageTitle>{t('title')}</PageTitle>
       <Card className="content-sm">
-        <CardHeader>
-          <CardTitle>{t('pinCardTitle')}</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <PinForm
-            stacked
-            autoFocus
-            label={t('pinLabel')}
-            placeholder={t('pinPlaceholder')}
-            submit={
-              <>
-                <LogIn className="size-4" />
-                {t('continue')}
-              </>
-            }
-          />
+        <CardContent className="pt-6">
+          <JoinPin autoFocus />
         </CardContent>
       </Card>
     </section>

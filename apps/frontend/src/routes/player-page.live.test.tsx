@@ -63,7 +63,7 @@ describe('PlayerPage (intégration socket réel)', () => {
     fireEvent.change(await screen.findByPlaceholderText('Votre pseudo'), {
       target: { value: 'Alice' },
     });
-    fireEvent.click(screen.getByRole('button', { name: /C'est parti/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Rejoindre le salon/ }));
 
     await waitFor(() =>
       expect(

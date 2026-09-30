@@ -6,10 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type StorePreviewDtoItemsItemSlideTextTone = typeof StorePreviewDtoItemsItemSlideTextTone[keyof typeof StorePreviewDtoItemsItemSlideTextTone];
+export type StorePreviewDtoQuestionsItemTextTone = typeof StorePreviewDtoQuestionsItemTextTone[keyof typeof StorePreviewDtoQuestionsItemTextTone];
 
 
-export const StorePreviewDtoItemsItemSlideTextTone = {
+export const StorePreviewDtoQuestionsItemTextTone = {
   light: 'light',
   dark: 'dark',
 } as const;

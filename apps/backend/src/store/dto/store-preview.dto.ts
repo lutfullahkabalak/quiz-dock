@@ -1,36 +1,13 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
-import { servedSlideSchema } from './store-entry.dto';
+import { questionSchema } from '../../questions/dto/question.dto';
+import { slideSchema } from '../../slides/dto/slide.dto';
 
 /**
- * Ce qu'on voit d'un modèle **avant** d'en prendre une copie (#39) : de quoi
- * juger sur pièces — les questions, leurs propositions, les illustrations — sans
- * avoir à l'importer d'abord. Construit depuis le bundle sur disque ; les médias
- * pointent vers la route qui sert ceux du catalogue.
+ * Ce qu'on voit d'un modèle **avant** d'en prendre une copie (#39) : ses questions
+ * et ses diapositives dans la forme de celles d'un quiz, lues par l'import même
+ * qui fera la copie. L'éditeur les dessine avec l'aperçu d'un quiz.
  */
-export const storePreviewItemSchema = z.object({
-  kind: z.enum(['question', 'slide']),
-  /** Énoncé de la question, ou premier texte de la diapositive. */
-  text: z.string(),
-  type: z.string().nullable(),
-  timeLimitS: z.number().int().nullable(),
-  mediaUrl: z.string().nullable(),
-  mediaAlt: z.string().nullable(),
-  /** Dégradé de fond d'une diapositive : sans lui, l'aperçu n'en est plus un. */
-  gradient: z.object({ angle: z.number(), colors: z.array(z.string()) }).nullable(),
-  options: z.array(
-    z.object({
-      text: z.string(),
-      color: z.string(),
-      shape: z.string(),
-      /** An answer's picture (image choice), served by the catalogue. */
-      mediaUrl: z.string().nullable(),
-    }),
-  ),
-  /** Une diapositive telle que l'écran la dessine ; null pour une question. */
-  slide: servedSlideSchema.nullable(),
-});
-
 export const storePreviewSchema = z.object({
   id: z.string(),
   title: z.string(),
@@ -44,7 +21,12 @@ export const storePreviewSchema = z.object({
   coverUrl: z.string().nullable(),
   questionCount: z.number().int(),
   slideCount: z.number().int(),
-  items: z.array(storePreviewItemSchema),
+  questions: questionSchema.array(),
+  slides: slideSchema.array(),
+  /** Each media's stand-in id, and the catalogue URL that serves its file. */
+  media: z.record(z.string(), z.string()),
+  /** What a copy would refuse: an item (1-based), or the manifest (`item: null`); null when whole. */
+  invalid: z.object({ item: z.number().int().nullable() }).nullable(),
 });
 
 export class StorePreviewDto extends createZodDto(storePreviewSchema) {}

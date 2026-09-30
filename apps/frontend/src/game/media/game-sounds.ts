@@ -340,15 +340,25 @@ export function useGameSounds(
   sounds: RoomSoundsPayload | null,
   game: GameSoundsState,
   audible: boolean,
+  /** The projection, whose whole sound the console controls (#150): media and master too. */
+  room = false,
 ): void {
   const on = audible && !!sounds;
   // The levels of the two buses follow the room's settings.
   useEffect(() => {
     if (!on || !sounds) return;
-    // A bus the host switched off plays at 0; its level comes back with it.
-    setRoomLevel('music', sounds.musicMuted ? 0 : sounds.musicLevel);
-    setRoomLevel('sfx', sounds.sfxMuted ? 0 : sounds.sfxLevel);
-  }, [on, sounds]);
+    // A bus the host switched off plays at 0; its level comes back with it — and the
+    // console's master mute silences the projection's all at once.
+    const silent = room && sounds.muted;
+    setRoomLevel('music', silent || sounds.musicMuted ? 0 : sounds.musicLevel);
+    setRoomLevel('sfx', silent || sounds.sfxMuted ? 0 : sounds.sfxLevel);
+  }, [on, sounds, room]);
+  // The quiz's own sound (a question's, a slide's, a video's): the MEDIA bus, on the
+  // projection only — a remote participant still hears the question at home.
+  useEffect(() => {
+    if (!room || !sounds) return;
+    setRoomLevel('quiz', sounds.muted || sounds.mediaMuted ? 0 : sounds.mediaLevel);
+  }, [room, sounds]);
 
   const last = useRef<{ state: string | null; questionIndex: number; answered: number }>({
     state: null,

@@ -129,7 +129,11 @@ describe('GameService: the hashes of a new session (integration)', () => {
     const { pin } = await game.createSession(ownerId, { quizId });
     pins.push(pin);
     const reads = jest.spyOn(redis, 'hgetall');
-    expect(await game.peek(pin)).toEqual({ hasSound: false, participantAccess: 'account' });
+    expect(await game.peek(pin)).toMatchObject({
+      hasSound: false,
+      participantAccess: 'account',
+      joinLocked: false,
+    });
     expect(reads).toHaveBeenCalledTimes(2);
     reads.mockRestore();
     const gameId = (await redis.hget(gameKeys.room(pin), 'gameId')) as never;

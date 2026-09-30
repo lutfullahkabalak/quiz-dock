@@ -5,7 +5,8 @@
     "cross_origin": "This request did not come from the application's own page.",
     "host_required": "Host role required.",
     "host_only": "This is a host action; an administrator manages the instance, they do not present.",
-    "admin_required": "Administrator role required."
+    "admin_required": "Administrator role required.",
+    "oidc_disabled": "Sign-in with an identity provider is not enabled on this instance."
   },
   "host": {
     "auth_required": "Host authentication required.",
@@ -17,7 +18,11 @@
     "empty": "The quiz has no questions.",
     "requires_question": "A quiz must have at least one question to become “ready” (RG-02).",
     "transition_forbidden": "Forbidden state transition: {{from}} → {{target}}.",
-    "in_use": "This quiz is being played in a room: close the room first."
+    "in_use": "This quiz is being played in a room: close the room first.",
+    "item_not_in_quiz": "This item does not belong to this quiz any more: reload the page.",
+    "reorder_incomplete": "The order sent is missing some items: reload the page and try again.",
+    "incomplete_one": "1 step is unfinished: complete it to publish the quiz.",
+    "incomplete_other": "{{count}} steps are unfinished: complete them to publish the quiz."
   },
   "session": {
     "not_found": "Room not found or closed.",
@@ -34,7 +39,10 @@
     "archive_quiz_gone": "The quiz was deleted while it was played: it ended without an archive.",
     "locked": "This room no longer accepts new participants.",
     "open_access_forbidden": "Open access is not allowed on this server.",
-    "open_access_guests_only": "In open access participants have no account: no personal tracking, no name taken from an account."
+    "open_access_guests_only": "In open access participants have no account: no personal tracking, no name taken from an account.",
+    "next_quiz_unavailable": "This quiz cannot be played next in this room.",
+    "review_unavailable": "You can only look back at a step between two questions.",
+    "step_not_played": "This step has not been played yet."
   },
   "participant": {
     "not_found": "Player not found."
@@ -70,7 +78,8 @@
     "canceled": "Conversion cancelled.",
     "in_use": "This media is still used by a quiz or a session: remove it from there first.",
     "playing": "A room is playing this media right now: try again once it closes.",
-    "not_adopted_yet": "This file is being moved to shared storage: try again in a moment."
+    "not_adopted_yet": "This file is being moved to shared storage: try again in a moment.",
+    "embed_bounds": "The video's start and end don't fit: the end must come after the start."
   },
   "import": {
     "file_missing": "Missing file (“file” field).",
@@ -78,13 +87,56 @@
     "bundle_too_large": "This bundle is too large once unpacked, or holds too many files.",
     "media_missing": "Media “{{path}}” is referenced but missing from the bundle.",
     "media_unsupported": "Unsupported media “{{path}}” (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
-    "invalid_item": "Item {{item}} of the bundle is invalid ({{field}})."
+    "invalid_item": "Item {{item}} of the bundle is invalid ({{field}}).",
+    "kahoot_template": "Use the original Kahoot spreadsheet template (.xlsx), with one sheet.",
+    "kahoot_empty": "No valid questions found. Check row {{row}} and the Kahoot template."
   },
   "question": {
     "not_in_quiz": "Question not part of the quiz.",
     "invalid_permutation": "Positions must form a permutation 0..n-1.",
     "reorder_incomplete": "Reordering must list all questions of the quiz.",
-    "not_found": "Question not found."
+    "not_found": "Question not found.",
+    "accepted_answers": {
+      "not_allowed": "Only a typed-answer question takes accepted answers.",
+      "required": "Add at least one accepted answer."
+    },
+    "image": {
+      "alt_required": "Describe this picture for those who cannot see it.",
+      "count": "An image choice takes 2 or 4 pictures.",
+      "no_text": "A picture answer has no text.",
+      "no_visual": "An image choice has no picture or video of its own: its answers are the pictures.",
+      "picture_required": "Choose a picture for this answer."
+    },
+    "incomplete_in_ready_quiz": "This quiz is published: move it back to draft to save an unfinished question.",
+    "multi_select": {
+      "not_allowed": "Several right pictures only apply to an image choice."
+    },
+    "numeric": {
+      "not_allowed": "Only a number question takes a target and a tolerance.",
+      "tolerance_required": "Set the tolerance (0 for the exact number).",
+      "value_required": "Set the number to find."
+    },
+    "options": {
+      "not_allowed": "This type of question has no answers to pick from.",
+      "one_correct": "Tick the right answer.",
+      "some_correct": "Tick at least one right answer.",
+      "too_few": "Add at least 2 answers."
+    },
+    "ordering": {
+      "positions": "Each answer needs its own place in the right order."
+    },
+    "poll": {
+      "no_correct": "A poll has no right answer."
+    },
+    "prompt": {
+      "required": "Write the question, or add a picture or a sound that asks it."
+    },
+    "scoring": {
+      "not_available": "This scoring does not apply to this type of question."
+    },
+    "true_false": {
+      "two_options": "True or false takes exactly 2 answers."
+    }
   },
   "validation": "Some fields are invalid.",
   "internal": "Internal error.",
@@ -111,7 +163,11 @@
     "too_large": "The quiz is too large for the community store."
   },
   "slide": {
-    "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound."
+    "two_sounds": "A slide plays one sound at a time: mute its video or remove its sound.",
+    "background_conflict": "A background is an image or a gradient, not both.",
+    "empty": "The slide shows nothing: add a heading, a text, an image, a background or a video.",
+    "not_found": "This slide no longer exists: it was deleted meanwhile.",
+    "incomplete_in_ready_quiz": "This quiz is published: move it back to draft to save a slide that shows nothing."
   },
   "record": {
     "not_found": "This item no longer exists: it was deleted meanwhile.",

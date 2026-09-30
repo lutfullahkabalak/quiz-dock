@@ -1,4 +1,4 @@
-import { PointsMode, QuestionType } from '@quiz-dock/contracts';
+import { PointsMode, QuestionType, basePointsFor as basePointsOf } from '@quiz-dock/contracts';
 import { normalizeAnswer } from '../questions/dto/question-content.schema';
 import type { AnswerValue, ScoreResult, SnapshotQuestion } from './game.types';
 
@@ -10,16 +10,9 @@ import type { AnswerValue, ScoreResult, SnapshotQuestion } from './game.types';
  * formule doit passer par la mise à jour explicite de ces cas de référence.
  */
 
-/** Points de base résolus depuis le mode (défaut 1000 ; double 2000 ; none 0). */
+/** Points de base résolus depuis le mode : la règle vit dans les contrats (aperçu, écrans). */
 export function basePointsFor(mode: PointsMode): number {
-  switch (mode) {
-    case PointsMode.Double:
-      return 2000;
-    case PointsMode.None:
-      return 0;
-    default:
-      return 1000;
-  }
+  return basePointsOf(mode);
 }
 
 /**
