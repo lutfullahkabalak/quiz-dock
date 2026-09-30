@@ -1,0 +1,93 @@
+{
+  "media": [
+    {
+      "file": "istanbul.webp",
+      "commons": "File:Historical peninsula and modern skyline of Istanbul.jpg",
+      "alt": "İstanbul’un tarihî yarımadası, camileri ve Boğaz",
+      "license": "CC0",
+      "author": "Hunanuk",
+      "page": "https://commons.wikimedia.org/wiki/File:Historical_peninsula_and_modern_skyline_of_Istanbul.jpg"
+    },
+    {
+      "file": "anitkabir.webp",
+      "commons": "File:Anıtkabir 2025.jpg",
+      "alt": "Ankara’daki Anıtkabir ve önündeki geniş meydan",
+      "license": "CC0",
+      "author": "Nicoleon",
+      "page": "https://commons.wikimedia.org/wiki/File:An%C4%B1tkabir_2025.jpg"
+    },
+    {
+      "file": "agri-dagi.webp",
+      "commons": "File:Mount Ararat, Ararat Plain, Armenia.jpg",
+      "alt": "Karlı zirvesiyle Ağrı Dağı ve önünde uzanan ova",
+      "license": "CC BY 4.0",
+      "author": "Vyacheslav Argenberg",
+      "page": "https://commons.wikimedia.org/wiki/File:Mount_Ararat,_Ararat_Plain,_Armenia.jpg"
+    },
+    {
+      "file": "taj-mahal.webp",
+      "commons": "File:Taj Mahal 2018.jpg",
+      "alt": "Beyaz mermerden, dört minareli bir türbe ve önünde uzun bir havuz",
+      "width": 640,
+      "square": true,
+      "license": "CC0",
+      "author": "Almbauer",
+      "page": "https://commons.wikimedia.org/wiki/File:Taj_Mahal_2018.jpg"
+    },
+    {
+      "file": "ayasofya.webp",
+      "commons": "File:Hagia Sophia in Istanbul (focused on the original Roman building).jpg",
+      "alt": "Büyük bir kubbe ve onu çevreleyen yarım kubbeler, bahçede ağaçlar",
+      "width": 640,
+      "square": true,
+      "license": "CC BY 3.0",
+      "author": "Maskaravivek",
+      "page": "https://commons.wikimedia.org/wiki/File:Hagia_Sophia_in_Istanbul_(focused_on_the_original_Roman_building).jpg"
+    },
+    {
+      "file": "aziz-vasil.webp",
+      "commons": "File:Catedral de San Basilio, Moscú, Rusia, 2016-10-03, DD 05-06 HDR.jpg",
+      "alt": "Renkli soğan kubbeli bir katedral ve önünde bir heykel",
+      "width": 640,
+      "square": true,
+      "license": "Public domain",
+      "author": "Diego Delso",
+      "page": "https://commons.wikimedia.org/wiki/File:Catedral_de_San_Basilio,_Mosc%C3%BA,_Rusia,_2016-10-03,_DD_05-06_HDR.jpg"
+    },
+    {
+      "file": "sagrada-familia.webp",
+      "commons": "File:Sagrada Família Nativity Façade from Ground, Barcelona, 2023.jpg",
+      "alt": "Taş oymalarla kaplı, sivri kuleli bir bazilika cephesi",
+      "width": 640,
+      "square": true,
+      "license": "CC0",
+      "author": "Julian Lupyan",
+      "page": "https://commons.wikimedia.org/wiki/File:Sagrada_Fam%C3%ADlia_Nativity_Fa%C3%A7ade_from_Ground,_Barcelona,_2023.jpg"
+    },
+    {
+      "file": "kapadokya.webp",
+      "commons": "File:Aerial view of Cappadocia from hot air balloon 64.jpg",
+      "alt": "Kapadokya’nın peri bacaları üzerinde uçan sıcak hava balonları",
+      "license": "CC0",
+      "author": "Netha Hussain",
+      "page": "https://commons.wikimedia.org/wiki/File:Aerial_view_of_Cappadocia_from_hot_air_balloon_64.jpg"
+    },
+    {
+      "file": "pamukkale.webp",
+      "commons": "File:Pamukkale Travertines - 2014.10 - panoramio.jpg",
+      "alt": "Pamukkale’nin bembeyaz traverten terasları",
+      "license": "CC BY 3.0",
+      "author": "rheins",
+      "page": "https://commons.wikimedia.org/wiki/File:Pamukkale_Travertines_-_2014.10_-_panoramio.jpg"
+    },
+    {
+      "file": "istiklal-marsi.mp3",
+      "commons": "File:Istiklâl Marsi instrumetal.ogg",
+      "start": 0,
+      "duration": 25,
+      "license": "Public domain",
+      "author": "United States Navy Band",
+      "page": "https://commons.wikimedia.org/wiki/File:Istikl%C3%A2l_Marsi_instrumetal.ogg"
+    }
+  ]
+}

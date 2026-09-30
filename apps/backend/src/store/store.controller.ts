@@ -5,11 +5,24 @@ import type { Response } from 'express';
 import { AllowAnyRole } from '../auth/allow-any-role.decorator';
 import { AllowManager } from '../auth/allow-manager.decorator';
 import { CurrentUser } from '../auth/current-user.decorator';
+import { Public } from '../auth/public.decorator';
 import { QuizDto } from '../quizzes/dto/quiz.dto';
 import { ShareTemplateDto } from './dto/share-template.dto';
 import { StoreEntryDto } from './dto/store-entry.dto';
 import { StorePreviewDto } from './dto/store-preview.dto';
 import { StoreService } from './store.service';
+
+/** What a bundle's media are served as, by extension (the importer checks their bytes). */
+const MEDIA_TYPES: Record<string, string> = {
+  png: 'image/png',
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  mp4: 'video/mp4',
+  mp3: 'audio/mpeg',
+};
 
 /**
  * The catalogue of shared templates (#39). Browsing is open to any signed-in
@@ -43,9 +56,13 @@ export class StoreController {
     return this.store.preview(id);
   }
 
-  /** Un média du catalogue, pour l'aperçu (les bundles ne sont pas servis tels quels). */
+  /**
+   * Un média du catalogue, pour la carte et l'aperçu (les bundles ne sont pas
+   * servis tels quels). Public like `/media/:id`, and for the same reason: an
+   * `<img>` sends no bearer token, and a template's id is a ULID nobody guesses.
+   */
   @Get(':id/media/:name')
-  @AllowAnyRole()
+  @Public()
   @ApiOkResponse({ description: 'Contenu binaire du média.' })
   async media(
     @Param('id') id: string,
@@ -53,7 +70,13 @@ export class StoreController {
     @Res({ passthrough: true }) res: Response,
   ): Promise<StreamableFile> {
     const bytes = await this.store.readMedia(id, name);
-    res.set({ 'Cache-Control': 'private, max-age=300' });
+    res.set({
+      'Cache-Control': 'private, max-age=300',
+      'Content-Type':
+        MEDIA_TYPES[name.slice(name.lastIndexOf('.') + 1).toLowerCase()] ??
+        'application/octet-stream',
+      'X-Content-Type-Options': 'nosniff',
+    });
     return new StreamableFile(bytes);
   }
 

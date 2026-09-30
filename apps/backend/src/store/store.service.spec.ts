@@ -306,11 +306,11 @@ describe('StoreService', () => {
     const seeded = await service.list();
     expect(seeded.length).toBeGreaterThan(0);
     expect(seeded.every((e) => e.author.name === 'fchaussin')).toBe(true);
-    // Their cards draw the intro slide itself: title, subtitle, gradient, outline.
+    // Their cards draw the intro slide itself: title, subtitle, its picture, outline.
     for (const entry of seeded) {
       expect(entry.first?.slide?.blocks).toHaveLength(2);
       expect(entry.first?.slide).toMatchObject({
-        background: { gradient: { angle: 135 } },
+        background: { url: expect.stringMatching(new RegExp(`^/api/v1/store/${entry.id}/media/`)) },
         textTone: 'light',
         textOutline: true,
       });
@@ -322,6 +322,59 @@ describe('StoreService', () => {
       ) as unknown;
       expect(quizBundleSchema.safeParse(manifest).success).toBe(true);
     }
+  });
+
+  describe('the samples a release ships', () => {
+    const titles = async (service: StoreService) =>
+      (await service.list()).map((e) => e.title).sort();
+
+    it('a new catalogue gets every sample, its media with it', async () => {
+      const { service } = makeService();
+      await service.onModuleInit();
+      const seeded = await service.list();
+      expect(seeded.map((e) => e.language).sort()).toEqual(['en', 'en', 'tr']);
+      for (const entry of seeded) {
+        expect(existsSync(join(dir, entry.id, 'media'))).toBe(true);
+        const istanbul = await service.readMedia(entry.id, 'istanbul.webp').catch(() => null);
+        expect(istanbul !== null).toBe(entry.language === 'tr');
+      }
+    });
+
+    it('a catalogue of an earlier release: the samples updated in place, the new one added, a withdrawn one left out', async () => {
+      const old = {
+        id: '01M37GF1YBSEJAYWM6YWN0EX1K',
+        title: 'Discover France',
+        description: null,
+        language: 'en',
+        tags: [],
+        questionCount: 10,
+        license: 'CC-BY-4.0',
+        author: { name: 'fchaussin', subject: 'system:samples' },
+        revision: 1,
+        sharedAt: '2026-09-23T16:09:32.368Z',
+        cover: null,
+        first: null,
+      };
+      // Discover Taiwan is not there: the operator withdrew it.
+      writeFileSync(join(dir, 'index.json'), JSON.stringify({ entries: [old] }));
+      const { service } = makeService();
+      await service.onModuleInit();
+      const entries = await service.list();
+      const france = entries.find((e) => e.title === 'Discover France');
+      expect(france).toMatchObject({ id: old.id, revision: 2, sharedAt: old.sharedAt });
+      expect(france?.questionCount).toBeGreaterThan(10);
+      expect(existsSync(join(dir, old.id, 'media', 'mont-saint-michel.webp'))).toBe(true);
+      expect(await titles(service)).toEqual(['Discover France', 'Türkiye’yi Keşfet']);
+    });
+
+    it('a sample withdrawn by the operator does not come back at the next start', async () => {
+      const { service } = makeService();
+      await service.onModuleInit();
+      const turkiye = (await service.list()).find((e) => e.language === 'tr');
+      await service.withdraw({ ...alice, roles: [UserRole.admin] }, turkiye!.id);
+      await makeService().service.onModuleInit();
+      expect(await titles(makeService().service)).toEqual(['Discover France', 'Discover Taiwan']);
+    });
   });
 
   it('a demo catalogue is read-only: seeded and listed, never shared to nor withdrawn from', async () => {

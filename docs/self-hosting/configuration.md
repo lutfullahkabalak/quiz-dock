@@ -113,7 +113,8 @@ Which setup offers what: [where participants connect](invitation-address.md).
 
 | Variable | Default | What it does |
 | --- | --- | --- |
-| `STORE_DIR` | `/data/store` | Where the **catalogue of shared templates** lives (#39): `index.json` plus one folder per template, in the bundle format. Its own volume, like `MEDIA_DIR` — **back it up with the database**, it is not in PostgreSQL. Nothing here reaches the network: an instance with no egress shares and takes normally. Sharing is off on a demo instance. |
+| `STORE_DIR` | `/data/store` | Where the **catalogue of shared templates** lives (#39): `index.json` plus one folder per template, in the bundle format. Its own volume, like `MEDIA_DIR` — **back it up with the database**, it is not in PostgreSQL. Nothing here reaches the network: an instance with no egress shares and takes normally. Sharing is off on a demo instance. The sample quizzes are seeded here at start: every sample a release adds, a new revision of one replaced in place, one withdrawn left out (`samples.json` remembers them). |
+| `SAMPLES_DIR` | `/app/samples` | Where the image keeps the **sample quizzes** it ships: one bundle folder each, with their media — pictures and sounds from Wikimedia Commons, in the public domain or under CC BY, credited. At its first start an instance also adds those media to the **instance's media**, for every host to reuse, unless an administrator already curates that library; a `.samples-media` marker in `MEDIA_DIR` keeps them from coming back once removed. |
 
 ### Limits & game pacing
 
@@ -159,15 +160,16 @@ anyone walks in, writes quizzes and runs sessions. The guards:
   each other's quizzes and sessions; that is accepted, and said on the home page. The
   sign-in page is a single *Enter the demo* button; the seat controls and logging out
   never release the seat.
-- **Read-only template catalogue.** The sample templates (France, Taiwan) are seeded
+- **Read-only template catalogue.** The sample templates (France, Taiwan, Türkiye) are seeded
   and can be previewed and copied — the way back to something playable when someone
   emptied the shared bank — but sharing and withdrawing are refused
   (`403 store.demo_disabled`) and their buttons are hidden.
 - **No media uploads** (`403 media.demo_disabled`, also for imported bundles that carry
   media). The upload buttons are hidden.
 - **Hourly reset** to a blank install: users, quizzes, media, session archives, the seat
-  and the live state — then `demo_user` and its seat are created again. A reset waits
-  while a session is being played, at most 3 hours.
+  and the live state — then `demo_user` and its seat are created again, with the sample
+  quizzes in its bank, ready to present. A reset waits while a session is being played,
+  at most 3 hours.
 
 The SPA shows a banner saying so, and the **home page lists these guards in full** —
 someone trying QuizDock there must be able to tell a guard of that instance from a limit
