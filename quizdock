@@ -54,12 +54,13 @@ need_init() {
     [ -f "$COMPOSE_FILE" ] || die "$COMPOSE_FILE not found — run \`$0 init\` again."
   fi
   if [ "$(mode)" = full ]; then
+    [ -f docker-compose.full.yml ] || die "docker-compose.full.yml not found — run init --full again."
     [ -f keycloak/realm-export.json ] || die "keycloak/realm-export.json not found — run \`$0 init --full\` again."
   fi
 }
 
 compose() {
-  if [ "$(mode)" = full ]; then docker compose -f "$COMPOSE_FILE" --profile keycloak "$@"
+  if [ "$(mode)" = full ]; then docker compose -f "$COMPOSE_FILE" -f docker-compose.full.yml --profile keycloak "$@"
   else docker compose -f "$COMPOSE_FILE" "$@"; fi
 }
 
@@ -181,6 +182,10 @@ cmd_init() {
   if [ "$want_mode" != standalone ] && [ ! -f "$COMPOSE_FILE" ]; then
     info "fetching $COMPOSE_FILE"
     curl -fsSL "$RAW/docker-compose.prod.yml" -o "$COMPOSE_FILE" || die "could not download $COMPOSE_FILE"
+  fi
+  if [ "$want_mode" = full ] && [ ! -f docker-compose.full.yml ]; then
+    info "fetching docker-compose.full.yml"
+    curl -fsSL "$RAW/docker-compose.full.yml" -o docker-compose.full.yml || die "could not download the full preset overlay"
   fi
   if [ "$want_mode" = full ] && [ ! -f keycloak/realm-export.json ]; then
     mkdir -p keycloak

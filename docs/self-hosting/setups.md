@@ -14,7 +14,7 @@ how many services you want to operate. For variables and ports, see
 
 ## Start one
 
-The operator script creates `.env` and fetches the required files:
+The operator script creates `.env` and fetches the required files (including the full-mode Compose overlay):
 
 ```sh
 curl -fsSLO https://raw.githubusercontent.com/quizdock/quiz-dock/main/quizdock
@@ -40,7 +40,10 @@ ports, set `PUBLIC_SCHEME=https`, and configure the proxy as described in
 ports or paths, set `APP_PUBLIC_URL`, `KEYCLOAK_PUBLIC_URL` and
 `KEYCLOAK_APP_URL` explicitly.
 
-The shared realm file creates two English sample accounts:
+The shared realm file creates two English sample accounts. In dev, their passwords
+are `animateur` and `participant`, with no password change required; both the built
+frontend (`localhost:18081`) and Vite (`localhost:15173`) are allowed redirects.
+The full preset uses only its configured application URL and temporary passwords:
 
 - `host` (Alex Host): `host` and `admin` roles, for creating quizzes and managing
   the instance.

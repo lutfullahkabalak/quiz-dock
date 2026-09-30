@@ -4,9 +4,18 @@
   "displayName": "QuizDock",
   "roles": {
     "realm": [
-      { "name": "host", "description": "Animateur / créateur de quiz" },
-      { "name": "player", "description": "Participant connecté" },
-      { "name": "admin", "description": "Administrateur (réservé v1.1)" }
+      {
+        "name": "host",
+        "description": "Animateur / cr\u00e9ateur de quiz"
+      },
+      {
+        "name": "player",
+        "description": "Participant connect\u00e9"
+      },
+      {
+        "name": "admin",
+        "description": "Administrateur (r\u00e9serv\u00e9 v1.1)"
+      }
     ]
   },
   "clients": [
@@ -17,8 +26,14 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["${KEYCLOAK_APP_URL}/*"],
-      "webOrigins": ["${KEYCLOAK_APP_URL}"]
+      "redirectUris": [
+        "${KEYCLOAK_APP_URL:http://localhost:18081}/*",
+        "${KEYCLOAK_DEV_URL:http://localhost:15173}/*"
+      ],
+      "webOrigins": [
+        "${KEYCLOAK_APP_URL:http://localhost:18081}",
+        "${KEYCLOAK_DEV_URL:http://localhost:15173}"
+      ]
     }
   ],
   "users": [
@@ -31,10 +46,14 @@
       "firstName": "Alex",
       "lastName": "Host",
       "credentials": [
-        { "type": "password", "value": "${KEYCLOAK_HOST_PASSWORD}", "temporary": true }
+        {
+          "type": "password",
+          "value": "${KEYCLOAK_HOST_PASSWORD:animateur}",
+          "temporary": false
+        }
       ],
-      "requiredActions": ["UPDATE_PASSWORD"],
-      "realmRoles": ["host", "admin"]
+      "realmRoles": ["host", "admin"],
+      "requiredActions": []
     },
     {
       "id": "39b95ebf-1a3f-4b7f-a53e-105e57137962",
@@ -45,10 +64,14 @@
       "firstName": "Sam",
       "lastName": "Player",
       "credentials": [
-        { "type": "password", "value": "${KEYCLOAK_PLAYER_PASSWORD}", "temporary": true }
+        {
+          "type": "password",
+          "value": "${KEYCLOAK_PLAYER_PASSWORD:participant}",
+          "temporary": false
+        }
       ],
-      "requiredActions": ["UPDATE_PASSWORD"],
-      "realmRoles": ["player"]
+      "realmRoles": ["player"],
+      "requiredActions": []
     }
   ]
 }
