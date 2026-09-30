@@ -25,6 +25,7 @@ RUN pnpm --filter @quiz-dock/contracts build \
  # client Prisma généré (dossier `.prisma`). On le régénère DANS /out pour qu'il
  # atterrisse dans le node_modules embarqué (--schema → pas besoin du config TS).
  && cp -r apps/backend/prisma /out/prisma \
+ && cp -r apps/backend/samples /out/samples \
  && (cd /out && node_modules/.bin/prisma generate --schema prisma/schema.prisma)
 
 # ---- runtime ----
@@ -34,6 +35,7 @@ ENV NODE_ENV=production
 ENV PORT=3000
 COPY --from=build --chown=node:node /out/node_modules ./node_modules
 COPY --from=build --chown=node:node /out/dist ./dist
+COPY --from=build --chown=node:node /out/samples ./samples
 # `node` = utilisateur non-root fourni par l'image officielle.
 USER node
 EXPOSE 3000

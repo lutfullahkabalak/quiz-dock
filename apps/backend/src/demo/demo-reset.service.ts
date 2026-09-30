@@ -5,6 +5,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { GAME_HASH_KEY } from '../game/game.keys';
 import { RedisService } from '../redis/redis.service';
 import { localPrincipal } from '../auth/no-auth.provider';
+import { SampleQuizzesService } from '../quizzes/samples/sample-quizzes.service';
 import { HostSeatService } from '../users/host-seat.service';
 import {
   DEMO_RESET_INTERVAL_MS,
@@ -32,6 +33,7 @@ export class DemoResetService implements OnModuleInit, OnModuleDestroy {
     private readonly redis: RedisService,
     private readonly media: MediaService,
     private readonly seat: HostSeatService,
+    private readonly samples: SampleQuizzesService,
   ) {}
 
   async onModuleInit(): Promise<void> {
@@ -94,9 +96,16 @@ export class DemoResetService implements OnModuleInit, OnModuleDestroy {
     this.log.log('Demo reset: back to a blank install');
   }
 
-  /** The shared account, holding the host seat without expiry. */
+  /**
+   * The shared account, holding the host seat without expiry, with the sample
+   * quizzes in its bank: a visitor has something to present straight away.
+   */
   async seatDemoHost(): Promise<void> {
     const user = await this.seat.provision(localPrincipal(DEMO_USER));
     await this.seat.claim(user, null);
+    if ((await this.prisma.quiz.count({ where: { ownerId: user.id } })) > 0) return;
+    await this.samples
+      .createFor(user.id)
+      .catch((err: unknown) => this.log.error(`Demo samples not created: ${String(err)}`));
   }
 }

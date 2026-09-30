@@ -1,17 +1,18 @@
 import type { MediaService } from '../media/media.service';
 import type { PrismaService } from '../prisma/prisma.service';
 import type { RedisService } from '../redis/redis.service';
+import type { SampleQuizzesService } from '../quizzes/samples/sample-quizzes.service';
 import type { HostSeatService } from '../users/host-seat.service';
 import { DEMO_RESET_MAX_DEFER_MS } from './demo.config';
 import { DemoResetService } from './demo-reset.service';
 
 /** Redis with a few game hashes: `games` maps key → state. */
-function makeService(games: Record<string, string>) {
+function makeService(games: Record<string, string>, quizzesOfDemoUser = 0) {
   const deleteMany = jest.fn().mockReturnValue('op');
   const prisma = {
     $transaction: jest.fn().mockResolvedValue([]),
     gameSessionLog: { deleteMany },
-    quiz: { deleteMany },
+    quiz: { deleteMany, count: jest.fn().mockResolvedValue(quizzesOfDemoUser) },
     mediaAsset: { deleteMany },
     mediaBlob: { deleteMany },
     hostSeat: { deleteMany },
@@ -30,8 +31,12 @@ function makeService(games: Record<string, string>) {
     provision: jest.fn().mockResolvedValue(demoUser),
     claim: jest.fn().mockResolvedValue({}),
   } as unknown as HostSeatService;
+  const samples = {
+    createFor: jest.fn().mockResolvedValue([]),
+  } as unknown as SampleQuizzesService;
   return {
-    service: new DemoResetService(prisma, redis, media, seat),
+    service: new DemoResetService(prisma, redis, media, seat, samples),
+    samples,
     prisma,
     redis,
     media,
@@ -43,7 +48,7 @@ function makeService(games: Record<string, string>) {
 
 describe('DemoResetService', () => {
   it('reset: every table, the media files, the live state, then the shared host', async () => {
-    const { service, prisma, redis, media, seat, demoUser, deleteMany } = makeService({});
+    const { service, prisma, redis, media, seat, samples, demoUser, deleteMany } = makeService({});
     await service.reset();
     expect(deleteMany).toHaveBeenCalledTimes(6);
     expect(prisma.$transaction).toHaveBeenCalledWith(new Array(6).fill('op'));
@@ -53,6 +58,14 @@ describe('DemoResetService', () => {
       expect.objectContaining({ sub: 'local:demo-user', displayName: 'demo_user' }),
     );
     expect(seat.claim).toHaveBeenCalledWith(demoUser, null);
+    // A blank install, but not an empty bank: the samples, to present straight away.
+    expect(samples.createFor).toHaveBeenCalledWith(demoUser.id);
+  });
+
+  it('the shared host keeps the quizzes it has: the samples come only into an empty bank', async () => {
+    const { service, samples } = makeService({}, 2);
+    await service.seatDemoHost();
+    expect(samples.createFor).not.toHaveBeenCalled();
   });
 
   it('hasLiveGames: only game hashes count, and ended ones do not', async () => {

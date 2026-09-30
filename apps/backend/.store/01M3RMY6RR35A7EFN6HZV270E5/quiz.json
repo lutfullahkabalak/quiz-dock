@@ -1,0 +1,463 @@
+{
+  "format": "quizdock/quiz",
+  "version": 6,
+  "quiz": {
+    "title": "Türkiye’yi Keşfet",
+    "description": "Örnek quiz — Türkiye’nin coğrafyası, tarihi ve kültürü.",
+    "language": "tr",
+    "license": "CC-BY-4.0",
+    "revision": 1,
+    "feedbackEnabled": true,
+    "cover": null
+  },
+  "items": [
+    {
+      "kind": "slide",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "intro-title",
+          "text": "Türkiye’yi Keşfet",
+          "level": 1,
+          "align": "center"
+        },
+        {
+          "type": "text",
+          "id": "intro-text",
+          "md": "İstanbul’dan Kapadokya’ya, Türkiye üzerine kısa sorular.",
+          "align": "center",
+          "size": "large"
+        }
+      ],
+      "textTone": "light",
+      "textOutline": true,
+      "backgroundImage": "media/istanbul.webp"
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "single_choice",
+      "prompt": "Türkiye’nin başkenti neresidir?",
+      "media": "media/anitkabir.webp",
+      "answerExplanation": "Ankara 1923’ten beri başkenttir. Fotoğraftaki Anıtkabir de Ankara’dadır.",
+      "options": [
+        {
+          "text": "İstanbul",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false
+        },
+        {
+          "text": "Ankara",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": true
+        },
+        {
+          "text": "İzmir",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": false
+        },
+        {
+          "text": "Bursa",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 10,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "true_false",
+      "prompt": "İstanbul hem Avrupa’da hem Asya’da yer alır.",
+      "answerExplanation": "İstanbul Boğazı şehri iki kıtaya ayırır.",
+      "options": [
+        {
+          "text": "Doğru",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": true
+        },
+        {
+          "text": "Yanlış",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "standard",
+      "scoring": "partial",
+      "type": "multiple_choice",
+      "prompt": "Bu ülkelerden hangileri Türkiye ile kara sınırına sahiptir?",
+      "answerExplanation": "Türkiye’nin sekiz kara komşusu vardır; İtalya bunlardan biri değildir.",
+      "options": [
+        {
+          "text": "Yunanistan",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": true
+        },
+        {
+          "text": "İtalya",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": false
+        },
+        {
+          "text": "Gürcistan",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": true
+        },
+        {
+          "text": "İran",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 30,
+      "pointsMode": "standard",
+      "scoring": "closest",
+      "type": "numeric",
+      "prompt": "Ağrı Dağı kaç metre yüksekliğindedir? En yakın tahmin kazanır.",
+      "media": "media/agri-dagi.webp",
+      "numericValue": 5137,
+      "numericTolerance": 100,
+      "answerExplanation": "Ağrı Dağı 5.137 metreyle Türkiye’nin en yüksek dağıdır."
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "image_choice",
+      "prompt": "Bunlardan hangisi Ayasofya’dır?",
+      "answerExplanation": "Ayasofya 537 yılında tamamlandı ve yaklaşık bin yıl boyunca dünyanın en büyük kubbeli yapısı oldu.",
+      "options": [
+        {
+          "media": "media/taj-mahal.webp",
+          "alt": "Beyaz mermerden, dört minareli bir türbe ve önünde uzun bir havuz",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false
+        },
+        {
+          "media": "media/ayasofya.webp",
+          "alt": "Büyük bir kubbe ve onu çevreleyen yarım kubbeler, bahçede ağaçlar",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": true
+        },
+        {
+          "media": "media/aziz-vasil.webp",
+          "alt": "Renkli soğan kubbeli bir katedral ve önünde bir heykel",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": false
+        },
+        {
+          "media": "media/sagrada-familia.webp",
+          "alt": "Taş oymalarla kaplı, sivri kuleli bir bazilika cephesi",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "standard",
+      "scoring": "lenient",
+      "type": "text_input",
+      "prompt": "Eski adı Konstantinopolis olan şehrin bugünkü adı nedir?",
+      "acceptedAnswers": ["İstanbul", "Istanbul"],
+      "answerExplanation": "Şehir 1453’te Osmanlıların eline geçti; İstanbul adı 1930’da resmîleşti."
+    },
+    {
+      "kind": "slide",
+      "blocks": [
+        {
+          "type": "heading",
+          "id": "kapadokya-title",
+          "text": "Kapadokya",
+          "level": 2,
+          "align": "center"
+        },
+        {
+          "type": "image",
+          "id": "kapadokya-picture",
+          "media": "media/kapadokya.webp",
+          "size": "large",
+          "align": "center"
+        },
+        {
+          "type": "text",
+          "id": "kapadokya-text",
+          "md": "Peri bacaları ve sıcak hava balonlarıyla ünlü Kapadokya, İç Anadolu’dadır.",
+          "align": "center"
+        }
+      ],
+      "textTone": "light",
+      "textOutline": true,
+      "backgroundGradient": {
+        "angle": 135,
+        "colors": ["#9a3412", "#431407"]
+      }
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 30,
+      "pointsMode": "standard",
+      "scoring": "partial",
+      "type": "ordering",
+      "prompt": "Bu şehirleri batıdan doğuya doğru sıralayın.",
+      "options": [
+        {
+          "text": "Ankara",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false,
+          "correctOrderIndex": 2
+        },
+        {
+          "text": "İzmir",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": false,
+          "correctOrderIndex": 0
+        },
+        {
+          "text": "Erzurum",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": false,
+          "correctOrderIndex": 3
+        },
+        {
+          "text": "İstanbul",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false,
+          "correctOrderIndex": 1
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 15,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "true_false",
+      "prompt": "Pamukkale’nin beyaz terasları kardan oluşur.",
+      "media": "media/pamukkale.webp",
+      "answerExplanation": "Beyaz teraslar, sıcak su kaynaklarının bıraktığı traverten tortularıdır.",
+      "options": [
+        {
+          "text": "Doğru",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false
+        },
+        {
+          "text": "Yanlış",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": true
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "single_choice",
+      "prompt": "Bu hangi marştır?",
+      "audio": "media/istiklal-marsi.mp3",
+      "answerExplanation": "Sözleri Mehmet Âkif Ersoy’a ait olan İstiklâl Marşı, 1921’de kabul edildi.",
+      "options": [
+        {
+          "text": "İstiklâl Marşı",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": true
+        },
+        {
+          "text": "Onuncu Yıl Marşı",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": false
+        },
+        {
+          "text": "İzmir Marşı",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": false
+        },
+        {
+          "text": "Gençlik Marşı",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 20,
+      "pointsMode": "double",
+      "scoring": "standard",
+      "type": "single_choice",
+      "prompt": "Türkiye’nin para birimi nedir?",
+      "answerExplanation": "Türk lirası (₺) Türkiye’nin resmî para birimidir.",
+      "options": [
+        {
+          "text": "Euro",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false
+        },
+        {
+          "text": "Türk lirası",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": true
+        },
+        {
+          "text": "Dinar",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": false
+        },
+        {
+          "text": "Drahmi",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false
+        }
+      ]
+    },
+    {
+      "kind": "question",
+      "timeLimitS": 15,
+      "pointsMode": "standard",
+      "scoring": "standard",
+      "type": "poll",
+      "prompt": "Türkiye’de ilk nereyi görmek isterdin?",
+      "options": [
+        {
+          "text": "İstanbul",
+          "color": "red",
+          "shape": "triangle",
+          "isCorrect": false
+        },
+        {
+          "text": "Kapadokya",
+          "color": "blue",
+          "shape": "diamond",
+          "isCorrect": false
+        },
+        {
+          "text": "Pamukkale",
+          "color": "yellow",
+          "shape": "circle",
+          "isCorrect": false
+        },
+        {
+          "text": "Karadeniz",
+          "color": "green",
+          "shape": "square",
+          "isCorrect": false
+        }
+      ]
+    }
+  ],
+  "media": {
+    "media/istanbul.webp": {
+      "name": "istanbul.webp",
+      "alt": "İstanbul’un tarihî yarımadası, camileri ve Boğaz",
+      "credit": "Hunanuk · CC0 · Wikimedia Commons"
+    },
+    "media/anitkabir.webp": {
+      "name": "anitkabir.webp",
+      "alt": "Ankara’daki Anıtkabir ve önündeki geniş meydan",
+      "credit": "Nicoleon · CC0 · Wikimedia Commons"
+    },
+    "media/agri-dagi.webp": {
+      "name": "agri-dagi.webp",
+      "alt": "Karlı zirvesiyle Ağrı Dağı ve önünde uzanan ova",
+      "credit": "Vyacheslav Argenberg · CC BY 4.0 · Wikimedia Commons"
+    },
+    "media/taj-mahal.webp": {
+      "name": "taj-mahal.webp",
+      "alt": "Beyaz mermerden, dört minareli bir türbe ve önünde uzun bir havuz",
+      "credit": "Almbauer · CC0 · Wikimedia Commons"
+    },
+    "media/ayasofya.webp": {
+      "name": "ayasofya.webp",
+      "alt": "Büyük bir kubbe ve onu çevreleyen yarım kubbeler, bahçede ağaçlar",
+      "credit": "Maskaravivek · CC BY 3.0 · Wikimedia Commons"
+    },
+    "media/aziz-vasil.webp": {
+      "name": "aziz-vasil.webp",
+      "alt": "Renkli soğan kubbeli bir katedral ve önünde bir heykel",
+      "credit": "Diego Delso · Public domain · Wikimedia Commons"
+    },
+    "media/sagrada-familia.webp": {
+      "name": "sagrada-familia.webp",
+      "alt": "Taş oymalarla kaplı, sivri kuleli bir bazilika cephesi",
+      "credit": "Julian Lupyan · CC0 · Wikimedia Commons"
+    },
+    "media/kapadokya.webp": {
+      "name": "kapadokya.webp",
+      "alt": "Kapadokya’nın peri bacaları üzerinde uçan sıcak hava balonları",
+      "credit": "Netha Hussain · CC0 · Wikimedia Commons"
+    },
+    "media/pamukkale.webp": {
+      "name": "pamukkale.webp",
+      "alt": "Pamukkale’nin bembeyaz traverten terasları",
+      "credit": "rheins · CC BY 3.0 · Wikimedia Commons"
+    },
+    "media/istiklal-marsi.mp3": {
+      "name": "istiklal-marsi.mp3",
+      "credit": "United States Navy Band · Public domain · Wikimedia Commons",
+      "durationMs": 25000,
+      "peaks": [
+        0, 0, 0, 0.001, 0.65, 0.65, 0.46, 0.559, 0.48, 0.509, 0.601, 0.401, 0.151, 0.437, 0.513,
+        0.582, 0.988, 0.831, 0.608, 0.547, 0.558, 0.556, 0.426, 0.173, 0.615, 0.649, 0.838, 0.961,
+        0.501, 0.293, 0.613, 0.349, 0.67, 0.985, 0.378, 0.574, 0.671, 0.299, 1, 0.764, 0.339, 0.145,
+        0.139, 0.083, 0.254, 0.161, 0.255, 0.178, 0.344, 0.201, 0.281, 0.315, 0.403, 0.348, 0.258,
+        0.249, 0.908, 0.771, 0.498, 0.705, 0.395, 0.482, 0.621, 0.568, 0.56, 0.437, 0.2, 0.673,
+        0.581, 0.563, 0.481, 0.281, 0.297, 0.616, 0.681, 0.505, 0.478, 0.295, 0.302, 0.561, 0.323,
+        0.477, 0.422, 0.502, 0.568, 0.561, 0.287, 0.186, 0.093, 0.097, 0.207, 0.286, 0.247, 0.267,
+        0.287, 0.264, 0.353, 0.376, 0.36, 0.248, 0.233, 0.21, 0.811, 0.745, 0.72, 0.444, 0.347,
+        0.766, 0.824, 0.676, 0.575, 0.4, 0.363, 0.648, 0.606, 0.47, 0.478, 0.36, 0.403, 0.793,
+        0.626, 0.6, 0.414, 0.374, 0.358, 0.589, 0.458, 0.455, 0.389, 0.481, 0.6, 0.533, 0.392,
+        0.221, 0.118, 0.063, 0.286, 0.263, 0.27, 0.226, 0.336, 0.301, 0.329, 0.324, 0.305, 0.357,
+        0.312, 0.207, 0.394, 0.474, 0.477, 0.439, 0.478, 0.354, 0.611, 0.617, 0.542, 0.249, 0.342,
+        0.471, 0.616, 0.664, 0.426, 0.246, 0.421, 0.609, 0.68, 0.63, 0.286, 0.346, 0.488, 0.827,
+        0.769, 0.424, 0.252, 0.646, 0.592, 0.732, 0.595, 0.347, 0.167, 0.541, 0.922, 0.654, 0.551,
+        0.377, 0.387, 0.484, 0.755, 0.584, 0.511, 0.326, 0.122, 0.053, 0.16, 0.051, 0.081, 0.032,
+        0.038, 0.007
+      ],
+      "loudnessLufs": -20.6,
+      "peakDbfs": -6.4,
+      "origin": "upload"
+    }
+  }
+}

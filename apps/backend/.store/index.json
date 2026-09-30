@@ -6,23 +6,20 @@
       "description": "Sample quiz — geography, history and culture of France.",
       "language": "en",
       "tags": [],
-      "questionCount": 10,
+      "questionCount": 12,
       "license": "CC-BY-4.0",
       "author": {
         "name": "fchaussin",
         "subject": "system:samples"
       },
-      "revision": 1,
+      "revision": 2,
       "sharedAt": "2026-09-23T16:09:32.368Z",
       "cover": null,
       "first": {
         "kind": "slide",
         "text": "Discover France",
-        "media": null,
-        "gradient": {
-          "angle": 135,
-          "colors": ["#1d3fa0", "#f5f5f5", "#d02a2a"]
-        }
+        "media": "media/eiffel-night.webp",
+        "gradient": null
       }
     },
     {
@@ -31,23 +28,42 @@
       "description": "Sample quiz — geography, history and culture of Taiwan.",
       "language": "en",
       "tags": [],
-      "questionCount": 10,
+      "questionCount": 11,
+      "license": "CC-BY-4.0",
+      "author": {
+        "name": "fchaussin",
+        "subject": "system:samples"
+      },
+      "revision": 2,
+      "sharedAt": "2026-09-23T16:09:32.379Z",
+      "cover": null,
+      "first": {
+        "kind": "slide",
+        "text": "Discover Taiwan",
+        "media": "media/taipei-twilight.webp",
+        "gradient": null
+      }
+    },
+    {
+      "id": "01M3RMY6RR35A7EFN6HZV270E5",
+      "title": "Türkiye’yi Keşfet",
+      "description": "Örnek quiz — Türkiye’nin coğrafyası, tarihi ve kültürü.",
+      "language": "tr",
+      "tags": [],
+      "questionCount": 11,
       "license": "CC-BY-4.0",
       "author": {
         "name": "fchaussin",
         "subject": "system:samples"
       },
       "revision": 1,
-      "sharedAt": "2026-09-23T16:09:32.379Z",
+      "sharedAt": "2026-09-30T07:54:48.478Z",
       "cover": null,
       "first": {
         "kind": "slide",
-        "text": "Discover Taiwan",
-        "media": null,
-        "gradient": {
-          "angle": 135,
-          "colors": ["#0b7a3b", "#f5f5f5", "#d02a2a"]
-        }
+        "text": "Türkiye’yi Keşfet",
+        "media": "media/istanbul.webp",
+        "gradient": null
       }
     }
   ]

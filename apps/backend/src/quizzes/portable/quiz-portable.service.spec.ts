@@ -109,6 +109,7 @@ describe('QuizPortableService', () => {
         OWNER,
         expect.objectContaining({ originalname: 'lake.webp' }),
         expect.anything(),
+        expect.anything(),
       );
       expect(media.setCredit).toHaveBeenCalledWith(
         OWNER,
@@ -148,6 +149,7 @@ describe('QuizPortableService', () => {
           loudnessLufs: -18,
           peakDbfs: -3,
         }),
+        expect.anything(),
       );
       const created = prisma.tx.quiz.create.mock.calls[0][0] as {
         data: {
@@ -190,6 +192,7 @@ describe('QuizPortableService', () => {
       expect(media.upload).toHaveBeenCalledWith(
         OWNER,
         expect.objectContaining({ mimetype: 'image/png', size: 3 }),
+        expect.anything(),
         expect.anything(),
       );
       const data = prisma.tx.quiz.create.mock.calls[0][0].data;

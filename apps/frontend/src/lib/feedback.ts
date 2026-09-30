@@ -15,6 +15,7 @@ const LANGUAGE_OPTION: Record<string, string> = {
   es: 'Español (es)',
   zh: '简体中文 (zh)',
   'zh-TW': '繁體中文 (zh-TW)',
+  tr: 'Türkçe (tr)',
 };
 
 /** Browsers, most specific first (Edge and Chrome both say "Chrome"; Chrome says "Safari"). */

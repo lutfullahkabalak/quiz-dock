@@ -1,0 +1,92 @@
+{
+  "media": [
+    {
+      "file": "taipei-twilight.webp",
+      "commons": "File:Taipei Skyline at twilight 20251014.jpg",
+      "alt": "Taipei 101 above the city at twilight",
+      "license": "CC BY 4.0",
+      "author": "Ken Marshall",
+      "page": "https://commons.wikimedia.org/wiki/File:Taipei_Skyline_at_twilight_20251014.jpg"
+    },
+    {
+      "file": "taipei.webp",
+      "commons": "File:2015 Taipei skyline viewed from Taipei 101.jpg",
+      "alt": "Taipei’s towers and avenues seen from above",
+      "license": "CC BY 2.0",
+      "author": "othree",
+      "page": "https://commons.wikimedia.org/wiki/File:2015_Taipei_skyline_viewed_from_Taipei_101.jpg"
+    },
+    {
+      "file": "taipei-101.webp",
+      "commons": "File:20190418 Taipei 101-17.jpg",
+      "alt": "Taipei 101 seen from its foot, rising into the sky",
+      "license": "CC0",
+      "author": "Balon Greyjoy",
+      "page": "https://commons.wikimedia.org/wiki/File:20190418_Taipei_101-17.jpg"
+    },
+    {
+      "file": "night-market.webp",
+      "commons": "File:Miaokou Night Market 20240907 (IMG 8390).jpg",
+      "alt": "A crowded night market street under rows of yellow lanterns",
+      "license": "CC0",
+      "author": "Bigmorr",
+      "page": "https://commons.wikimedia.org/wiki/File:Miaokou_Night_Market_20240907_(IMG_8390).jpg"
+    },
+    {
+      "file": "taroko.webp",
+      "commons": "File:20190417 Taroko Gorge-23.jpg",
+      "alt": "The marble cliffs of Taroko Gorge above a river",
+      "license": "CC0",
+      "author": "Balon Greyjoy",
+      "page": "https://commons.wikimedia.org/wiki/File:20190417_Taroko_Gorge-23.jpg"
+    },
+    {
+      "file": "petronas.webp",
+      "commons": "File:Menara Berkembar Petronas, Kuala Lumpur, Malaysia (Unsplash).jpg",
+      "alt": "Two identical steel towers linked by a sky bridge, lit at night",
+      "width": 640,
+      "square": true,
+      "license": "CC0",
+      "author": "Vlad Shapochnikov vladshap",
+      "page": "https://commons.wikimedia.org/wiki/File:Menara_Berkembar_Petronas,_Kuala_Lumpur,_Malaysia_(Unsplash).jpg"
+    },
+    {
+      "file": "shanghai-tower.webp",
+      "commons": "File:Shanghai Shanghai Tower 5166304.jpg",
+      "alt": "A glass tower twisting as it rises",
+      "width": 640,
+      "square": true,
+      "license": "CC0",
+      "author": "Ermell",
+      "page": "https://commons.wikimedia.org/wiki/File:Shanghai_Shanghai_Tower_5166304.jpg"
+    },
+    {
+      "file": "taipei-101-choice.webp",
+      "commons": "File:Taipei Skyline 2016.jpg",
+      "alt": "A tower of stacked segments like a bamboo stalk, above a city",
+      "width": 640,
+      "square": true,
+      "license": "CC BY 2.0",
+      "author": "Sinchen.Lin",
+      "page": "https://commons.wikimedia.org/wiki/File:Taipei_Skyline_2016.jpg"
+    },
+    {
+      "file": "burj-khalifa.webp",
+      "commons": "File:Dubai Skyline mit Burj Khalifa (18241030269).jpg",
+      "alt": "A very slender tower rising above a desert city",
+      "width": 640,
+      "square": true,
+      "license": "CC BY 2.0",
+      "author": "Tim Reckmann from Hamm, Deutschland",
+      "page": "https://commons.wikimedia.org/wiki/File:Dubai_Skyline_mit_Burj_Khalifa_(18241030269).jpg"
+    },
+    {
+      "file": "bubble-tea.webp",
+      "commons": "File:Pearl Milk Tea in Chun Shui Tang (cropped).jpg",
+      "alt": "A tall glass of milk tea with tapioca pearls",
+      "license": "CC0",
+      "author": "Battlesnake1",
+      "page": "https://commons.wikimedia.org/wiki/File:Pearl_Milk_Tea_in_Chun_Shui_Tang_(cropped).jpg"
+    }
+  ]
+}
