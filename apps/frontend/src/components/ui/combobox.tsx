@@ -121,7 +121,7 @@ export function Combobox<T extends ComboboxOption>({
             if (!inline) setQuery(null);
           }}
           onKeyDown={onKeyDown}
-          className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 pr-8 text-sm shadow-sm focus-visible:ring-1 focus-visible:outline-none"
+          className="border-input bg-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-9 w-full rounded-md border px-3 py-1 pr-8 text-[1em] shadow-sm focus-visible:ring-1 focus-visible:outline-none"
         />
         <ChevronsUpDown
           className="text-muted-foreground pointer-events-none absolute top-2.5 right-2.5 size-4"

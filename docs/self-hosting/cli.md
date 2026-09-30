@@ -28,14 +28,16 @@ chmod +x quizdock
 PostgreSQL + Redis, data in the `quizdock` volume) — fine for a demo, not for
 production. The mode is remembered in `.env` (`QUIZDOCK_MODE`), everything else
 reads the same file.
+`init --full` adds a bundled Keycloak and creates random temporary passwords for
+its sample users and admin. See [choose a setup](setups.md).
 
 | Command | Description |
 |---|---|
-| `init [--standalone]` | Create `.env` (guided; generates a PostgreSQL password) and fetch `docker-compose.prod.yml`. |
+| `init [--full\|--standalone]` | Create `.env` (guided; generates passwords) and fetch Compose plus the realm file when needed. |
 | `up` / `down` | Start (and wait for health) / stop. |
 | `status` | Containers and health check. |
 | `logs [service]` | Follow logs (`quizdock`, `postgres`, `redis`, `migrate` in compose mode). |
-| `backup [dir]` | `pg_dump --clean` + media + `.env` → `./backups/quizdock-<date>/`. |
+| `backup [dir]` | `pg_dump --clean` + media + `.env` → `./backups/quizdock-<date>/`; full mode also dumps the Keycloak database. |
 | `restore <dir>` | Replace the database and media from a backup (stops the app first; asks for confirmation). |
 | `upgrade [tag]` | **backup → pull → restart** (migrations run on start) **→ doctor**. Persists the tag in `.env`. |
 | `doctor`, `seat:*`, `user:*`, `samples:load`, `quiz:list`, `sessions:purge` | Relayed to the in-image CLI (below). |
@@ -72,6 +74,8 @@ which still works too.)
 | `quiz:list [<sub\|email>]` | Quizzes with id, title, owner, status, question count, slug, revision — every one, or one user's. |
 | `quiz:export <id> <file.zip\|->` | The quiz as a bundle ([quiz-bundle.md](../quiz-bundle.md)), whoever owns it; `-` streams the zip to stdout. Leaves the `revision` alone — it moves when the quiz is shared. |
 | `quiz:transfer <quiz-id> <sub\|email>` | Hand a quiz over to another account — an account that left, or a colleague taking over. The media only this quiz uses follow it; one shared with another of the previous owner's quizzes stays with them. Its archived sessions follow too, so their results become readable by the new owner. Refused while the quiz is being played. **Not** how hosts share their work: that is by copy. |
+| `quiz:validate <file\|->` | Validate text-only `quiz.json` without writing; errors and completeness warnings, exit 0 structurally valid / 1 invalid. |
+| `mcp [--user=<sub\|email>]` | Local stdio MCP, _experimental_; omit user for read-only tools. [Setup](mcp.md). |
 | `quiz:import <file\|-> <sub\|email>` | A new draft in that user's bank from a bundle (zip or bare `quiz.json`) or a Kahoot `.xlsx` template; `-` reads stdin. Invalid bundles are refused as a whole. Kahoot imports report converted and skipped rows. |
 | `sessions:purge [--dry-run]` | Delete archived sessions past their retention date (`retain_until`, 365 days at archive time) with their results. Nothing else purges them — schedule it (cron) if you need the retention enforced. |
 

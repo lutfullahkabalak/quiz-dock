@@ -32,6 +32,73 @@ services:
       retries: 5
     networks: [internal]
 
+  # Created idempotently, including when the PostgreSQL volume predates this preset.
+  keycloak-db:
+    image: postgres:16-alpine
+    profiles: ['keycloak']
+    environment:
+      PGHOST: postgres
+      PGUSER: ${POSTGRES_USER:-live}
+      PGPASSWORD: ${POSTGRES_PASSWORD:-live}
+    entrypoint:
+      - /bin/sh
+      - -ec
+      - |
+        if ! psql -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname = 'keycloak'" | grep -qx 1; then
+          createdb keycloak
+        fi
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: 'no'
+    networks: [internal]
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:26.0.8
+    profiles: ['keycloak']
+    # Render the shared dev realm for full mode without an additional template or JSON-tool dependency.
+    # Keycloak skips importing an existing realm, so restarts never reset accounts.
+    entrypoint: ['/bin/bash', '-ec']
+    command:
+      - |
+        realm=$$(< /opt/keycloak/data/realm-export.json)
+        realm=$${realm//'"temporary": false'/'"temporary": true'}
+        realm=$${realm//'"requiredActions": []'/'"requiredActions": ["UPDATE_PASSWORD"]'}
+        mkdir -p /opt/keycloak/data/import
+        printf '%s' "$$realm" > /opt/keycloak/data/import/quiz-dock-realm.json
+        exec /opt/keycloak/bin/kc.sh start --http-enabled=true --import-realm
+    environment:
+      KC_HEALTH_ENABLED: 'true'
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: ${POSTGRES_USER:-live}
+      KC_DB_PASSWORD: ${POSTGRES_PASSWORD:-live}
+      KC_BOOTSTRAP_ADMIN_USERNAME: ${KEYCLOAK_ADMIN:-admin}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: ${KEYCLOAK_ADMIN_PASSWORD:-change-me-admin}
+      KC_HOSTNAME: ${KEYCLOAK_PUBLIC_URL:-${PUBLIC_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${KEYCLOAK_PORT:-18081}}
+      KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      KEYCLOAK_APP_URL: ${KEYCLOAK_APP_URL:-${PUBLIC_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${HTTP_PORT:-18080}}
+      KEYCLOAK_DEV_URL: ${KEYCLOAK_APP_URL:-${PUBLIC_SCHEME:-http}://${PUBLIC_HOST:-localhost}:${HTTP_PORT:-18080}}
+      KEYCLOAK_HOST_PASSWORD: ${KEYCLOAK_HOST_PASSWORD:-change-me-host}
+      KEYCLOAK_PLAYER_PASSWORD: ${KEYCLOAK_PLAYER_PASSWORD:-change-me-player}
+    volumes:
+      - ./keycloak/realm-export.json:/opt/keycloak/data/realm-export.json:ro
+    ports:
+      - '${KEYCLOAK_PORT:-18081}:8080'
+    depends_on:
+      keycloak-db:
+        condition: service_completed_successfully
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - "bash -ec 'exec 3<>/dev/tcp/127.0.0.1/9000; printf \"GET /health/ready HTTP/1.0\\r\\n\\r\\n\" >&3; read -r line <&3; [[ $$line == *\" 200 \"* ]]'"
+      interval: 10s
+      timeout: 5s
+      retries: 18
+      start_period: 30s
+    restart: unless-stopped
+    networks: [internal, public]
+
   # Migrations idempotentes (Prisma). One-shot : applique puis sort. L'app attend
   # sa complétion. Même image que `quizdock`, commande surchargée (l'ENTRYPOINT
   # distroless est déjà `node`, donc on passe le chemin du CLI Prisma).

@@ -1,4 +1,8 @@
 import 'reflect-metadata';
+import { runQuizMcp } from './mcp/quiz-mcp';
+import { validateTextQuiz } from './quizzes/portable/text-quiz-validation';
+import { isHost } from './auth/roles';
+import { findUser } from './cli/commands/users';
 import { NestFactory } from '@nestjs/core';
 import { parseArgs } from './cli/args';
 import { CliModule } from './cli/cli.module';
@@ -34,6 +38,10 @@ Usage: qd <command> [options]      (in the container; = node dist/cli.js)
                     Write the quiz as a bundle (quiz.json + media/), "-" = stdout
   quiz:import <file|-> <sub|email>
                     Create a draft from a bundle (zip or quiz.json), "-" = stdin
+  quiz:validate <file|->
+                    Validate text-only quiz.json without writing anything
+  mcp [--user=<sub|email>]
+                    Serve MCP on stdin/stdout (experimental); optional host account enables imports
   quiz:transfer <quiz-id> <sub|email>
                     Hand a quiz over to another account (media and history follow)
   sessions:purge [--dry-run]
@@ -58,14 +66,46 @@ async function main(argv: string[]): Promise<number> {
     out.line(USAGE);
     return 0;
   }
+  if (args.command === 'quiz:validate') {
+    const source = need(args.positional[0], '<file|->');
+    const result = validateTextQuiz((await diskIo.read(source)).toString('utf8'));
+    out.line(JSON.stringify(result));
+    return result.valid ? 0 : 1;
+  }
+  if (args.command === 'mcp' && args.flags.user === undefined) {
+    await runQuizMcp();
+    return 0;
+  }
+  if (args.command === 'mcp' && (typeof args.flags.user !== 'string' || !args.flags.user))
+    throw new CliError('Use --user=<sub|email> to enable imports.', 2);
   // A bundle streamed to stdout must be the only thing written there.
   const toStdout = args.command === 'quiz:export' && args.positional[1] === '-';
   const app = await NestFactory.createApplicationContext(CliModule, {
-    logger: toStdout ? ['error'] : ['error', 'warn'],
+    logger: args.command === 'mcp' ? false : toStdout ? ['error'] : ['error', 'warn'],
   });
   try {
     const prisma = app.get(PrismaService);
     switch (args.command) {
+      case 'mcp': {
+        const who = args.flags.user;
+        if (typeof who !== 'string')
+          throw new CliError('Use --user=<sub|email> to enable imports.', 2);
+        const user = await findUser(prisma, who);
+        if (!isHost(user.roles))
+          throw new CliError('The configured MCP account must have the host role.');
+        await runQuizMcp({
+          ownerId: user.id,
+          portable: app.get(QuizPortableService),
+          authorized: async () => {
+            const current = await prisma.user.findUnique({
+              where: { id: user.id },
+              select: { roles: true },
+            });
+            return !!current && isHost(current.roles);
+          },
+        });
+        return 0;
+      }
       case 'doctor': {
         const ok = await doctor(out, {
           prisma,

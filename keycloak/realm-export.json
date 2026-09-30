@@ -4,9 +4,18 @@
   "displayName": "QuizDock",
   "roles": {
     "realm": [
-      { "name": "host", "description": "Animateur / créateur de quiz" },
-      { "name": "player", "description": "Participant connecté" },
-      { "name": "admin", "description": "Administrateur (réservé v1.1)" }
+      {
+        "name": "host",
+        "description": "Animateur / cr\u00e9ateur de quiz"
+      },
+      {
+        "name": "player",
+        "description": "Participant connect\u00e9"
+      },
+      {
+        "name": "admin",
+        "description": "Administrateur (r\u00e9serv\u00e9 v1.1)"
+      }
     ]
   },
   "clients": [
@@ -17,32 +26,52 @@
       "publicClient": true,
       "standardFlowEnabled": true,
       "directAccessGrantsEnabled": true,
-      "redirectUris": ["http://localhost:18081/*", "http://localhost:15173/*"],
-      "webOrigins": ["http://localhost:18081", "http://localhost:15173"]
+      "redirectUris": [
+        "${KEYCLOAK_APP_URL:http://localhost:18081}/*",
+        "${KEYCLOAK_DEV_URL:http://localhost:15173}/*"
+      ],
+      "webOrigins": [
+        "${KEYCLOAK_APP_URL:http://localhost:18081}",
+        "${KEYCLOAK_DEV_URL:http://localhost:15173}"
+      ]
     }
   ],
   "users": [
     {
       "id": "2bca0877-373c-460c-a37d-6520be91d3b4",
-      "username": "animateur",
+      "username": "host",
       "enabled": true,
-      "email": "animateur@quiz-dock.test",
+      "email": "host@quiz-dock.test",
       "emailVerified": true,
-      "firstName": "Animateur",
-      "lastName": "Démo",
-      "credentials": [{ "type": "password", "value": "animateur", "temporary": false }],
-      "realmRoles": ["host"]
+      "firstName": "Alex",
+      "lastName": "Host",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KEYCLOAK_HOST_PASSWORD:animateur}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["host", "admin"],
+      "requiredActions": []
     },
     {
       "id": "39b95ebf-1a3f-4b7f-a53e-105e57137962",
-      "username": "participant",
+      "username": "player",
       "enabled": true,
-      "email": "participant@quiz-dock.test",
+      "email": "player@quiz-dock.test",
       "emailVerified": true,
-      "firstName": "Participant",
-      "lastName": "Démo",
-      "credentials": [{ "type": "password", "value": "participant", "temporary": false }],
-      "realmRoles": []
+      "firstName": "Sam",
+      "lastName": "Player",
+      "credentials": [
+        {
+          "type": "password",
+          "value": "${KEYCLOAK_PLAYER_PASSWORD:participant}",
+          "temporary": false
+        }
+      ],
+      "realmRoles": ["player"],
+      "requiredActions": []
     }
   ]
 }

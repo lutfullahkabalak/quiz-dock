@@ -134,7 +134,7 @@ function PreferencesCard() {
       <CardHeader>
         <CardTitle>{t('profile.preferences')}</CardTitle>
       </CardHeader>
-      <CardContent className="flex flex-col gap-2 text-sm">
+      <CardContent className="flex flex-col gap-2 text-[1em]">
         <label className="flex flex-col gap-1">
           <span className="font-medium">{t('profile.participantAccess')}</span>
           <Select

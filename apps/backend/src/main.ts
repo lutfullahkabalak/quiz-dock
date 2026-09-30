@@ -1,5 +1,7 @@
 import 'reflect-metadata';
+import { configureTextQuizBodyParser } from './quizzes/portable/text-quiz-body-parser';
 import { NestFactory } from '@nestjs/core';
+import type { NestExpressApplication } from '@nestjs/platform-express';
 import { SwaggerModule } from '@nestjs/swagger';
 import { Logger } from '@nestjs/common';
 import { ZodValidationPipe } from 'nestjs-zod';
@@ -12,7 +14,7 @@ import { trustProxy } from './common/trust-proxy';
 import { buildSwaggerDocument } from './swagger';
 
 async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['log', 'error', 'warn'],
   });
 
@@ -20,6 +22,7 @@ async function bootstrap(): Promise<void> {
   // `req.ip` and `req.secure` follow `TRUST_PROXY`, like the sockets.
   app.getHttpAdapter().getInstance().set('trust proxy', trustProxy());
   app.enableCors();
+  configureTextQuizBodyParser(app);
   // The pages say where their scripts, styles, frames and requests may come from.
   app.use(cspMiddleware());
   // The browser session is a cookie: what changes something comes from our own pages.

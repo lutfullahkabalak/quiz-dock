@@ -48,6 +48,14 @@ QuizDock imports. It works from almost anything:
 > **What you send leaves your instance.** The chatbot's provider receives the
 > content of the quiz. Use one you trust with it.
 
+## Validate with a connector
+
+A local MCP client can obtain the format guide, validate its converted JSON and
+create a draft directly, using [the local MCP connector](mcp.md). You can also
+check a file with `qd quiz:validate` or the authenticated
+`POST /api/v1/quizzes/validate` endpoint before importing it. All three use the
+importer's real checks and create nothing during validation.
+
 ## Step by step
 
 1. Open a chatbot and paste [the prompt](#the-prompt). Attach

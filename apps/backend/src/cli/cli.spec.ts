@@ -35,6 +35,12 @@ describe('parseArgs', () => {
   });
 });
 
+describe('MCP account option', () => {
+  it('preserves equals signs inside opaque identity values', () => {
+    expect(parseArgs(['mcp', '--user=opaque=subject']).flags.user).toBe('opaque=subject');
+  });
+});
+
 describe('migrationStatus', () => {
   let dir: string;
   beforeAll(() => {

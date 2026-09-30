@@ -6,9 +6,11 @@ import { QuizPublicationService } from './portable/quiz-publication.service';
 import { QuizzesService } from './quizzes.service';
 import { SampleQuizzesService } from './samples/sample-quizzes.service';
 
+import { QuizValidationController } from './quiz-validation.controller';
+
 @Module({
   imports: [MediaModule],
-  controllers: [QuizzesController],
+  controllers: [QuizValidationController, QuizzesController],
   providers: [QuizzesService, SampleQuizzesService, QuizPortableService, QuizPublicationService],
   exports: [SampleQuizzesService, QuizPortableService],
 })

@@ -104,7 +104,7 @@ export function JoinPin({ autoFocus = false }: { autoFocus?: boolean }) {
           aria-label={t('pinLabel')}
           aria-invalid={failed || undefined}
           aria-describedby={`${id}-state`}
-          className="absolute inset-0 h-full w-full cursor-text opacity-0"
+          className="absolute inset-0 h-full w-full cursor-text text-[1em] opacity-0"
         />
       </div>
       <div

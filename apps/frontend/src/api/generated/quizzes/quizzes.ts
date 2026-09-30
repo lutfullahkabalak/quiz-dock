@@ -32,6 +32,8 @@ import type {
   QuizDto,
   QuizFeedbackSummaryDto,
   QuizImportDto,
+  QuizValidationInputDto,
+  QuizValidationResultDto,
   QuizzesControllerFeedbackParams,
   QuizzesControllerImportQuizBody,
   SessionDetailDto,
@@ -48,7 +50,82 @@ type SecondParameter<T extends (...args: never) => unknown> = Parameters<T>[1];
 
 
 
-export type quizzesControllerListResponse200 = {
+export type quizValidationControllerValidateResponse200 = {
+  data: QuizValidationResultDto
+  status: 200
+}
+
+export type quizValidationControllerValidateResponseSuccess = (quizValidationControllerValidateResponse200) & {
+  headers: Headers;
+};
+;
+
+export type quizValidationControllerValidateResponse = (quizValidationControllerValidateResponseSuccess)
+
+export const getQuizValidationControllerValidateUrl = () => {
+
+
+
+
+  return `/api/v1/quizzes/validate`
+}
+
+export const quizValidationControllerValidate = async (quizValidationInputDto: QuizValidationInputDto, options?: RequestInit): Promise<quizValidationControllerValidateResponse> => {
+
+  return customFetch<quizValidationControllerValidateResponse>(getQuizValidationControllerValidateUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(quizValidationInputDto)
+  }
+);}
+
+
+
+
+export const getQuizValidationControllerValidateMutationOptions = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quizValidationControllerValidate>>, TError,{data: QuizValidationInputDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof quizValidationControllerValidate>>, TError,{data: QuizValidationInputDto}, TContext> => {
+
+const mutationKey = ['quizValidationControllerValidate'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof quizValidationControllerValidate>>, {data: QuizValidationInputDto}> = (props) => {
+          const {data} = props ?? {};
+
+          return  quizValidationControllerValidate(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type QuizValidationControllerValidateMutationResult = NonNullable<Awaited<ReturnType<typeof quizValidationControllerValidate>>>
+    export type QuizValidationControllerValidateMutationBody = QuizValidationInputDto
+    export type QuizValidationControllerValidateMutationError = unknown
+
+    export const useQuizValidationControllerValidate = <TError = unknown,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof quizValidationControllerValidate>>, TError,{data: QuizValidationInputDto}, TContext>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient): UseMutationResult<
+        Awaited<ReturnType<typeof quizValidationControllerValidate>>,
+        TError,
+        {data: QuizValidationInputDto},
+        TContext
+      > => {
+      return useMutation(getQuizValidationControllerValidateMutationOptions(options), queryClient);
+    }
+    export type quizzesControllerListResponse200 = {
   data: QuizDto[]
   status: 200
 }
