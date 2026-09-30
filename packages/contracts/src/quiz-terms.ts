@@ -52,6 +52,7 @@ export const QUIZ_LANGUAGES = [
   'pl',
   'zh',
   'zh-TW',
+  'tr',
   'ja',
   'ko',
   'ar',

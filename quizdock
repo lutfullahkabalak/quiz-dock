@@ -108,7 +108,7 @@ cmd_init() {
   fi
   info "QuizDock setup ($want_mode mode)"
   ask app_name "Application name" "QuizDock"
-  ask app_lang "Instance language (en, fr, es, zh, zh-TW)" "en"
+  ask app_lang "Instance language (en, fr, es, zh, zh-TW, tr)" "en"
   ask port "HTTP port on this host" "18080"
   ask auth_mode "Auth mode: none (local host seat) or oidc" "none"
   case "$auth_mode" in none | oidc) ;; *) die "AUTH_MODE must be none or oidc" ;; esac

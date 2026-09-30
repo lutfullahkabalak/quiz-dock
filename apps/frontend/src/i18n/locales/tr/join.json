@@ -1,0 +1,10 @@
+{
+  "title": "Bir odaya katıl",
+  "pinLabel": "PIN, 6 rakam",
+  "continue": "Devam et",
+  "hint": "Büyük ekranda gösterilen PIN kodunu girin",
+  "checking": "Oda aranıyor…",
+  "notFound": "Bu PIN ile açık bir oda yok. Büyük ekranı kontrol edin.",
+  "locked": "Bu oda yeni katılımcılara kapalı; geri dönen katılımcılar yine de girebilir.",
+  "checkedAt6": "6. rakam girildiğinde hemen kontrol edilir."
+}

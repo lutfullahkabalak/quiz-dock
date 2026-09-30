@@ -1,0 +1,100 @@
+{
+  "status": {
+    "ended": "Sona erdi",
+    "interrupted": "Kesintiye uğradı",
+    "archived": "Arşivlendi",
+    "lobby": "Lobi",
+    "in_progress": "Devam ediyor"
+  },
+  "duration": {
+    "minutesSeconds": "{{minutes}} dk {{seconds}} sn",
+    "seconds": "{{seconds}} sn"
+  },
+  "list": {
+    "title": "Oturum geçmişi",
+    "backToEditor": "Editöre geri dön",
+    "empty": "Bu quiz için arşivlenmiş oturum yok. Bir oturumun sonunda, sonuçları burada bulmak için \"Sonuçları arşivle\"yi seçin.",
+    "capture": "Yanıt kaydı",
+    "inRoom_one": "Oda · {{count}} quiz",
+    "inRoom_other": "Oda · {{count}} quiz",
+    "pin": "PIN {{pin}}",
+    "thDate": "Tarih",
+    "thStatus": "Durum",
+    "thPlayers": "Katılımcılar",
+    "thSuccess": "Başarı",
+    "presentIt": "Bu quizi sun"
+  },
+  "detail": {
+    "notFound": "Oturum bulunamadı.",
+    "fallbackTitle": "Oturum",
+    "exportCsv": "Dışa aktar (CSV)",
+    "history": "Geçmiş",
+    "statParticipants": "Katılımcılar",
+    "statSuccessRate": "Genel başarı",
+    "statQuestions": "Sorular",
+    "questionResultsTitle": "Soruya göre sonuçlar",
+    "thNumber": "#",
+    "thQuestion": "Soru",
+    "thAnswers": "Cevaplar",
+    "thSuccessRate": "Başarı",
+    "thAvgTime": "Ortalama zaman",
+    "participantsTitle": "Katılımcılar",
+    "noPersonalTracking": "Bu oturum için hiçbir bireysel sonuç kaydedilmedi: kişiselleştirilmiş izleme kapalıydı; yalnızca grubun genel sonuçları tutuldu.",
+    "thRank": "Sıra",
+    "thNickname": "Takma ad",
+    "thScore": "Puan",
+    "thCorrect": "Doğru",
+    "thStreak": "Seri",
+    "csvGlobal": {
+      "rank": "Sıra",
+      "nickname": "Takma ad",
+      "score": "Puan",
+      "correct": "Doğru",
+      "answered": "Yanıtlandı",
+      "maxStreak": "Maksimum seri",
+      "avgTime": "Ortalama süre (sn)",
+      "filenameFallback": "oturum"
+    },
+    "room": {
+      "title": "Oda",
+      "intro_one": "Bu oturum bir odada oynandı. Katılımcılar bir kez katıldı ve aynı odada {{count}} quiz oynandı.",
+      "intro_other": "Bu oturum bir odada oynandı. Katılımcılar bir kez katıldı ve aynı odada {{count}} quiz oynandı.",
+      "thisSession": "bu oturum",
+      "standingsTitle": "Oda sıralamaları",
+      "standingsNote": "Odadaki arşivlenmiş quizlerin toplamına göre hesaplanmıştır.",
+      "noPersonalTracking": "Oda sıralaması yok: Oturumlardan en az birinde bireysel takip kapalıydı.",
+      "thQuizzes": "Quizler",
+      "exportCsv": "Sıralamayı dışa aktar (CSV)",
+      "csvFilename": "oda",
+      "defaultName": "{{host}} tarafından açılan oda"
+    }
+  },
+  "player": {
+    "notFound": "Katılımcı bulunamadı.",
+    "summary": "#{{rank}} · {{score}} puan · {{correct}}/{{answered}} doğru",
+    "exportCsv": "Dışa aktar (CSV)",
+    "session": "Oturum",
+    "captureUnavailable": "Yanıt ayrıntıları mevcut değil: Bu oturum için tam yakalama etkinleştirilmedi. Yalnızca toplu sonuçlar tutulur.",
+    "answersTitle": "Cevaplar",
+    "thNumber": "#",
+    "thQuestion": "Soru",
+    "thAnswer": "Cevap",
+    "thCorrect": "Doğru",
+    "thPoints": "Puanlar",
+    "thTime": "Zaman",
+    "correctAria": "doğru",
+    "incorrectAria": "yanlış",
+    "noAnswers": "Kayıtlı yanıt yok.",
+    "csvPlayer": {
+      "number": "#",
+      "question": "Soru",
+      "answer": "Cevap",
+      "correct": "Doğru",
+      "points": "Puanlar",
+      "time": "Süre (sn)",
+      "yes": "evet",
+      "no": "hayır",
+      "filenameLabel": "katılımcı"
+    }
+  }
+}

@@ -8,7 +8,7 @@ Three things are brandable **at runtime**, without rebuilding the image:
 | What | How |
 |---|---|
 | **Name** | `APP_NAME` (header, tab, share messages). |
-| **Language** | `APP_LANG` (`en`/`fr`/`es`/`zh`/`zh-TW`). |
+| **Language** | `APP_LANG` (`en`/`fr`/`es`/`zh`/`zh-TW`/`tr`). |
 | **Logo & CSS** | files served at fixed paths — replace them via a mounted folder, or point `APP_LOGO_URL` at a logo hosted elsewhere. |
 
 ## How it works
