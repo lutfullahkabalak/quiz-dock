@@ -173,5 +173,10 @@
     "not_found": "This item no longer exists: it was deleted meanwhile.",
     "conflict": "Someone saved at the same time. Try again.",
     "invalid_reference": "This refers to something that no longer exists."
+  },
+  "mcp": {
+    "busy": "An import is already running. Wait for it to finish.",
+    "import_failed": "The quiz could not be imported. Check the server logs.",
+    "rate_limit": "Too many connector requests. Try again in a minute."
   }
 }

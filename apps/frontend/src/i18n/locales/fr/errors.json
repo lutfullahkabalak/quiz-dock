@@ -173,5 +173,10 @@
     "not_found": "Cet élément n’existe plus : il a été supprimé entre-temps.",
     "conflict": "Un autre enregistrement a eu lieu au même moment. Réessayez.",
     "invalid_reference": "Cela fait référence à un élément qui n’existe plus."
+  },
+  "mcp": {
+    "busy": "Un import est déjà en cours. Attendez qu’il se termine.",
+    "import_failed": "Le quiz n’a pas pu être importé. Consultez les journaux du serveur.",
+    "rate_limit": "Trop de requêtes du connecteur. Réessayez dans une minute."
   }
 }

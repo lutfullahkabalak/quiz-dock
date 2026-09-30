@@ -10,8 +10,10 @@ export function parseArgs(argv: string[]): ParsedArgs {
   const flags: Record<string, string | true> = {};
   for (const arg of argv) {
     if (arg.startsWith('--')) {
-      const [key, value] = arg.slice(2).split('=', 2);
-      flags[key] = value ?? true;
+      const option = arg.slice(2);
+      const separator = option.indexOf('=');
+      const key = separator === -1 ? option : option.slice(0, separator);
+      flags[key] = separator === -1 ? true : option.slice(separator + 1);
     } else {
       positional.push(arg);
     }

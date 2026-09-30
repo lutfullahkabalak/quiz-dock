@@ -284,6 +284,37 @@
         ]
       }
     },
+    "/api/v1/quizzes/validate": {
+      "post": {
+        "operationId": "QuizValidationController_validate",
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/QuizValidationInputDto"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/QuizValidationResultDto"
+                }
+              }
+            }
+          }
+        },
+        "tags": [
+          "quizzes"
+        ]
+      }
+    },
     "/api/v1/quizzes": {
       "get": {
         "operationId": "QuizzesController_list",
@@ -2622,6 +2653,87 @@
         },
         "required": [
           "name"
+        ]
+      },
+      "QuizValidationInputDto": {
+        "type": "object",
+        "properties": {
+          "json": {
+            "type": "string",
+            "maxLength": 1048576
+          }
+        },
+        "required": [
+          "json"
+        ]
+      },
+      "QuizValidationResultDto": {
+        "type": "object",
+        "properties": {
+          "valid": {
+            "type": "boolean"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "item": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "field": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code"
+              ]
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "item": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "field": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code"
+              ]
+            }
+          }
+        },
+        "required": [
+          "valid",
+          "errors",
+          "warnings"
         ]
       },
       "QuizDto": {
