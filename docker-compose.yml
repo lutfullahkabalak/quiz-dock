@@ -31,7 +31,7 @@ services:
   # IdP OIDC d'exemple (dev) : démarré uniquement avec --profile keycloak (AUTH_MODE=oidc).
   # N'importe quel fournisseur OpenID Connect peut le remplacer via les variables OIDC_*.
   keycloak:
-    image: quay.io/keycloak/keycloak:26.0
+    image: quay.io/keycloak/keycloak:26.0.8
     profiles: ['keycloak']
     command: ['start-dev', '--import-realm']
     environment:
@@ -42,6 +42,10 @@ services:
       # asks; the backend reaches the token endpoint over the internal network.
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-18080}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
+      KEYCLOAK_APP_URL: ${KEYCLOAK_APP_URL:-http://localhost:18081}
+      KEYCLOAK_DEV_URL: ${KEYCLOAK_DEV_URL:-http://localhost:15173}
+      KEYCLOAK_HOST_PASSWORD: animateur
+      KEYCLOAK_PLAYER_PASSWORD: participant
     ports:
       - '${KEYCLOAK_PORT:-18080}:8080'
     volumes:

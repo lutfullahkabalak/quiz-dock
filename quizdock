@@ -5,8 +5,9 @@
 #   curl -fsSLO https://raw.githubusercontent.com/quizdock/quiz-dock/main/quizdock
 #   chmod +x quizdock && ./quizdock init
 #
-# Two deployment modes, chosen at `init` and remembered in `.env` (QUIZDOCK_MODE):
+# Deployment modes, chosen at `init` and remembered in `.env` (QUIZDOCK_MODE):
 #   compose     docker-compose.prod.yml — app + PostgreSQL + Redis (production)
+#   full        compose + bundled Keycloak (separate database)
 #   standalone  one container (fchaussin/quizdock:standalone) — demo / first try
 #
 # Admin commands (doctor, seat:*, user:*, quiz:*, samples:load, sessions:purge)
@@ -49,17 +50,24 @@ http_port() { env_get HTTP_PORT 18080; }
 
 need_init() {
   [ -f "$ENV_FILE" ] || die "no $ENV_FILE here — run \`$0 init\` first (or cd to your QuizDock directory)."
-  if [ "$(mode)" = compose ]; then
+  if [ "$(mode)" = compose ] || [ "$(mode)" = full ]; then
     [ -f "$COMPOSE_FILE" ] || die "$COMPOSE_FILE not found — run \`$0 init\` again."
+  fi
+  if [ "$(mode)" = full ]; then
+    [ -f docker-compose.full.yml ] || die "docker-compose.full.yml not found — run init --full again."
+    [ -f keycloak/realm-export.json ] || die "keycloak/realm-export.json not found — run \`$0 init --full\` again."
   fi
 }
 
-compose() { docker compose -f "$COMPOSE_FILE" "$@"; }
+compose() {
+  if [ "$(mode)" = full ]; then docker compose -f "$COMPOSE_FILE" -f docker-compose.full.yml --profile keycloak "$@"
+  else docker compose -f "$COMPOSE_FILE" "$@"; fi
+}
 
 # Runs the in-image admin CLI with the instance's environment.
 admin() {
   case "$(mode)" in
-    compose) compose exec -T quizdock qd "$@" ;;
+    compose | full) compose exec -T quizdock qd "$@" ;;
     standalone) docker exec -i "$CONTAINER" qd "$@" ;;
   esac
 }
@@ -99,7 +107,8 @@ cmd_init() {
     case "$a" in
       --standalone) want_mode=standalone ;;
       --compose) want_mode=compose ;;
-      *) die "unknown option $a (init [--compose|--standalone])" ;;
+      --full) want_mode=full ;;
+      *) die "unknown option $a (init [--compose|--full|--standalone])" ;;
     esac
   done
   if [ -f "$ENV_FILE" ]; then
@@ -110,10 +119,16 @@ cmd_init() {
   ask app_name "Application name" "QuizDock"
   ask app_lang "Instance language (en, fr, es, zh, zh-TW, tr)" "en"
   ask port "HTTP port on this host" "18080"
-  ask auth_mode "Auth mode: none (local host seat) or oidc" "none"
+  if [ "$want_mode" = full ]; then
+    auth_mode=oidc
+    ask public_host "Public hostname or LAN IP (used by browsers)" "localhost"
+    ask keycloak_port "Keycloak HTTP port on this host" "18081"
+  else
+    ask auth_mode "Auth mode: none (local host seat) or oidc" "none"
+  fi
   case "$auth_mode" in none | oidc) ;; *) die "AUTH_MODE must be none or oidc" ;; esac
   issuer=""; client_id="quiz-dock-frontend"
-  if [ "$auth_mode" = oidc ]; then
+  if [ "$auth_mode" = oidc ] && [ "$want_mode" != full ]; then
     ask issuer "OIDC issuer (exact \`iss\` of your tokens)" ""
     ask client_id "OIDC client id" "quiz-dock-frontend"
   fi
@@ -126,22 +141,35 @@ cmd_init() {
     say "APP_NAME=$app_name"
     say "APP_LANG=$app_lang"
     say "AUTH_MODE=$auth_mode"
+    if [ "$want_mode" = full ]; then
+      say "# One public host for QuizDock and Keycloak; use the same name on each browser."
+      say "PUBLIC_HOST=$public_host"
+      say "PUBLIC_SCHEME=http"
+      say "KEYCLOAK_PORT=$keycloak_port"
+      say "KEYCLOAK_ADMIN=admin"
+      say "KEYCLOAK_ADMIN_PASSWORD=$(random_secret)"
+      say "KEYCLOAK_HOST_PASSWORD=$(random_secret)"
+      say "KEYCLOAK_PLAYER_PASSWORD=$(random_secret)"
+    fi
     say "# OIDC (used when AUTH_MODE=oidc). Any OpenID Connect provider."
     say "OIDC_ISSUER=$issuer"
     say "OIDC_CLIENT_ID=$client_id"
     say "# Secret of a confidential client; empty = public client (PKCE)."
     say "OIDC_CLIENT_SECRET="
     say "# How the backend reaches the provider, when not at the issuer's address."
-    say "OIDC_INTERNAL_URL="
+    if [ "$want_mode" = full ]; then say "OIDC_INTERNAL_URL=http://keycloak:8080"
+    else say "OIDC_INTERNAL_URL="; fi
     say "OIDC_AUDIENCE="
-    say "OIDC_ROLES_CLAIM=roles"
+    if [ "$want_mode" = full ]; then say "OIDC_ROLES_CLAIM=realm_access.roles"
+    else say "OIDC_ROLES_CLAIM=roles"; fi
     say "OIDC_NAME_CLAIM="
     say "# Proxies allowed to speak for the client (X-Forwarded-*); empty = private addresses."
     say "TRUST_PROXY="
     say "# true = hosts may open a game to participants without an account (PIN + nickname)."
-    say "ALLOW_ANONYMOUS_PARTICIPANTS=false"
+    if [ "$want_mode" = full ]; then say "ALLOW_ANONYMOUS_PARTICIPANTS=true"
+    else say "ALLOW_ANONYMOUS_PARTICIPANTS=false"; fi
     say "MEDIA_MAX_BYTES=10485760"
-    if [ "$want_mode" = compose ]; then
+    if [ "$want_mode" != standalone ]; then
       say "# Bundled PostgreSQL (compose mode)."
       say "POSTGRES_USER=quizdock"
       say "POSTGRES_PASSWORD=$(random_secret)"
@@ -151,18 +179,32 @@ cmd_init() {
   chmod 600 "$ENV_FILE"
   info "wrote $ENV_FILE"
 
-  if [ "$want_mode" = compose ] && [ ! -f "$COMPOSE_FILE" ]; then
+  if [ "$want_mode" != standalone ] && [ ! -f "$COMPOSE_FILE" ]; then
     info "fetching $COMPOSE_FILE"
     curl -fsSL "$RAW/docker-compose.prod.yml" -o "$COMPOSE_FILE" || die "could not download $COMPOSE_FILE"
   fi
+  if [ "$want_mode" = full ] && [ ! -f docker-compose.full.yml ]; then
+    info "fetching docker-compose.full.yml"
+    curl -fsSL "$RAW/docker-compose.full.yml" -o docker-compose.full.yml || die "could not download the full preset overlay"
+  fi
+  if [ "$want_mode" = full ] && [ ! -f keycloak/realm-export.json ]; then
+    mkdir -p keycloak
+    info "fetching keycloak/realm-export.json"
+    curl -fsSL "$RAW/keycloak/realm-export.json" -o keycloak/realm-export.json || die "could not download the Keycloak realm"
+  fi
   say
-  say "Next: $0 up    (then open http://localhost:$port)"
+  if [ "$want_mode" = full ]; then
+    say "Temporary passwords for host, player and admin are in $ENV_FILE (mode 600)."
+    say "Next: $0 up    (then open http://$public_host:$port)"
+  else
+    say "Next: $0 up    (then open http://localhost:$port)"
+  fi
 }
 
 cmd_up() {
   need_docker; need_init
   case "$(mode)" in
-    compose)
+    compose | full)
       info "starting the stack ($COMPOSE_FILE, tag $(tag))"
       compose up -d
       ;;
@@ -180,6 +222,11 @@ cmd_up() {
   esac
   info "waiting for the app…"
   if wait_healthy "http://localhost:$(http_port)/health" 120; then
+    if [ "$(mode)" = full ]; then
+      info "waiting for Keycloak…"
+      wait_healthy "http://localhost:$(env_get KEYCLOAK_PORT 18081)/realms/quiz-dock/.well-known/openid-configuration" 180 \
+        || die "Keycloak is not ready — check \`$0 logs keycloak\`."
+    fi
     info "QuizDock is up: http://localhost:$(http_port)"
   else
     warn "the app is not healthy yet — check \`$0 logs\`."
@@ -190,7 +237,7 @@ cmd_up() {
 cmd_down() {
   need_docker; need_init
   case "$(mode)" in
-    compose) compose down ;;
+    compose | full) compose down ;;
     standalone) docker stop "$CONTAINER" >/dev/null && info "stopped $CONTAINER" ;;
   esac
 }
@@ -198,7 +245,7 @@ cmd_down() {
 cmd_status() {
   need_docker; need_init
   case "$(mode)" in
-    compose) compose ps ;;
+    compose | full) compose ps ;;
     standalone) docker ps -a --filter "name=^${CONTAINER}$" ;;
   esac
   if curl -fs "http://localhost:$(http_port)/health" >/dev/null 2>&1; then
@@ -211,20 +258,24 @@ cmd_status() {
 cmd_logs() {
   need_docker; need_init
   case "$(mode)" in
-    compose) compose logs -f --tail=200 "$@" ;;
+    compose | full) compose logs -f --tail=200 "$@" ;;
     standalone) docker logs -f --tail=200 "$CONTAINER" ;;
   esac
 }
 
 cmd_backup() {
   need_docker; need_init
+  umask 077
   dir="${1:-$BACKUP_ROOT/quizdock-$(date +%Y%m%d-%H%M%S)}"
   mkdir -p "$dir"
   info "backing up to $dir"
   case "$(mode)" in
-    compose)
+    compose | full)
       user="$(env_get POSTGRES_USER live)"; db="$(env_get POSTGRES_DB quizdock)"
       compose exec -T postgres pg_dump -U "$user" --clean --if-exists "$db" >"$dir/database.sql"
+      if [ "$(mode)" = full ]; then
+        compose exec -T postgres pg_dump -U "$user" --clean --if-exists keycloak >"$dir/keycloak.sql"
+      fi
       # `docker cp` needs no tar inside the (distroless) app container.
       compose cp quizdock:/data/media "$dir/media" 2>/dev/null || mkdir -p "$dir/media"
       # Shared templates live on their own volume too (#39), not in PostgreSQL.
@@ -237,22 +288,30 @@ cmd_backup() {
       ;;
   esac
   cp "$ENV_FILE" "$dir/env" && chmod 600 "$dir/env"
-  info "done: $(du -sh "$dir" | cut -f1) — database.sql, media/, store/, env"
+  info "done: $(du -sh "$dir" | cut -f1) — database.sql, media/, store/, env$( [ "$(mode)" = full ] && printf ', keycloak.sql' )"
 }
 
 cmd_restore() {
   need_docker; need_init
   dir="${1:-}"
   [ -n "$dir" ] && [ -f "$dir/database.sql" ] || die "usage: $0 restore <backup-dir> (a directory written by \`$0 backup\`)"
-  warn "this REPLACES the current database and media with $dir."
+  if [ "$(mode)" = full ] && [ ! -f "$dir/keycloak.sql" ]; then
+    die "full mode restore needs $dir/keycloak.sql (accounts and OIDC configuration)."
+  fi
+  warn "this REPLACES the current database, media and (in full mode) Keycloak data with $dir."
   confirm "Continue?"
   case "$(mode)" in
-    compose)
+    compose | full)
       user="$(env_get POSTGRES_USER live)"; db="$(env_get POSTGRES_DB quizdock)"
       info "stopping the app"
       compose stop quizdock >/dev/null
       info "restoring the database"
       compose exec -T postgres psql -q -U "$user" -d "$db" <"$dir/database.sql" >/dev/null
+      if [ "$(mode)" = full ] && [ -f "$dir/keycloak.sql" ]; then
+        compose stop keycloak >/dev/null
+        compose exec -T postgres psql -q -U "$user" -d keycloak <"$dir/keycloak.sql" >/dev/null
+        compose up -d keycloak >/dev/null
+      fi
       if [ -d "$dir/media" ]; then
         info "restoring media"
         compose cp "$dir/media/." quizdock:/data/media
@@ -293,7 +352,7 @@ cmd_upgrade() {
     grep -v '^QUIZDOCK_TAG=' "$ENV_FILE" >"$ENV_FILE.tmp" && say "QUIZDOCK_TAG=$new_tag" >>"$ENV_FILE.tmp" && mv "$ENV_FILE.tmp" "$ENV_FILE"
   fi
   case "$(mode)" in
-    compose)
+    compose | full)
       info "pulling"
       compose pull
       info "restarting with migrations"
@@ -321,7 +380,7 @@ QuizDock operator CLI
 Usage: $0 <command> [args]
 
 Install & run
-  init [--standalone]   Create $ENV_FILE (guided) and fetch $COMPOSE_FILE
+  init [--full|--standalone] Create $ENV_FILE (guided) and fetch the Compose/realm files
   up                    Start (compose stack or standalone container), wait for health
   down                  Stop
   status                Containers + health
