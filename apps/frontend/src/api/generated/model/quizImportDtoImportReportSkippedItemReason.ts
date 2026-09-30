@@ -10,10 +10,7 @@ export type QuizImportDtoImportReportSkippedItemReason = typeof QuizImportDtoImp
 
 
 export const QuizImportDtoImportReportSkippedItemReason = {
-  missing_prompt: 'missing_prompt',
-  missing_answers: 'missing_answers',
   invalid_time: 'invalid_time',
-  invalid_correct: 'invalid_correct',
   formula: 'formula',
   invalid_content: 'invalid_content',
 } as const;

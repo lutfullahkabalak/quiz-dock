@@ -16,7 +16,7 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useRouterState } from '@tanstack/react-router';
 import {
   AlertTriangle,
   Archive,
@@ -81,6 +81,7 @@ import { useMediaQuery } from '@/lib/use-media-query';
 import { useUnsavedGuard } from '@/lib/use-unsaved-guard';
 import { languageName, licenseName } from '@/lib/quiz-terms';
 import { ChromiumNotice } from '@/components/chromium-notice';
+import { Notice } from '@/components/ui/notice';
 import { Disclosure } from '@/components/ui/disclosure';
 import { Drawer } from '@/components/ui/drawer';
 import { QuestionForm } from './question-form';
@@ -769,6 +770,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           </p>
         ) : null}
       </header>
+      <ImportReportNotice quizId={quiz.id} />
       {/* Master / detail: the sequence on the left, the open item on the right (a bottom
           sheet below `lg`). */}
       <div
@@ -1040,6 +1042,51 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
 }
 
 /** Sidebar block: a small caps label, then content — no card chrome. */
+/**
+ * Arrived from a Kahoot sheet's import: how many questions came in, which ones to
+ * finish, which rows were left out and why. Closed, it does not come back.
+ */
+function ImportReportNotice({ quizId }: { quizId: string }) {
+  const { t } = useTranslation(['editor', 'common']);
+  const navigate = useNavigate();
+  const report = useRouterState({ select: (s) => s.location.state.importReport });
+  if (!report) return null;
+  const close = () =>
+    void navigate({ to: '/quizzes/$quizId', params: { quizId }, state: {}, replace: true });
+  return (
+    <Notice tone="info" role="status">
+      <div className="flex items-start gap-2">
+        <div className="flex min-w-0 flex-1 flex-col gap-1">
+          <p className="font-medium">{t('importReport.imported', { count: report.converted })}</p>
+          <p>{t('importReport.media')}</p>
+          {report.incomplete.length > 0 ? (
+            <p>{t('importReport.incomplete', { count: report.incomplete.length })}</p>
+          ) : null}
+          {report.skipped.length > 0 ? (
+            <ul className="text-muted-foreground list-disc pl-5">
+              {report.skipped.map(({ row, reason }) => (
+                <li key={row}>
+                  {t('importReport.skipped', { row, reason: t(`importReport.reasons.${reason}`) })}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon"
+          className="-my-1 size-7"
+          aria-label={t('common:close')}
+          onClick={close}
+        >
+          <X className="size-4" />
+        </Button>
+      </div>
+    </Notice>
+  );
+}
+
 function Section({
   title,
   className,

@@ -20,6 +20,7 @@ import { FeedbackPage } from './routes/feedback-page';
 import { RootLayout } from './routes/root-layout';
 import { ErrorPage, NotFoundPage } from './routes/fallback-pages';
 import { AdminMediaPage } from './routes/admin-media-page';
+import type { QuizImportDtoImportReport } from './api/generated/model';
 
 const requireAuth = () => {
   if (!isAuthenticated()) {
@@ -296,5 +297,9 @@ export const router = createRouter({ routeTree });
 declare module '@tanstack/react-router' {
   interface Register {
     router: typeof router;
+  }
+  interface HistoryState {
+    /** A Kahoot sheet just imported: what became of its rows, shown once by the editor. */
+    importReport?: QuizImportDtoImportReport;
   }
 }

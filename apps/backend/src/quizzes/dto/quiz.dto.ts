@@ -1,6 +1,7 @@
 import { createZodDto } from 'nestjs-zod';
 import { AUDIO_TARGETS } from '@quiz-dock/contracts';
 import { z } from 'zod';
+import { KAHOOT_SKIP_REASONS } from '../portable/kahoot-spreadsheet';
 
 /** Représentation d'un quiz exposée par l'API (§2.2). */
 export const quizSchema = z.object({
@@ -35,23 +36,18 @@ export const quizSchema = z.object({
 
 export class QuizDto extends createZodDto(quizSchema) {}
 
+/** A quiz just imported; from a Kahoot sheet, with what became of each row. */
 export class QuizImportDto extends createZodDto(
   quizSchema.extend({
     importReport: z
       .object({
         source: z.literal('kahoot'),
         converted: z.number().int(),
+        incomplete: z.array(z.number().int()),
         skipped: z.array(
           z.object({
             row: z.number().int(),
-            reason: z.enum([
-              'missing_prompt',
-              'missing_answers',
-              'invalid_time',
-              'invalid_correct',
-              'formula',
-              'invalid_content',
-            ]),
+            reason: z.enum(KAHOOT_SKIP_REASONS),
           }),
         ),
       })

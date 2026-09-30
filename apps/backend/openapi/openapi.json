@@ -2897,6 +2897,14 @@
                 "minimum": -9007199254740991,
                 "maximum": 9007199254740991
               },
+              "incomplete": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                }
+              },
               "skipped": {
                 "type": "array",
                 "items": {
@@ -2910,10 +2918,7 @@
                     "reason": {
                       "type": "string",
                       "enum": [
-                        "missing_prompt",
-                        "missing_answers",
                         "invalid_time",
-                        "invalid_correct",
                         "formula",
                         "invalid_content"
                       ]
@@ -2929,6 +2934,7 @@
             "required": [
               "source",
               "converted",
+              "incomplete",
               "skipped"
             ]
           }

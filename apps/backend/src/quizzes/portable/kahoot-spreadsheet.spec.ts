@@ -36,30 +36,46 @@ describe('Kahoot spreadsheet', () => {
         { text: 'D', isCorrect: false, color: 'green' },
       ],
     });
-    expect(result.report).toEqual({ source: 'kahoot', converted: 1, skipped: [] });
+    expect(result.report).toEqual({ source: 'kahoot', converted: 1, incomplete: [], skipped: [] });
   });
-  it('supports multiple correct answers and reports invalid rows in source order', () => {
+  it('supports multiple correct answers and reports skipped rows in source order', () => {
     const result = kahootSpreadsheet(
       workbook(
         row(9, [...good.slice(0, 6), '1, 3']) +
-          row(10, ['', ...good.slice(1)]) +
-          row(11, ['Q', 'A', '', '', '', '30', '1']) +
           row(12, [...good.slice(0, 5), '240', '3']) +
-          row(13, [...good.slice(0, 6), '2']) +
           row(14, good, 'B') +
           row(15, ['x'.repeat(1001), ...good.slice(1)]) +
           row(16, ['', '', '', '', '', '', '']),
       ),
     )!;
+    expect(result.bundle.items).toHaveLength(1);
     expect(result.bundle.items[0]).toMatchObject({ type: 'multiple_choice' });
     expect(result.report.skipped).toEqual([
-      { row: 10, reason: 'missing_prompt' },
-      { row: 11, reason: 'missing_answers' },
       { row: 12, reason: 'invalid_time' },
-      { row: 13, reason: 'invalid_correct' },
       { row: 14, reason: 'formula' },
       { row: 15, reason: 'invalid_content' },
     ]);
+  });
+  it('brings unfinished rows in as questions to complete, as the editor would', () => {
+    const result = kahootSpreadsheet(
+      workbook(
+        row(10, ['', ...good.slice(1)]) +
+          row(11, ['Q', 'A', '', '', '', '30', '1']) +
+          row(13, [...good.slice(0, 6), '2']) +
+          row(17, ['Q', 'A', 'B', '', '', '', 'x']),
+      ),
+    )!;
+    expect(result.bundle.items).toHaveLength(4);
+    expect(result.bundle.items[0]).toMatchObject({ prompt: '' });
+    expect(result.bundle.items[1]).toMatchObject({ options: [{ text: 'A', isCorrect: true }] });
+    // Answer 2 is empty: no correct answer is left, the question is single choice to finish.
+    expect(result.bundle.items[2]).toMatchObject({ type: 'single_choice' });
+    expect(result.bundle.items[3]).toMatchObject({ timeLimitS: 20 });
+    expect(result.report).toMatchObject({
+      converted: 4,
+      incomplete: [10, 11, 13, 17],
+      skipped: [],
+    });
   });
   it('reads shared strings and rich text', () => {
     const sheet = `<worksheet><sheetData>${row(8, ['Question -', 'Answer 1 -', 'Answer 2 -', 'Answer 3 -', 'Answer 4 -', 'Time limit', 'Correct answer(s)'])}<row r="9"><c r="B9" t="s"><v>0</v></c>${['A', 'B', '', '', '30', '1'].map((v, i) => cell('CDEFGH'[i], 9, v)).join('')}</row></sheetData></worksheet>`;
@@ -81,9 +97,7 @@ describe('Kahoot spreadsheet', () => {
     expect(() =>
       kahootSpreadsheet(workbook('', { 'xl/worksheets/sheet1.xml': strToU8('<worksheet/>') })),
     ).toThrow('import.kahoot_template');
-    expect(() => kahootSpreadsheet(workbook(row(9, ['', ...good.slice(1)])))).toThrow(
-      BadRequestException,
-    );
+    expect(() => kahootSpreadsheet(workbook(row(9, good, 'B')))).toThrow(BadRequestException);
     expect(() =>
       kahootSpreadsheet(
         workbook('', {

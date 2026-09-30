@@ -574,5 +574,18 @@
     "errors_other": "{{count}} errors",
     "toFinish_one": "1 thing to finish",
     "toFinish_other": "{{count}} things to finish"
+  },
+  "importReport": {
+    "imported_one": "1 question imported from Kahoot.",
+    "imported_other": "{{count}} questions imported from Kahoot.",
+    "media": "Pictures and sounds are not brought over.",
+    "incomplete_one": "1 question to finish before publishing: it is flagged in the list.",
+    "incomplete_other": "{{count}} questions to finish before publishing: they are flagged in the list.",
+    "skipped": "Row {{row}} left out: {{reason}}",
+    "reasons": {
+      "invalid_time": "a time limit outside 5–120 seconds",
+      "formula": "formulas are not read",
+      "invalid_content": "a text too long for QuizDock"
+    }
   }
 }

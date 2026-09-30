@@ -15,5 +15,10 @@ export type QuizImportDtoImportReport = {
      * @maximum 9007199254740991
      */
   converted: number;
+  /**
+     * @items.minimum -9007199254740991
+     * @items.maximum 9007199254740991
+     */
+  incomplete: number[];
   skipped: QuizImportDtoImportReportSkippedItem[];
 };

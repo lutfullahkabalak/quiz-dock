@@ -49,7 +49,7 @@ import {
   useQuizzesControllerRemove,
   useQuizzesControllerTransition,
 } from '../api/generated/quizzes/quizzes';
-import type { QuizDto, QuizImportDto } from '../api/generated/model';
+import type { QuizDto } from '../api/generated/model';
 import { ApiError, apiErrorText } from '../api/http';
 import { ListSkeleton } from '@/components/ui/loading';
 import { mediaUrl } from '@/lib/media-url';
@@ -65,7 +65,6 @@ export function DashboardPage() {
   const create = useQuizzesControllerCreate();
   const importQuiz = useQuizzesControllerImportQuiz();
   const navigate = useNavigate();
-  const [imported, setImported] = useState<QuizImportDto | null>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const { launch, isLaunching, error: launchError, dialog: launchDialog } = useLaunchSession();
   const { copy, copying, copyError } = useCopyQuiz();
@@ -143,17 +142,20 @@ export function DashboardPage() {
   const invalidateList = () =>
     queryClient.invalidateQueries({ queryKey: getQuizzesControllerListQueryKey() });
 
-  // A bundle (zip, or a bare quiz.json) becomes a new draft: straight to its editor.
+  // A bundle (zip, or a bare quiz.json) or a Kahoot sheet becomes a new draft: straight
+  // to its editor, which shows what became of the sheet's rows.
   const onImportFile = (file: File | undefined) => {
     if (!file) return;
-    setImported(null);
     importQuiz.mutate(
       { data: { file } },
       {
         onSuccess: (res) => {
           invalidateList();
-          if (res.data.importReport) setImported(res.data);
-          else void navigate({ to: '/quizzes/$quizId', params: { quizId: res.data.id } });
+          void navigate({
+            to: '/quizzes/$quizId',
+            params: { quizId: res.data.id },
+            state: { importReport: res.data.importReport },
+          });
         },
       },
     );
@@ -229,24 +231,6 @@ export function DashboardPage() {
           </Button>
         </div>
       </div>
-      {imported?.importReport ? (
-        <div className="rounded-lg border p-4 space-y-2" role="status">
-          <p>{t('kahootImported', { count: imported.importReport.converted })}</p>
-          <p>{t('kahootReview')}</p>
-          {imported.importReport.skipped.length > 0 ? (
-            <ul className="list-disc pl-5">
-              {imported.importReport.skipped.map(({ row, reason }) => (
-                <li key={row}>
-                  {t('kahootSkipped', { row, reason: t(`kahootReasons.${reason}`) })}
-                </li>
-              ))}
-            </ul>
-          ) : null}
-          <Link to="/quizzes/$quizId" params={{ quizId: imported.id }} className="underline">
-            {t('edit')}
-          </Link>
-        </div>
-      ) : null}
       {importQuiz.error ? (
         <p className="text-destructive text-sm" role="alert">
           {apiErrorText(importQuiz.error, t('importError'))}

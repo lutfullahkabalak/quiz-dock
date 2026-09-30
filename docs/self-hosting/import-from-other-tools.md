@@ -9,18 +9,24 @@ The file name becomes the draft title. Delete the template's example question
 if you do not want to import it.
 
 QuizDock keeps the wording, answer order, correct answers and time limits
-(5–120 seconds). One correct answer becomes single choice; several become
-multiple choice. At least two answers are required. Unsupported or invalid
-rows are skipped and reported by spreadsheet row number and reason. If no
-question can be converted, no draft is created. Formula cells are skipped;
-links, pictures and sounds are not read or fetched. The draft inherits the
-instance language and has no licence: check both before publishing it.
+(5–120 seconds; an empty cell gives the default 20). One correct answer becomes
+single choice; several become multiple choice. The draft then opens in the editor,
+with the conversion report on top.
+
+A row missing its question, answers or correct answer still comes in, as a
+question to finish: the editor flags it, and the quiz cannot be published until
+it is complete. A row is left out, and reported by row number and reason, only
+when QuizDock cannot hold it: a time limit outside 5–120 seconds, a formula cell,
+or a text longer than QuizDock allows. If no row can be converted, no draft is
+created. Links, pictures and sounds are not read or fetched. The draft inherits
+the instance language and has no licence: check both before publishing it.
 
 The API uses the existing `POST /quizzes/import` upload. Kahoot imports include
-an `importReport` with `source`, `converted` and `skipped` (row/reason).
-The operator command `qd quiz:import file.xlsx user@example.com` prints the
-same report. An existing Kahoot quiz URL is not an import source; Kahoot's
-spreadsheet template is an input format, not a quiz export.
+an `importReport` with `source`, `converted`, `incomplete` (row numbers) and
+`skipped` (row/reason). The operator command
+`qd quiz:import file.xlsx user@example.com` prints the same report. An existing
+Kahoot quiz URL is not an import source; Kahoot's spreadsheet template is an
+input format, not a quiz export.
 
 ## Other source formats
 

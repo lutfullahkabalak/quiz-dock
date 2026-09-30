@@ -5,21 +5,18 @@ import {
   OPTION_COLORS,
   OPTION_SHAPES,
   questionContentSchema,
+  questionIssues,
 } from '../../questions/dto/question-content.schema';
+import { TIME_LIMIT_S } from '@quiz-dock/contracts';
 import { readArchive } from './bundle-archive';
 import { BUNDLE_FORMAT, type QuestionBundleItem, type QuizBundle } from './quiz-bundle.schema';
 
-export const KAHOOT_SKIP_REASONS = [
-  'missing_prompt',
-  'missing_answers',
-  'invalid_time',
-  'invalid_correct',
-  'formula',
-  'invalid_content',
-] as const;
+export const KAHOOT_SKIP_REASONS = ['invalid_time', 'formula', 'invalid_content'] as const;
 export interface KahootImportReport {
   source: 'kahoot';
   converted: number;
+  /** Rows imported as questions that still lack something (prompt, answers, correct one). */
+  incomplete: number[];
   skipped: { row: number; reason: (typeof KAHOOT_SKIP_REASONS)[number] }[];
 }
 
@@ -109,7 +106,12 @@ export function kahootSpreadsheet(
     throw new BadRequestException('import.kahoot_template');
   }
   const items: QuestionBundleItem[] = [];
-  const report: KahootImportReport = { source: 'kahoot', converted: 0, skipped: [] };
+  const report: KahootImportReport = {
+    source: 'kahoot',
+    converted: 0,
+    incomplete: [],
+    skipped: [],
+  };
   for (const [row, cells] of [...rows].sort(([a], [b]) => a - b)) {
     if (row < 9 || ![...cells.values()].some((c) => c.value)) continue;
     const skip = (reason: KahootImportReport['skipped'][number]['reason']) =>
@@ -118,34 +120,27 @@ export function kahootSpreadsheet(
       skip('formula');
       continue;
     }
+    // A row missing its question, answers or correct ones still comes in: the draft
+    // flags what it lacks, as it would for a question typed in the editor.
     const prompt = cells.get('B')?.value ?? '';
-    if (!prompt) {
-      skip('missing_prompt');
-      continue;
-    }
     const answers = ['C', 'D', 'E', 'F'].map((c) => cells.get(c)?.value ?? '');
-    if (answers.filter(Boolean).length < 2) {
-      skip('missing_answers');
-      continue;
-    }
-    const time = Number(cells.get('G')?.value);
-    if (!Number.isInteger(time) || time < 5 || time > 120) {
+    const timeText = cells.get('G')?.value ?? '';
+    const time = timeText ? Number(timeText) : TIME_LIMIT_S.default;
+    if (!Number.isInteger(time) || time < TIME_LIMIT_S.min || time > TIME_LIMIT_S.max) {
       skip('invalid_time');
       continue;
     }
-    const correctText = cells.get('H')?.value ?? '';
-    const correct = correctText.split(',').map((v) => Number(v.trim()));
-    if (
-      !/^\s*[1-4](\s*,\s*[1-4])*\s*$/.test(correctText) ||
-      new Set(correct).size !== correct.length ||
-      correct.some((n) => !answers[n - 1])
-    ) {
-      skip('invalid_correct');
-      continue;
-    }
+    const correct = [
+      ...new Set(
+        (cells.get('H')?.value ?? '')
+          .split(',')
+          .map((v) => Number(v.trim()))
+          .filter((n) => Number.isInteger(n) && answers[n - 1]),
+      ),
+    ];
     const item: QuestionBundleItem = {
       kind: 'question',
-      type: correct.length === 1 ? 'single_choice' : 'multiple_choice',
+      type: correct.length > 1 ? 'multiple_choice' : 'single_choice',
       prompt,
       timeLimitS: time,
       options: answers.flatMap((answer, i) =>
@@ -166,6 +161,8 @@ export function kahootSpreadsheet(
       continue;
     }
     items.push(item);
+    if (questionIssues({ type: item.type, prompt, options: item.options }).length > 0)
+      report.incomplete.push(row);
     if (items.length > 500) throw new BadRequestException('import.bundle_too_large');
   }
   if (!items.length)

@@ -102,6 +102,8 @@ export async function quizImport(
   out.line(`Imported "${quiz.title}" (${quiz.id}) as a draft of ${user.displayName}.`);
   if (quiz.importReport) {
     out.line(`Kahoot: ${quiz.importReport.converted} questions converted.`);
+    if (quiz.importReport.incomplete.length)
+      out.line(`To complete before publishing: rows ${quiz.importReport.incomplete.join(', ')}`);
     for (const skipped of quiz.importReport.skipped)
       out.line(`Skipped row ${skipped.row}: ${skipped.reason}`);
   }
