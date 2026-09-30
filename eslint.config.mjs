@@ -29,7 +29,7 @@ export default tseslint.config(
   },
   // Scripts Node (outillage, ex. vérification des locales).
   {
-    files: ['**/scripts/**/*.{js,mjs,cjs}'],
+    files: ['**/scripts/**/*.{js,mjs,cjs}', 'tools/**/*.{js,mjs,cjs}'],
     languageOptions: { globals: { ...globals.node } },
   },
   // Frontend : règles React Hooks + globals navigateur
