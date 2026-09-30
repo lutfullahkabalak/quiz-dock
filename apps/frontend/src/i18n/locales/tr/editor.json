@@ -17,7 +17,8 @@
     "deleteQuiz": "Quizi sil",
     "preview": "Önizleme",
     "export": "Dışa aktar",
-    "exportError": "Quiz dışa aktarılamadı."
+    "exportError": "Quiz dışa aktarılamadı.",
+    "more": "Diğer"
   },
   "settings": {
     "title": "Ayarlar",
@@ -65,7 +66,9 @@
     "sharedLabel": "Bu kurulumdaki diğer sunucularla paylaş",
     "sharedHelp": "Diğer sunucular quizi salt okunur olarak görebilir ve kendi kopyalarını oluşturabilir. Kapalıysa yalnızca siz görebilirsiniz.",
     "sharedOn": "Paylaşıldı",
-    "sharedOff": "Özel"
+    "sharedOff": "Özel",
+    "saving": "Kaydediliyor…",
+    "saved": "Kaydedildi"
   },
   "broadcast": {
     "title": "Yayın",
@@ -91,9 +94,6 @@
     "backToEditor": "Editöre geri dön",
     "loadError": "İncelemeler yüklenemedi.",
     "noneForFilter": "Bu derecelendirmeye sahip inceleme yok.",
-    "previous": "Önceki",
-    "next": "Sonraki",
-    "pagePosition": "Sayfa {{page}} / {{pages}}",
     "count_one": "{{count}} değerlendirme",
     "count_other": "{{count}} değerlendirme"
   },
@@ -110,7 +110,9 @@
     "formTitle": "Soru",
     "empty": "Soru yok. Bir tane ekle!",
     "collapseList": "Listeyi daralt",
-    "expandList": "Listeyi genişlet"
+    "expandList": "Listeyi genişlet",
+    "unfinished": "Tamamlanmamış",
+    "itemActions": "“{{label}}” için işlemler"
   },
   "slides": {
     "formTitle": "Slayt",
@@ -123,8 +125,8 @@
     "bodyPlaceholder": "Görüntülenecek metin…",
     "contrastLegend": "Metin kontrastı",
     "tone": {
-      "light": "Koyulaştırılmış bir görüntü üzerinde açık renkli metin",
-      "dark": "Aydınlatılmış bir görüntü üzerinde koyu metin"
+      "light": "Açık renkli metin",
+      "dark": "Koyu renkli metin"
     },
     "outline": "Metin çevresi (altyazıdaki gibi hale)",
     "displayLegend": "Otomatik ilerleme (otomatik mod)",
@@ -204,6 +206,13 @@
       "remaining": "Kaç soru kaldı, sonraki soru dahil",
       "date": "Bugünün tarihi",
       "time": "Zaman"
+    },
+    "blockRemoved": "Blok kaldırıldı.",
+    "undo": "Geri al",
+    "emptySkipped": "Boş — kaydedilirken atlanır.",
+    "moveToDraft": {
+      "title": "Bu boş slayt kaydedilsin mi?",
+      "description": "Bu quiz yayımlandığı için her an sunulabilir: slaytta bir içerik olmalıdır. Bu slaytı olduğu gibi kaydetmek için quizi taslağa döndürün veya düzenlemeye devam edin."
     }
   },
   "discardConfirm": {
@@ -262,8 +271,8 @@
     "optionPlaceholder": "Seçenek {{index}}",
     "colorAriaLabel": "renk {{index}}",
     "shapeAriaLabel": "şekil {{index}}",
-    "orderAriaLabel": "sıra {{index}}",
-    "correct": "doğru",
+    "orderAriaLabel": "{{index}}. yanıtın doğru sıralamadaki yeri",
+    "correct": "Doğru",
     "removeOption": "{{index}} seçeneğini kaldır",
     "addOption": "Bir seçenek ekle",
     "acceptedAnswersLegend": "Kabul edilen cevaplar",
@@ -300,11 +309,26 @@
       }
     },
     "scoringHelp": {
-      "multiple_choice": "Kısmi puan: Her doğru işaretleme puan kazandırır, her yanlış işaretleme bir doğruyu götürür.",
-      "ordering": "Kısmi puan: Doğru konumdaki her öğe puan kazandırır.",
-      "text_input": "Yazım hatalarına tolerans: Beş harfe kadar bir, daha uzun yanıtlarda iki karakterlik hata kabul edilir (büyük/küçük harf ve aksanlar eşitlendikten sonra).",
-      "numeric": "En yakın yanıt kazanır: Hedefe tolerans dahilinde ulaşanlar tam puan, diğerleri yakınlığına göre %75, %50, %30 veya %10 puan alır. Hız bonusu yoktur.",
-      "image_choice": "Kısmi puan: Her doğru görsel puan kazandırır, her yanlış seçim bir doğruyu götürür."
+      "multiple_choice": {
+        "standard": "Ya hep ya hiç: tüm doğru yanıtlar işaretlenmeli, yanlış yanıtların hiçbiri işaretlenmemelidir.",
+        "partial": "Kısmi puan: işaretlenen her doğru yanıt kendi payını kazandırır, her yanlış yanıt bir doğru yanıtın puanını götürür."
+      },
+      "ordering": {
+        "standard": "Ya hep ya hiç: her öğe doğru yerinde olmalıdır.",
+        "partial": "Kısmi puan: doğru konumdaki öğelerin oranına göre verilir."
+      },
+      "text_input": {
+        "standard": "Büyük/küçük harf ve aksan farkları yok sayıldıktan sonra tam eşleşme gerekir.",
+        "lenient": "Yazım hatalarını kabul et: büyük/küçük harf ve aksan farkları giderildikten sonra, 5 harfe kadar bir, daha uzun yanıtlarda iki düzenlemeye izin verilir."
+      },
+      "numeric": {
+        "standard": "Tolerans içindeki yanıtlar doğru sayılır; puan hıza göre değişir.",
+        "closest": "En yakın yanıt kazanır: puanlar yanıt gösterilirken verilir — tam eşleşme (tolerans içinde) tam puan, ardından %75 / %50 / %30, daha uzaktakiler %10; hız bonusu yoktur."
+      },
+      "image_choice": {
+        "standard": "Ya hep ya hiç: tüm doğru görseller işaretlenmeli, yanlış görsellerin hiçbiri işaretlenmemelidir.",
+        "partial": "Kısmi puan (birden fazla doğru görsel): işaretlenen her doğru görsel kendi payını kazandırır, her yanlış görsel bir doğru görselin puanını götürür."
+      }
     },
     "removeOptionConfirm": {
       "title": "Bu seçenek kaldırılsın mı?",
@@ -330,14 +354,38 @@
     "imageAltAria": "Resmin alternatif metni {{index}}",
     "imageAltPlaceholder": "Göremeyenler için resim neyi gösteriyor",
     "imageAltRequired": "Resmi tanımlayın: göremeyenler için cevap budur.",
-    "imagesIncomplete": "Her cevabın bir resme ve alternatif metnine ihtiyacı vardır.",
     "imageCountConfirm": {
       "title": "Yalnızca 2 görsel kalsın mı?",
       "description": "Son iki cevap ve resimleri kaldırılacaktır.",
       "confirmLabel": "Kaldır"
     },
     "trueOption": "Doğru",
-    "falseOption": "Yanlış"
+    "falseOption": "Yanlış",
+    "clampedTime": "{{value}} sn olarak ayarlandı: bir soru {{min}}–{{max}} sn sürer.",
+    "clampedReveal": "{{value}} sn olarak ayarlandı: bekleme süresi {{min}}–{{max}} sn olabilir.",
+    "addOptionMax": "En fazla {{max}} yanıt",
+    "addAnswerMax": "En fazla {{max}} yanıt",
+    "moveToDraft": {
+      "title": "Bu tamamlanmamış soru kaydedilsin mi?",
+      "description": "Bu quiz yayımlandığı için her an sunulabilir: yalnızca tamamlanmış sorular içerebilir. Bu soruyu olduğu gibi kaydetmek için quizi taslağa döndürün veya düzenlemeye devam edin.",
+      "confirmLabel": "Taslağa döndür ve kaydet",
+      "cancelLabel": "Düzenlemeye devam et"
+    },
+    "optionActions": "{{index}}. seçenek için işlemler",
+    "removeOptionShort": "Kaldır",
+    "ticksCleared": "Soru türü değişti: doğru yanıt işaretleri temizlendi. Yeni kurallara göre yeniden işaretleyin.",
+    "explanationWritten": "Yazıldı",
+    "explanationEmpty": "Boş",
+    "numericLegend": "Yanıt",
+    "decimalsAllowed": "Ondalık sayılar kullanılabilir: 3.14, 0.5…",
+    "timingSummary": "{{time}} sn",
+    "timingSummaryStretched": "{{time}} sn (medyayla birlikte {{total}} sn)",
+    "revealDelayAuto": "yanıt gösterme gecikmesi otomatik",
+    "revealDelaySummary": "yanıt {{seconds}} sn sonra gösterilir",
+    "place_ordinal_one": "{{count}}.",
+    "place_ordinal_two": "{{count}}.",
+    "place_ordinal_few": "{{count}}.",
+    "place_ordinal_other": "{{count}}."
   },
   "preview": {
     "view": "Önizleme (katılımcı görünümü)",
@@ -353,7 +401,14 @@
     "numericTarget": "Hedef: {{value}} (± {{tolerance}})",
     "credits": "Kaynaklar",
     "video": "Soru videosu",
-    "sound": "Ses · {{seconds}} sn"
+    "sound": "Ses · {{seconds}} sn",
+    "steps": "Adımlar",
+    "backToEditor": "Düzenleyiciye dön",
+    "device": "Cihaz",
+    "projection": "Projeksiyon",
+    "phone": "Telefon",
+    "showAnswer": "Yanıtı göster",
+    "title": "Önizleme"
   },
   "media": {
     "alt": "soru medyası",
@@ -498,12 +553,39 @@
   },
   "readOnly": {
     "notice": "{{owner}}'ın quizi: Okuyabilirsiniz, değiştiremezsiniz.",
-    "createFrom": "Bu quizden oluşturun",
+    "createFrom": "Bu quizden yeni bir quiz oluştur",
     "props": {
       "orderShown": "Doğru sırada listelenmiştir.",
       "seconds_one": "{{count}} saniye",
       "seconds_other": "{{count}} saniye",
       "muted": "sessiz"
+    },
+    "empty": "Henüz soru yok."
+  },
+  "publishChecklist": {
+    "title_one": "Yayımlamadan önce tamamlanacak 1 adım",
+    "title_other": "Yayımlamadan önce tamamlanacak {{count}} adım",
+    "description": "Yayımlanmış bir quiz her an sunulabilir, bu yüzden her soru tamamlanmış olmalıdır. Taslaklar kaydettiğiniz tüm içeriği saklar.",
+    "untitled": "Metni olmayan soru",
+    "open": "Aç"
+  },
+  "formIssues": {
+    "errors_one": "1 hata",
+    "errors_other": "{{count}} hata",
+    "toFinish_one": "Tamamlanacak 1 öğe",
+    "toFinish_other": "Tamamlanacak {{count}} öğe"
+  },
+  "importReport": {
+    "imported_one": "Kahoot'tan 1 soru içe aktarıldı.",
+    "imported_other": "Kahoot'tan {{count}} soru içe aktarıldı.",
+    "media": "Görseller ve sesler aktarılmaz.",
+    "incomplete_one": "Yayımlamadan önce tamamlanacak 1 soru var: listede işaretlendi.",
+    "incomplete_other": "Yayımlamadan önce tamamlanacak {{count}} soru var: listede işaretlendiler.",
+    "skipped": "{{row}}. satır atlandı: {{reason}}",
+    "reasons": {
+      "invalid_time": "{{min}}–{{max}} saniye aralığı dışında bir süre sınırı",
+      "formula": "formüller okunmaz",
+      "invalid_content": "QuizDock için fazla uzun bir metin"
     }
   }
 }

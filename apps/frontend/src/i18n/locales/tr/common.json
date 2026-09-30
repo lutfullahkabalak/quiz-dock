@@ -42,7 +42,8 @@
     "live": "Açık odalar",
     "templates": "Şablonlar",
     "profile": "Hesabım",
-    "template": "Şablon"
+    "template": "Şablon",
+    "instanceMedia": "Kurulum medyası"
   },
   "demo": {
     "banner": "Herkese açık demo — tüm ziyaretçiler aynı sunucu hesabını paylaşır; veriler her saat silinir."
@@ -50,5 +51,13 @@
   "chromiumOnly": "Bu sayfa Chrome, Edge veya başka bir Chromium tarayıcı için oluşturulmuştur. Bu tarayıcıda video ve seslerin yüklenmesi ve oynatılması düzgün çalışmayabilir.",
   "play": "Oynat",
   "pause": "Duraklat",
-  "position": "Sesteki konum"
+  "position": "Sesteki konum",
+  "fallback": {
+    "notFoundTitle": "Bu sayfa mevcut değil",
+    "notFoundText": "Bağlantı eski olabilir veya bağlantının hedefi silinmiş olabilir.",
+    "errorTitle": "Bir sorun oluştu",
+    "errorText": "Bu sayfa çalışmayı durdurdu. Kaydettiğiniz veriler güvende.",
+    "backHome": "Ana sayfaya dön",
+    "tryAgain": "Yeniden dene"
+  }
 }

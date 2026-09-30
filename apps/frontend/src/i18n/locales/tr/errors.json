@@ -5,7 +5,8 @@
     "cross_origin": "Bu istek uygulamanın kendi sayfasından gelmedi.",
     "host_required": "Sunucu rolü gerekli.",
     "host_only": "Bu işlem sunucu yetkisi gerektirir. Yönetici rolü tek başına quiz sunma yetkisi vermez.",
-    "admin_required": "Yönetici rolü gerekli."
+    "admin_required": "Yönetici rolü gerekli.",
+    "oidc_disabled": "Bu kurulumda kimlik sağlayıcısıyla oturum açma etkin değil."
   },
   "host": {
     "auth_required": "Sunucu girişi gerekli.",
@@ -17,7 +18,11 @@
     "empty": "Bu quizde soru yok.",
     "requires_question": "Bir quizin “hazır” olması için en az bir soru içermesi gerekir (RG-02).",
     "transition_forbidden": "Yasak durum geçişi: {{from}} → {{target}}.",
-    "in_use": "Bu quiz bir odada oynanıyor: önce odayı kapatın."
+    "in_use": "Bu quiz bir odada oynanıyor: önce odayı kapatın.",
+    "item_not_in_quiz": "Bu öğe artık bu quize ait değil: sayfayı yeniden yükleyin.",
+    "reorder_incomplete": "Gönderilen sıralamada bazı öğeler eksik: sayfayı yeniden yükleyip tekrar deneyin.",
+    "incomplete_one": "1 adım tamamlanmamış: quizi yayımlamak için tamamlayın.",
+    "incomplete_other": "{{count}} adım tamamlanmamış: quizi yayımlamak için tamamlayın."
   },
   "session": {
     "not_found": "Oda bulunamadı veya kapatılmadı.",
@@ -34,7 +39,10 @@
     "archive_quiz_gone": "Quiz oynatılırken silindi: arşiv olmadan sona erdi.",
     "locked": "Bu odaya artık yeni katılımcı kabul edilmemektedir.",
     "open_access_forbidden": "Bu sunucuda açık erişime izin verilmiyor.",
-    "open_access_guests_only": "Açık erişimde katılımcı hesabı bulunmaz; bireysel takip veya hesaptan alınan ad kullanılamaz."
+    "open_access_guests_only": "Açık erişimde katılımcı hesabı bulunmaz; bireysel takip veya hesaptan alınan ad kullanılamaz.",
+    "next_quiz_unavailable": "Bu quiz bu odada sıradaki quiz olarak oynatılamaz.",
+    "review_unavailable": "Bir adımı yalnızca iki soru arasında yeniden gösterebilirsiniz.",
+    "step_not_played": "Bu adım henüz oynanmadı."
   },
   "participant": {
     "not_found": "Katılımcı bulunamadı."
@@ -70,7 +78,8 @@
     "canceled": "Dönüşüm iptal edildi.",
     "in_use": "Bu medya hâlâ bir quiz veya oturum tarafından kullanılıyor: önce onu oradan kaldırın.",
     "playing": "Şu anda bir oda bu medyayı oynatıyor: kapandıktan sonra tekrar deneyin.",
-    "not_adopted_yet": "Bu dosya paylaşılan depolama alanına taşınıyor; birazdan tekrar deneyin."
+    "not_adopted_yet": "Bu dosya paylaşılan depolama alanına taşınıyor; birazdan tekrar deneyin.",
+    "embed_bounds": "Videonun başlangıcı ve bitişi uygun değil: bitiş, başlangıçtan sonra olmalıdır."
   },
   "import": {
     "file_missing": "Eksik dosya (“dosya” alanı).",
@@ -78,13 +87,56 @@
     "bundle_too_large": "Bu paket açıldığında çok büyük oluyor veya çok fazla dosya içeriyor.",
     "media_missing": "“{{path}}” medyasına başvuruluyor ancak pakette yok.",
     "media_unsupported": "Desteklenmeyen medya “{{path}}” (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
-    "invalid_item": "Paketin {{item}} öğesi geçersiz ({{field}})."
+    "invalid_item": "Paketin {{item}} öğesi geçersiz ({{field}}).",
+    "kahoot_template": "Tek sayfalı özgün Kahoot elektronik tablo şablonunu (.xlsx) kullanın.",
+    "kahoot_empty": "Geçerli soru bulunamadı. {{row}}. satırı ve Kahoot şablonunu kontrol edin."
   },
   "question": {
     "not_in_quiz": "Soru, quizin bir parçası değil.",
     "invalid_permutation": "Konumlar 0..n-1 permütasyonunu oluşturmalıdır.",
     "reorder_incomplete": "Yeniden sıralamada quizin tüm soruları listelenmelidir.",
-    "not_found": "Soru bulunamadı."
+    "not_found": "Soru bulunamadı.",
+    "accepted_answers": {
+      "not_allowed": "Kabul edilen yanıtlar yalnızca yazılı yanıt sorularında kullanılabilir.",
+      "required": "En az bir kabul edilen yanıt ekleyin."
+    },
+    "image": {
+      "alt_required": "Bu görseli göremeyenler için açıklayın.",
+      "count": "Görsel seçimi sorusunda 2 veya 4 görsel olmalıdır.",
+      "no_text": "Görsel yanıt metin içermez.",
+      "no_visual": "Görsel seçimi sorusunun kendine ait görseli veya videosu olmaz: görseller yanıtlarıdır.",
+      "picture_required": "Bu yanıt için bir görsel seçin."
+    },
+    "incomplete_in_ready_quiz": "Bu quiz yayımlanmış: tamamlanmamış bir soruyu kaydetmek için quizi taslağa döndürün.",
+    "multi_select": {
+      "not_allowed": "Birden fazla doğru görsel yalnızca görsel seçimi sorularında kullanılabilir."
+    },
+    "numeric": {
+      "not_allowed": "Hedef değer ve tolerans yalnızca sayısal sorularda kullanılabilir.",
+      "tolerance_required": "Toleransı belirleyin (tam sayı eşleşmesi için 0).",
+      "value_required": "Bulunacak sayıyı belirleyin."
+    },
+    "options": {
+      "not_allowed": "Bu soru türünde seçilebilecek yanıtlar yoktur.",
+      "one_correct": "Doğru yanıtı işaretleyin.",
+      "some_correct": "En az bir doğru yanıtı işaretleyin.",
+      "too_few": "En az 2 yanıt ekleyin."
+    },
+    "ordering": {
+      "positions": "Her yanıtın doğru sıralamada kendine ait bir yeri olmalıdır."
+    },
+    "poll": {
+      "no_correct": "Anketin doğru yanıtı yoktur."
+    },
+    "prompt": {
+      "required": "Soruyu yazın veya soruyu soran bir görsel ya da ses ekleyin."
+    },
+    "scoring": {
+      "not_available": "Bu puanlama bu soru türünde kullanılamaz."
+    },
+    "true_false": {
+      "two_options": "Doğru/yanlış sorusunda tam olarak 2 yanıt olmalıdır."
+    }
   },
   "validation": "Bazı alanlar geçersiz.",
   "internal": "Dahili hata.",
@@ -111,7 +163,11 @@
     "too_large": "Quiz topluluk mağazası için çok büyük."
   },
   "slide": {
-    "two_sounds": "Bir slayt aynı anda bir ses çalar: videosunun sesini kapatın veya sesini kaldırın."
+    "two_sounds": "Bir slayt aynı anda bir ses çalar: videosunun sesini kapatın veya sesini kaldırın.",
+    "background_conflict": "Arka plan görsel veya renk geçişi olabilir, ikisi birden olamaz.",
+    "empty": "Slayt hiçbir şey göstermiyor: başlık, metin, görsel, arka plan veya video ekleyin.",
+    "not_found": "Bu slayt artık mevcut değil: bu sırada silinmiş.",
+    "incomplete_in_ready_quiz": "Bu quiz yayımlanmış: hiçbir şey göstermeyen bir slaytı kaydetmek için quizi taslağa döndürün."
   },
   "record": {
     "not_found": "Bu öğe artık mevcut değil: bu arada silindi.",

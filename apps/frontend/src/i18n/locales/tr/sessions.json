@@ -13,14 +13,16 @@
   "list": {
     "title": "Oturum geçmişi",
     "backToEditor": "Editöre geri dön",
-    "loadError": "Geçmiş kullanılamıyor.",
     "empty": "Bu quiz için arşivlenmiş oturum yok. Bir oturumun sonunda, sonuçları burada bulmak için \"Sonuçları arşivle\"yi seçin.",
     "capture": "Yanıt kaydı",
-    "participantCount_one": "{{count}} katılımcı",
-    "participantCount_other": "{{count}} katılımcı",
-    "successRate": "Başarı oranı: {{rate}}",
     "inRoom_one": "Oda · {{count}} quiz",
-    "inRoom_other": "Oda · {{count}} quiz"
+    "inRoom_other": "Oda · {{count}} quiz",
+    "pin": "PIN {{pin}}",
+    "thDate": "Tarih",
+    "thStatus": "Durum",
+    "thPlayers": "Katılımcılar",
+    "thSuccess": "Başarı",
+    "presentIt": "Bu quizi sun"
   },
   "detail": {
     "notFound": "Oturum bulunamadı.",
@@ -43,7 +45,6 @@
     "thScore": "Puan",
     "thCorrect": "Doğru",
     "thStreak": "Seri",
-    "participantDetailAria": "{{nickname}} için ayrıntılar",
     "csvGlobal": {
       "rank": "Sıra",
       "nickname": "Takma ad",
