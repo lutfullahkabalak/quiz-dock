@@ -254,6 +254,43 @@ describe('PlayerPage (client participant)', () => {
     expect($('.qd-player .qd-answer[data-color="red"]')).not.toBeNull();
   });
 
+  // The question's background is the page's, in every phase of that question (#130).
+  it.each([GameState.QuestionShow, GameState.Answering, GameState.Reveal, GameState.Leaderboard])(
+    'the question background covers the participant page in %s',
+    async (state) => {
+      loadPlayerSession.mockReturnValue({
+        pin: '771122',
+        nickname: 'Bob',
+        sessionToken: 't',
+        playerId: 'p1',
+      });
+      const now = Date.now();
+      hookState.value = view({
+        state,
+        questionIndex: 0,
+        question: {
+          questionIndex: 0,
+          type: 'single_choice',
+          prompt: 'Capitale ?',
+          options: [PARIS],
+          timeLimitS: 20,
+          basePoints: 1000,
+          startedAt: now - 1_000,
+          endsAt: now + 19_000,
+          media: { visual: null, audio: null },
+          background: { gradient: { angle: 135, colors: ['#1e3a8a', '#dfdce5'] } },
+        } as never,
+      });
+      const { container } = renderApp('/join/771122');
+      await screen.findByRole('main');
+      const surfaces = container.querySelectorAll<HTMLElement>('[style*="linear-gradient"]');
+      // One surface, filling the page, with its own palette for the text over it.
+      expect(surfaces).toHaveLength(1);
+      expect(surfaces[0]).toHaveClass('flex-1');
+      expect(surfaces[0]).toHaveAttribute('data-scheme');
+    },
+  );
+
   it('MEDIA_LOADING: the phone says the question is coming', async () => {
     loadPlayerSession.mockReturnValue({
       pin: '771122',
