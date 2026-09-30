@@ -1,0 +1,20 @@
+# The demo stack, added to the dev stack by run.sh under its own project
+# (quizdock-demo): the dev images and sources, a database and volumes of its own.
+# For demos (http://localhost:15183) and for the screenshots; the dev database
+# is never touched.
+services:
+  postgres:
+    ports: !reset []
+  redis:
+    ports: !reset []
+  backend:
+    image: quiz-dock-backend:latest
+    pull_policy: never
+    ports: !reset []
+    environment:
+      APP_LANG: en
+  frontend:
+    image: quiz-dock-frontend:latest
+    pull_policy: never
+    ports: !override
+      - '${DEMO_PORT:-15183}:5173'

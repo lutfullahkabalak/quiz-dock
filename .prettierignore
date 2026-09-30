@@ -6,5 +6,7 @@ pnpm-lock.yaml
 apps/backend/openapi/**
 apps/frontend/src/api/generated/**
 schema/**
+# Sample bundles: quiz.json and sources.json are rewritten by tools/sample-media
+apps/backend/samples/**
 # Documentation rédigée à la main (tableaux ASCII / wireframes) — ne pas reformater
 **/*.md
