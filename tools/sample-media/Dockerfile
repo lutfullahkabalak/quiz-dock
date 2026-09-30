@@ -4,4 +4,7 @@ FROM node:24-alpine
 RUN apk add --no-cache ffmpeg
 WORKDIR /work
 COPY fetch.mjs /tools/fetch.mjs
+# A one-shot tool: nothing to probe, and no reason to run as root.
+HEALTHCHECK NONE
+USER node
 ENTRYPOINT ["node", "/tools/fetch.mjs"]
