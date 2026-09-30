@@ -167,8 +167,9 @@ anyone walks in, writes quizzes and runs sessions. The guards:
 - **No media uploads** (`403 media.demo_disabled`, also for imported bundles that carry
   media). The upload buttons are hidden.
 - **Hourly reset** to a blank install: users, quizzes, media, session archives, the seat
-  and the live state — then `demo_user` and its seat are created again. A reset waits
-  while a session is being played, at most 3 hours.
+  and the live state — then `demo_user` and its seat are created again, with the sample
+  quizzes in its bank, ready to present. A reset waits while a session is being played,
+  at most 3 hours.
 
 The SPA shows a banner saying so, and the **home page lists these guards in full** —
 someone trying QuizDock there must be able to tell a guard of that instance from a limit

@@ -46,10 +46,11 @@ export class SampleQuizzesService implements OnApplicationBootstrap {
   async createFor(ownerId: string): Promise<Quiz[]> {
     const created: Quiz[] = [];
     for (const sample of loadSamples()) {
-      const draft = await this.portable.importBundle(ownerId, {
-        buffer: Buffer.from(zipOf(sample)),
-        mimetype: 'application/zip',
-      });
+      const draft = await this.portable.importBundle(
+        ownerId,
+        { buffer: Buffer.from(zipOf(sample)), mimetype: 'application/zip' },
+        { seeding: true },
+      );
       created.push(
         await this.prisma.quiz.update({
           where: { id: draft.id },
@@ -102,7 +103,7 @@ export class SampleQuizzesService implements OnApplicationBootstrap {
             loudnessLufs: meta.loudnessLufs,
             peakDbfs: meta.peakDbfs,
           },
-          { instance: true },
+          { instance: true, seeding: true },
         );
         if (meta.credit) await this.media.setInstanceCredit(mediaId, meta.credit);
         added++;
