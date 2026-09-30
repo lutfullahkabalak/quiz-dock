@@ -15,8 +15,6 @@ services:
   # file keeps it behind the `keycloak` profile for everyone else.
   keycloak:
     profiles: !reset []
-    environment:
-      KEYCLOAK_APP_URL: ${KEYCLOAK_APP_URL:-http://localhost:15173}
 
   # Exposé en dev pour les tests d'intégration WS/Redis depuis l'hôte.
   redis:

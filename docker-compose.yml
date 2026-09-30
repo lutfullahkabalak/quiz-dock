@@ -43,7 +43,7 @@ services:
       KC_HOSTNAME: http://localhost:${KEYCLOAK_PORT:-18080}
       KC_HOSTNAME_BACKCHANNEL_DYNAMIC: 'true'
       KEYCLOAK_APP_URL: ${KEYCLOAK_APP_URL:-http://localhost:18081}
-      KEYCLOAK_DEV_URL: http://localhost:15173
+      KEYCLOAK_DEV_URL: ${KEYCLOAK_DEV_URL:-http://localhost:15173}
       KEYCLOAK_HOST_PASSWORD: animateur
       KEYCLOAK_PLAYER_PASSWORD: participant
     ports:
