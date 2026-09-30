@@ -18,7 +18,11 @@ const bundle = (items: unknown[] = [question]) => ({
 describe('text-only validation', () => {
   it('accepts exactly the content accepted by the importer without media', () => {
     const input = bundle();
-    expect(validateTextQuiz(JSON.stringify(input))).toEqual({ valid: true, errors: [] });
+    expect(validateTextQuiz(JSON.stringify(input))).toEqual({
+      valid: true,
+      errors: [],
+      warnings: [],
+    });
     expect(
       fromBundle(quizBundleSchema.parse(input), () => {
         throw new Error('No media');
@@ -29,7 +33,7 @@ describe('text-only validation', () => {
     const result = validateTextQuiz(
       JSON.stringify(
         bundle([
-          { ...question, options: [{ text: 'A', color: 'red', shape: 'triangle' }] },
+          { ...question, options: Array.from({ length: 9 }, () => question.options[0]) },
           { ...question, prompt: 'x'.repeat(1001) },
         ]),
       ),
@@ -41,6 +45,22 @@ describe('text-only validation', () => {
         expect.objectContaining({ code: 'import.invalid_item', item: 2, field: 'prompt' }),
       ]),
     );
+  });
+  it('allows incomplete drafts but reports completeness warnings for every item', () => {
+    const input = bundle([
+      { ...question, options: question.options.map((o) => ({ ...o, isCorrect: false })) },
+      { kind: 'slide', blocks: [] },
+    ]);
+    const result = validateTextQuiz(JSON.stringify(input));
+    expect(result).toMatchObject({ valid: true, errors: [] });
+    expect(result.warnings).toEqual([
+      { code: 'question.options.one_correct', item: 1, field: 'options' },
+      { code: 'slide.empty', item: 2, field: 'blocks' },
+    ]);
+    expect(fromBundle(quizBundleSchema.parse(input), () => '')).toMatchObject({
+      questions: expect.any(Array),
+      slides: expect.any(Array),
+    });
   });
   it('reports malformed JSON and schema errors in the native codes', () => {
     expect(validateTextQuiz('{').errors[0].code).toBe('import.invalid_bundle');

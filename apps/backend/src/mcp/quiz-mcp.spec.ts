@@ -42,7 +42,7 @@ describe('QuizDock MCP', () => {
     const guide = await client.callTool({ name: 'quiz_format', arguments: {} });
     expect(guide.content).toEqual([{ type: 'text', text: bundleGuideText() }]);
     const report = await client.callTool({ name: 'validate_quiz', arguments: { json } });
-    expect(report.structuredContent).toEqual({ valid: true, errors: [] });
+    expect(report.structuredContent).toEqual({ valid: true, errors: [], warnings: [] });
     expect(portable.importBundle).not.toHaveBeenCalled();
   });
   it('binds import ownership to operator configuration, ignores a supplied owner and refuses invalid JSON', async () => {

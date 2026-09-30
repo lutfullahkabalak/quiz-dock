@@ -10,7 +10,7 @@ or offline instance through the operator's existing Docker or SSH access.
 | Tool | Effect |
 | --- | --- |
 | `quiz_format` | Returns the current format guide, generated from the importer schemas. |
-| `validate_quiz` | Takes `json`, the complete `quiz.json` as a string. Returns `valid` and up to 100 errors, with the importer's codes, one-based item numbers, fields and details. Writes nothing. |
+| `validate_quiz` | Takes `json`, the complete `quiz.json` as a string. Returns `valid`, up to 100 structural errors and up to 100 completeness warnings, with the importer's codes, one-based item numbers, fields and details. Writes nothing. |
 | `import_quiz` | Takes the same string and creates a new draft in the configured host's account. Available only when the operator supplies `--user`. No quiz is overwritten. |
 
 The flow is: obtain the guide, convert the source, validate and repair errors,
@@ -78,7 +78,7 @@ existing browser authentication:
 ```
 
 A successful validation request returns HTTP 200 with `{ "valid": true,
-"errors": [] }`; invalid content also returns 200 with `valid: false` and errors
+"errors": [], "warnings": [] }`; invalid content also returns 200 with `valid: false` and errors
 so a client can repair it. Authentication/authorization errors remain 401/403.
 There is no database write or media fetch during validation.
 
@@ -90,7 +90,9 @@ For a local file:
 qd quiz:validate - < quiz.json
 ```
 
-The CLI prints the same JSON result and exits 0 when valid, 1 when invalid.
+The CLI prints the same JSON result and exits 0 when structurally valid, 1 when invalid.
+Completeness warnings (for example, a missing correct answer or an empty slide)
+do not prevent importing a draft; finish these steps in the editor before publishing.
 Validation does not require a database connection.
 
 ## Limits and shutdown
@@ -99,9 +101,8 @@ Text JSON is limited to 1 MiB of UTF-8 (or `IMPORT_MAX_BYTES`, if smaller), and
 uses the normal 500-item and content limits. MCP input buffering is bounded as
 well. Each MCP process accepts at most 60 tool calls and ten import attempts per
 minute, with one import at a time. Concurrent imports return `mcp.busy`; excess
-calls return `mcp.rate_limit`. The HTTP validation endpoint allows 60 requests
-per account per minute per backend process and returns 429 when busy. These are
-per-process limits, not a distributed quota.
+calls return `mcp.rate_limit`. These MCP limits are per-process, not a distributed quota.
+The authenticated HTTP validation endpoint has a bounded input and no per-user counter.
 
 Stdout contains only JSON-RPC; diagnostics go to stderr. EOF, SIGINT and SIGTERM
 close the server and let an in-flight import finish before closing its database

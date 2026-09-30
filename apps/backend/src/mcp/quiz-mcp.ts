@@ -59,7 +59,7 @@ export function createQuizMcp(account?: ImportAccount) {
     'validate_quiz',
     {
       description:
-        'Validate text-only quiz JSON without writing anything. Returns up to 100 errors with item numbers and fields.',
+        'Validate text-only quiz JSON without writing anything. Returns structural errors and completeness warnings with item numbers and fields. Incomplete drafts can be imported.',
       inputSchema: json,
       annotations: { readOnlyHint: true, openWorldHint: false },
     },

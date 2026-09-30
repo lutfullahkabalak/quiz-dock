@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "license": "MIT",
   "private": true,
-  "description": "API QuizDock : REST (builder) + WebSocket (jeu) \u2014 NestJS + Socket.IO",
+  "description": "API QuizDock : REST (builder) + WebSocket (jeu) — NestJS + Socket.IO",
   "scripts": {
     "build": "nest build",
     "start": "node dist/main.js",
@@ -21,6 +21,7 @@
     "db:seed-stress": "node scripts/seed-stress.mjs"
   },
   "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@nestjs/common": "^11.0.1",
     "@nestjs/core": "^11.0.1",
     "@nestjs/platform-express": "^11.0.1",
@@ -44,8 +45,7 @@
     "rxjs": "^7.8.1",
     "socket.io": "^4.8.3",
     "ulid": "^3.0.2",
-    "zod": "^4.4.3",
-    "@modelcontextprotocol/sdk": "^1.28.0"
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nestjs/cli": "^11.0.0",

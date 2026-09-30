@@ -6,8 +6,10 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { QuizValidationResultDtoErrorsItem } from './quizValidationResultDtoErrorsItem';
+import type { QuizValidationResultDtoWarningsItem } from './quizValidationResultDtoWarningsItem';
 
 export interface QuizValidationResultDto {
   valid: boolean;
   errors: QuizValidationResultDtoErrorsItem[];
+  warnings: QuizValidationResultDtoWarningsItem[];
 }

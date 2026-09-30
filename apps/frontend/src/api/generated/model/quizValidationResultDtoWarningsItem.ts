@@ -6,7 +6,7 @@
  * OpenAPI spec version: 0.1.0
  */
 
-export type QuizValidationResultDtoErrorsItem = {
+export type QuizValidationResultDtoWarningsItem = {
   code: string;
   /**
      * @minimum -9007199254740991

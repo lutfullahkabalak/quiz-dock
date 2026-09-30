@@ -4,22 +4,13 @@ import { TEXT_QUIZ_MAX_BYTES } from '../portable/text-quiz-validation';
 export class QuizValidationInputDto extends createZodDto(
   z.object({ json: z.string().max(TEXT_QUIZ_MAX_BYTES) }),
 ) {}
+const issueSchema = z.object({
+  code: z.string(),
+  item: z.number().int().optional(),
+  field: z.string().optional(),
+  path: z.string().optional(),
+  detail: z.string().optional(),
+});
 export class QuizValidationResultDto extends createZodDto(
-  z.object({
-    valid: z.boolean(),
-    errors: z.array(
-      z.object({
-        code: z.enum([
-          'import.invalid_bundle',
-          'import.invalid_item',
-          'import.media_missing',
-          'import.bundle_too_large',
-        ]),
-        item: z.number().int().optional(),
-        field: z.string().optional(),
-        path: z.string().optional(),
-        detail: z.string().optional(),
-      }),
-    ),
-  }),
+  z.object({ valid: z.boolean(), errors: issueSchema.array(), warnings: issueSchema.array() }),
 ) {}

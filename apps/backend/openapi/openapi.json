@@ -2679,13 +2679,35 @@
               "type": "object",
               "properties": {
                 "code": {
-                  "type": "string",
-                  "enum": [
-                    "import.invalid_bundle",
-                    "import.invalid_item",
-                    "import.media_missing",
-                    "import.bundle_too_large"
-                  ]
+                  "type": "string"
+                },
+                "item": {
+                  "type": "integer",
+                  "minimum": -9007199254740991,
+                  "maximum": 9007199254740991
+                },
+                "field": {
+                  "type": "string"
+                },
+                "path": {
+                  "type": "string"
+                },
+                "detail": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "code"
+              ]
+            }
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "code": {
+                  "type": "string"
                 },
                 "item": {
                   "type": "integer",
@@ -2710,7 +2732,8 @@
         },
         "required": [
           "valid",
-          "errors"
+          "errors",
+          "warnings"
         ]
       },
       "QuizDto": {
