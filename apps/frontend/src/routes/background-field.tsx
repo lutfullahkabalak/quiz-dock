@@ -165,7 +165,7 @@ export function BackgroundField({
 
       {kind !== 'none' ? (
         <div className="flex flex-wrap items-center gap-4 border-t pt-3">
-          <label className="flex items-center gap-2 text-sm">
+          <label className="flex items-center gap-2 text-[1em]">
             <span className="font-medium">{t('slideForm.contrastLegend')}</span>
             <Select
               className="h-8 w-auto"

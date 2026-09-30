@@ -75,7 +75,7 @@ export function JoinAddressPicker({
   }, [current, initialised]);
 
   return (
-    <div className="flex flex-col gap-2 text-sm">
+    <div className="flex flex-col gap-2 text-[1em]">
       <div className="flex flex-wrap items-center gap-2">
         <Globe className="text-muted-foreground size-4" />
         <label className="text-muted-foreground" htmlFor="join-address">
@@ -83,7 +83,7 @@ export function JoinAddressPicker({
         </label>
         <Select
           id="join-address"
-          className="h-8 w-auto min-w-[14rem] md:text-sm"
+          className="h-8 w-auto min-w-[14rem] "
           value={isCustom ? CUSTOM : current}
           onChange={(e) => {
             if (e.target.value === CUSTOM) setCustom(current);
@@ -108,7 +108,7 @@ export function JoinAddressPicker({
             }}
           >
             <Input
-              className="h-8 w-56 md:text-sm"
+              className="h-8 w-56 "
               placeholder="https://quiz.example.org"
               value={custom || (isCustom ? current : '')}
               onChange={(e) => setCustom(e.target.value)}

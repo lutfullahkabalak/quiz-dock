@@ -284,7 +284,7 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
   return (
     <div className="flex flex-col gap-2">
       {withAlt ? (
-        <Label className="text-muted-foreground text-sm">
+        <Label className="text-muted-foreground text-[1em]">
           {t('media.altLabel')}
           <Input
             value={altShown}
@@ -298,7 +298,7 @@ function MediaDetailsFields({ mediaId, withAlt }: { mediaId: string; withAlt: bo
           <span className="text-xs">{t('media.altHelp')}</span>
         </Label>
       ) : null}
-      <Label className="text-muted-foreground text-sm">
+      <Label className="text-muted-foreground text-[1em]">
         {t('media.creditLabel')}
         <Input
           value={creditShown}

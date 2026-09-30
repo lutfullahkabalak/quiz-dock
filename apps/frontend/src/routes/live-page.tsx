@@ -118,7 +118,7 @@ export function LivePage() {
                 className="pl-8"
               />
             </label>
-            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+            <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
               {t('filterState')}
               <Select
                 value={state}
@@ -129,7 +129,7 @@ export function LivePage() {
                 <option value="playing">{t('statePlaying')}</option>
               </Select>
             </label>
-            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+            <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
               {t('sortBy')}
               <Select
                 value={sort}

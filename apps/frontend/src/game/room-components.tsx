@@ -222,7 +222,7 @@ function QuizPicker({
   const date = (iso: string) => new Date(iso).toLocaleDateString(i18n.language);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-2 text-sm">
+    <div className="flex min-h-0 flex-1 flex-col gap-2 text-[1em]">
       <div className="flex flex-wrap items-end gap-2">
         <span className="mr-auto font-medium">{t('control.pickQuiz')}</span>
         {languages.length > 1 ? (

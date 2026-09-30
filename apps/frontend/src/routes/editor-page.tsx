@@ -449,7 +449,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           <div className="flex min-w-64 flex-1 items-center gap-3">
             <Input
               aria-label={t('settings.titleLabel')}
-              className="hover:bg-accent/60 focus-visible:bg-accent/60 -mx-2 h-auto min-w-0 flex-1 rounded-md border-0 bg-transparent px-2 text-3xl font-bold md:text-3xl tracking-tight shadow-none focus-visible:ring-0"
+              className="hover:bg-accent/60 focus-visible:bg-accent/60 -mx-2 h-auto min-w-0 flex-1 rounded-md border-0 bg-transparent px-2 text-3xl font-bold tracking-tight shadow-none focus-visible:ring-0"
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);
@@ -631,7 +631,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                   onSave={(mediaTailS) => void setMediaTailS(mediaTailS)}
                 />
                 <label
-                  className="flex items-center gap-2 text-sm"
+                  className="flex items-center gap-2 text-[1em]"
                   title={t('settings.loudnessHelp')}
                 >
                   <span className="font-medium">{t('settings.loudnessLabel')}</span>
@@ -649,7 +649,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                   </Select>
                 </label>
                 <label
-                  className="flex flex-wrap items-center gap-2 text-sm"
+                  className="flex flex-wrap items-center gap-2 text-[1em]"
                   title={t('settings.audioTargetHelp')}
                 >
                   <span className="font-medium">{t('settings.audioTargetLabel')}</span>
@@ -695,7 +695,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
               />
               <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
                 <label
-                  className="flex items-center gap-2 text-sm"
+                  className="flex items-center gap-2 text-[1em]"
                   title={t('settings.languageHelp')}
                 >
                   <span className="font-medium">{t('settings.languageLabel')}</span>
@@ -713,7 +713,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
                   </Select>
                 </label>
                 <label
-                  className="flex items-center gap-2 text-sm"
+                  className="flex items-center gap-2 text-[1em]"
                   title={t('settings.licenseHelp')}
                 >
                   <span className="font-medium">{t('settings.licenseLabel')}</span>
@@ -1691,7 +1691,7 @@ function MediaTailField({
     if (clamped !== value) onSave(clamped);
   };
   return (
-    <label className="flex items-center gap-2 text-sm" title={t('settings.mediaTailHelp')}>
+    <label className="flex items-center gap-2 text-[1em]" title={t('settings.mediaTailHelp')}>
       <span className="font-medium">{t('settings.mediaTailLabel')}</span>
       <Input
         type="number"
@@ -1746,7 +1746,7 @@ function TagsField({
     if (tag && !value.includes(tag) && !full) onSave([...value, tag]);
   };
   return (
-    <div className="flex flex-wrap items-center gap-2 text-sm" title={t('settings.tagsHelp')}>
+    <div className="flex flex-wrap items-center gap-2 text-[1em]" title={t('settings.tagsHelp')}>
       <span className="font-medium">{t('settings.tagsLabel')}</span>
       {value.map((tag) => (
         <Badge key={tag} variant="muted" className="gap-1 pr-1">

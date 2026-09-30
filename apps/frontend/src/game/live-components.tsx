@@ -37,7 +37,7 @@ export const TYPE_BASE = {
   stage: 'text-[20px]',
   // On the smaller side of the screen: a 16:9 projection runs out of height first.
   screen: 'text-[clamp(1rem,2.6vmin,2.5rem)]',
-  phone: 'text-[clamp(0.875rem,0.45rem_+_1.4vmin,1.5rem)]',
+  phone: 'text-[clamp(1em,0.45rem_+_1.4vmin,1.5rem)]',
 } as const;
 
 /**

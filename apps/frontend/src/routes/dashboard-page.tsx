@@ -315,7 +315,7 @@ export function DashboardPage() {
               />
             </div>
             {others.length > 0 ? (
-              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
                 {t('filterOwner')}
                 {others.length > OWNER_SELECT_MAX ? (
                   // Many hosts share: a list to type into rather than to scroll.
@@ -339,7 +339,7 @@ export function DashboardPage() {
               </label>
             ) : null}
             {languages.length > 1 ? (
-              <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+              <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
                 {t('filterLanguage')}
                 <Select
                   value={language}
@@ -354,7 +354,7 @@ export function DashboardPage() {
                 </Select>
               </label>
             ) : null}
-            <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+            <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
               {t('sortBy')}
               <Select
                 value={sort}

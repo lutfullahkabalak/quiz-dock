@@ -341,7 +341,7 @@ function Files() {
       ) : null}
 
       <div className="flex flex-wrap items-end gap-2">
-        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+        <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
           {t('mediaAdmin.files.kind')}
           <Select className="w-36" value={kind} onChange={(e) => setKind(e.target.value)}>
             <option value="">{t('mediaAdmin.files.allKinds')}</option>
@@ -353,7 +353,7 @@ function Files() {
           </Select>
         </label>
         {scope === 'all' ? (
-          <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+          <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
             {t('mediaAdmin.files.owner')}
             <Select className="w-44" value={ownerId} onChange={(e) => setOwnerId(e.target.value)}>
               <option value="">{t('mediaAdmin.files.allOwners')}</option>
@@ -365,7 +365,7 @@ function Files() {
             </Select>
           </label>
         ) : null}
-        <label className="text-muted-foreground flex flex-col gap-1 text-xs">
+        <label className="text-muted-foreground flex flex-col gap-1 text-[1em]">
           {t('mediaAdmin.files.sort')}
           <Select
             className="w-44"
@@ -776,7 +776,7 @@ function CreditInput({
   const saved = useRef(initial);
   return (
     <Input
-      className="h-7 w-64 max-w-full min-w-0 md:text-xs"
+      className="h-7 w-64 max-w-full min-w-0 "
       value={credit}
       maxLength={300}
       placeholder={t('mediaAdmin.instance.credit')}

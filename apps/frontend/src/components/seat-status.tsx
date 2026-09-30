@@ -164,7 +164,7 @@ export function SeatMenuRow({ user }: { user: string }) {
         .catch(() => undefined);
     });
   return (
-    <div className="flex flex-col gap-2 text-sm">
+    <div className="flex flex-col gap-2 text-[1em]">
       <span className="flex items-center gap-1.5">
         <Armchair className="text-muted-foreground size-4" />
         <span className="flex flex-col leading-tight">
@@ -178,7 +178,7 @@ export function SeatMenuRow({ user }: { user: string }) {
       <div className="flex items-center gap-1.5">
         <Select
           aria-label={t('seat.extendLabel')}
-          className="h-7 flex-1 md:text-xs"
+          className="h-7 flex-1 "
           value={forMinutes}
           onChange={(e) => setForMinutes(Number(e.target.value))}
         >
