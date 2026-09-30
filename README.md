@@ -33,7 +33,7 @@ runs on **your** infrastructure as a single Docker image; the questions, the ans
 the results never leave your servers.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/demo.gif" width="800" alt="A session on the big screen: players join with the PIN, a question with its timer, the reveal with the leaderboard, the podium" />
+  <img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/demo.gif" width="800" alt="A session on the big screen: the intro slide, questions with their timers and answers coming in, the reveals" />
 </p>
 
 ## 🎮 Try it online
@@ -204,7 +204,7 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/admin-media.png" alt="Instance media" /><br /><sub><b>Instance media</b> — disk, clean-up, every file with its owners, the global media</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/participant-access.png" alt="Participant access at launch" /><br /><sub><b>Who can join</b> — with an account, or with the PIN and a nickname alone</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-lobby.png" alt="Projection — lobby" /><br /><sub><b>Projection</b> — the big screen while players join and get ready</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-lobby-access.png" alt="Host console — closed room" /><br /><sub><b>Close the room</b> — once everyone is in, nobody else joins, even with the PIN</sub></td>
   </tr>
   <tr>
@@ -220,8 +220,8 @@ hosted elsewhere).
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/player-big-screen.png" alt="Remote player — the question, or the big screen" /><br /><sub><b>Remote player</b> — the whole question on their phone, or the big screen itself</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/console-room-next.png" alt="Host console — the next quiz in the room" /><br /><sub><b>The next quiz</b> — same room, same players, the standings carried over</sub></td>
-    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-background-sound.png" alt="Slide with a background and a sound" /><br /><sub><b>Slides</b> — pictures, columns, backgrounds, a video or a sound</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-podium.png" alt="Podium" /><br /><sub><b>Podium</b> — final results on the big screen</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/types/slide-gradient.png" alt="Slide with a picture" /><br /><sub><b>Slides</b> — pictures, text, backgrounds, a video or a sound</sub></td>
   </tr>
 </table>
 
