@@ -2,7 +2,13 @@ import { EventEmitter } from 'node:events';
 import { PassThrough } from 'node:stream';
 import { lookup } from 'node:dns/promises';
 import { request } from 'node:https';
-import { allowedUrl, downloadStore, publicAddress } from './safe-download';
+import {
+  allowedUrl,
+  downloadStore,
+  publicAddress,
+  sourceBase,
+  allowedArtifactUrl,
+} from './safe-download';
 jest.mock('node:dns/promises', () => ({ lookup: jest.fn() }));
 jest.mock('node:https', () => ({ request: jest.fn() }));
 const dns = jest.mocked(lookup);
@@ -103,6 +109,39 @@ describe('store downloads', () => {
   it('refuses redirects outside the allowlist', async () => {
     respond(302, '', { location: 'https://evil.example/a' });
     await expect(downloadStore('https://store.example/a', hosts, 10)).rejects.toThrow('Disallowed');
+    expect(http).toHaveBeenCalledTimes(1);
+  });
+  it.each([
+    'https://github.com/bob/quizdock-quizzes/releases/download/quizzes/a.zip',
+    'https://github.com/alice/quizdock-quizzes-evil/releases/download/quizzes/a.zip',
+    'https://github.com/alice/quizdock-quizzes/releases/download/quizzes/../other/a.zip',
+    'https://github.com/alice/quizdock-quizzes/releases/download/quizzes/%2f..%2fother/a.zip',
+    'https://assets.example/a.zip',
+  ])('refuses a bundle outside the source directory: %s', (value) => {
+    const base = sourceBase(
+      'https://github.com/alice/quizdock-quizzes/releases/download/quizzes/index.json',
+    );
+    expect(() => allowedArtifactUrl(value, base)).toThrow();
+  });
+  it('accepts the source publication format and checks CDN redirects as transfer hops', async () => {
+    const base = sourceBase('https://store.example/alice/index.json');
+    respond(302, '', { location: 'https://assets.example/a.zip' });
+    respond(200, 'quiz');
+    await expect(
+      downloadStore('https://store.example/alice/a.zip', hosts, 10, 1000, base),
+    ).resolves.toEqual(Buffer.from('quiz'));
+  });
+  it('rejects redirects to another directory on the same allowed source host', async () => {
+    respond(302, '', { location: 'https://store.example/bob/a.zip' });
+    await expect(
+      downloadStore(
+        'https://store.example/alice/a.zip',
+        hosts,
+        10,
+        1000,
+        sourceBase('https://store.example/alice/index.json'),
+      ),
+    ).rejects.toThrow('outside source');
     expect(http).toHaveBeenCalledTimes(1);
   });
   it('bounds actual streamed bytes even without content-length', async () => {

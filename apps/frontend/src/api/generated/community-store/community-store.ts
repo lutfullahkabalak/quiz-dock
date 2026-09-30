@@ -250,6 +250,120 @@ export function useCommunityControllerPreview<TData = Awaited<ReturnType<typeof 
 
 
 
+export type communityControllerMediaResponse200 = {
+  data: void
+  status: 200
+}
+
+export type communityControllerMediaResponseSuccess = (communityControllerMediaResponse200) & {
+  headers: Headers;
+};
+;
+
+export type communityControllerMediaResponse = (communityControllerMediaResponseSuccess)
+
+export const getCommunityControllerMediaUrl = (key: string,
+    name: string,) => {
+
+
+
+
+  return `/api/v1/community-store/${key}/media/${name}`
+}
+
+export const communityControllerMedia = async (key: string,
+    name: string, options?: RequestInit): Promise<communityControllerMediaResponse> => {
+
+  return customFetch<communityControllerMediaResponse>(getCommunityControllerMediaUrl(key,name),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getCommunityControllerMediaQueryKey = (key: string,
+    name: string,) => {
+    return [
+    `/api/v1/community-store/${key}/media/${name}`
+    ] as const;
+    }
+
+
+export const getCommunityControllerMediaQueryOptions = <TData = Awaited<ReturnType<typeof communityControllerMedia>>, TError = unknown>(key: string,
+    name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof communityControllerMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getCommunityControllerMediaQueryKey(key,name);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof communityControllerMedia>>> = ({ signal }) => communityControllerMedia(key,name, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: key !== null && key !== undefined && name !== null && name !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof communityControllerMedia>>, TError, TData> & { queryKey: DataTag<QueryKey, TData, TError> }
+}
+
+export type CommunityControllerMediaQueryResult = NonNullable<Awaited<ReturnType<typeof communityControllerMedia>>>
+export type CommunityControllerMediaQueryError = unknown
+
+
+export function useCommunityControllerMedia<TData = Awaited<ReturnType<typeof communityControllerMedia>>, TError = unknown>(
+ key: string,
+    name: string, options: { query:Partial<UseQueryOptions<Awaited<ReturnType<typeof communityControllerMedia>>, TError, TData>> & Pick<
+        DefinedInitialDataOptions<
+          Awaited<ReturnType<typeof communityControllerMedia>>,
+          TError,
+          Awaited<ReturnType<typeof communityControllerMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  DefinedUseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCommunityControllerMedia<TData = Awaited<ReturnType<typeof communityControllerMedia>>, TError = unknown>(
+ key: string,
+    name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof communityControllerMedia>>, TError, TData>> & Pick<
+        UndefinedInitialDataOptions<
+          Awaited<ReturnType<typeof communityControllerMedia>>,
+          TError,
+          Awaited<ReturnType<typeof communityControllerMedia>>
+        > , 'initialData'
+      >, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+export function useCommunityControllerMedia<TData = Awaited<ReturnType<typeof communityControllerMedia>>, TError = unknown>(
+ key: string,
+    name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof communityControllerMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+  ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> }
+
+export function useCommunityControllerMedia<TData = Awaited<ReturnType<typeof communityControllerMedia>>, TError = unknown>(
+ key: string,
+    name: string, options?: { query?:Partial<UseQueryOptions<Awaited<ReturnType<typeof communityControllerMedia>>, TError, TData>>, request?: SecondParameter<typeof customFetch>}
+ , queryClient?: QueryClient
+ ):  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> } {
+
+  const queryOptions = getCommunityControllerMediaQueryOptions(key,name,options)
+
+  const query = useQuery(queryOptions, queryClient) as  UseQueryResult<TData, TError> & { queryKey: DataTag<QueryKey, TData, TError> };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
 export type communityControllerTakeResponse200 = {
   data: QuizDto
   status: 200

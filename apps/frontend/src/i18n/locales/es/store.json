@@ -45,8 +45,6 @@
     "empty": "El catálogo de la comunidad está vacío.",
     "unavailable": "No se pudieron cargar algunas fuentes. Inténtalo más tarde.",
     "source": "Fuente: {{source}}",
-    "report": "Informar de un problema",
-    "closePreview": "Cerrar vista previa",
-    "previewHint": "Vista previa del texto. Las imágenes y los sonidos están disponibles en el borrador importado."
+    "report": "Informar de un problema"
   }
 }

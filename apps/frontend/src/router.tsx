@@ -15,6 +15,7 @@ import { SessionDetailPage, SessionPlayerPage, SessionsPage } from './routes/ses
 import { LivePage } from './routes/live-page';
 import { ProfilePage } from './routes/profile-page';
 import { TemplatePage } from './routes/template-page';
+import { CommunityPreviewPage } from './routes/community-preview-page';
 import { CommunityPage } from './routes/community-page';
 import { TemplatesPage } from './routes/templates-page';
 import { FeedbackPage } from './routes/feedback-page';
@@ -118,6 +119,16 @@ export const communityRoute = createRoute({
     if (!hasCommunityStore()) throw redirect({ to: '/templates' });
   },
   component: CommunityPage,
+});
+
+export const communityPreviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community/$key',
+  beforeLoad: () => {
+    requireAuth();
+    if (!hasCommunityStore()) throw redirect({ to: '/templates' });
+  },
+  component: CommunityPreviewPage,
 });
 
 export const editorRoute = createRoute({
@@ -285,6 +296,7 @@ export const routeTree = rootRoute.addChildren([
   dashboardRoute,
   templatesRoute,
   communityRoute,
+  communityPreviewRoute,
   templateRoute,
   liveRoute,
   profileRoute,

@@ -5,9 +5,48 @@
  * API REST du builder de quiz et des restitutions
  * OpenAPI spec version: 0.1.0
  */
-import type { CommunityPreviewDtoItemsItem } from './communityPreviewDtoItemsItem';
+import type { CommunityPreviewDtoInvalid } from './communityPreviewDtoInvalid';
+import type { CommunityPreviewDtoMedia } from './communityPreviewDtoMedia';
+import type { CommunityPreviewDtoQuestionsItem } from './communityPreviewDtoQuestionsItem';
+import type { CommunityPreviewDtoSlidesItem } from './communityPreviewDtoSlidesItem';
 
 export interface CommunityPreviewDto {
+  key: string;
+  id: string;
   title: string;
-  items: CommunityPreviewDtoItemsItem[];
+  /** @nullable */
+  description: string | null;
+  language: string;
+  tags: string[];
+  license: string;
+  /**
+     * @minimum -9007199254740991
+     * @maximum 9007199254740991
+     */
+  questionCount: number;
+  author: string;
+  registry: string;
+  source: string;
+  /** @nullable */
+  homepage: string | null;
+  /** @nullable */
+  reportUrl: string | null;
+  updatedAt: string;
+  /**
+     * @minimum -9007199254740991
+     * @maximum 9007199254740991
+     */
+  size: number;
+  questions: CommunityPreviewDtoQuestionsItem[];
+  slides: CommunityPreviewDtoSlidesItem[];
+  media: CommunityPreviewDtoMedia;
+  /** @nullable */
+  invalid: CommunityPreviewDtoInvalid;
+  /** @nullable */
+  coverUrl: string | null;
+  /**
+     * @minimum -9007199254740991
+     * @maximum 9007199254740991
+     */
+  slideCount: number;
 }

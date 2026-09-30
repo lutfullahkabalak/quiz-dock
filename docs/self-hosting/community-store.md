@@ -1,7 +1,7 @@
 # Community catalogue
 
 The **Shared templates** page links to **Community quizzes**. Hosts can filter
-by language and tags, read a text preview, inspect the source and licence, then
+by language and tags, preview questions, slides and media using the same preview as instance templates, inspect the source and licence, then
 take an independent draft. A report link opens the author's issue tracker with
 the quiz identity, source, registry and checksum filled in. Check the answers
 and media credits before using a contributed quiz.
@@ -12,10 +12,19 @@ The existing instance catalogue always works independently, including offline.
 
 ## Configuration
 
-`QUIZ_STORE_URL` is a comma-separated whitelist of registry URLs. Unset means
-the official `quizdock/quiz-store/main/registry.json` on raw.githubusercontent.com.
-**Explicitly empty disables the page and every store download.** In Compose,
-use `QUIZ_STORE_URL=` in `.env`; the configuration preserves this empty value.
+`QUIZ_STORE_URL` is a comma-separated whitelist of registry URLs. **Unset or empty
+keeps the page disabled and makes no outgoing store request.** To opt in to the
+official registry, set it explicitly:
+
+```dotenv
+QUIZ_STORE_URL=https://raw.githubusercontent.com/quizdock/quiz-store/main/registry.json
+```
+
+The server contacts the registry, source indexes and bundle download services.
+Those services see the server's IP address and ordinary HTTP request headers;
+QuizDock sends no user identity, session cookie, quiz-bank content or participant
+results. The instance's own templates remain offline. Community browsing,
+previews, media and taking copies require host privileges.
 
 `QUIZ_STORE_HOSTS` contains additional exact host names allowed for downloads.
 Registry hosts are included automatically. Its default is
@@ -44,8 +53,8 @@ requests concurrently, and bounded registry/index bodies and entry counts.
 Artifacts are limited by `PUBLICATION_MAX_MB` (20 by default), streamed within
 a 15-second deadline and checked for exact size and SHA-256. Archives reject
 unsafe or duplicate paths and enforce entry count, inflated sizes and compression
-ratio bounds. Previews show text only; they do not send remote media URLs to the
-browser. Imports use the normal importer and media content checks, create a
+ratio bounds. Previews reuse the quiz renderer; they do not send remote media URLs
+to the browser. Imports use the normal importer and media content checks, create a
 fresh draft and reset the publication slug. Copies do not carry source identities
 or receive updates, as specified by the current store design. At most four
 artifact downloads run concurrently; further requests receive HTTP 429.
@@ -59,3 +68,18 @@ The registry and author-index formats follow
 URLs, SHA-256, byte size and metadata. The publication tooling and author
 repository template already live in the store project. Use **Export for
 publication** in QuizDock and follow the store's contributor guide.
+
+## Source trust and preview caching
+
+A bundle's initial URL must stay under the directory containing its source index:
+matching `github.com` alone is insufficient, and another repository is refused.
+An allowed asset CDN can only be reached through a checked redirect from that
+source, never directly from an index. Every hop still passes HTTPS, host and IP
+checks; the checksum checks bytes, not the author's identity or answer accuracy.
+
+Verified bundles are cached for five minutes, with at most four entries and
+128 MiB of retained compressed/unpacked bytes. Concurrent reads share a download;
+changed source URLs, checksums or sizes cannot reuse an older cache entry.
+Preview media are served by the instance from these verified bytes. The browser
+loads them with its host authentication and uses temporary blob URLs in the
+common quiz preview, so it never contacts the contributor's server directly.

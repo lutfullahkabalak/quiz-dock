@@ -45,8 +45,6 @@
     "empty": "社群目錄為空。",
     "unavailable": "部分來源無法載入，請稍後重試。",
     "source": "來源：{{source}}",
-    "report": "回報問題",
-    "closePreview": "關閉預覽",
-    "previewHint": "文字預覽。圖片和音訊可在匯入的草稿中查看。"
+    "report": "回報問題"
   }
 }

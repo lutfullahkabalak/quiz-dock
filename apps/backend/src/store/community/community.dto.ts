@@ -1,5 +1,6 @@
 import { createZodDto } from 'nestjs-zod';
 import { z } from 'zod';
+import { storePreviewSchema } from '../dto/store-preview.dto';
 export const communityEntrySchema = z.object({
   key: z.string(),
   id: z.string(),
@@ -28,14 +29,14 @@ export class CommunityTakeDto extends createZodDto(
   z.object({ key: z.string().regex(/^[a-f0-9]{64}$/) }),
 ) {}
 export class CommunityPreviewDto extends createZodDto(
-  z.object({
-    title: z.string(),
-    items: z.array(
-      z.object({
-        kind: z.enum(['question', 'slide']),
-        text: z.string(),
-        options: z.array(z.string()),
-      }),
-    ),
-  }),
+  communityEntrySchema.merge(
+    storePreviewSchema.pick({
+      questions: true,
+      slides: true,
+      media: true,
+      invalid: true,
+      coverUrl: true,
+      slideCount: true,
+    }),
+  ),
 ) {}

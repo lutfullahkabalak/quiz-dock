@@ -94,7 +94,7 @@ export function TemplatesPage() {
       <header className="flex flex-col gap-1">
         <PageTitle>{t('title')}</PageTitle>
         <p className="text-muted-foreground max-w-prose text-sm">{t('intro')}</p>
-        {hasCommunityStore() ? (
+        {hasCommunityStore() && isHost ? (
           <Link to="/community" className="underline text-sm">
             {t('community.title')}
           </Link>
