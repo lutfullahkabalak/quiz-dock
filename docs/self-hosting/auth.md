@@ -211,10 +211,11 @@ realm in [`keycloak/realm-export.json`](../../keycloak/realm-export.json) (realm
 `quiz-dock`, public client `quiz-dock-frontend`, roles under
 `realm_access.roles`). The same file is used by the dev stack and the full Compose
 preset. Two accounts: `host` (Alex Host, roles `host` + `admin`) and `player`
-(Sam Player, role `player`). Their initial passwords come from
-`KEYCLOAK_HOST_PASSWORD` and `KEYCLOAK_PLAYER_PASSWORD`; both users must change
-their passwords on first sign-in. In the dev stack the defaults are `host` and
-`player`. The full preset's `init --full` generates random passwords in `.env`.
+(Sam Player, role `player`). In the dev stack their fixed passwords are
+`animateur` and `participant`, respectively, with no first-sign-in password change.
+The full preset's `init --full` generates random passwords in `.env` as
+`KEYCLOAK_HOST_PASSWORD` and `KEYCLOAK_PLAYER_PASSWORD`. Its startup import adds
+`UPDATE_PASSWORD` for both users, requiring a password change on first sign-in.
 Keycloak imports the realm only on a new database; changing these variables after
 first startup does not reset existing accounts.
 
