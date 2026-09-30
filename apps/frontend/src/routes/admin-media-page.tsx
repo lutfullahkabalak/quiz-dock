@@ -776,7 +776,7 @@ function CreditInput({
   const saved = useRef(initial);
   return (
     <Input
-      className="h-7 w-64 max-w-full min-w-0 text-xs"
+      className="h-7 w-64 max-w-full min-w-0 md:text-xs"
       value={credit}
       maxLength={300}
       placeholder={t('mediaAdmin.instance.credit')}

@@ -86,7 +86,7 @@ export function MarkdownEditor({
     editorProps: {
       attributes: {
         // The frame (border, resize handle) is on the wrapper; the surface just fills it.
-        class: 'min-h-full w-full px-3 py-2 text-sm focus-visible:outline-none',
+        class: 'min-h-full w-full px-3 py-2 text-base focus-visible:outline-none md:text-sm',
         ...(ariaLabel ? { 'aria-label': ariaLabel } : {}),
       },
     },
@@ -143,7 +143,7 @@ export function MarkdownEditor({
           )}
         >
           {isEmpty && placeholder ? (
-            <span className="text-muted-foreground pointer-events-none absolute top-2 left-3 text-sm">
+            <span className="text-muted-foreground pointer-events-none absolute top-2 left-3 text-base md:text-sm">
               {placeholder}
             </span>
           ) : null}

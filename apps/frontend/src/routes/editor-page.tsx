@@ -449,7 +449,7 @@ function QuizEditor({ quiz }: { quiz: QuizDetailDto }) {
           <div className="flex min-w-64 flex-1 items-center gap-3">
             <Input
               aria-label={t('settings.titleLabel')}
-              className="hover:bg-accent/60 focus-visible:bg-accent/60 -mx-2 h-auto min-w-0 flex-1 rounded-md border-0 bg-transparent px-2 text-3xl font-bold tracking-tight shadow-none focus-visible:ring-0"
+              className="hover:bg-accent/60 focus-visible:bg-accent/60 -mx-2 h-auto min-w-0 flex-1 rounded-md border-0 bg-transparent px-2 text-3xl font-bold md:text-3xl tracking-tight shadow-none focus-visible:ring-0"
               value={title}
               onChange={(e) => {
                 setTitle(e.target.value);

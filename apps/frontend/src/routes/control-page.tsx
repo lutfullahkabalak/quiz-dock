@@ -1201,7 +1201,7 @@ function RecapHeader({ view, onRename }: { view: GameView; onRename?: (name: str
             onKeyDown={(e) => {
               if (e.key === 'Escape') setEditing(false);
             }}
-            className="h-8 max-w-xs text-lg font-bold"
+            className="h-8 max-w-xs text-lg font-bold md:text-lg"
           />
         </form>
       ) : (
@@ -1399,7 +1399,7 @@ function BanButton({ nickname, onBan }: { nickname: string; onBan: (minutes: num
             max={1440}
             value={minutes}
             onChange={(e) => setMinutes(Math.min(1440, Math.max(1, Number(e.target.value) || 1)))}
-            className="border-input w-20 rounded-md border px-2 py-1"
+            className="border-input w-20 rounded-md border px-2 py-1 text-base md:text-sm"
           />
           <span className="text-muted-foreground">{t('control.banMinutes')}</span>
         </label>
