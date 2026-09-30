@@ -58,7 +58,9 @@ your phone to play.
   text, numeric, reorder, poll, and image choice — pictures as the answers), images with
   alternative text, Markdown everywhere, content
   slides between questions, backgrounds, answer explanations at the reveal. A new quiz
-  starts from a draft: an intro slide and a first question to complete.
+  starts from a draft: an intro slide and a first question to complete. Three sample
+  quizzes wait in the templates (France, Taiwan, and Türkiye in Turkish), every question
+  type in them, with pictures and sounds from Wikimedia Commons.
 - 🎧 **Video & sound** — videos and sounds in questions and slides,
   loudness-matched, drawn as a waveform with a playhead; played on the projection and on
   the devices of **remote participants** (who hears what is set per quiz, per question and
@@ -80,7 +82,7 @@ your phone to play.
   own standings across the quizzes, shown live and kept in *History* with the results.
 - 🏠 **Self-hosted and private** — one Docker image (`amd64` / `arm64`), no SaaS, no
   tracking, no ads; interface in English, French, Spanish, Simplified and Traditional
-  Chinese; rebrand name, logo and CSS without a rebuild.
+  Chinese, and Turkish; rebrand name, logo and CSS without a rebuild.
 
 ## 📈 Performance
 
@@ -105,7 +107,7 @@ Same image, one switch: `AUTH_MODE` decides who can host.
 | Setup | none — start the container and play | point the app at your OpenID Connect provider (Keycloak, Authentik, Entra ID, Google…) |
 | Who hosts | one **host seat**: a host signs in with just a name and takes it; released when done | as many hosts as you like, each signing in through your IdP with their own quizzes |
 | Host rights | whoever holds the seat | the `host` role, granted from the IdP |
-| Sample quizzes | included | — |
+| Sample quizzes | in the templates | in the templates |
 
 Players sign in only in OIDC mode, and there too a host can open a game to the PIN and a
 nickname alone once the admin allows it (`ALLOW_ANONYMOUS_PARTICIPANTS=true`). Details: [authentication](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/auth.md).
@@ -258,7 +260,7 @@ ordering and feedback screens, the global media, the account preferences:
 - 🔎 **History & exploration** — browse archived sessions: per-question success rates, average times, per-player answer sheets.
 - 📤 **CSV export** — overall results and per-player answer sheets.
 - 🏷️ **Licence, tags and language of a quiz** — set in the quiz settings and carried with it, so whoever receives a copy knows what they may do with it and what it is about.
-- 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot or another tool? A [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import.
+- 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot? Its spreadsheet template imports as a draft, the rows to finish flagged. From another tool, a [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import.
 - 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the six.
 - 🎨 **White-label** — name, logo and CSS via env + a mounted folder, no rebuild.
 - 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
