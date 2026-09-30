@@ -142,7 +142,8 @@ export function DashboardPage() {
   const invalidateList = () =>
     queryClient.invalidateQueries({ queryKey: getQuizzesControllerListQueryKey() });
 
-  // A bundle (zip, or a bare quiz.json) becomes a new draft: straight to its editor.
+  // A bundle (zip, or a bare quiz.json) or a Kahoot sheet becomes a new draft: straight
+  // to its editor, which shows what became of the sheet's rows.
   const onImportFile = (file: File | undefined) => {
     if (!file) return;
     importQuiz.mutate(
@@ -150,7 +151,11 @@ export function DashboardPage() {
       {
         onSuccess: (res) => {
           invalidateList();
-          void navigate({ to: '/quizzes/$quizId', params: { quizId: res.data.id } });
+          void navigate({
+            to: '/quizzes/$quizId',
+            params: { quizId: res.data.id },
+            state: { importReport: res.data.importReport },
+          });
         },
       },
     );
@@ -203,7 +208,7 @@ export function DashboardPage() {
           <input
             ref={fileInput}
             type="file"
-            accept=".zip,.json,application/zip,application/json"
+            accept=".zip,.json,.xlsx,application/zip,application/json,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             className="hidden"
             aria-label={t('import')}
             onChange={(e) => {

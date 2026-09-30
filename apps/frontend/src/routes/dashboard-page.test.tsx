@@ -305,6 +305,42 @@ describe('DashboardPage', () => {
     expect(await screen.findByDisplayValue('Importé')).toBeInTheDocument();
   });
 
+  it('opens a Kahoot sheet’s draft with what became of its rows, until closed', async () => {
+    mockApi([
+      {
+        method: 'GET',
+        path: '/quizzes/kahoot',
+        body: { ...quiz({ id: 'kahoot', title: 'Capitales' }), questions: [], slides: [] },
+      },
+      { method: 'GET', path: '/quizzes', body: [] },
+      {
+        method: 'POST',
+        path: '/quizzes/import',
+        status: 201,
+        body: quiz({
+          id: 'kahoot',
+          title: 'Capitales',
+          importReport: {
+            source: 'kahoot',
+            converted: 2,
+            incomplete: [10],
+            skipped: [{ row: 12, reason: 'formula' }],
+          },
+        }),
+      },
+    ]);
+    renderApp('/quizzes');
+    const input = await screen.findByLabelText('Importer');
+    expect(input).toHaveAttribute('accept', expect.stringContaining('.xlsx'));
+    fireEvent.change(input, { target: { files: [new File(['x'], 'quiz.xlsx')] } });
+    expect(await screen.findByDisplayValue('Capitales')).toBeInTheDocument();
+    expect(screen.getByText('2 questions importées de Kahoot.')).toBeInTheDocument();
+    expect(screen.getByText(/1 question à finir avant de publier/)).toBeInTheDocument();
+    expect(screen.getByText(/Ligne 12 laissée de côté/)).toHaveTextContent('formules');
+    fireEvent.click(screen.getByRole('button', { name: 'Fermer' }));
+    await waitFor(() => expect(screen.queryByText(/importées de Kahoot/)).toBeNull());
+  });
+
   it('shows the tokenised import error', async () => {
     mockApi([
       { method: 'GET', path: '/quizzes', body: [] },

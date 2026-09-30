@@ -38,7 +38,7 @@ export interface CreateQuestionDto {
   media?: CreateQuestionDtoMedia;
   /**
      * @minimum 5
-     * @maximum 120
+     * @maximum 240
      */
   timeLimitS?: number;
   /**

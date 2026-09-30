@@ -574,5 +574,18 @@
     "errors_other": "{{count}} 個錯誤",
     "toFinish_one": "還有 1 項要完成",
     "toFinish_other": "還有 {{count}} 項要完成"
+  },
+  "importReport": {
+    "imported_one": "已從 Kahoot 匯入 1 道題。",
+    "imported_other": "已從 Kahoot 匯入 {{count}} 道題。",
+    "media": "圖片和聲音不會匯入。",
+    "incomplete_one": "發布前有 1 道題需要完成，已在清單中標出。",
+    "incomplete_other": "發布前有 {{count}} 道題需要完成，已在清單中標出。",
+    "skipped": "第 {{row}} 列未匯入：{{reason}}",
+    "reasons": {
+      "invalid_time": "時限不在 {{min}}–{{max}} 秒之間",
+      "formula": "不讀取公式",
+      "invalid_content": "文字超出 QuizDock 的長度限制"
+    }
   }
 }

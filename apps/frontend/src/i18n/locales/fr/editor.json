@@ -574,5 +574,18 @@
     "errors_other": "{{count}} erreurs",
     "toFinish_one": "1 point à finir",
     "toFinish_other": "{{count}} points à finir"
+  },
+  "importReport": {
+    "imported_one": "1 question importée de Kahoot.",
+    "imported_other": "{{count}} questions importées de Kahoot.",
+    "media": "Les images et les sons ne sont pas repris.",
+    "incomplete_one": "1 question à finir avant de publier : elle est signalée dans la liste.",
+    "incomplete_other": "{{count}} questions à finir avant de publier : elles sont signalées dans la liste.",
+    "skipped": "Ligne {{row}} laissée de côté : {{reason}}",
+    "reasons": {
+      "invalid_time": "durée hors de {{min}} à {{max}} secondes",
+      "formula": "les formules ne sont pas lues",
+      "invalid_content": "texte trop long pour QuizDock"
+    }
   }
 }
