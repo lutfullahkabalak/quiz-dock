@@ -583,7 +583,7 @@
     "incomplete_other": "{{count}} questions to finish before publishing: they are flagged in the list.",
     "skipped": "Row {{row}} left out: {{reason}}",
     "reasons": {
-      "invalid_time": "a time limit outside 5–120 seconds",
+      "invalid_time": "a time limit outside {{min}}–{{max}} seconds",
       "formula": "formulas are not read",
       "invalid_content": "a text too long for QuizDock"
     }

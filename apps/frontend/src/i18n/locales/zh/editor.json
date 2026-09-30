@@ -583,7 +583,7 @@
     "incomplete_other": "发布前有 {{count}} 道题需要完成，已在列表中标出。",
     "skipped": "第 {{row}} 行未导入：{{reason}}",
     "reasons": {
-      "invalid_time": "时限不在 5–120 秒之间",
+      "invalid_time": "时限不在 {{min}}–{{max}} 秒之间",
       "formula": "不读取公式",
       "invalid_content": "文本超出 QuizDock 的长度限制"
     }

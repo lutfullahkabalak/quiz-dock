@@ -87,8 +87,8 @@ describe('QuestionForm', () => {
     const time = screen.getByLabelText('Temps (s)');
     fireEvent.change(time, { target: { value: '500' } });
     fireEvent.blur(time);
-    expect(time).toHaveValue(120);
-    expect(screen.getByRole('note')).toHaveTextContent('120');
+    expect(time).toHaveValue(240);
+    expect(screen.getByRole('note')).toHaveTextContent('240');
   });
 
   it('ordering: taking a place swaps it with the answer that held it', async () => {

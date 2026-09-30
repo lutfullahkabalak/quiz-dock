@@ -42,7 +42,7 @@ describe('Kahoot spreadsheet', () => {
     const result = kahootSpreadsheet(
       workbook(
         row(9, [...good.slice(0, 6), '1, 3']) +
-          row(12, [...good.slice(0, 5), '240', '3']) +
+          row(12, [...good.slice(0, 5), '300', '3']) +
           row(14, good, 'B') +
           row(15, ['x'.repeat(1001), ...good.slice(1)]) +
           row(16, ['', '', '', '', '', '', '']),

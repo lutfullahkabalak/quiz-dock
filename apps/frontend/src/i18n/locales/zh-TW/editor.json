@@ -583,7 +583,7 @@
     "incomplete_other": "發布前有 {{count}} 道題需要完成，已在清單中標出。",
     "skipped": "第 {{row}} 列未匯入：{{reason}}",
     "reasons": {
-      "invalid_time": "時限不在 5–120 秒之間",
+      "invalid_time": "時限不在 {{min}}–{{max}} 秒之間",
       "formula": "不讀取公式",
       "invalid_content": "文字超出 QuizDock 的長度限制"
     }

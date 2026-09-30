@@ -9,14 +9,14 @@ The file name becomes the draft title. Delete the template's example question
 if you do not want to import it.
 
 QuizDock keeps the wording, answer order, correct answers and time limits
-(5–120 seconds; an empty cell gives the default 20). One correct answer becomes
+(5–240 seconds; an empty cell gives the default 20). One correct answer becomes
 single choice; several become multiple choice. The draft then opens in the editor,
 with the conversion report on top.
 
 A row missing its question, answers or correct answer still comes in, as a
 question to finish: the editor flags it, and the quiz cannot be published until
 it is complete. A row is left out, and reported by row number and reason, only
-when QuizDock cannot hold it: a time limit outside 5–120 seconds, a formula cell,
+when QuizDock cannot hold it: a time limit outside 5–240 seconds, a formula cell,
 or a text longer than QuizDock allows. If no row can be converted, no draft is
 created. Links, pictures and sounds are not read or fetched. The draft inherits
 the instance language and has no licence: check both before publishing it.

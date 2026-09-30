@@ -583,7 +583,7 @@
     "incomplete_other": "{{count}} questions à finir avant de publier : elles sont signalées dans la liste.",
     "skipped": "Ligne {{row}} laissée de côté : {{reason}}",
     "reasons": {
-      "invalid_time": "durée hors de 5 à 120 secondes",
+      "invalid_time": "durée hors de {{min}} à {{max}} secondes",
       "formula": "les formules ne sont pas lues",
       "invalid_content": "texte trop long pour QuizDock"
     }

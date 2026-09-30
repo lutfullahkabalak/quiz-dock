@@ -205,7 +205,7 @@ describe('questionContentSchema — validation par type (§4)', () => {
     ).toBe(false);
   });
 
-  it('timeLimitS borné 5–120', () => {
+  it('timeLimitS borné 5–240', () => {
     const q = (t: number) => ({
       ...base,
       timeLimitS: t,
@@ -213,9 +213,9 @@ describe('questionContentSchema — validation par type (§4)', () => {
       options: [opt({ isCorrect: true }), opt()],
     });
     expect(ok(q(5))).toBe(true);
-    expect(ok(q(120))).toBe(true);
+    expect(ok(q(240))).toBe(true);
     expect(ok(q(4))).toBe(false);
-    expect(ok(q(121))).toBe(false);
+    expect(ok(q(241))).toBe(false);
   });
 
   it('answerExplanation: optional, nullable, capped at 2000 chars (#5)', () => {

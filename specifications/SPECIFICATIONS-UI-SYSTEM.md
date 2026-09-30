@@ -34,7 +34,7 @@
 | Level | What | What the author sees |
 |---|---|---|
 | 1 · Impossible by construction | Maximum lengths, 8 options, 20 accepted answers, 30 blocks / 10 per column, ordering positions chosen by swap, video *or* sound, image *or* gradient background, decimals accepted | A counter that stops at the limit; an *Add* button that says "8 max". Never an error. |
-| 2 · Corrected automatically | Time clamped to 5–120 s, reveal delay to 1–300 s, negative tolerance to 0, empty rows/answers/blocks dropped, ticks reset on a type change, whitespace trimmed | A note under the field, not an error. |
+| 2 · Corrected automatically | Time clamped to 5–240 s, reveal delay to 1–300 s, negative tolerance to 0, empty rows/answers/blocks dropped, ticks reset on a type change, whitespace trimmed | A note under the field, not an error. |
 | 3 · Completeness, checked at publication | A right answer ticked, at least 2 options, at least one accepted answer, a prompt or a media, pictures and their alt text (existing product decision), target and tolerance, a slide that shows something | *Save* always works; the step carries ⚠ in the list; *Publish* opens a checklist that leads to each step. Saving an incomplete step in a *ready* quiz offers to move it back to draft. |
 | 4 · Blocking at save | Technical integrity only: unknown media, media of the wrong kind, concurrent save, item deleted meanwhile | Error on the field concerned, summary next to *Save*. |
 

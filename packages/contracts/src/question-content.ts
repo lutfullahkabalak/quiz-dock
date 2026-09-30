@@ -59,7 +59,7 @@ export const OPTION_TEXT_MAX = 500;
 export const ACCEPTED_ANSWER_MAX = 200;
 export const EXPLANATION_MAX = 2000;
 /** A question's answering time, and the auto mode's pause on its answer (SQL CHECKs). */
-export const TIME_LIMIT_S = { min: 5, max: 120, default: 20 } as const;
+export const TIME_LIMIT_S = { min: 5, max: 240, default: 20 } as const;
 export const REVEAL_DELAY_S = { min: 1, max: 300 } as const;
 
 export const POINTS_MODES = ['standard', 'double', 'none', 'fixed'] as const;

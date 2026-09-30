@@ -67,7 +67,7 @@ import { MenuItem, MenuSeparator } from '@/components/ui/menu-item';
 import { Popover } from '@/components/ui/popover';
 import { Modal } from '@/components/ui/modal';
 import { savedQuestionIssues } from '@/lib/question-issues';
-import { slideIssues } from '@quiz-dock/contracts';
+import { slideIssues, TIME_LIMIT_S } from '@quiz-dock/contracts';
 import { validationText } from '../api/error-text';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
@@ -1066,7 +1066,10 @@ function ImportReportNotice({ quizId }: { quizId: string }) {
             <ul className="text-muted-foreground list-disc pl-5">
               {report.skipped.map(({ row, reason }) => (
                 <li key={row}>
-                  {t('importReport.skipped', { row, reason: t(`importReport.reasons.${reason}`) })}
+                  {t('importReport.skipped', {
+                    row,
+                    reason: t(`importReport.reasons.${reason}`, TIME_LIMIT_S),
+                  })}
                 </li>
               ))}
             </ul>
