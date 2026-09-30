@@ -4,6 +4,61 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
+## [0.11.0] - 2026-09-30
+
+### Bug Fixes
+
+- Engine.io 6.6.11 — GHSA-2gc4-cqfq-p2gv (protocol revision mismatch DoS) *(deps)*
+- Refresh Turkish translations for dev UI *(i18n)*
+- Avoid Turkish suffixes on host names *(i18n)*
+- Bound each archive inflater chunk *(import)*
+- The app's one pagination *(reviews)*
+- The peek's socket specs expect the room it now names; an unnamed room says null *(join)*
+- A menu that drops down opens from vertical dots *(ui)*
+- The room's name is the page heading again *(projection)*
+- Every error code the server can send has its text, and a test keeps it so *(i18n)*
+- What sits on a question or slide background stays readable, whatever the background *(live)*
+- The question background covers the whole screen, answering included *(player)*
+
+### Documentation
+
+- A CONTRIBUTING guide and a PR template — pull requests go to dev
+- The UI system — rules and the three-lot rework settled in review *(specifications)*
+
+### Features
+
+- Add Turkish locale *(i18n)*
+- A question may last up to 240 s, as in Kahoot *(questions)*
+- A Kahoot sheet opens as a draft to finish, its report in the editor *(import)*
+- Support Kahoot spreadsheet templates *(import)*
+- The console controls all of the projection's sound (#150) *(sound)*
+- Instance media — labelled filters, actions in the preview, delete says why not *(admin)*
+- State and players first, Close the room… apart, Resume as the main action *(rooms)*
+- Sortable tables, dates in the interface's language, a way to a first session *(history)*
+- A profile in plain words, one menu everywhere, the seat released with Undo *(account)*
+- Who joins what, ready at the thumb, and a way on at every end *(phone)*
+- Sign in in one step, and never a dead end *(auth)*
+- One way into a room — six boxes, the room named at the 6th digit *(join)*
+- A quiz's status has one colour everywhere; a read-only quiz says No questions yet *(ui)*
+- The slide form validates like the question, empty blocks flagged, removal undone *(editor)*
+- The card opens the quiz, one action in view, the rest in ⋮ *(dashboard)*
+- A media's alt text and credit are saved with the form *(editor)*
+- A stable frame — the title saves itself, the rare actions in ⋯ *(editor)*
+- The question form puts the answers first, with a live preview *(editor)*
+- A question's clock stands at its full time *(preview)*
+- The room's own screens — projection or phone, the answer on request *(preview)*
+- A template's page is the quiz preview, fed by the import itself *(templates)*
+- Permissive validation — drafts save what holds, publishing asks for completeness *(editor)*
+- A fixed frame — where the game is and how to join on top, the room's state below *(projection)*
+- One frame for every phase — state on top, the step in the centre, the quiz aside *(console)*
+- The host's outline carries the slides, so it shows every step *(live)*
+- Foundations of the UI system — field contrast, tokens only, titles, notices, no dead end *(ui)*
+
+### Contributors
+
+- Francois Chaussin
+- lutfullahkabalak
+
 ## [0.10.0] - 2026-09-28
 
 ### Documentation
