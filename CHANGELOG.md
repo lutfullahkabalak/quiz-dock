@@ -4,7 +4,82 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
+## [0.11.0] - 2026-09-30
+
+### Bug Fixes
+
+- Engine.io 6.6.11 — GHSA-2gc4-cqfq-p2gv (protocol revision mismatch DoS) *(deps)*
+- Refresh Turkish translations for dev UI *(i18n)*
+- Avoid Turkish suffixes on host names *(i18n)*
+- Bound each archive inflater chunk *(import)*
+- The app's one pagination *(reviews)*
+- The peek's socket specs expect the room it now names; an unnamed room says null *(join)*
+- A menu that drops down opens from vertical dots *(ui)*
+- The room's name is the page heading again *(projection)*
+- Every error code the server can send has its text, and a test keeps it so *(i18n)*
+- What sits on a question or slide background stays readable, whatever the background *(live)*
+- The question background covers the whole screen, answering included *(player)*
+
+### Documentation
+
+- A CONTRIBUTING guide and a PR template — pull requests go to dev
+- The UI system — rules and the three-lot rework settled in review *(specifications)*
+
+### Features
+
+- Add Turkish locale *(i18n)*
+- A question may last up to 240 s, as in Kahoot *(questions)*
+- A Kahoot sheet opens as a draft to finish, its report in the editor *(import)*
+- Support Kahoot spreadsheet templates *(import)*
+- The console controls all of the projection's sound (#150) *(sound)*
+- Instance media — labelled filters, actions in the preview, delete says why not *(admin)*
+- State and players first, Close the room… apart, Resume as the main action *(rooms)*
+- Sortable tables, dates in the interface's language, a way to a first session *(history)*
+- A profile in plain words, one menu everywhere, the seat released with Undo *(account)*
+- Who joins what, ready at the thumb, and a way on at every end *(phone)*
+- Sign in in one step, and never a dead end *(auth)*
+- One way into a room — six boxes, the room named at the 6th digit *(join)*
+- A quiz's status has one colour everywhere; a read-only quiz says No questions yet *(ui)*
+- The slide form validates like the question, empty blocks flagged, removal undone *(editor)*
+- The card opens the quiz, one action in view, the rest in ⋮ *(dashboard)*
+- A media's alt text and credit are saved with the form *(editor)*
+- A stable frame — the title saves itself, the rare actions in ⋯ *(editor)*
+- The question form puts the answers first, with a live preview *(editor)*
+- A question's clock stands at its full time *(preview)*
+- The room's own screens — projection or phone, the answer on request *(preview)*
+- A template's page is the quiz preview, fed by the import itself *(templates)*
+- Permissive validation — drafts save what holds, publishing asks for completeness *(editor)*
+- A fixed frame — where the game is and how to join on top, the room's state below *(projection)*
+- One frame for every phase — state on top, the step in the centre, the quiz aside *(console)*
+- The host's outline carries the slides, so it shows every step *(live)*
+- Foundations of the UI system — field contrast, tokens only, titles, notices, no dead end *(ui)*
+
+### Contributors
+
+- Francois Chaussin
+- lutfullahkabalak
+
 ## [0.10.0] - 2026-09-28
+
+### Documentation
+
+- The thanks name Anthropic's GitHub account and Claude Code *(readme)*
+- The release is 0.10.0, not 0.9.1
+- The rooms table only, and the results directory introduced *(readme)*
+- The benchmarks in the changelog, a performance summary in the README
+- Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
+
+### Contributors
+
+- Claude
+
+## [0.9.0] - 2026-09-27
+
+### ⚠️ Breaking changes
+
+> [!WARNING]
+> Read before upgrading.
+> - **An OIDC_ISSUER ending in `/` while the provider's issuer does not (or the reverse) no longer signs in: set it to the provider's issuer, as the backend log and `quizdock doctor` point out.**
 
 ### Benchmarks
 
@@ -44,72 +119,6 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - Answer database errors with their meaning, and stop pg's overlap warning *(api)*
 - Check every place an author puts a media in, in one way *(media)*
 - Keep the room's players and answers right under concurrency *(game)*
-
-### Documentation
-
-- The rooms table only, and the results directory introduced *(readme)*
-- The benchmarks in the changelog, a performance summary in the README
-- Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
-- The answer count coalesced, the sounds off in a new room, the measures to redo cold
-- The benchmark after the lots, and a sizing page for operators
-- What each lot fixed, the profile of the engine, and the unreleased changes
-- Record the decisions taken on the audit's open points *(audit)*
-- Code audit of backend and frontend, to decide lot 4 *(audit)*
-
-### Features
-
-- A new room's game sounds are off, the host turns on the ones they want *(game)*
-- Hooks on the live screens for an instance's override.css *(branding)*
-- Tokens for the answers' colours, warning, podium and typeface *(theme)*
-- The live pages say when their connection is lost *(live)*
-
-### Performance
-
-- The room's answer count sent at most every 100 ms, not on every answer *(game)*
-- The instance's language alone downloaded, not all five *(frontend)*
-- A game's snapshot parsed once, not on every answer *(game)*
-- A joining device's preload reads its own record only *(game)*
-- The join page's peek reads the game once *(game)*
-- One definition of where a media is used, the library 100 times faster *(media)*
-- The auth guard writes the user only when something changed *(auth)*
-- Walk keys with SCAN, never KEYS *(redis)*
-
-### Refactor
-
-- The console's repeated blocks written once *(console)*
-- One hook for a room device's media, projection and phone alike *(live)*
-- One PIN form for the home page and the join page *(join)*
-- Where the device follows from, worked out once *(player)*
-- One draft hook and one action bar for the question and slide forms *(editor)*
-- The editor's five small pickers on Segmented *(editor)*
-- One Modal for the four native dialogs *(frontend)*
-- One checkbox field, label and hint, for six places *(frontend)*
-- The slide being edited previewed by slideShowOf *(editor)*
-- One helper for a library media's address *(frontend)*
-- The session's 29 events, taken on and off from one table *(live)*
-- One encoding for the room and game hashes, field names checked *(game)*
-- One reader of the live players, answers and snapshot *(game)*
-- The questions-only reorder and the samples route marked deprecated *(api)*
-- One host guard, and a player's own room only *(game)*
-- Small duplicates and misplaced comments from the audit *(backend)*
-- One check that a quiz is within reach, one "readable by" *(quizzes)*
-- One way to write a question's and a slide's content *(quizzes)*
-- Split timers, results and steps out of the engine *(game)*
-
-### Contributors
-
-- Claude
-
-## [0.9.0] - 2026-09-27
-
-### ⚠️ Breaking changes
-
-> [!WARNING]
-> Read before upgrading.
-> - **An OIDC_ISSUER ending in `/` while the provider's issuer does not (or the reverse) no longer signs in: set it to the provider's issuer, as the backend log and `quizdock doctor` point out.**
-
-### Bug Fixes
-
 - An image choice keeps the projection's usual layout *(live)*
 - A picture's description arriving late overwrites nothing *(editor)*
 - No image added from the Markdown editor *(editor)*
@@ -154,6 +163,11 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - Ready for 0.9.0 — upgrade between two games, version examples, unreleased
 - Every screen shot again, the new ones and each question type *(screenshots)*
 - The 0.7 and 0.8 notes out of the top *(readme)*
+- The answer count coalesced, the sounds off in a new room, the measures to redo cold
+- The benchmark after the lots, and a sizing page for operators
+- What each lot fixed, the profile of the engine, and the unreleased changes
+- Record the decisions taken on the audit's open points *(audit)*
+- Code audit of backend and frontend, to decide lot 4 *(audit)*
 - Image choice in the feature list and unreleased
 - The 2026-09-27 batch listed, video and sound no longer experimental
 - Media on slides, as arbitrated — blocks, a video background, one sound at a time *(spec)*
@@ -204,6 +218,10 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Features
 
+- A new room's game sounds are off, the host turns on the ones they want *(game)*
+- Hooks on the live screens for an instance's override.css *(branding)*
+- Tokens for the answers' colours, warning, podium and typeface *(theme)*
+- The live pages say when their connection is lost *(live)*
 - The pictures on the phone in the room too *(player)*
 - Name a picture answer by its alt, in the history, the CSV and the templates *(history)*
 - Answer an image choice — the pictures at a distance, the shapes in the room *(player)*
@@ -264,14 +282,45 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 - Publish the manifest as a JSON Schema, one file per version *(bundle)*
 - Set the licence and the tags of a quiz *(editor)*
 
+### Performance
+
+- The room's answer count sent at most every 100 ms, not on every answer *(game)*
+- The instance's language alone downloaded, not all five *(frontend)*
+- A game's snapshot parsed once, not on every answer *(game)*
+- A joining device's preload reads its own record only *(game)*
+- The join page's peek reads the game once *(game)*
+- One definition of where a media is used, the library 100 times faster *(media)*
+- The auth guard writes the user only when something changed *(auth)*
+- Walk keys with SCAN, never KEYS *(redis)*
+
 ### Refactor
 
+- The console's repeated blocks written once *(console)*
+- One hook for a room device's media, projection and phone alike *(live)*
+- One PIN form for the home page and the join page *(join)*
+- Where the device follows from, worked out once *(player)*
+- One draft hook and one action bar for the question and slide forms *(editor)*
+- The editor's five small pickers on Segmented *(editor)*
+- One Modal for the four native dialogs *(frontend)*
+- One checkbox field, label and hint, for six places *(frontend)*
+- The slide being edited previewed by slideShowOf *(editor)*
+- One helper for a library media's address *(frontend)*
+- The session's 29 events, taken on and off from one table *(live)*
+- One encoding for the room and game hashes, field names checked *(game)*
+- One reader of the live players, answers and snapshot *(game)*
+- The questions-only reorder and the samples route marked deprecated *(api)*
+- One host guard, and a player's own room only *(game)*
+- Small duplicates and misplaced comments from the audit *(backend)*
+- One check that a quiz is within reach, one "readable by" *(quizzes)*
+- One way to write a question's and a slide's content *(quizzes)*
+- Split timers, results and steps out of the engine *(game)*
 - One step preview for every page, its content centred *(quiz)*
 - The room under its PIN, each game under its own id *(game)*
 
 ### Contributors
 
 - fchaussin
+- Claude
 
 ## [0.8.0] - 2026-09-25
 
