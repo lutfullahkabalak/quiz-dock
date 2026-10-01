@@ -4,10 +4,14 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
-## [0.11.0] - 2026-09-30
+## [0.10.0] - 2026-09-28
 
 ### Bug Fixes
 
+- The big screen on a phone is the stage, fitted — no piled-up bands (#170) *(player)*
+- The filter bars fit a phone — one shared filter field (#168) *(ui)*
+- Form controls inherit the base size, no focus zoom on phones (#164) *(ui)*
+- The sample-media container runs as node, with no healthcheck *(tools)*
 - Engine.io 6.6.11 — GHSA-2gc4-cqfq-p2gv (protocol revision mismatch DoS) *(deps)*
 - Refresh Turkish translations for dev UI *(i18n)*
 - Avoid Turkish suffixes on host names *(i18n)*
@@ -22,11 +26,26 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Documentation
 
+- The connector is experimental (#166) *(mcp)*
+- The sample quizzes, the Kahoot import and Turkish *(readme)*
+- Every screen shot again on the reworked UI, and a new demo GIF *(screenshots)*
 - A CONTRIBUTING guide and a PR template — pull requests go to dev
 - The UI system — rules and the three-lot rework settled in review *(specifications)*
+- The thanks name Anthropic's GitHub account and Claude Code *(readme)*
+- The release is 0.10.0, not 0.9.1
+- The rooms table only, and the results directory introduced *(readme)*
+- The benchmarks in the changelog, a performance summary in the README
+- Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
 
 ### Features
 
+- Picture placement on the projection, room played quizzes, quiz filters, English Türkiye (#171)
+- A motion layer under the live screens (#169) *(live)*
+- A full preset with a bundled Keycloak (#149) *(self-hosting)*
+- A local connector to validate and import quizzes (experimental) (#153) *(mcp)*
+- A demo stack, and the screenshots and demo GIF taken on it *(tools)*
+- The shared account starts with the sample quizzes in its bank *(demo)*
+- Three sample quizzes with media and every question type *(samples)*
 - Add Turkish locale *(i18n)*
 - A question may last up to 240 s, as in Kahoot *(questions)*
 - A Kahoot sheet opens as a draft to finish, its report in the editor *(import)*
@@ -56,21 +75,9 @@ Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 
 ### Contributors
 
-- Francois Chaussin
+- François CHAUSSIN
 - lutfullahkabalak
-
-## [0.10.0] - 2026-09-28
-
-### Documentation
-
-- The thanks name Anthropic's GitHub account and Claude Code *(readme)*
-- The release is 0.10.0, not 0.9.1
-- The rooms table only, and the results directory introduced *(readme)*
-- The benchmarks in the changelog, a performance summary in the README
-- Ready for 0.9.1 — its changelog, version examples, upgrade note, thanks
-
-### Contributors
-
+- Francois Chaussin
 - Claude
 
 ## [0.9.0] - 2026-09-27
