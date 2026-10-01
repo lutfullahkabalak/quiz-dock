@@ -38,5 +38,13 @@
   "unreadable": "This template cannot be read whole: a copy would be refused ({{where}}).",
   "unreadableItem": "item {{n}}",
   "unreadableManifest": "its manifest",
-  "more": "More actions"
+  "more": "More actions",
+  "community": {
+    "title": "Community quizzes",
+    "intro": "Quizzes published by other authors. Check the source, licence and answers before taking an independent copy.",
+    "empty": "The community catalogue is empty.",
+    "unavailable": "Some sources could not be loaded. Try again later.",
+    "source": "Source: {{source}}",
+    "report": "Report a problem"
+  }
 }

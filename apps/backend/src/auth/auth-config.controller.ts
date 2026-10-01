@@ -3,6 +3,7 @@ import { ApiOkResponse, ApiTags } from '@nestjs/swagger';
 import { DEMO_USER, isDemoMode } from '../demo/demo.config';
 import { allowsAnonymousParticipants, authMode } from './auth-mode';
 import { AuthConfigDto } from './dto/auth-config.dto';
+import { communityRegistries } from '../store/community/community-config';
 import { Public } from './public.decorator';
 
 /** Expose la config d'auth à la SPA (publique, pas de JWT requis). */
@@ -16,6 +17,7 @@ export class AuthConfigController {
     const mode = authMode();
     return {
       mode,
+      communityStore: communityRegistries().length > 0,
       demo: isDemoMode() ? { user: DEMO_USER } : null,
       standalone: process.env.QUIZDOCK_FLAVOR === 'standalone',
       anonymousParticipants: allowsAnonymousParticipants(),

@@ -38,5 +38,13 @@
   "unreadable": "此範本無法完整讀取：建立副本會被拒絕（{{where}}）。",
   "unreadableItem": "第 {{n}} 項",
   "unreadableManifest": "其清單",
-  "more": "更多操作"
+  "more": "更多操作",
+  "community": {
+    "title": "社群題庫",
+    "intro": "其他作者發布的測驗。建立獨立副本前，請檢查來源、授權和答案。",
+    "empty": "社群目錄為空。",
+    "unavailable": "部分來源無法載入，請稍後重試。",
+    "source": "來源：{{source}}",
+    "report": "回報問題"
+  }
 }

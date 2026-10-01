@@ -96,7 +96,7 @@ a release carries what is on `dev`.
 
 Without it, a published quiz appears nowhere for users, and a contributor has no reason to publish.
 
-- [ ] `QUIZ_STORE_URL`: a whitelist of registry URLs, the official registry by default, **empty closes the flow**
+- [ ] `QUIZ_STORE_URL`: a whitelist of registry URLs, disabled unless explicitly configured, **unset or empty closes the flow**
   (no page, no outgoing request). Provenance shown on every entry.
 - [ ] Fetch safety: server-side only; allowed hosts are the registries' plus the ones the administrator lists (GitHub
   release downloads redirect to a separate asset host); every redirect checked against the same list; private and

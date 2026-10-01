@@ -38,5 +38,13 @@
   "unreadable": "Ce modèle ne se lit pas en entier : une copie serait refusée ({{where}}).",
   "unreadableItem": "élément {{n}}",
   "unreadableManifest": "son manifeste",
-  "more": "Plus d’actions"
+  "more": "Plus d’actions",
+  "community": {
+    "title": "Quiz de la communauté",
+    "intro": "Quiz publiés par d’autres auteurs. Vérifiez la source, la licence et les réponses avant de prendre une copie indépendante.",
+    "empty": "Le catalogue communautaire est vide.",
+    "unavailable": "Certaines sources sont indisponibles. Réessayez plus tard.",
+    "source": "Source : {{source}}",
+    "report": "Signaler un problème"
+  }
 }

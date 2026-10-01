@@ -1,6 +1,6 @@
 import { createRootRoute, createRoute, createRouter, redirect } from '@tanstack/react-router';
 import { getAuthMode, isAuthenticated, rememberAfterLogin } from './auth/auth-context';
-import { allowsAnonymousParticipants } from './config';
+import { allowsAnonymousParticipants, hasCommunityStore } from './config';
 import { CallbackPage } from './routes/callback-page';
 import { ControlPage } from './routes/control-page';
 import { DashboardPage } from './routes/dashboard-page';
@@ -15,6 +15,8 @@ import { SessionDetailPage, SessionPlayerPage, SessionsPage } from './routes/ses
 import { LivePage } from './routes/live-page';
 import { ProfilePage } from './routes/profile-page';
 import { TemplatePage } from './routes/template-page';
+import { CommunityPreviewPage } from './routes/community-preview-page';
+import { CommunityPage } from './routes/community-page';
 import { TemplatesPage } from './routes/templates-page';
 import { FeedbackPage } from './routes/feedback-page';
 import { RootLayout } from './routes/root-layout';
@@ -107,6 +109,26 @@ export const templatesRoute = createRoute({
   path: '/templates',
   beforeLoad: requireAuth,
   component: TemplatesPage,
+});
+
+export const communityRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community',
+  beforeLoad: () => {
+    requireAuth();
+    if (!hasCommunityStore()) throw redirect({ to: '/templates' });
+  },
+  component: CommunityPage,
+});
+
+export const communityPreviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/community/$key',
+  beforeLoad: () => {
+    requireAuth();
+    if (!hasCommunityStore()) throw redirect({ to: '/templates' });
+  },
+  component: CommunityPreviewPage,
 });
 
 export const editorRoute = createRoute({
@@ -273,6 +295,8 @@ export const routeTree = rootRoute.addChildren([
   callbackRoute,
   dashboardRoute,
   templatesRoute,
+  communityRoute,
+  communityPreviewRoute,
   templateRoute,
   liveRoute,
   profileRoute,

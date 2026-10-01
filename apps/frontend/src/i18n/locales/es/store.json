@@ -38,5 +38,13 @@
   "unreadable": "Esta plantilla no se puede leer entera: una copia sería rechazada ({{where}}).",
   "unreadableItem": "elemento {{n}}",
   "unreadableManifest": "su manifiesto",
-  "more": "Más acciones"
+  "more": "Más acciones",
+  "community": {
+    "title": "Quizzes de la comunidad",
+    "intro": "Quizzes publicados por otros autores. Revisa la fuente, la licencia y las respuestas antes de crear una copia independiente.",
+    "empty": "El catálogo de la comunidad está vacío.",
+    "unavailable": "No se pudieron cargar algunas fuentes. Inténtalo más tarde.",
+    "source": "Fuente: {{source}}",
+    "report": "Informar de un problema"
+  }
 }

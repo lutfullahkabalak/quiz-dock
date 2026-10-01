@@ -178,5 +178,10 @@
     "busy": "Bağlayıcı meşgul. Biraz sonra tekrar deneyin.",
     "import_failed": "Quiz içe aktarılamadı.",
     "rate_limit": "Çok fazla içe aktarma isteği gönderildi. Biraz sonra tekrar deneyin."
+  },
+  "community": {
+    "disabled": "Topluluk mağazası devre dışı.",
+    "download_failed": "Quiz indirilemedi veya doğrulanamadı.",
+    "busy": "Topluluk mağazası şu anda meşgul. Biraz sonra tekrar deneyin."
   }
 }

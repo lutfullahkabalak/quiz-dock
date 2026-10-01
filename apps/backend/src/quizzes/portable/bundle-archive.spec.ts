@@ -63,3 +63,25 @@ describe('readArchive', () => {
     expect(refusal(() => readArchive(broken, all, LIMITS))).not.toBeNull();
   });
 });
+
+describe('foreign archive safety', () => {
+  it.each(['../quiz.json', '/quiz.json', 'C:/quiz.json', 'media/../quiz.json', 'media\\bad.png'])(
+    'rejects unsafe path %s even if skipped',
+    (name) => {
+      expect(() => readArchive(zipSync({ [name]: strToU8('{}') }), () => false, LIMITS)).toThrow(
+        'import.invalid_bundle',
+      );
+    },
+  );
+  it('bounds compression ratio on actual inflated bytes', () => {
+    const zip = zipSync({ 'quiz.json': new Uint8Array(100000) });
+    expect(() =>
+      readArchive(zip, all, {
+        maxEntries: 10,
+        maxEntryBytes: 200000,
+        maxTotalBytes: 200000,
+        maxCompressionRatio: 10,
+      }),
+    ).toThrow('import.bundle_too_large');
+  });
+});

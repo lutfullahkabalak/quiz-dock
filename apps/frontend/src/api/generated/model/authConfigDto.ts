@@ -9,6 +9,7 @@ import type { AuthConfigDtoDemo } from './authConfigDtoDemo';
 import type { AuthConfigDtoMode } from './authConfigDtoMode';
 
 export interface AuthConfigDto {
+  communityStore: boolean;
   mode: AuthConfigDtoMode;
   /** @nullable */
   demo: AuthConfigDtoDemo;

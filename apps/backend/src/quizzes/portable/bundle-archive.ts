@@ -17,6 +17,8 @@ export interface ArchiveLimits {
   maxEntryBytes: number;
   /** Every kept entry together, once inflated. */
   maxTotalBytes: number;
+  /** Optional ratio bound when the compressed size is available. */
+  maxCompressionRatio?: number;
 }
 
 export function archiveLimits(maxEntryBytes: number): ArchiveLimits {
@@ -40,6 +42,7 @@ export function readArchive(
   limits: ArchiveLimits,
 ): Record<string, Uint8Array> {
   const files: Record<string, Uint8Array> = {};
+  const names = new Set<string>();
   let entries = 0;
   let total = 0;
   // Set from the callbacks below: typed wide so the checks after `push` are not narrowed away.
@@ -47,6 +50,17 @@ export function readArchive(
 
   const unzip = new Unzip((file) => {
     if (failure) return;
+    if (
+      file.name.startsWith('/') ||
+      file.name.includes('\\') ||
+      /^[a-z]:/i.test(file.name) ||
+      file.name.split('/').includes('..') ||
+      names.has(file.name)
+    ) {
+      failure = 'invalid';
+      return;
+    }
+    names.add(file.name);
     entries += 1;
     if (entries > limits.maxEntries) {
       failure = 'too_large';
@@ -63,7 +77,13 @@ export function readArchive(
       }
       size += chunk.length;
       total += chunk.length;
-      if (size > limits.maxEntryBytes || total > limits.maxTotalBytes) {
+      if (
+        size > limits.maxEntryBytes ||
+        total > limits.maxTotalBytes ||
+        (limits.maxCompressionRatio &&
+          file.size !== undefined &&
+          size > Math.max(1, file.size) * limits.maxCompressionRatio)
+      ) {
         failure = 'too_large';
         file.terminate();
         return;
