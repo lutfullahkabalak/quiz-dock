@@ -24,6 +24,7 @@ export * from './communityPreviewDtoQuestionsItemBackgroundGradient';
 export * from './communityPreviewDtoQuestionsItemMedia';
 export * from './communityPreviewDtoQuestionsItemMediaAudio';
 export * from './communityPreviewDtoQuestionsItemMediaAudioOrigin';
+export * from './communityPreviewDtoQuestionsItemMediaPosition';
 export * from './communityPreviewDtoQuestionsItemMediaVisual';
 export * from './communityPreviewDtoQuestionsItemOptionsItem';
 export * from './communityPreviewDtoQuestionsItemOptionsItemColor';
