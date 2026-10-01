@@ -38,5 +38,13 @@
   "unreadable": "Bu şablonun tamamı okunamıyor: kopyası kabul edilmez ({{where}}).",
   "unreadableItem": "{{n}}. öğe",
   "unreadableManifest": "bildirim dosyası",
-  "more": "Diğer işlemler"
+  "more": "Diğer işlemler",
+  "community": {
+    "title": "Topluluk quizleri",
+    "intro": "Diğer yazarların yayımladığı quizler. Bağımsız bir kopya almadan önce kaynağı, lisansı ve cevapları kontrol edin.",
+    "empty": "Topluluk kataloğu boş.",
+    "unavailable": "Bazı kaynaklar yüklenemedi. Daha sonra tekrar deneyin.",
+    "source": "Kaynak: {{source}}",
+    "report": "Sorun bildir"
+  }
 }
