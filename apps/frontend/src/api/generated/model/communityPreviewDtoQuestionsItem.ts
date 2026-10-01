@@ -9,6 +9,7 @@ import type { CommunityPreviewDtoQuestionsItemAcceptedAnswersItem } from './comm
 import type { CommunityPreviewDtoQuestionsItemAudioTarget } from './communityPreviewDtoQuestionsItemAudioTarget';
 import type { CommunityPreviewDtoQuestionsItemBackgroundGradient } from './communityPreviewDtoQuestionsItemBackgroundGradient';
 import type { CommunityPreviewDtoQuestionsItemMedia } from './communityPreviewDtoQuestionsItemMedia';
+import type { CommunityPreviewDtoQuestionsItemMediaPosition } from './communityPreviewDtoQuestionsItemMediaPosition';
 import type { CommunityPreviewDtoQuestionsItemOptionsItem } from './communityPreviewDtoQuestionsItemOptionsItem';
 import type { CommunityPreviewDtoQuestionsItemPointsMode } from './communityPreviewDtoQuestionsItemPointsMode';
 import type { CommunityPreviewDtoQuestionsItemScoring } from './communityPreviewDtoQuestionsItemScoring';
@@ -49,6 +50,7 @@ export type CommunityPreviewDtoQuestionsItem = {
   /** @nullable */
   audioTarget: CommunityPreviewDtoQuestionsItemAudioTarget;
   waveformSize: CommunityPreviewDtoQuestionsItemWaveformSize;
+  mediaPosition: CommunityPreviewDtoQuestionsItemMediaPosition;
   timerAfterMedia: boolean;
   pointsMode: CommunityPreviewDtoQuestionsItemPointsMode;
   scoring: CommunityPreviewDtoQuestionsItemScoring;

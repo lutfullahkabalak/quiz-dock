@@ -7192,6 +7192,15 @@
                     "hidden"
                   ]
                 },
+                "mediaPosition": {
+                  "type": "string",
+                  "enum": [
+                    "bottom",
+                    "top",
+                    "left",
+                    "right"
+                  ]
+                },
                 "timerAfterMedia": {
                   "type": "boolean"
                 },
@@ -7337,6 +7346,7 @@
                 "revealDelayS",
                 "audioTarget",
                 "waveformSize",
+                "mediaPosition",
                 "timerAfterMedia",
                 "pointsMode",
                 "scoring",
