@@ -1,4 +1,5 @@
 import { RoomSoundsButton } from '../game/game-sounds-panel';
+import { appConfig } from '../config';
 import { ImageChoiceGrid, optionLabel } from '../game/image-choice';
 import { NextQuizButton, RoomStandingsPanel, roomLabel } from '../game/room-components';
 import {
@@ -23,6 +24,7 @@ import {
   Lock,
   LockOpen,
   Eye,
+  ExternalLink,
   MonitorPlay,
   Pause,
   Pencil,
@@ -207,6 +209,8 @@ function HostConsole({
       <Button type="button" variant="outline" size="sm" onClick={openScreen}>
         <Eye className="size-4" />
         {t('control.screenButton')}
+        {/* It opens in a new tab: said before the click. */}
+        <ExternalLink className="text-muted-foreground size-3.5" aria-hidden />
       </Button>
     </Tooltip>
   );
@@ -390,13 +394,29 @@ function HostConsole({
         sounds={view.sounds}
         onChange={(patch) => socket?.emit('host:sounds', { pin, ...patch })}
       />
+      <MotionSwitch
+        on={view.motion ?? appConfig.liveMotion !== false}
+        onToggle={(on) => socket?.emit('host:motion', { pin, on })}
+      />
       {screenButton}
       <span className="flex-1" />
       <span aria-hidden className="bg-border mx-1 h-6 w-px" />
       {inLobby ? (
-        <NextQuizButton pin={pin} socket={socket} mode="lobby" currentQuizId={view.quizId} />
+        <NextQuizButton
+          pin={pin}
+          socket={socket}
+          mode="lobby"
+          currentQuizId={view.quizId}
+          playedQuizIds={view.standings?.playedQuizIds}
+        />
       ) : phase === 'podium' ? null : (
-        <NextQuizButton pin={pin} socket={socket} mode="close" currentQuizId={view.quizId} />
+        <NextQuizButton
+          pin={pin}
+          socket={socket}
+          mode="close"
+          currentQuizId={view.quizId}
+          playedQuizIds={view.standings?.playedQuizIds}
+        />
       )}
       <EndGameButton
         label={inLobby ? t('control.stopSession') : t('control.endSession')}
@@ -697,7 +717,13 @@ function HostConsole({
     );
     status = t('control.statusQuizOver');
     primary = (
-      <NextQuizButton pin={pin} socket={socket} mode="podium" currentQuizId={view.quizId} />
+      <NextQuizButton
+        pin={pin}
+        socket={socket}
+        mode="podium"
+        currentQuizId={view.quizId}
+        playedQuizIds={view.standings?.playedQuizIds}
+      />
     );
   } else if ((state === 'REVEAL' || state === 'LEADERBOARD') && view.question) {
     const question = view.question;
@@ -735,7 +761,7 @@ function HostConsole({
         {view.leaderboard ? (
           <div className="flex flex-col gap-2">
             <SectionTitle>{t('control.leaderboard')}</SectionTitle>
-            <LeaderboardList rows={view.leaderboard.top} max={5} />
+            <LeaderboardList rows={view.leaderboard.top} max={5} track="console" />
           </div>
         ) : null}
       </>
@@ -1509,6 +1535,23 @@ function LockButton({
         {locked ? <Lock className="size-4" /> : <LockOpen className="size-4" />}
         {locked ? t('control.locked') : t('control.lock')}
       </Button>
+    </Tooltip>
+  );
+}
+
+/**
+ * Whether the room's screens move between steps (UI system §1.8): the host sees
+ * what the projector copes with, and switches it for every screen at once — a
+ * switch, like Autoplay, so on and off read apart.
+ */
+function MotionSwitch({ on, onToggle }: { on: boolean; onToggle: (on: boolean) => void }) {
+  const { t } = useTranslation('live');
+  return (
+    <Tooltip label={on ? t('control.motionOnTooltip') : t('control.motionOffTooltip')}>
+      <label className="flex items-center gap-2 text-sm font-medium">
+        <Switch checked={on} onCheckedChange={onToggle} aria-label={t('control.motion')} />
+        {t('control.motion')}
+      </label>
     </Tooltip>
   );
 }

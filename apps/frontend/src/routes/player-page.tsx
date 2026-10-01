@@ -1,4 +1,8 @@
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { LiveMotion } from '../game/motion/level';
+import { BackdropFade, StepEnter } from '../game/motion/step-transition';
+import { type Backdrop, stepKeyOf } from '../game/motion/step';
+import { FittedStage } from '../game/slide-stage';
 import { NICKNAME_MAX, type PlayerPresence, playsSound } from '@quiz-dock/contracts';
 import {
   Ban,
@@ -514,16 +518,26 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
 
   // The question's background covers the whole viewport under the header, in every
   // phase of that question; the phone column is centred inside it.
+  // The motion layer (UI system §1.8): the step, and the background this page draws it on.
+  const stepKey = stepKeyOf(view);
+  const phoneBackdrop: Backdrop = view.question?.background
+    ? { background: view.question.background, textTone: view.question.textTone ?? 'light' }
+    : null;
   const surface = (children: React.ReactNode) => (
-    <Surface
-      background={view.question?.background}
-      textTone={view.question?.textTone}
-      textOutline={view.question?.textOutline}
-      className={cn('flex-1', TYPE_BASE.phone)}
-    >
-      {participantBar}
-      <div className="flex flex-1 flex-col px-4 py-4">{children}</div>
-    </Surface>
+    <LiveMotion on={view.motion}>
+      <Surface
+        background={view.question?.background}
+        textTone={view.question?.textTone}
+        textOutline={view.question?.textOutline}
+        className={cn('flex-1', TYPE_BASE.phone)}
+        overlay={<BackdropFade stepKey={stepKey} backdrop={phoneBackdrop} />}
+      >
+        {participantBar}
+        <StepEnter stepKey={stepKey} className="flex flex-1 flex-col px-4 py-4">
+          {children}
+        </StepEnter>
+      </Surface>
+    </LiveMotion>
   );
 
   const wrap = (children: React.ReactNode, opts: { wide?: boolean; center?: boolean } = {}) =>
@@ -630,18 +644,25 @@ function PlayerView({ pin, session }: { pin: string; session: ReturnType<typeof 
 
   // The big screen on this phone (#104): the projection as it is, from this
   // participant's own session — the sound only where it would play here anyway.
+  // Drawn as the 16:9 stage, scaled to the phone like a preview: laid out for a
+  // window, a portrait phone would pile its bands up. As large as it fits, either way.
   if (showScreen && view.state && view.state !== 'ENDED') {
     return (
-      <div className="content-phone flex flex-1 flex-col">
-        {participantBar}
-        <ScreenSurface
-          pin={pin}
-          view={view}
-          socket={socket}
-          role="follow"
-          sound={remote && !muted}
-          embedded
-        />
+      <div className="flex flex-1 flex-col">
+        <div className="content-phone">{participantBar}</div>
+        <div className="flex min-h-0 flex-1 flex-col px-2 py-4">
+          <FittedStage className="rounded-lg border">
+            <ScreenSurface
+              pin={pin}
+              view={view}
+              socket={socket}
+              role="follow"
+              sound={remote && !muted}
+              embedded
+              fit="box"
+            />
+          </FittedStage>
+        </div>
       </div>
     );
   }

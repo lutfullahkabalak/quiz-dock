@@ -326,6 +326,16 @@ describe('GameEngine (characterization)', () => {
       await expect(engine.setJoinLocked(pin, HOST, false)).rejects.toThrow('session.ended');
     });
 
+    it('host:motion switches the room’s transitions at any time, and every device follows (UI system §1.8)', async () => {
+      await seed(snapshotOf([question()]));
+      expect((await game.getRoom(pin))?.motion).toBe(true);
+      await engine.start(pin, HOST);
+      await engine.setMotion(pin, HOST, false);
+      expect((await game.getRoom(pin))?.motion).toBe(false);
+      expect(roomOf('room:motion').at(-1)).toEqual({ on: false });
+      await expect(engine.setMotion(pin, 'someone-else', true)).rejects.toThrow();
+    });
+
     it('host:room-name trims the name in the lobby, and is refused once started', async () => {
       await seed(snapshotOf([question()]));
       await engine.setRoomName(pin, HOST, '  Friday   night ');
@@ -392,6 +402,8 @@ describe('GameEngine (characterization)', () => {
     it('after the last question, the podium: top 3 and each player’s own rank', async () => {
       const ann = join('p1');
       const screen = join();
+      const desk = new FakeSocket({ isHostControl: true });
+      sockets.push(desk);
       const t0 = await startedAt(snapshotOf([question()]), {
         p1: player('Ann'),
         p2: player('Bob'),
@@ -412,6 +424,13 @@ describe('GameEngine (characterization)', () => {
       expect(ann.of('leaderboard')).toHaveLength(2); // at the reveal, then at the podium
       // The room's standings: this quiz is the first one played.
       expect(ann.of<{ quizzesPlayed: number }>('room:standings')[0].quizzesPlayed).toBe(1);
+      // Which quiz it was: the console marks it when picking the next; a player is not told.
+      expect(desk.of<{ playedQuizIds?: string[] }>('room:standings')[0].playedQuizIds).toEqual([
+        'quiz-1',
+      ]);
+      expect(
+        ann.of<{ playedQuizIds?: string[] }>('room:standings')[0].playedQuizIds,
+      ).toBeUndefined();
     });
   });
 

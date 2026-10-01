@@ -1,4 +1,8 @@
 import { RoomStandingsPanel, roomLabel } from '../game/room-components';
+import { LiveMotion } from '../game/motion/level';
+import { Pulse } from '../game/motion/primitives';
+import { BackdropFade, StepEnter } from '../game/motion/step-transition';
+import { backdropOf, stepKeyOf } from '../game/motion/step';
 import { useParams } from '@tanstack/react-router';
 import { Loader2, Maximize, Minimize, Users } from 'lucide-react';
 import { useCallback, useEffect } from 'react';
@@ -243,10 +247,15 @@ export function ScreenSurface({
     centre: React.ReactNode,
     right: React.ReactNode,
     tone?: 'warning',
+    // A centre that stretches (the clock) takes what its sides leave, the same gap on each.
+    stretch?: boolean,
   ) => (
     <div
       className={cn(
-        'qd-band grid w-full shrink-0 grid-cols-[1fr_minmax(0,1.5fr)_1fr] items-center gap-[1em] px-[3.5em] py-[0.6em]',
+        'qd-band grid w-full shrink-0 items-center px-[3.5em] py-[0.6em]',
+        stretch
+          ? 'grid-cols-[auto_minmax(0,1fr)_auto] gap-[3em]'
+          : 'grid-cols-[1fr_minmax(0,1.5fr)_1fr] gap-[1em]',
         side === 'top' ? 'border-b' : 'border-t',
         tone === 'warning'
           ? 'bg-warning/25'
@@ -273,6 +282,8 @@ export function ScreenSurface({
   let stage: React.ReactNode;
   // A question's background owns the whole surface, bands included.
   let onBackground = false;
+  // A question with a picture takes the air the bands and margins leave (its count goes up).
+  let compact = false;
 
   if (view.status === 'error') {
     stage = <p className="text-muted-foreground">{view.error ?? t('screen.sessionUnavailable')}</p>;
@@ -487,52 +498,114 @@ export function ScreenSurface({
       !!view.question.audioTarget &&
       playsSound(view.question.audioTarget, 'remote');
     const images = view.question.type === 'image_choice';
+    compact = visual;
+    const position = (visual && view.question.media?.position) || 'bottom';
+    const side = position === 'left' || position === 'right';
+    // With a picture, the count joins the clock in the top band: the bottom one's room is the picture's.
+    const count =
+      visual && view.answerCount && view.state === 'ANSWERING' && !view.paused ? (
+        <span className="qd-answered flex flex-col items-center leading-none">
+          <b className="text-[1.3em] tabular-nums">
+            {view.answerCount.answered} / {view.answerCount.total}
+          </b>
+          <span className="text-muted-foreground text-[0.65em]">{t('screen.answeredShort')}</span>
+        </span>
+      ) : null;
     top = band(
       'top',
       where(t('screen.stepQuestion', { n: qNumber, total })),
-      clock ? <QuestionClockBar clock={clock} className="text-[1.3em]" /> : null,
+      clock || count ? (
+        <div className="flex items-center justify-center gap-[3em]">
+          {clock ? (
+            <QuestionClockBar clock={clock} className="min-w-0 flex-1 text-[1.3em]" />
+          ) : null}
+          {count}
+        </div>
+      ) : null,
       joinChip,
+      undefined,
+      !!clock,
     );
-    // Nobody scrolls a projector: the stage is the screen's height, the answers keep
-    // their room and the picture takes what is left (#92).
-    stage = (
-      <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center justify-center gap-[1em]">
+    const media = (
+      <QuestionMediaStage
+        key={view.question.questionIndex}
+        media={view.question.media}
+        mode={role === 'preview' || reviewing ? 'still' : view.paused ? 'pause' : 'play'}
+        // A copy plays the sound only when asked (a remote participant), and only
+        // when the question's sound is for remote devices.
+        audible={role !== 'follow' || copyHears}
+        className={!visual ? 'shrink-0' : side ? 'h-full min-h-0' : 'min-h-[6em] flex-1'}
+        boxClassName={visual ? 'aspect-auto h-full min-h-0 w-full flex-1' : undefined}
+        resumeKey={playMedia ? `${pin}:${view.question.questionIndex}` : null}
+        // The projection plays on its own; the console's tab draws its position; a copy
+        // that plays the sound starts on the common instant and catches up with it,
+        // as a remote participant's phone does.
+        follow={
+          playMedia || copyHears
+            ? undefined
+            : followed(view, { questionIndex: view.question.questionIndex })
+        }
+        catchUp={
+          role === 'follow'
+            ? followed(view, { questionIndex: view.question.questionIndex })
+            : undefined
+        }
+        onPosition={playMedia ? sayPosition : undefined}
+        startAt={view.question.mediaStartAt ?? null}
+        anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
+      />
+    );
+    // The text: the prompt, then how to answer. Beside a picture it reads from the left.
+    const words = (
+      <div className={cn('flex shrink-0 flex-col gap-[0.4em]', side ? 'text-left' : 'w-full')}>
         <Markdown
           role="heading"
           aria-level={1}
-          className="qd-prompt w-full shrink-0 text-[2em] leading-tight font-semibold"
+          className={cn(
+            'qd-prompt w-full leading-tight font-semibold',
+            side ? 'text-[2.1em]' : 'text-[2em]',
+          )}
         >
           {view.question.prompt}
         </Markdown>
-        {/* Image or video in one box, the sound as its waveform; played here only. */}
-        <QuestionMediaStage
-          key={view.question.questionIndex}
-          media={view.question.media}
-          mode={role === 'preview' || reviewing ? 'still' : view.paused ? 'pause' : 'play'}
-          // A copy plays the sound only when asked (a remote participant), and only
-          // when the question's sound is for remote devices.
-          audible={role !== 'follow' || copyHears}
-          className={visual ? 'min-h-[6em] flex-1' : 'shrink-0'}
-          boxClassName={visual ? 'aspect-auto h-full min-h-0 w-full flex-1' : undefined}
-          resumeKey={playMedia ? `${pin}:${view.question.questionIndex}` : null}
-          // The projection plays on its own; the console's tab draws its position; a copy
-          // that plays the sound starts on the common instant and catches up with it,
-          // as a remote participant's phone does.
-          follow={
-            playMedia || copyHears
-              ? undefined
-              : followed(view, { questionIndex: view.question.questionIndex })
-          }
-          catchUp={
-            role === 'follow'
-              ? followed(view, { questionIndex: view.question.questionIndex })
-              : undefined
-          }
-          onPosition={playMedia ? sayPosition : undefined}
-          startAt={view.question.mediaStartAt ?? null}
-          anchor={anchorOf(view, { questionIndex: view.question.questionIndex })}
-        />
-        <AnswerRules question={view.question} className="shrink-0" />
+        <AnswerRules question={view.question} className={side ? 'justify-start' : undefined} />
+      </div>
+    );
+    // Nobody scrolls a projector: the stage is the screen's height, the answers keep
+    // their room and the picture takes what is left (#92) — below the text, above it,
+    // or beside it, as the author placed it; the answers stay at the bottom.
+    stage = (
+      <div className="flex min-h-0 w-full max-w-[64em] flex-1 flex-col items-center justify-center gap-[1em]">
+        {side ? (
+          <div
+            className={cn(
+              'grid min-h-0 w-full flex-1 items-center gap-[2em]',
+              position === 'left' ? 'grid-cols-[1.3fr_1fr]' : 'grid-cols-[1fr_1.3fr]',
+            )}
+          >
+            {position === 'left' ? (
+              <>
+                {media}
+                {words}
+              </>
+            ) : (
+              <>
+                {words}
+                {media}
+              </>
+            )}
+          </div>
+        ) : position === 'top' ? (
+          <>
+            {media}
+            {words}
+          </>
+        ) : (
+          <>
+            {words}
+            {media}
+          </>
+        )}
         {images ? (
           // No picture of its own: the pictures are the answers, and take what is left.
           <ImageChoiceGrid
@@ -551,15 +624,17 @@ export function ScreenSurface({
     );
     bottom = view.paused
       ? band('bottom', null, bigStatus(t('screen.pausedBig'), t('screen.pausedText'), true), null)
-      : view.answerCount && view.state === 'ANSWERING'
+      : view.answerCount && view.state === 'ANSWERING' && !visual
         ? band(
             'bottom',
             null,
             bigStatus(
-              t('screen.answered', {
-                answered: view.answerCount.answered,
-                total: view.answerCount.total,
-              }),
+              <Pulse
+                value={t('screen.answered', {
+                  answered: view.answerCount.answered,
+                  total: view.answerCount.total,
+                })}
+              />,
             ),
             null,
           )
@@ -635,75 +710,86 @@ export function ScreenSurface({
   }
 
   const slide = view.state === 'SLIDE_SHOW';
+  // The motion layer (UI system §1.8): what the step is, and what it is drawn on.
+  const stepKey = stepKeyOf(view);
   const frame = (
     <div className={cn('flex w-full flex-1 flex-col', !slide && 'min-h-0')}>
       {top}
-      <div
+      <StepEnter
+        stepKey={stepKey}
         className={cn(
           'flex min-h-0 w-full flex-1 flex-col items-center',
-          slide ? 'items-stretch' : 'justify-center gap-[1.5em] px-[3.5em] py-[1.5em] text-center',
+          slide
+            ? 'items-stretch'
+            : cn(
+                'justify-center px-[3.5em] text-center',
+                compact ? 'gap-[1em] py-[0.8em]' : 'gap-[1.5em] py-[1.5em]',
+              ),
           view.paused && !slide && 'opacity-60',
         )}
       >
         {stage}
-      </div>
+      </StepEnter>
       {bottom}
     </div>
   );
 
   return (
-    <div
-      ref={ref}
-      data-state={view.state ?? 'none'}
-      className={cn(
-        'qd-screen bg-background relative flex flex-col',
-        boxed ? 'h-full w-full overflow-hidden' : 'min-h-dvh',
-        // A question fits the screen exactly; the rest may grow.
-        !boxed &&
-          (view.state === 'ANSWERING' ||
-            view.state === 'QUESTION_SHOW' ||
-            view.state === 'REVEAL' ||
-            view.state === 'LEADERBOARD') &&
-          'h-dvh',
-        // One typographic base for the whole projected page; everything inside is in em.
-        boxed ? TYPE_BASE.stage : TYPE_BASE.screen,
-      )}
-    >
-      {fullscreenBtn}
-      {soundButton ? (
-        <SoundButton
-          size="lg"
-          align="start"
-          className={cn('absolute top-4 left-4 z-40', BACKDROP_EDGE)}
-          onUnmute={() => void unlockAudio()}
-        />
-      ) : null}
-      {/* A quiz with sound asks for the unlocking click as soon as this window opens,
+    <LiveMotion on={view.motion}>
+      <div
+        ref={ref}
+        data-state={view.state ?? 'none'}
+        className={cn(
+          'qd-screen bg-background relative flex flex-col',
+          boxed ? 'h-full w-full overflow-hidden' : 'min-h-dvh',
+          // A question fits the screen exactly; the rest may grow.
+          !boxed &&
+            (view.state === 'ANSWERING' ||
+              view.state === 'QUESTION_SHOW' ||
+              view.state === 'REVEAL' ||
+              view.state === 'LEADERBOARD') &&
+            'h-dvh',
+          // One typographic base for the whole projected page; everything inside is in em.
+          boxed ? TYPE_BASE.stage : TYPE_BASE.screen,
+        )}
+      >
+        {fullscreenBtn}
+        {soundButton ? (
+          <SoundButton
+            size="lg"
+            align="start"
+            className={cn('absolute top-4 left-4 z-40', BACKDROP_EDGE)}
+            onUnmute={() => void unlockAudio()}
+          />
+        ) : null}
+        {/* A quiz with sound asks for the unlocking click as soon as this window opens,
           whatever the moment of the session; a silent quiz never asks. */}
-      {(playMedia || (role === 'follow' && sound)) &&
-      !soundUnlocked &&
-      !deviceSound.muted &&
-      (view.quizHasSound || soundsOn) &&
-      view.state !== 'ENDED' ? (
-        // The projection cannot be muted from here: the console does it.
-        <SoundUnlockOverlay allowSilent={role === 'follow'} />
-      ) : null}
-      {onBackground &&
-      view.question?.background &&
-      view.state &&
-      QUESTION_STATES.has(view.state) ? (
-        // A question with a background owns the surface, bands included.
-        <Surface
-          background={view.question.background}
-          textTone={view.question.textTone}
-          textOutline={view.question.textOutline}
-          className="absolute inset-0"
-        >
-          {frame}
-        </Surface>
-      ) : (
-        frame
-      )}
-    </div>
+        {(playMedia || (role === 'follow' && sound)) &&
+        !soundUnlocked &&
+        !deviceSound.muted &&
+        (view.quizHasSound || soundsOn) &&
+        view.state !== 'ENDED' ? (
+          // The projection cannot be muted from here: the console does it.
+          <SoundUnlockOverlay allowSilent={role === 'follow'} />
+        ) : null}
+        {onBackground &&
+        view.question?.background &&
+        view.state &&
+        QUESTION_STATES.has(view.state) ? (
+          // A question with a background owns the surface, bands included.
+          <Surface
+            background={view.question.background}
+            textTone={view.question.textTone}
+            textOutline={view.question.textOutline}
+            className="absolute inset-0"
+          >
+            {frame}
+          </Surface>
+        ) : (
+          frame
+        )}
+        <BackdropFade stepKey={stepKey} backdrop={backdropOf(view, onBackground)} />
+      </div>
+    </LiveMotion>
   );
 }

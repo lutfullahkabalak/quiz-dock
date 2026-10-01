@@ -67,6 +67,7 @@ const view = (partial: Partial<GameView>): GameView => ({
   joinBaseUrl: null,
   youReady: false,
   sounds: null,
+  motion: null,
   roomName: null,
   hostName: null,
   standings: null,
@@ -222,7 +223,11 @@ describe('ControlPage: the room’s next quiz (#89)', () => {
       state: GameState.Podium,
       quizId: 'q1',
       podium: { podium: [{ nickname: 'Ada', score: 900, rank: 1 }] },
-      standings: { quizzesPlayed: 2, top: [{ nickname: 'Ada', score: 1800, rank: 1 }] },
+      standings: {
+        quizzesPlayed: 2,
+        playedQuizIds: ['q1', 'q6'],
+        top: [{ nickname: 'Ada', score: 1800, rank: 1 }],
+      },
     });
     renderApp('/session/482913/console');
 
@@ -242,6 +247,13 @@ describe('ControlPage: the room’s next quiz (#89)', () => {
     fireEvent.click(screen.getByRole('button', { name: 'history' }));
     expect(screen.queryByRole('option', { name: /Round two/ })).toBeNull();
     fireEvent.click(screen.getByRole('button', { name: 'history' }));
+    // Every quiz the room played is marked, and can be left out.
+    expect(screen.getByRole('option', { name: /Round three/ })).toHaveTextContent('déjà joué');
+    expect(screen.getByRole('option', { name: /Round two/ })).not.toHaveTextContent('déjà joué');
+    const played = screen.getByRole('combobox', { name: 'Joués dans cette room' });
+    fireEvent.change(played, { target: { value: 'fresh' } });
+    expect(screen.queryByRole('option', { name: /Round three/ })).toBeNull();
+    fireEvent.change(played, { target: { value: '' } });
     fireEvent.change(picker, { target: { value: 'mountains' } });
     expect(within(screen.getByRole('listbox')).getAllByRole('option')).toHaveLength(1);
     expect(screen.getByRole('status')).toHaveTextContent('1 quiz'); // counted after the search
@@ -506,6 +518,24 @@ describe('ControlPage (console hôte)', () => {
     });
     act(() => fireEvent.click(lock));
     expect(fakeSocket.emit).toHaveBeenCalledWith('host:lock', { pin: '482913', locked: true });
+  });
+
+  it('ANSWERING: the host keeps the screens still, or lets them move, for the whole room (UI system §1.8)', async () => {
+    localStorage.setItem('live.localUser', 'Animateur');
+    hookState.value = view({
+      state: GameState.Answering,
+      questionIndex: 0,
+      totalQuestions: 3,
+      question: { prompt: 'Capitale ?' } as never,
+      answerCount: { answered: 0, total: 1 },
+      motion: true,
+    });
+    renderApp('/session/482913/console');
+
+    const motion = await screen.findByRole('switch', { name: 'Animations' });
+    expect(motion).toHaveAttribute('aria-checked', 'true');
+    act(() => motion.click());
+    expect(fakeSocket.emit).toHaveBeenCalledWith('host:motion', { pin: '482913', on: false });
   });
 
   it('LOBBY: open access greys personal tracking out, and says why (#57)', async () => {

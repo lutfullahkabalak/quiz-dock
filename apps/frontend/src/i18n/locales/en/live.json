@@ -51,7 +51,7 @@
     "hostDisconnected": "Quiz paused — host disconnected.",
     "sessionEnded": "Room closed.",
     "leaderboard": "Leaderboard",
-    "autoPaused": "Auto paused — sequencing suspended.",
+    "autoPaused": "Autoplay paused — sequencing suspended.",
     "nextQuestion": "Next question",
     "continue": "Continue",
     "endSession": "Close the room",
@@ -69,8 +69,8 @@
     "rhythmGroup": "Quiz pace",
     "modeManualTooltip": "Manual mode: you move to the next question yourself",
     "modeManual": "Manual",
-    "modeAutoTooltip": "Auto mode: automatically moves to the next question after each result",
-    "modeAuto": "Auto",
+    "modeAutoTooltip": "Autoplay: automatically moves to the next question after each result",
+    "modeAuto": "Autoplay",
     "noParticipants": "No players connected.",
     "remote": "Participating remotely",
     "banTooltip": "Remove {{nickname}}",
@@ -249,7 +249,15 @@
     "pauseNothing": "Nothing to pause right now",
     "spaceKey": "Space",
     "slideAuto": "{{seconds}} s",
-    "slideManual": "manual"
+    "slideManual": "manual",
+    "motion": "Animations",
+    "motionOnTooltip": "The screens move between steps. Click to keep them still, for a slow projector.",
+    "motionOffTooltip": "The screens change without transitions. Click to bring the transitions back.",
+    "pickerPlayed": "Played in this room",
+    "pickerPlayedAll": "All quizzes",
+    "pickerPlayedFresh": "Not played yet",
+    "pickerPlayedDone": "Already played",
+    "pickerPlayedMark": "played"
   },
   "screen": {
     "sessionUnavailable": "Room unavailable.",
@@ -294,7 +302,8 @@
     "nextStep": "Next: question {{n}}",
     "lookingBackAt": "Looking back · question {{n}}",
     "gameGoesOn": "then the game goes on",
-    "answerLabel": "Answer"
+    "answerLabel": "Answer",
+    "answeredShort": "answered"
   },
   "player": {
     "joinFailed": "Could not join the room.",
