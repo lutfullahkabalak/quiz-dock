@@ -13,7 +13,7 @@ variable. Two companion guides cover what deserves its own page:
 
 ```bash
 # One container, app + database in the same image (what the examples use)
-docker run -p 18080:3000 -v quizdock:/data --env-file .env fchaussin/quizdock:standalone
+docker run --name quizdock -p 18080:3000 -v quizdock:/data --env-file .env fchaussin/quizdock:standalone
 
 # Compose: app + PostgreSQL + Redis + the one-shot migrate service
 curl -O https://raw.githubusercontent.com/quizdock/quiz-dock/main/docker-compose.prod.yml
