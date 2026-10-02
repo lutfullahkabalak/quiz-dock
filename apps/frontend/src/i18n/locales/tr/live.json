@@ -114,7 +114,7 @@
     },
     "openInWindow": "Bir pencerede aç",
     "joinAddress": "Davet adresi",
-    "joinAddressPublic": "genel adres",
+    "joinAddressPublic": "kurulumun adresi",
     "joinAddressThisPage": "bu sayfa",
     "joinAddressCustom": "Diğer adres…",
     "joinAddressApply": "Uygula",
@@ -131,7 +131,10 @@
       "publicConfigured": "Bu kurulumun genel adresi {{url}}. Katılımcılar erişebiliyorsa bu adresi kullanın.",
       "lanKnown": "Listelenen adresler bu makinenin yerel ağdaki adresleridir: katılımcıların bulunduğu ağlardan birini seçin (Wi‑Fi, kablolu).",
       "lanHidden": "Docker Desktop veya köprü ağı, bilgisayarın yerel IP adresini konteynerden gizliyor. Adresi aşağıya yazın ya da .env dosyasına HOST_LAN_IPS=<IP> ekleyin; sonraki sefer listede görünsün.",
-      "https": "Bu sayfa HTTPS ile açıldı. HTTP kullanan bir yerel adres telefonlarda uyarı gösterebilir; sertifikalı bir alan adı kullanın."
+      "https": "Bu sayfa HTTPS ile açıldı. HTTP kullanan bir yerel adres telefonlarda uyarı gösterebilir; sertifikalı bir alan adı kullanın.",
+      "phoneTest": "Adresleri bir telefondan dene ve kurulumunkini belirle",
+      "askAdmin": "Her oyunun başladığı adresi yönetici belirler.",
+      "docs": "Oyuncuları davet etme, belgelerde"
     },
     "backToLive": "Canlı oyuna dön",
     "restartMedia": "Medyayı üstten yeniden başlatın",

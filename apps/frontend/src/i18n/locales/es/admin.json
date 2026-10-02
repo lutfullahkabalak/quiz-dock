@@ -33,7 +33,8 @@
     "changes": "Novedades",
     "upgrading": "Antes de actualizar",
     "github": "Ver en GitHub",
-    "hide": "Ocultar hasta la próxima versión"
+    "hide": "Ocultar hasta la próxima versión",
+    "close": "Cerrar"
   },
   "settings": {
     "search": "Buscar un ajuste",
@@ -62,7 +63,9 @@
       "locks": "Bloqueados por ADMIN_LOCK:",
       "safeMode": "Modo seguro (ADMIN_OVERRIDES=ignore): los valores cambiados aquí se conservan pero no se aplican.",
       "token": "Modo local: un cambio requiere el token de administración.",
-      "noToken": "Modo local: no se puede cambiar nada desde la web hasta que ADMIN_TOKEN esté definido."
+      "noToken": "Modo local: no se puede cambiar nada desde la web hasta que ADMIN_TOKEN esté definido.",
+      "readWhy": "Es el valor por defecto: nada cambia la instancia desde un navegador hasta que quien opera el servidor lo permita.",
+      "doc": "Cómo permitir los cambios"
     },
     "columns": {
       "variable": "Variable",
@@ -527,7 +530,13 @@
         "public": "Una dirección pública necesita un nombre que apunte a la máquina y su puerto abierto desde Internet (o un proxy inverso) — y https para que los teléfonos instalen la aplicación.",
         "docker": "Docker Desktop, una red bridge: el contenedor no ve las direcciones de la propia máquina — defínelas en HOST_LAN_IPS."
       },
-      "expired": "Esta prueba expiró: vuelva a iniciarla."
+      "expired": "Esta prueba expiró: vuelva a iniciarla.",
+      "adoptHelp": "Cuando un teléfono llegue a una dirección, conviértela en la dirección para unirse de la instancia: cada sala de espera parte de ella (APP_PUBLIC_URL). Un anfitrión aún puede elegir otra para una partida.",
+      "adoptReadOnly": "La administración no puede cambiar los ajustes aquí: la dirección para unirse de la instancia sigue siendo la del operador (APP_PUBLIC_URL). Un anfitrión elige la dirección de cada partida en la sala de espera.",
+      "other": "Otra dirección",
+      "add": "Añadir",
+      "current": "La dirección para unirse de la instancia",
+      "use": "Usar para las invitaciones"
     },
     "access": {
       "firstAdmin": "Modo local: el nombre que administrará la instancia (inicia sesión con él). Los cambios desde la web también requieren ADMIN_TOKEN.",
@@ -727,7 +736,8 @@
       "none": "Aún no se ha publicado ninguna versión estable",
       "off": "Comprobación desactivada (UPDATE_CHECK)",
       "failed": "GitHub no respondió: última versión desconocida",
-      "checked": "Última comprobación {{when}}"
+      "checked": "Última comprobación {{when}}",
+      "details": "Ver la actualización"
     },
     "level": {
       "ok": "Correcto",

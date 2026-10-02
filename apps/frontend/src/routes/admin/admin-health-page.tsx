@@ -7,15 +7,18 @@ import {
   RefreshCw,
   TriangleAlert,
 } from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StaleNotice } from '@/components/ui/stale-notice';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { LoadFailed, Spinner } from '@/components/ui/loading';
+import { Modal } from '@/components/ui/modal';
 import { formatAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { PhoneTests } from './phone-tests';
 import { type OutputEntry, useReadOperation } from './admin-api';
+import { UpdateDetails } from './update-notice';
 
 type Check = {
   level: 'ok' | 'warn' | 'fail';
@@ -167,7 +170,7 @@ export function HealthPage() {
           </div>
         </>
       )}
-      {list.data?.data ? <PhoneTests data={list.data.data} /> : null}
+      {list.data?.data ? <PhoneTests data={list.data.data} adopt /> : null}
     </div>
   );
 }
@@ -241,6 +244,7 @@ function GroupMark({ checks }: { checks: Check[] }) {
 function VersionCard({ status }: { status: VersionStatus }) {
   const { t, i18n } = useTranslation('admin');
   const { latest } = status;
+  const [details, setDetails] = useState(false);
   const date = (iso: string) =>
     new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(iso));
   const lines: { icon: typeof Info; tone: string; text: string }[] = [
@@ -284,6 +288,44 @@ function VersionCard({ status }: { status: VersionStatus }) {
           </li>
         ))}
       </ul>
+      {status.updateAvailable && latest ? (
+        <>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="self-start"
+            onClick={() => setDetails(true)}
+          >
+            <CircleArrowUp aria-hidden className="size-4" />
+            {t('health.version.details')}
+          </Button>
+          <Modal
+            open={details}
+            onClose={() => setDetails(false)}
+            className="w-full max-w-2xl"
+            aria-label={t('update.available', { version: latest.version })}
+          >
+            <div className="p-4">
+              <UpdateDetails
+                current={status.current}
+                latest={latest}
+                action={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto"
+                    onClick={() => setDetails(false)}
+                  >
+                    {t('update.close')}
+                  </Button>
+                }
+              />
+            </div>
+          </Modal>
+        </>
+      ) : null}
       {status.checkedAt ? (
         <p className="text-muted-foreground text-xs">
           {t('health.version.checked', {

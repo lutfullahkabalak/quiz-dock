@@ -33,7 +33,8 @@
     "changes": "Nouveautés",
     "upgrading": "Avant de mettre à jour",
     "github": "Voir sur GitHub",
-    "hide": "Masquer jusqu’à la prochaine version"
+    "hide": "Masquer jusqu’à la prochaine version",
+    "close": "Fermer"
   },
   "settings": {
     "search": "Chercher un réglage",
@@ -62,7 +63,9 @@
       "locks": "Verrouillés par ADMIN_LOCK :",
       "safeMode": "Mode sans échec (ADMIN_OVERRIDES=ignore) : les valeurs modifiées ici sont conservées mais pas appliquées.",
       "token": "Mode local : une modification demande le jeton d’administration.",
-      "noToken": "Mode local : rien ne peut être changé depuis le web tant qu’ADMIN_TOKEN n’est pas défini."
+      "noToken": "Mode local : rien ne peut être changé depuis le web tant qu’ADMIN_TOKEN n’est pas défini.",
+      "readWhy": "C’est le réglage par défaut : rien ne modifie l’instance depuis un navigateur tant que l’exploitant du serveur ne l’autorise pas.",
+      "doc": "Comment autoriser les modifications"
     },
     "columns": {
       "variable": "Variable",
@@ -527,7 +530,13 @@
         "public": "Une adresse publique demande un nom qui pointe vers la machine et son port ouvert depuis Internet (ou un proxy inverse) — et https pour que les téléphones installent l’application.",
         "docker": "Docker Desktop, un réseau bridge : le conteneur ne voit pas les adresses de la machine elle-même — indiquez-les dans HOST_LAN_IPS."
       },
-      "expired": "Ce test a expiré : relancez-le."
+      "expired": "Ce test a expiré : relancez-le.",
+      "adoptHelp": "Une fois une adresse atteinte depuis un téléphone, faites-en l’adresse pour rejoindre de l’instance : chaque salle d’attente part d’elle (APP_PUBLIC_URL). Un animateur peut encore en choisir une autre pour une partie.",
+      "adoptReadOnly": "L’administration ne peut pas modifier les réglages ici : l’adresse pour rejoindre de l’instance reste celle de l’exploitant (APP_PUBLIC_URL). Un animateur choisit l’adresse de chaque partie dans la salle d’attente.",
+      "other": "Autre adresse",
+      "add": "Ajouter",
+      "current": "L’adresse pour rejoindre de l’instance",
+      "use": "Utiliser pour les invitations"
     },
     "access": {
       "firstAdmin": "Mode local : le nom qui administrera l’instance (il se connecte avec). Les modifications depuis le web demandent aussi ADMIN_TOKEN.",
@@ -727,7 +736,8 @@
       "none": "Aucune version stable publiée pour l’instant",
       "off": "Vérification coupée (UPDATE_CHECK)",
       "failed": "GitHub n’a pas répondu : dernière version inconnue",
-      "checked": "Dernière vérification {{when}}"
+      "checked": "Dernière vérification {{when}}",
+      "details": "Voir la mise à jour"
     },
     "level": {
       "ok": "OK",

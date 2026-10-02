@@ -4,6 +4,8 @@ import { useTranslation } from 'react-i18next';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select } from '@/components/ui/select';
+import { Link } from '@tanstack/react-router';
+import { useRole } from '../auth/use-role';
 import { useGameControllerJoinAddresses } from '../api/generated/games/games';
 
 const STORAGE_KEY = 'live.joinBaseUrl';
@@ -11,7 +13,8 @@ const CUSTOM = '__custom__';
 
 /**
  * Lobby control: the address the invitations (QR code, link) point at.
- * Candidates: the deployment's public URL when configured, the machine's LAN
+ * Candidates: the instance's invitation address (APP_PUBLIC_URL, set by the operator
+ * or from the phone test of the health page) when set, the machine's LAN
  * addresses (a local instance), this page's origin, or anything typed. The
  * choice is sent to the session (every screen follows) and remembered on this
  * browser for the next session.
@@ -25,6 +28,7 @@ export function JoinAddressPicker({
 }) {
   const { t } = useTranslation('live');
   const { data } = useGameControllerJoinAddresses();
+  const { isManager } = useRole();
   const origin = window.location.origin;
   const port = window.location.port ? `:${window.location.port}` : '';
   const secure = window.location.protocol === 'https:';
@@ -162,6 +166,23 @@ export function JoinAddressPicker({
           <p>{t('control.joinAddressHelp.sameNetwork')}</p>
           {secure ? <p>{t('control.joinAddressHelp.https')}</p> : null}
           {!data?.data.publicUrl ? <p>{t('control.joinAddressHelp.deployed')}</p> : null}
+          <p className="flex flex-wrap gap-x-3 gap-y-1">
+            {isManager ? (
+              <Link to="/admin/health" hash="phone-test" className="text-foreground underline">
+                {t('control.joinAddressHelp.phoneTest')}
+              </Link>
+            ) : (
+              <span>{t('control.joinAddressHelp.askAdmin')}</span>
+            )}
+            <a
+              href="https://quizdock.github.io/docs/host/invite-players/"
+              target="_blank"
+              rel="noreferrer"
+              className="text-foreground underline"
+            >
+              {t('control.joinAddressHelp.docs')}
+            </a>
+          </p>
         </div>
       ) : null}
     </div>

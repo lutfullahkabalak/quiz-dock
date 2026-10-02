@@ -33,7 +33,8 @@
     "changes": "What's new",
     "upgrading": "Before upgrading",
     "github": "See on GitHub",
-    "hide": "Hide until the next version"
+    "hide": "Hide until the next version",
+    "close": "Close"
   },
   "settings": {
     "search": "Search a setting",
@@ -62,7 +63,9 @@
       "locks": "Locked by ADMIN_LOCK:",
       "safeMode": "Safe mode (ADMIN_OVERRIDES=ignore): the values changed here are kept but not applied.",
       "token": "Local mode: a change needs the administration token.",
-      "noToken": "Local mode: nothing can be changed from the web until ADMIN_TOKEN is set."
+      "noToken": "Local mode: nothing can be changed from the web until ADMIN_TOKEN is set.",
+      "readWhy": "It is the default: nothing changes the instance from a browser until whoever runs the server allows it.",
+      "doc": "How to allow changes"
     },
     "columns": {
       "variable": "Variable",
@@ -527,7 +530,13 @@
         "public": "A public address needs a name pointing to the machine and its port open from the internet (or a reverse proxy) — and https for phones to install the app.",
         "docker": "Docker Desktop, a bridge network: the container cannot see the machine's own addresses — set them in HOST_LAN_IPS."
       },
-      "expired": "This test expired: start it again."
+      "expired": "This test expired: start it again.",
+      "adoptHelp": "Once a phone reached an address, make it the instance's invitation address: every lobby starts from it (APP_PUBLIC_URL). A host can still pick another one for a game.",
+      "adoptReadOnly": "The administration cannot change settings here: the instance's invitation address stays as the operator set it (APP_PUBLIC_URL). A host picks the address of each game in the lobby.",
+      "other": "Another address",
+      "add": "Add",
+      "current": "The instance's invitation address",
+      "use": "Use for invitations"
     },
     "access": {
       "firstAdmin": "Local mode: the name that will administer the instance (they sign in with it). Changes from the web also need ADMIN_TOKEN.",
@@ -727,7 +736,8 @@
       "none": "No stable release published yet",
       "off": "Update check off (UPDATE_CHECK)",
       "failed": "GitHub did not answer: the latest version is unknown",
-      "checked": "Last checked {{when}}"
+      "checked": "Last checked {{when}}",
+      "details": "See the update"
     },
     "level": {
       "ok": "OK",

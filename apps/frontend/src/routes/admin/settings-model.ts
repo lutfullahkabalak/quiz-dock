@@ -118,6 +118,10 @@ export const RULES: Partial<Record<SettingKey, SettingKey[]>> = {
 /** The environment reference of the Documentation: a row per variable, its anchor the name in lower case. */
 export const DOCS_URL = 'https://quizdock.github.io/docs/operator/configuration/';
 
+/** How the operator lets the web administration change the instance (ADMIN_WEB_SCOPE, ADMIN_TOKEN). */
+export const WEB_CHANGES_DOC =
+  'https://quizdock.github.io/docs/admin/overview/#allow-changes-from-the-web';
+
 export function docLink(def: Pick<SettingDefinition, 'key' | 'category'>): string | null {
   return def.category === 'internal' ? null : `${DOCS_URL}#${def.key.toLowerCase()}`;
 }

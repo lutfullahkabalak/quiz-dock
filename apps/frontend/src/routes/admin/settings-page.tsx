@@ -25,6 +25,7 @@ import {
   matches,
   readOnlyReason,
   shownValue,
+  WEB_CHANGES_DOC,
 } from './settings-model';
 import { useStoredChoice } from '@/lib/use-stored-choice';
 
@@ -167,7 +168,11 @@ function AccessBanner({ access }: { access: SettingsAccess }) {
     <Notice tone="info">
       <p>
         {t(access.scope === 'write' ? 'settings.access.write' : 'settings.access.read')}{' '}
-        <span className="text-muted-foreground">{t('settings.access.how')}</span>
+        {access.scope === 'read' ? <>{t('settings.access.readWhy')} </> : null}
+        <span className="text-muted-foreground">{t('settings.access.how')}</span>{' '}
+        <a href={WEB_CHANGES_DOC} target="_blank" rel="noreferrer" className="underline">
+          {t('settings.access.doc')}
+        </a>
       </p>
       {access.locks.length ? (
         <p className="mt-1">

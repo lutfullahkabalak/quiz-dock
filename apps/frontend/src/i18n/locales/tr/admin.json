@@ -33,7 +33,8 @@
     "changes": "Yenilikler",
     "upgrading": "Güncellemeden önce",
     "github": "GitHub’da gör",
-    "hide": "Sonraki sürüme kadar gizle"
+    "hide": "Sonraki sürüme kadar gizle",
+    "close": "Kapat"
   },
   "settings": {
     "search": "Ayar arayın",
@@ -62,7 +63,9 @@
       "locks": "ADMIN_LOCK ile kilitli:",
       "safeMode": "Güvenli mod (ADMIN_OVERRIDES=ignore): burada değiştirilen değerler saklanır ama uygulanmaz.",
       "token": "Yerel mod: bir değişiklik için yönetim belirteci gerekir.",
-      "noToken": "Yerel mod: ADMIN_TOKEN ayarlanana kadar web üzerinden hiçbir şey değiştirilemez."
+      "noToken": "Yerel mod: ADMIN_TOKEN ayarlanana kadar web üzerinden hiçbir şey değiştirilemez.",
+      "readWhy": "Varsayılan budur: sunucuyu işleten izin verene kadar hiçbir şey kurulumu tarayıcıdan değiştirmez.",
+      "doc": "Değişikliklere nasıl izin verilir"
     },
     "columns": {
       "variable": "Değişken",
@@ -527,7 +530,13 @@
         "public": "Genel bir adres, makineyi gösteren bir alan adı ve internetten açık bir port (veya ters proxy) gerektirir — telefonların uygulamayı yükleyebilmesi için de https.",
         "docker": "Docker Desktop, bridge ağı: konteyner makinenin kendi adreslerini göremez — bunları HOST_LAN_IPS içinde ayarlayın."
       },
-      "expired": "Bu testin süresi doldu: yeniden başlatın."
+      "expired": "Bu testin süresi doldu: yeniden başlatın.",
+      "adoptHelp": "Bir adrese telefondan ulaşıldığında onu kurulumun davet adresi yapın: her lobi ondan başlar (APP_PUBLIC_URL). Sunucu bir oyun için yine de başka bir adres seçebilir.",
+      "adoptReadOnly": "Yönetim burada ayarları değiştiremez: kurulumun davet adresi işletmecinin belirlediği gibi kalır (APP_PUBLIC_URL). Sunucu her oyunun adresini lobide seçer.",
+      "other": "Başka bir adres",
+      "add": "Ekle",
+      "current": "Kurulumun davet adresi",
+      "use": "Davetler için kullan"
     },
     "access": {
       "firstAdmin": "Yerel mod: kurulumu yönetecek ad (bu adla oturum açar). Web üzerinden değişiklikler için ayrıca ADMIN_TOKEN gerekir.",
@@ -727,7 +736,8 @@
       "none": "Henüz kararlı sürüm yayımlanmadı",
       "off": "Sürüm denetimi kapalı (UPDATE_CHECK)",
       "failed": "GitHub yanıt vermedi: son sürüm bilinmiyor",
-      "checked": "Son denetim {{when}}"
+      "checked": "Son denetim {{when}}",
+      "details": "Güncellemeyi gör"
     },
     "level": {
       "ok": "Tamam",
