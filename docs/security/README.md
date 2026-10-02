@@ -22,7 +22,7 @@ How QuizDock is scanned, hardened and audited.
 
 The image runs **non-root** (uid 65532), **read-only** root filesystem, all Linux
 capabilities dropped, `no-new-privileges`; media on a volume, `/tmp` on tmpfs. See
-[`../self-hosting/configuration.md`](../self-hosting/configuration.md).
+[the environment reference](https://quizdock.github.io/docs/operator/configuration/).
 
 ## Content-Security-Policy
 

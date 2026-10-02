@@ -126,7 +126,7 @@ Before that measure, the analysis read the code:
 2. ~~3.1, measured.~~ Done. 3.2 set aside (see above).
 3. ~~3.0.~~ Done (lot 5b). 3.3 if the product accepts it.
 4. ~~The sizing table measured again and published in the
-   [self-hosting guides](../self-hosting/sizing.md).~~ Done, measured cold, 3.0 included.
+   [sizing guide](https://quizdock.github.io/docs/operator/sizing/).~~ Done, measured cold, 3.0 included.
 5. 3.4 only on a confirmed need, after a multi-room measure.
 
 ## 5. Also noted

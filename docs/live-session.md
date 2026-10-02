@@ -86,4 +86,4 @@ The QR code and join link point at the base URL the host picked in the lobby
 (`host:join-url`): the instance's public URL, a LAN address of the machine,
 the page's own origin, or anything typed. It is stored on the session, sent to
 every screen, frozen once the session starts, and remembered by the host's
-browser. See the self-hosting guide for what each setup offers.
+browser. See [networking](https://quizdock.github.io/docs/operator/networking/) for what each setup offers.

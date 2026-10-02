@@ -61,7 +61,7 @@ services:
       NODE_ENV: production
       PORT: '3000'
       AUTH_MODE: ${AUTH_MODE:-none}
-      # Démo publique (garde-fous, indépendant de AUTH_MODE) — cf. docs/self-hosting §4.
+      # Démo publique (garde-fous, indépendant de AUTH_MODE) — cf. https://quizdock.github.io/docs/operator/configuration/
       DEMO_MODE: ${DEMO_MODE:-false}
       DATABASE_URL: postgres://${POSTGRES_USER:-live}:${POSTGRES_PASSWORD:-live}@postgres:5432/${POSTGRES_DB:-quizdock}
       REDIS_URL: redis://redis:6379

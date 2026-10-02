@@ -1,8 +1,7 @@
 # Documentation (living)
 
-> 👤 **Hosting or configuring QuizDock?** The **user / integrator** documentation
-> (installation, configuration, branding, OIDC) lives in
-> [`self-hosting/`](self-hosting/README.md). This folder is for **contributors**.
+> 👤 **Hosting, administering or operating QuizDock?** Read the
+> [Documentation](https://quizdock.github.io/docs/). This folder is for **contributors**.
 
 This folder holds the **development documentation**, kept in step **with the code** — as opposed to [`../specifications/`](../specifications/README.md), which freezes the reference design per version.
 
@@ -42,7 +41,7 @@ docs/
 - [`quiz-bundle.md`](quiz-bundle.md) — the import / export format of a quiz (`quiz.json` + `media/`).
 - [`scoring.md`](scoring.md) — the scales: points, speed, streak, per-type variants (closest, partial credit, lenient).
 - [`live-session.md`](live-session.md) — the live session: substance/form snapshot, states, looking back, resuming after a restart, media on every device (experimental), the invitation address.
-- [`dev/load-testing.md`](dev/load-testing.md) — load testing a live game: the benchmark, how many players one instance holds, the sizing it gives (published for operators in [`self-hosting/sizing.md`](self-hosting/sizing.md)).
+- [`dev/load-testing.md`](dev/load-testing.md) — load testing a live game: the benchmark, how many players one instance holds, the sizing it gives (published for operators in [sizing](https://quizdock.github.io/docs/operator/sizing/)).
 - [`dev/performance-roadmap.md`](dev/performance-roadmap.md) — where the live engine spends its time (profiled), what was done, and the options to go further, in order.
 - [`dev/audit-2026-09.md`](dev/audit-2026-09.md) — the September 2026 code audit (bugs, duplicates, CSS), the decisions taken, and what each lot fixed.
 - [`tech-debt.md`](tech-debt.md) — known shortcuts, what they cost and what would replace them (OIDC tokens in the browser, the client address behind a proxy…).

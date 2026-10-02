@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 
 /**
  * The `qd-*` hooks carry no style of their own: they are there for an
- * instance's override.css (docs/self-hosting/branding.md), which must not have
+ * instance's override.css (https://quizdock.github.io/docs/admin/branding/), which must not have
  * to undo anything. Only the animation classes, older than the hooks, are styled.
  */
 describe('branding hooks', () => {
