@@ -46,4 +46,4 @@ docs/
 - [`dev/performance-roadmap.md`](dev/performance-roadmap.md) — where the live engine spends its time (profiled), what was done, and the options to go further, in order.
 - [`dev/audit-2026-09.md`](dev/audit-2026-09.md) — the September 2026 code audit (bugs, duplicates, CSS), the decisions taken, and what each lot fixed.
 - [`tech-debt.md`](tech-debt.md) — known shortcuts, what they cost and what would replace them (OIDC tokens in the browser, the client address behind a proxy…).
-- [`../apps/frontend/src/i18n/GLOSSARY.md`](../apps/frontend/src/i18n/GLOSSARY.md) — the interface vocabulary (5 languages) and the choices behind it.
+- [`../apps/frontend/src/i18n/GLOSSARY.md`](../apps/frontend/src/i18n/GLOSSARY.md) — the interface vocabulary (6 languages) and the choices behind it.
