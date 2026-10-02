@@ -4,6 +4,80 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
+## [0.13.0] - 2026-10-02
+
+### Bug Fixes
+
+- Answer the application's own pages only *(api)*
+- Audit — menus never clipped, the media page in its layout, a11y *(web)*
+- Audit bugs — one way to run an operation, pages that keep their data *(web)*
+- Audit bugs — settings read on use, imports, timeouts, last admin *(admin)*
+- Security audit — tokens, secrets, export, errors *(admin)*
+- The quizzes' row menu behind the vertical ellipsis, as everywhere *(web)*
+- The quick setup forces no answer *(web)*
+- The administration opens on the quizzes, the instance's settings after *(web)*
+- A setting's history in the administration's units *(web)*
+- Pass GAME_ALL_ANSWERED_DELAY_MS to the backend *(compose)*
+- An unreadable PORT falls back to 3000 *(app)*
+- An unreadable IMPORT_MAX_BYTES falls back to 50 MiB *(quizzes)*
+- Report the authentication mode the backend runs in *(health)*
+- Make community access opt-in and reuse verified quiz previews *(store)*
+- Keep DNS lookup within download deadline *(store)*
+
+### Documentation
+
+- The pages and the API on one origin *(upgrading)*
+- Changing settings, presets and quizzes from the administration *(self-hosting)*
+- The configuration warnings and what doctor checks *(self-hosting)*
+- Generate the environment reference and .env.example *(self-hosting)*
+
+### Features
+
+- Health and setting issues said in the page's language *(admin)*
+- Accounts, health and audit as pages, not command output *(web)*
+- Empty zones of the administration as placeholders with an icon *(web)*
+- The administration in the top bar, beside the app's pages *(web)*
+- Statistics — the last twelve months of use *(admin)*
+- Statistics, the administration's home — what is played right now *(admin)*
+- The administration's media, a detail panel beside the list *(web)*
+- The administration's quizzes, a real list *(web)*
+- The quick setup, first step of the setup wizard *(web)*
+- Presets become the quick setup of a new instance *(admin)*
+- The look of the instance — palette and answer themes *(web)*
+- Answer themes *(admin)*
+- The instance's palette, served as a stylesheet *(admin)*
+- The phone test of the invitation addresses, again from the Health page *(web)*
+- The setup wizard *(web)*
+- The setup of a fresh instance, behind a setup token *(admin)*
+- Change the settings, apply presets, manage quizzes *(web)*
+- Presets on independent axes *(admin)*
+- Change settings and manage quizzes as an operation *(admin)*
+- The administration, reading *(web)*
+- The admin API, and the media page through the runner *(admin)*
+- Qd runs every command through the runner *(cli)*
+- Administrative operations, the runner and the audit *(admin)*
+- /config.js comes from the backend in every setup *(app)*
+- Report configuration problems at start and in qd doctor *(admin)*
+- The settings registry and the service that resolves it *(admin)*
+- An icon, a home-screen manifest, long cache for built files, screen kept on in games (#181) *(app)*
+- The community store in Turkish *(i18n)*
+- Add optional community catalogue *(store)*
+
+### Refactor
+
+- Audit — indexes, one read per game, cleanups, risky paths tested *(admin)*
+- The administration's tables on DataTable *(web)*
+- The settings injected into the administration's classes *(admin)*
+- The operations' results typed once, in contracts *(admin)*
+- Themes out of the administration's scope *(admin)*
+- Read the environment through the settings registry *(backend)*
+
+### Contributors
+
+- Francois Chaussin
+- François CHAUSSIN
+- lutfullahkabalak
+
 ## [0.10.0] - 2026-09-28
 
 ### Bug Fixes
