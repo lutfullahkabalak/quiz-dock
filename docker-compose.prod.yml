@@ -7,6 +7,8 @@ name: quizdock
 services:
   postgres:
     image: postgres:16-alpine
+    # Back after a reboot of the server, like Keycloak; `./quizdock down` keeps it stopped.
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-live}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-live}
@@ -22,6 +24,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    # Back after a reboot of the server, like Keycloak; `./quizdock down` keeps it stopped.
+    restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redisdata:/data
@@ -122,6 +126,8 @@ services:
       context: .
       dockerfile: Dockerfile
     image: fchaussin/quizdock:${QUIZDOCK_TAG:-latest}
+    # Back after a reboot of the server, like Keycloak; `./quizdock down` keeps it stopped.
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: '3000'
