@@ -99,6 +99,7 @@ How the two modes behave, how to register the client on your IdP and what open a
 | `HOST_LAN_IPS` | — | comma-separated IPv4 addresses | C3 | Comma-separated LAN IPs of the machine (bare IPs), for setups where the container cannot see the host's interfaces (Docker Desktop, bridge network). Offered as invitation addresses with the scheme and port of the page. |
 | `QUIZ_STORE_URL` | _(disabled)_ | up to five comma-separated `http(s)://` URLs | C2 | Comma-separated registry URLs of the community catalogue. Leave unset or empty to hide the community page and prevent all outgoing store requests. Enabling contacts the listed services from the server: its IP is visible, no user data is sent. |
 | `QUIZ_STORE_HOSTS` | `github.com,release-assets.githubusercontent.com` | comma-separated host names | C2 | Additional exact host names allowed for source indexes, artifacts and redirects. Registry hosts are allowed automatically. Empty: the registry hosts only. |
+| `UPDATE_CHECK` | `true` | `true` · `false` | C4 | The administration and `quizdock status` say when a newer stable release of QuizDock is out: the server asks GitHub (`api.github.com`) at most once a day. Nothing is installed: the update stays `./quizdock upgrade`. GitHub sees the server's IP; nothing else is sent. |
 
 Which setup offers which invitation address: [where participants connect](invitation-address.md).
 The community catalogue, its formats and download checks: [community store](community-store.md).

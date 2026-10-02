@@ -23,6 +23,18 @@
     "given": "Administration token given for this tab.",
     "forget": "Forget it"
   },
+  "update": {
+    "available": "QuizDock {{version}} is available.",
+    "running": "This instance runs {{current}} · published on {{date}}.",
+    "command": "On the server, in the instance's folder:",
+    "does": "It backs up, updates the image, applies the migrations, then checks the instance's health.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "changes": "What's new",
+    "upgrading": "Before upgrading",
+    "github": "See on GitHub",
+    "hide": "Hide until the next version"
+  },
   "settings": {
     "search": "Search a setting",
     "view": "Layout",
@@ -161,6 +173,7 @@
     "HOST_LAN_IPS": "Local network addresses",
     "QUIZ_STORE_URL": "Community catalogues",
     "QUIZ_STORE_HOSTS": "Hosts allowed for downloads",
+    "UPDATE_CHECK": "Check for new versions",
     "DATABASE_URL": "Database",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "Media folder",
@@ -185,6 +198,7 @@
     "ADMIN_TOKEN": "Administration token (local mode)",
     "ADMIN_OVERRIDES": "Values changed from the web",
     "QUIZDOCK_FLAVOR": "Image flavour",
+    "APP_VERSION": "Version",
     "PRISMA_SKIP_CONNECT": "Start without a database"
   },
   "operations": {
@@ -193,6 +207,9 @@
     },
     "migrations": {
       "status": "Database migrations"
+    },
+    "version": {
+      "check": "Version"
     },
     "seat": {
       "status": "Host seat",
@@ -700,6 +717,17 @@
       "failed_one": "{{count}} failed",
       "failed_other": "{{count}} failed",
       "list": "Applied migrations, newest first"
+    },
+    "version": {
+      "title": "Version",
+      "current": "This instance: {{version}}",
+      "available": "{{version}} available since {{date}}",
+      "upToDate": "The latest stable release",
+      "dev": "A development build: not compared",
+      "none": "No stable release published yet",
+      "off": "Update check off (UPDATE_CHECK)",
+      "failed": "GitHub did not answer: the latest version is unknown",
+      "checked": "Last checked {{when}}"
     },
     "level": {
       "ok": "OK",

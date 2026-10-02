@@ -23,6 +23,18 @@
     "given": "Bu sekme için yönetim belirteci verildi.",
     "forget": "Unut"
   },
+  "update": {
+    "available": "QuizDock {{version}} yayımlandı.",
+    "running": "Bu kurulum {{current}} sürümünde · yayım tarihi {{date}}.",
+    "command": "Sunucuda, kurulumun klasöründe:",
+    "does": "Yedek alır, imajı günceller, geçişleri uygular, ardından kurulumun sağlığını denetler.",
+    "copy": "Kopyala",
+    "copied": "Kopyalandı",
+    "changes": "Yenilikler",
+    "upgrading": "Güncellemeden önce",
+    "github": "GitHub’da gör",
+    "hide": "Sonraki sürüme kadar gizle"
+  },
   "settings": {
     "search": "Ayar arayın",
     "view": "Düzen",
@@ -161,6 +173,7 @@
     "HOST_LAN_IPS": "Yerel ağ adresleri",
     "QUIZ_STORE_URL": "Topluluk katalogları",
     "QUIZ_STORE_HOSTS": "İndirmelere izin verilen ana makineler",
+    "UPDATE_CHECK": "Yeni sürümleri denetle",
     "DATABASE_URL": "Veritabanı",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "Medya klasörü",
@@ -185,6 +198,7 @@
     "ADMIN_TOKEN": "Yönetim belirteci (yerel mod)",
     "ADMIN_OVERRIDES": "Web üzerinden değiştirilen değerler",
     "QUIZDOCK_FLAVOR": "İmaj türü",
+    "APP_VERSION": "Sürüm",
     "PRISMA_SKIP_CONNECT": "Veritabanı olmadan başlat"
   },
   "operations": {
@@ -193,6 +207,9 @@
     },
     "migrations": {
       "status": "Veritabanı geçişleri"
+    },
+    "version": {
+      "check": "Sürüm"
     },
     "seat": {
       "status": "Sunucu yetkisi",
@@ -700,6 +717,17 @@
       "failed_one": "{{count}} başarısız",
       "failed_other": "{{count}} başarısız",
       "list": "Uygulanan geçişler, en yenisi önce"
+    },
+    "version": {
+      "title": "Sürüm",
+      "current": "Bu kurulum: {{version}}",
+      "available": "{{version}}, {{date}} tarihinden beri yayımda",
+      "upToDate": "En son kararlı sürüm",
+      "dev": "Geliştirme sürümü: karşılaştırılmaz",
+      "none": "Henüz kararlı sürüm yayımlanmadı",
+      "off": "Sürüm denetimi kapalı (UPDATE_CHECK)",
+      "failed": "GitHub yanıt vermedi: son sürüm bilinmiyor",
+      "checked": "Son denetim {{when}}"
     },
     "level": {
       "ok": "Tamam",

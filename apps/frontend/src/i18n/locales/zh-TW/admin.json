@@ -23,6 +23,18 @@
     "given": "已為此分頁提供管理權杖。",
     "forget": "清除"
   },
+  "update": {
+    "available": "QuizDock {{version}} 已發布。",
+    "running": "此執行個體執行的是 {{current}} · 發布於 {{date}}。",
+    "command": "在伺服器上，執行個體所在的資料夾中：",
+    "does": "它會先備份，再更新映像檔、執行遷移，最後檢查執行個體的健康狀況。",
+    "copy": "複製",
+    "copied": "已複製",
+    "changes": "新內容",
+    "upgrading": "升級之前",
+    "github": "在 GitHub 上查看",
+    "hide": "隱藏，直到下一個版本"
+  },
   "settings": {
     "search": "搜尋設定",
     "view": "版面配置",
@@ -161,6 +173,7 @@
     "HOST_LAN_IPS": "區域網路位址",
     "QUIZ_STORE_URL": "社群目錄",
     "QUIZ_STORE_HOSTS": "允許下載的主機",
+    "UPDATE_CHECK": "檢查新版本",
     "DATABASE_URL": "資料庫",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "媒體資料夾",
@@ -185,6 +198,7 @@
     "ADMIN_TOKEN": "管理權杖（本機模式）",
     "ADMIN_OVERRIDES": "從網頁變更的值",
     "QUIZDOCK_FLAVOR": "映像檔版本類型",
+    "APP_VERSION": "版本",
     "PRISMA_SKIP_CONNECT": "不連線資料庫啟動"
   },
   "operations": {
@@ -193,6 +207,9 @@
     },
     "migrations": {
       "status": "資料庫遷移"
+    },
+    "version": {
+      "check": "版本"
     },
     "seat": {
       "status": "主持席位",
@@ -700,6 +717,17 @@
       "failed_one": "{{count}} 個失敗",
       "failed_other": "{{count}} 個失敗",
       "list": "已套用的遷移，最新的在前"
+    },
+    "version": {
+      "title": "版本",
+      "current": "此執行個體：{{version}}",
+      "available": "{{version}} 已於 {{date}} 發布",
+      "upToDate": "最新的穩定版本",
+      "dev": "開發版本：不作比較",
+      "none": "尚未發布穩定版本",
+      "off": "版本檢查已關閉（UPDATE_CHECK）",
+      "failed": "GitHub 沒有回應：最新版本未知",
+      "checked": "上次檢查：{{when}}"
     },
     "level": {
       "ok": "正常",

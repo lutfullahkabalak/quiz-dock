@@ -23,6 +23,18 @@
     "given": "已为此标签页提供管理令牌。",
     "forget": "清除"
   },
+  "update": {
+    "available": "QuizDock {{version}} 已发布。",
+    "running": "此实例运行的是 {{current}} · 发布于 {{date}}。",
+    "command": "在服务器上，实例所在的文件夹中：",
+    "does": "它会先备份，再更新镜像、执行迁移，最后检查实例的健康状况。",
+    "copy": "复制",
+    "copied": "已复制",
+    "changes": "新内容",
+    "upgrading": "升级之前",
+    "github": "在 GitHub 上查看",
+    "hide": "隐藏，直到下一个版本"
+  },
   "settings": {
     "search": "搜索设置",
     "view": "布局",
@@ -161,6 +173,7 @@
     "HOST_LAN_IPS": "局域网地址",
     "QUIZ_STORE_URL": "社区目录",
     "QUIZ_STORE_HOSTS": "允许下载的主机",
+    "UPDATE_CHECK": "检查新版本",
     "DATABASE_URL": "数据库",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "媒体文件夹",
@@ -185,6 +198,7 @@
     "ADMIN_TOKEN": "管理令牌（本地模式）",
     "ADMIN_OVERRIDES": "通过网页更改的值",
     "QUIZDOCK_FLAVOR": "镜像版本类型",
+    "APP_VERSION": "版本",
     "PRISMA_SKIP_CONNECT": "不连接数据库启动"
   },
   "operations": {
@@ -193,6 +207,9 @@
     },
     "migrations": {
       "status": "数据库迁移"
+    },
+    "version": {
+      "check": "版本"
     },
     "seat": {
       "status": "主持席位",
@@ -700,6 +717,17 @@
       "failed_one": "{{count}} 个失败",
       "failed_other": "{{count}} 个失败",
       "list": "已应用的迁移，最新的在前"
+    },
+    "version": {
+      "title": "版本",
+      "current": "此实例：{{version}}",
+      "available": "{{version}} 已于 {{date}} 发布",
+      "upToDate": "最新的稳定版本",
+      "dev": "开发版本：不作比较",
+      "none": "尚未发布稳定版本",
+      "off": "版本检查已关闭（UPDATE_CHECK）",
+      "failed": "GitHub 没有响应：最新版本未知",
+      "checked": "上次检查：{{when}}"
     },
     "level": {
       "ok": "正常",

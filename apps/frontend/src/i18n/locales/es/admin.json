@@ -23,6 +23,18 @@
     "given": "Token de administración proporcionado para esta pestaña.",
     "forget": "Olvidarlo"
   },
+  "update": {
+    "available": "QuizDock {{version}} está disponible.",
+    "running": "Esta instancia ejecuta {{current}} · publicada el {{date}}.",
+    "command": "En el servidor, en la carpeta de la instancia:",
+    "does": "Hace una copia de seguridad, actualiza la imagen, aplica las migraciones y comprueba el estado de la instancia.",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "changes": "Novedades",
+    "upgrading": "Antes de actualizar",
+    "github": "Ver en GitHub",
+    "hide": "Ocultar hasta la próxima versión"
+  },
   "settings": {
     "search": "Buscar un ajuste",
     "view": "Diseño",
@@ -161,6 +173,7 @@
     "HOST_LAN_IPS": "Direcciones de la red local",
     "QUIZ_STORE_URL": "Catálogos de la comunidad",
     "QUIZ_STORE_HOSTS": "Hosts permitidos para descargas",
+    "UPDATE_CHECK": "Buscar nuevas versiones",
     "DATABASE_URL": "Base de datos",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "Carpeta de medios",
@@ -185,6 +198,7 @@
     "ADMIN_TOKEN": "Token de administración (modo local)",
     "ADMIN_OVERRIDES": "Valores cambiados desde la web",
     "QUIZDOCK_FLAVOR": "Variante de la imagen",
+    "APP_VERSION": "Versión",
     "PRISMA_SKIP_CONNECT": "Arrancar sin base de datos"
   },
   "operations": {
@@ -193,6 +207,9 @@
     },
     "migrations": {
       "status": "Migraciones de la base de datos"
+    },
+    "version": {
+      "check": "Versión"
     },
     "seat": {
       "status": "Asiento de anfitrión",
@@ -700,6 +717,17 @@
       "failed_one": "{{count}} fallida",
       "failed_other": "{{count}} fallidas",
       "list": "Migraciones aplicadas, la más reciente primero"
+    },
+    "version": {
+      "title": "Versión",
+      "current": "Esta instancia: {{version}}",
+      "available": "{{version}} disponible desde el {{date}}",
+      "upToDate": "La última versión estable",
+      "dev": "Una versión de desarrollo: sin comparar",
+      "none": "Aún no se ha publicado ninguna versión estable",
+      "off": "Comprobación desactivada (UPDATE_CHECK)",
+      "failed": "GitHub no respondió: última versión desconocida",
+      "checked": "Última comprobación {{when}}"
     },
     "level": {
       "ok": "Correcto",

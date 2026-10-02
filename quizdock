@@ -256,6 +256,9 @@ cmd_status() {
   esac
   if curl -fs "http://localhost:$(http_port)/health" >/dev/null 2>&1; then
     info "health: ok (http://localhost:$(http_port))"
+    # The version it runs, and the latest stable release (UPDATE_CHECK); an image
+    # older than this script has no `version`: nothing said.
+    admin version 2>/dev/null || true
   else
     warn "health: not responding on port $(http_port)"
   fi
@@ -389,7 +392,7 @@ Install & run
   init [--full|--standalone] Create $ENV_FILE (guided) and fetch the Compose/realm files
   up                    Start (compose stack or standalone container), wait for health
   down                  Stop
-  status                Containers + health
+  status                Containers + health + version
   logs [service]        Follow logs
 
 Maintenance
@@ -399,6 +402,7 @@ Maintenance
 
 Administration (relayed to the CLI inside the container)
   doctor                Check env, database, migrations, Redis, media, OIDC
+  version               The version running, and the latest stable release
   seat:status | seat:release
   user:list | user:set-role <sub|email> host|admin|host,admin|player
   samples:load <sub|email>
@@ -429,7 +433,7 @@ case "$cmd" in
   backup) cmd_backup "$@" ;;
   restore) cmd_restore "$@" ;;
   upgrade) cmd_upgrade "$@" ;;
-  doctor | seat:status | seat:release | user:list | user:set-role | samples:load | sessions:purge | migrate:status | quiz:list | quiz:transfer)
+  doctor | version | seat:status | seat:release | user:list | user:set-role | samples:load | sessions:purge | migrate:status | quiz:list | quiz:transfer)
     need_docker; need_init; admin "$cmd" "$@" ;;
   quiz:export)
     [ $# -eq 2 ] || die "usage: $0 quiz:export <id> <file.zip>"

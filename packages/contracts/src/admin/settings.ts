@@ -542,6 +542,19 @@ export const SETTINGS = {
     applies: 'live',
     overridable: true,
   }),
+  UPDATE_CHECK: define({
+    key: 'UPDATE_CHECK',
+    description:
+      "The administration and `quizdock status` say when a newer stable release of QuizDock is out: the server asks GitHub (`api.github.com`) at most once a day. Nothing is installed: the update stays `./quizdock upgrade`. GitHub sees the server's IP; nothing else is sent.",
+    category: 'network',
+    criticality: 'C4',
+    schema: flag(),
+    accepts: '`true` · `false`',
+    default: true,
+    applies: 'live',
+    overridable: true,
+    preset: { axis: 'internet', levels: { connected: true, offline: false } },
+  }),
 
   // Storage
   DATABASE_URL: define({
@@ -894,6 +907,19 @@ export const SETTINGS = {
     overridable: false,
     internal: true,
   }),
+  APP_VERSION: define({
+    key: 'APP_VERSION',
+    description:
+      'Set by the image build to the release tag: shown in the app, reported by `/health`, compared with the latest release (`UPDATE_CHECK`).',
+    category: 'internal',
+    criticality: 'C4',
+    schema: text(),
+    accepts: 'a version',
+    default: 'dev',
+    applies: 'restart',
+    overridable: false,
+    internal: true,
+  }),
   PRISMA_SKIP_CONNECT: define({
     key: 'PRISMA_SKIP_CONNECT',
     description: 'Set by the OpenAPI generation: the backend starts without a database.',
@@ -1109,14 +1135,6 @@ export const DEPLOYMENT_VARIABLES: DeploymentVariable[] = [
     description: 'Where `quizdock init` fetches its files.',
   },
   // Build
-  {
-    key: 'APP_VERSION',
-    readBy: 'build',
-    criticality: 'C4',
-    defaultText: '`dev`',
-    description: 'Version shown in the app.',
-    internal: true,
-  },
   {
     key: 'APP_IMAGE_TAG',
     readBy: 'build',

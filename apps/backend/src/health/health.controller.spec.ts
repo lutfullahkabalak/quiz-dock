@@ -22,6 +22,19 @@ describe('HealthController', () => {
     expect(controller.check().contracts).toBe(CONTRACTS_VERSION);
   });
 
+  it('reports the release the image was built as, without its v', () => {
+    const before = process.env.APP_VERSION;
+    process.env.APP_VERSION = 'v0.13.1';
+    try {
+      expect(controller.check().version).toBe('0.13.1');
+      delete process.env.APP_VERSION;
+      expect(controller.check().version).toBe('dev');
+    } finally {
+      if (before === undefined) delete process.env.APP_VERSION;
+      else process.env.APP_VERSION = before;
+    }
+  });
+
   it("reflète AUTH_MODE par défaut 'none'", () => {
     delete process.env.AUTH_MODE;
     expect(controller.check().authMode).toBe('none');

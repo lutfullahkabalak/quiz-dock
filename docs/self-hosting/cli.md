@@ -35,12 +35,12 @@ its sample users and admin. See [choose a setup](setups.md).
 |---|---|
 | `init [--full\|--standalone]` | Create `.env` (guided; generates passwords) and fetch Compose plus the realm file when needed. |
 | `up` / `down` | Start (and wait for health) / stop. |
-| `status` | Containers and health check. |
+| `status` | Containers, health check, and the version running against the latest stable release (`UPDATE_CHECK`). |
 | `logs [service]` | Follow logs (`quizdock`, `postgres`, `redis`, `migrate` in compose mode). |
 | `backup [dir]` | `pg_dump --clean` + media + `.env` → `./backups/quizdock-<date>/`; full mode also dumps the Keycloak database. |
 | `restore <dir>` | Replace the database and media from a backup (stops the app first; asks for confirmation). |
 | `upgrade [tag]` | **backup → pull → restart** (migrations run on start) **→ doctor**. Persists the tag in `.env`. |
-| `doctor`, `seat:*`, `user:*`, `samples:load`, `quiz:list`, `sessions:purge` | Relayed to the in-image CLI (below). |
+| `doctor`, `version`, `seat:*`, `user:*`, `samples:load`, `quiz:list`, `sessions:purge` | Relayed to the in-image CLI (below). |
 | `quiz:export <id> <file.zip>` | Write a quiz bundle to a file **on the host** (streamed out of the container). |
 | `quiz:import <file> <sub\|email>` | Create a draft in that user's bank from a bundle file on the host. |
 | `qd <operation> …` | Any administrative operation ([below](#operations)). |
@@ -67,6 +67,7 @@ which still works too.)
 |---|---|
 | `doctor` | Lists every configuration value it cannot read or that falls outside its range, and the settings that contradict each other (the same warnings the backend logs at start); checks PostgreSQL, applied / pending / failed migrations, Redis, that `MEDIA_DIR` and `STORE_DIR` are writable, and in OIDC mode fetches the discovery document and the JWKS. Exit code 1 when something fails, a critical variable included — the message says what to fix. |
 | `migrate:status` | Applied / pending / failed migrations (folders shipped in the image vs `_prisma_migrations`). |
+| `version` | The version this image runs (`APP_VERSION`) and the latest stable release on GitHub, asked at most once a day and only when `UPDATE_CHECK` is on; when newer, the `./quizdock upgrade <version>` that installs it. |
 | `seat:status` | Local mode: who holds the host seat, since when, until when. |
 | `seat:release` | Operator override: free the seat whoever holds it (e.g. claimed with no expiry and abandoned). |
 | `user:list` | Accounts with subject, e-mail, role (as last provisioned), the operator grant if any, quiz count. |

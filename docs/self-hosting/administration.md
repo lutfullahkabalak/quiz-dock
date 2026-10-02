@@ -56,8 +56,13 @@ settings, health and audit:
   `docker run --env-file`, takes values unquoted: remove the quotes there) —,
   *Take everything back* removes them all.
 - **Health** — a verdict first, then the checks of `qd doctor` part by part,
-  the state of the migrations, and the phone test of the invitation addresses
+  the state of the migrations, the version running against the latest stable
+  release, and the phone test of the invitation addresses
   (a new network, a new venue).
+- **A newer release** (`UPDATE_CHECK`, on unless the instance is set up offline)
+  is announced above every page of the administration: its *Upgrading* notes,
+  its changes, and the `./quizdock upgrade <version>` to run on the server — the
+  web installs nothing. *Hide until the next version* hides it in that browser.
 - **Accounts** — the accounts, searched by name, subject or e-mail and filtered
   by role, with their quizzes and the games they hosted; granting or revoking a
   role from a row (on top of what the identity provider gives); in local mode,

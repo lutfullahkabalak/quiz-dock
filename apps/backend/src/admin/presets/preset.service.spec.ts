@@ -81,10 +81,15 @@ describe('PresetService', () => {
     expect(oidc.plan(oidc.resolve({ audience: 'public' }), api).changes[0].skipped).toBeUndefined();
   });
 
-  it('applies every change at once; offline, no media library', async () => {
+  it('applies every change at once; offline, no update check nor media library', async () => {
     const { svc, applied } = service();
     await svc.apply(svc.plan(svc.resolve({ internet: 'offline' }), api), api);
-    expect(applied).toEqual([[{ key: 'MEDIA_LIBRARY_LINKS', value: 'none' }]]);
+    expect(applied).toEqual([
+      [
+        { key: 'UPDATE_CHECK', value: 'false' },
+        { key: 'MEDIA_LIBRARY_LINKS', value: 'none' },
+      ],
+    ]);
   });
 
   it('refuses an unknown answer', () => {

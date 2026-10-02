@@ -36,6 +36,7 @@ interface Alias {
 
 export const ALIASES: Record<string, Alias> = {
   doctor: { id: 'health.doctor', positional: [] },
+  version: { id: 'version.check', positional: [] },
   'migrate:status': { id: 'migrations.status', positional: [] },
   'seat:status': { id: 'seat.status', positional: [] },
   'seat:release': { id: 'seat.release', positional: [] },

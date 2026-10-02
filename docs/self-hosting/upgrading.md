@@ -4,7 +4,9 @@
 > see the [CLI guide](cli.md).
 
 With the [CLI](cli.md): `./quizdock upgrade <tag>` does all of the below (backup,
-pull, restart, migration check, doctor). By hand:
+pull, restart, migration check, doctor). A newer stable release is announced in the
+administration and by `./quizdock status` ([`UPDATE_CHECK`](configuration.md#environment-reference)), with
+the tag to give. By hand:
 
 Migrations are part of the image and run **automatically** before the app starts:
 the `migrate` one-shot service in `docker-compose.prod.yml`, or the entrypoint of the
