@@ -4,6 +4,37 @@ All notable changes to QuizDock are documented here.
 Format based on [Keep a Changelog](https://keepachangelog.com); versions follow
 [Semantic Versioning](https://semver.org). Generated from conventional commits.
 
+## [0.13.1] - 2026-10-02
+
+### Bug Fixes
+
+- The empty history names the checkbox as the console shows it *(web)*
+- The database, Redis and the app come back after a reboot *(compose)*
+- A standalone instance follows QUIZDOCK_TAG *(cli)*
+- The page says the instance's language, not French *(web)*
+- The demo seat never expires; the proxy warning names no nginx *(settings)*
+- The setup token works once and expires 24 hours after it was created *(web)*
+
+### Documentation
+
+- The Docker Hub overview is docker/README.md *(releasing)*
+- The Documentation moves to quizdock.github.io; READMEs for GitHub and Docker Hub
+- The community catalogue in the self-hosting guides, six languages in the glossary
+- The web administration, settings changed from it, community quizzes, the dev accounts *(readme)*
+- Every screen shot again, the administration's pages among them *(screenshots)*
+
+### Features
+
+- The invitation address set from a phone test; the update from Health *(admin)*
+- Init asks whether administrators may change settings from the browser *(cli)*
+- The environment reference as data, rendered by the website *(settings)*
+- An invitation to star QuizDock on GitHub, beside the feedback links *(web)*
+- A newer release announced in the administration and by quizdock status *(admin)*
+
+### Contributors
+
+- Francois Chaussin
+
 ## [0.13.0] - 2026-10-02
 
 ### Bug Fixes
