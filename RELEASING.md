@@ -122,5 +122,5 @@ and the mounted `branding/` folder.
 - [ ] README + landing page updated with `docker pull` instructions.
 - [ ] Release notes carry an **Upgrading** section when the release adds migrations: what changes in the schema, whether data is converted, anything manual. (Operators are told to read it: https://quizdock.github.io/docs/operator/upgrade/.)
 
-> The Docker Hub repo overview is synced automatically from `README.md` by the
-> `dockerhub-readme` job in `release.yml` — no manual copy-paste.
+> The Docker Hub repo overview is `docker/README.md`, synced by the
+> `dockerhub-readme.yml` workflow whenever it changes on `main` — no manual copy-paste.
