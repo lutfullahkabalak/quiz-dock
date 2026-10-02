@@ -114,7 +114,7 @@
     },
     "openInWindow": "Ouvrir dans une fenêtre",
     "joinAddress": "Adresse pour rejoindre",
-    "joinAddressPublic": "adresse publique",
+    "joinAddressPublic": "adresse de l’instance",
     "joinAddressThisPage": "cette page",
     "joinAddressCustom": "Autre adresse…",
     "joinAddressApply": "Appliquer",
@@ -131,7 +131,10 @@
       "publicConfigured": "Cette instance est configurée avec une adresse publique ({{url}}) : utilise-la, c’est celle que les participants atteignent de partout.",
       "lanKnown": "Les adresses listées sont celles de cette machine sur le réseau local : choisis celle du réseau où sont les participants (Wi‑Fi, filaire).",
       "lanHidden": "Cette instance tourne dans Docker Desktop (ou un conteneur sur un réseau bridge), qui cache le réseau de l’ordinateur : aucune adresse locale n’a pu être détectée. Saisis-la ci-dessous — ou ajoute HOST_LAN_IPS=<ton IP> dans le fichier .env (ou « -e HOST_LAN_IPS=… » au docker run) pour qu’elle soit listée ici la prochaine fois.",
-      "https": "Cette page est servie en HTTPS : une adresse locale en http:// affichera un avertissement sur les téléphones — une adresse publique avec certificat est la voie propre."
+      "https": "Cette page est servie en HTTPS : une adresse locale en http:// affichera un avertissement sur les téléphones — une adresse publique avec certificat est la voie propre.",
+      "phoneTest": "Tester les adresses depuis un téléphone, et choisir celle de l’instance",
+      "askAdmin": "L’adresse dont part chaque partie est choisie par l’administrateur.",
+      "docs": "Inviter les joueurs, dans la documentation"
     },
     "backToLive": "Revenir au direct",
     "restartMedia": "Relancer le média depuis le début",

@@ -9,6 +9,7 @@ import { PageTitle } from '@/components/ui/page-title';
 import { cn } from '@/lib/utils';
 import { useRole } from '../../auth/use-role';
 import { setAdminToken, useAdminToken, useReadOperation } from './admin-api';
+import { UpdateNotice } from './update-notice';
 
 /**
  * The administration's sections, by domain (§0.1): its statistics, its home,
@@ -62,6 +63,7 @@ export function AdminLayout() {
         ))}
       </nav>
       <TokenPrompt />
+      <UpdateNotice />
       <Outlet />
     </div>
   );

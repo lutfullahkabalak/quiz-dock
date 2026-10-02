@@ -7,6 +7,8 @@ name: quizdock
 services:
   postgres:
     image: postgres:16-alpine
+    # Back after a reboot of the server, like Keycloak; `./quizdock down` keeps it stopped.
+    restart: unless-stopped
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-live}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-live}
@@ -22,6 +24,8 @@ services:
 
   redis:
     image: redis:7-alpine
+    # Back after a reboot of the server, like Keycloak; `./quizdock down` keeps it stopped.
+    restart: unless-stopped
     command: ['redis-server', '--appendonly', 'yes']
     volumes:
       - redisdata:/data
@@ -122,11 +126,13 @@ services:
       context: .
       dockerfile: Dockerfile
     image: fchaussin/quizdock:${QUIZDOCK_TAG:-latest}
+    # Back after a reboot of the server, like Keycloak; `./quizdock down` keeps it stopped.
+    restart: unless-stopped
     environment:
       NODE_ENV: production
       PORT: '3000'
       AUTH_MODE: ${AUTH_MODE:-none}
-      # Démo publique (garde-fous, indépendant de AUTH_MODE) — cf. docs/self-hosting §4.
+      # Démo publique (garde-fous, indépendant de AUTH_MODE) — cf. https://quizdock.github.io/docs/operator/configuration/
       DEMO_MODE: ${DEMO_MODE:-false}
       DATABASE_URL: postgres://${POSTGRES_USER:-live}:${POSTGRES_PASSWORD:-live}@postgres:5432/${POSTGRES_DB:-quizdock}
       REDIS_URL: redis://redis:6379
@@ -138,6 +144,7 @@ services:
       IMPORT_MAX_BYTES: ${IMPORT_MAX_BYTES:-52428800}
       QUIZ_STORE_URL: ${QUIZ_STORE_URL:-}
       QUIZ_STORE_HOSTS: ${QUIZ_STORE_HOSTS-github.com,release-assets.githubusercontent.com}
+      UPDATE_CHECK: ${UPDATE_CHECK:-true}
       PUBLICATION_MAX_MB: ${PUBLICATION_MAX_MB:-20}
       MEDIA_LIBRARY_LINKS: ${MEDIA_LIBRARY_LINKS:-}
       GAME_AUTO_ADVANCE_MS: ${GAME_AUTO_ADVANCE_MS:-5000}

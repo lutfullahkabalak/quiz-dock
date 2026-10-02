@@ -23,6 +23,19 @@
     "given": "Administration token given for this tab.",
     "forget": "Forget it"
   },
+  "update": {
+    "available": "QuizDock {{version}} is available.",
+    "running": "This instance runs {{current}} · published on {{date}}.",
+    "command": "On the server, in the instance's folder:",
+    "does": "It backs up, updates the image, applies the migrations, then checks the instance's health.",
+    "copy": "Copy",
+    "copied": "Copied",
+    "changes": "What's new",
+    "upgrading": "Before upgrading",
+    "github": "See on GitHub",
+    "hide": "Hide until the next version",
+    "close": "Close"
+  },
   "settings": {
     "search": "Search a setting",
     "view": "Layout",
@@ -50,7 +63,9 @@
       "locks": "Locked by ADMIN_LOCK:",
       "safeMode": "Safe mode (ADMIN_OVERRIDES=ignore): the values changed here are kept but not applied.",
       "token": "Local mode: a change needs the administration token.",
-      "noToken": "Local mode: nothing can be changed from the web until ADMIN_TOKEN is set."
+      "noToken": "Local mode: nothing can be changed from the web until ADMIN_TOKEN is set.",
+      "readWhy": "It is the default: nothing changes the instance from a browser until whoever runs the server allows it.",
+      "doc": "How to allow changes"
     },
     "columns": {
       "variable": "Variable",
@@ -161,6 +176,7 @@
     "HOST_LAN_IPS": "Local network addresses",
     "QUIZ_STORE_URL": "Community catalogues",
     "QUIZ_STORE_HOSTS": "Hosts allowed for downloads",
+    "UPDATE_CHECK": "Check for new versions",
     "DATABASE_URL": "Database",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "Media folder",
@@ -185,6 +201,7 @@
     "ADMIN_TOKEN": "Administration token (local mode)",
     "ADMIN_OVERRIDES": "Values changed from the web",
     "QUIZDOCK_FLAVOR": "Image flavour",
+    "APP_VERSION": "Version",
     "PRISMA_SKIP_CONNECT": "Start without a database"
   },
   "operations": {
@@ -193,6 +210,9 @@
     },
     "migrations": {
       "status": "Database migrations"
+    },
+    "version": {
+      "check": "Version"
     },
     "seat": {
       "status": "Host seat",
@@ -457,7 +477,7 @@
     "finishedHelp": "The wizard is closed for good. Everything set here can be changed later from the administration, as ADMIN_WEB_SCOPE allows.",
     "token": {
       "title": "Setup token",
-      "help": "Whoever reaches a fresh instance must not own it: give the setup token written in the instance's logs at start (or given by `qd setup.token` in the container). It works once, for a day.",
+      "help": "Whoever reaches a fresh instance must not own it: give the setup token written in the instance's logs at start (or given by `qd setup.token` in the container). It works only once and expires 24 hours after it was created.",
       "label": "Token",
       "open": "Start"
     },
@@ -510,7 +530,13 @@
         "public": "A public address needs a name pointing to the machine and its port open from the internet (or a reverse proxy) — and https for phones to install the app.",
         "docker": "Docker Desktop, a bridge network: the container cannot see the machine's own addresses — set them in HOST_LAN_IPS."
       },
-      "expired": "This test expired: start it again."
+      "expired": "This test expired: start it again.",
+      "adoptHelp": "Once a phone reached an address, make it the instance's invitation address: every lobby starts from it (APP_PUBLIC_URL). A host can still pick another one for a game.",
+      "adoptReadOnly": "The administration cannot change settings here: the instance's invitation address stays as the operator set it (APP_PUBLIC_URL). A host picks the address of each game in the lobby.",
+      "other": "Another address",
+      "add": "Add",
+      "current": "The instance's invitation address",
+      "use": "Use for invitations"
     },
     "access": {
       "firstAdmin": "Local mode: the name that will administer the instance (they sign in with it). Changes from the web also need ADMIN_TOKEN.",
@@ -700,6 +726,18 @@
       "failed_one": "{{count}} failed",
       "failed_other": "{{count}} failed",
       "list": "Applied migrations, newest first"
+    },
+    "version": {
+      "title": "Version",
+      "current": "This instance: {{version}}",
+      "available": "{{version}} available since {{date}}",
+      "upToDate": "The latest stable release",
+      "dev": "A development build: not compared",
+      "none": "No stable release published yet",
+      "off": "Update check off (UPDATE_CHECK)",
+      "failed": "GitHub did not answer: the latest version is unknown",
+      "checked": "Last checked {{when}}",
+      "details": "See the update"
     },
     "level": {
       "ok": "OK",

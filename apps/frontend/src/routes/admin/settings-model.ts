@@ -6,7 +6,6 @@ import {
   type SettingsAccess,
   type SettingsList,
 } from '@quiz-dock/contracts';
-import { QUIZDOCK_REPOSITORY } from '@/lib/feedback';
 
 export type { SettingRow, SettingsAccess, SettingsList };
 
@@ -116,22 +115,15 @@ export const RULES: Partial<Record<SettingKey, SettingKey[]>> = {
   ADMIN_TOKEN: ['AUTH_MODE'],
 };
 
-/** The section of the self-hosting guide that documents a category. */
-const DOC_ANCHORS: Partial<Record<SettingDefinition['category'], string>> = {
-  identity: 'identity--branding',
-  access: 'access--authentication',
-  network: 'network--invitation',
-  storage: 'storage',
-  limits: 'limits',
-  pace: 'game-pace',
-  admin: 'administration',
-};
+/** The environment reference of the Documentation: a row per variable, its anchor the name in lower case. */
+export const DOCS_URL = 'https://quizdock.github.io/docs/operator/configuration/';
 
-export const DOCS_URL = `${QUIZDOCK_REPOSITORY}/blob/main/docs/self-hosting/configuration.md`;
+/** How the operator lets the web administration change the instance (ADMIN_WEB_SCOPE, ADMIN_TOKEN). */
+export const WEB_CHANGES_DOC =
+  'https://quizdock.github.io/docs/admin/overview/#allow-changes-from-the-web';
 
-export function docLink(category: SettingDefinition['category']): string | null {
-  const anchor = DOC_ANCHORS[category];
-  return anchor ? `${DOCS_URL}#${anchor}` : null;
+export function docLink(def: Pick<SettingDefinition, 'key' | 'category'>): string | null {
+  return def.category === 'internal' ? null : `${DOCS_URL}#${def.key.toLowerCase()}`;
 }
 
 // ── Editing (§3.7, the control of a row) ────────────────────────────────────

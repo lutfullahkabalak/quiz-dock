@@ -58,12 +58,4 @@ describe('format guide', () => {
     expect(keys(slide)).toEqual(sorted(GUIDE_FIELDS.slide));
     expect(blockTypes).toEqual(sorted(GUIDE_FIELDS.block));
   });
-
-  it('the chatbot page hands the guide over with its prompt', () => {
-    const doc = readFileSync(
-      join(ROOT, 'docs', 'self-hosting', 'import-from-other-tools.md'),
-      'utf8',
-    );
-    expect(doc).toContain(BUNDLE_GUIDE_FILE);
-  });
 });

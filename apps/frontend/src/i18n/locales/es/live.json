@@ -114,7 +114,7 @@
     },
     "openInWindow": "Abrir en una ventana",
     "joinAddress": "Dirección para unirse",
-    "joinAddressPublic": "dirección pública",
+    "joinAddressPublic": "dirección de la instancia",
     "joinAddressThisPage": "esta página",
     "joinAddressCustom": "Otra dirección…",
     "joinAddressApply": "Aplicar",
@@ -131,7 +131,10 @@
       "publicConfigured": "Esta instancia tiene una dirección pública configurada ({{url}}): úsala, es la que los participantes alcanzan desde cualquier sitio.",
       "lanKnown": "Las direcciones listadas son las de esta máquina en la red local: elige la de la red donde están los participantes (Wi‑Fi, cable).",
       "lanHidden": "Esta instancia corre en Docker Desktop (o un contenedor en red bridge), que oculta la red del ordenador: no se pudo detectar ninguna dirección local. Escríbela abajo — o añade HOST_LAN_IPS=<tu IP> al archivo .env (o «-e HOST_LAN_IPS=…» en docker run) para que aparezca aquí la próxima vez.",
-      "https": "Esta página se sirve por HTTPS: una dirección local en http:// mostrará un aviso en los teléfonos — una dirección pública con certificado es la vía limpia."
+      "https": "Esta página se sirve por HTTPS: una dirección local en http:// mostrará un aviso en los teléfonos — una dirección pública con certificado es la vía limpia.",
+      "phoneTest": "Probar las direcciones desde un teléfono y elegir la de la instancia",
+      "askAdmin": "La dirección de la que parte cada partida la elige el administrador.",
+      "docs": "Invitar a los jugadores, en la documentación"
     },
     "backToLive": "Volver al directo",
     "restartMedia": "Reiniciar el medio desde el principio",

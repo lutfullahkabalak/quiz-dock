@@ -51,6 +51,9 @@ RUN pnpm --filter @quiz-dock/contracts build \
 FROM gcr.io/distroless/nodejs24-debian13:nonroot AS runtime
 WORKDIR /app
 ENV NODE_ENV=production
+# The release tag, read at runtime too: /health reports it, the update check compares it.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 ENV PORT=3000
 ENV CLIENT_DIR=/app/client
 ENV MEDIA_DIR=/data/media \

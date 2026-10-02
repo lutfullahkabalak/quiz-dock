@@ -114,7 +114,7 @@
     },
     "openInWindow": "在新窗口打开",
     "joinAddress": "加入地址",
-    "joinAddressPublic": "公开地址",
+    "joinAddressPublic": "实例地址",
     "joinAddressThisPage": "本页",
     "joinAddressCustom": "其他地址…",
     "joinAddressApply": "应用",
@@ -131,7 +131,10 @@
       "publicConfigured": "此实例已配置公开地址（{{url}}）：请使用它，参与者可从任何地方访问。",
       "lanKnown": "列出的是这台电脑在局域网中的地址：选择参与者所在网络（Wi‑Fi、有线）的那个。",
       "lanHidden": "此实例运行在 Docker Desktop（或 bridge 网络的容器）中，看不到电脑的网络：无法检测本地地址。请在下方输入——或在 .env 文件中加入 HOST_LAN_IPS=<你的 IP>（或 docker run 时加“-e HOST_LAN_IPS=…”），下次即会列出。",
-      "https": "本页通过 HTTPS 提供：http:// 的本地地址会在手机上显示警告——带证书的公开地址才是正解。"
+      "https": "本页通过 HTTPS 提供：http:// 的本地地址会在手机上显示警告——带证书的公开地址才是正解。",
+      "phoneTest": "用手机测试地址，并设定实例的地址",
+      "askAdmin": "每一局默认使用的地址由管理员设定。",
+      "docs": "文档中的“邀请玩家”"
     },
     "backToLive": "回到当前",
     "restartMedia": "从头重新播放媒体",

@@ -13,7 +13,7 @@
   "list": {
     "title": "Historial de sesiones",
     "backToEditor": "Volver al editor",
-    "empty": "No hay sesiones archivadas para este quiz. Al finalizar una sesión, elige «Archivar resultados» para encontrarla aquí.",
+    "empty": "No hay sesiones archivadas para este quiz. Al finalizar una sesión, marca «Archivar los resultados de este quiz» para encontrarla aquí.",
     "capture": "Captura",
     "inRoom_one": "Sala · {{count}} quiz",
     "inRoom_other": "Sala · {{count}} quizzes",

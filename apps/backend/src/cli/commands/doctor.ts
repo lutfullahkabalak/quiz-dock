@@ -50,7 +50,7 @@ export function defaultProbeWritable(dir: string): void {
 
 /**
  * `doctor`: checks the runtime configuration and connectivity, mirroring the
- * troubleshooting table of the self-hosting guide. Returns `true` when healthy.
+ * troubleshooting table of the Documentation (operator/troubleshooting). Returns `true` when healthy.
  */
 export async function doctor(out: Output, deps: DoctorDeps): Promise<boolean> {
   const { settings } = deps;

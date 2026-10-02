@@ -1,13 +1,13 @@
 name: Docker Hub overview
 
-# The Docker Hub repo overview is README.md: synced whenever it changes on main,
-# not only at a release, so a README fixed after a tag still reaches Docker Hub.
+# The Docker Hub repo overview is docker/README.md (not the GitHub README):
+# synced whenever it changes on main, so a fix after a tag still reaches Docker Hub.
 # NB: the description endpoint usually needs the account password or a PAT;
 # a plain read/write access token may be rejected — use a dedicated secret then.
 on:
   push:
     branches: [main]
-    paths: [README.md]
+    paths: [docker/README.md]
   workflow_dispatch:
 
 permissions:
@@ -26,4 +26,4 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
           repository: fchaussin/quizdock
-          readme-filepath: ./README.md
+          readme-filepath: ./docker/README.md

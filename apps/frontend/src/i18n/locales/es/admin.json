@@ -23,6 +23,19 @@
     "given": "Token de administración proporcionado para esta pestaña.",
     "forget": "Olvidarlo"
   },
+  "update": {
+    "available": "QuizDock {{version}} está disponible.",
+    "running": "Esta instancia ejecuta {{current}} · publicada el {{date}}.",
+    "command": "En el servidor, en la carpeta de la instancia:",
+    "does": "Hace una copia de seguridad, actualiza la imagen, aplica las migraciones y comprueba el estado de la instancia.",
+    "copy": "Copiar",
+    "copied": "Copiado",
+    "changes": "Novedades",
+    "upgrading": "Antes de actualizar",
+    "github": "Ver en GitHub",
+    "hide": "Ocultar hasta la próxima versión",
+    "close": "Cerrar"
+  },
   "settings": {
     "search": "Buscar un ajuste",
     "view": "Diseño",
@@ -50,7 +63,9 @@
       "locks": "Bloqueados por ADMIN_LOCK:",
       "safeMode": "Modo seguro (ADMIN_OVERRIDES=ignore): los valores cambiados aquí se conservan pero no se aplican.",
       "token": "Modo local: un cambio requiere el token de administración.",
-      "noToken": "Modo local: no se puede cambiar nada desde la web hasta que ADMIN_TOKEN esté definido."
+      "noToken": "Modo local: no se puede cambiar nada desde la web hasta que ADMIN_TOKEN esté definido.",
+      "readWhy": "Es el valor por defecto: nada cambia la instancia desde un navegador hasta que quien opera el servidor lo permita.",
+      "doc": "Cómo permitir los cambios"
     },
     "columns": {
       "variable": "Variable",
@@ -161,6 +176,7 @@
     "HOST_LAN_IPS": "Direcciones de la red local",
     "QUIZ_STORE_URL": "Catálogos de la comunidad",
     "QUIZ_STORE_HOSTS": "Hosts permitidos para descargas",
+    "UPDATE_CHECK": "Buscar nuevas versiones",
     "DATABASE_URL": "Base de datos",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "Carpeta de medios",
@@ -185,6 +201,7 @@
     "ADMIN_TOKEN": "Token de administración (modo local)",
     "ADMIN_OVERRIDES": "Valores cambiados desde la web",
     "QUIZDOCK_FLAVOR": "Variante de la imagen",
+    "APP_VERSION": "Versión",
     "PRISMA_SKIP_CONNECT": "Arrancar sin base de datos"
   },
   "operations": {
@@ -193,6 +210,9 @@
     },
     "migrations": {
       "status": "Migraciones de la base de datos"
+    },
+    "version": {
+      "check": "Versión"
     },
     "seat": {
       "status": "Asiento de anfitrión",
@@ -457,7 +477,7 @@
     "finishedHelp": "El asistente queda cerrado definitivamente. Todo lo definido aquí se puede cambiar más tarde desde la administración, según lo permita ADMIN_WEB_SCOPE.",
     "token": {
       "title": "Token de puesta en marcha",
-      "help": "Quien llegue a una instancia nueva no debe poder apropiársela: introduce el token de puesta en marcha escrito en los registros de la instancia al arrancar (o el que da `qd setup.token` en el contenedor). Sirve una sola vez, durante un día.",
+      "help": "Quien llegue a una instancia nueva no debe poder apropiársela: introduce el token de puesta en marcha escrito en los registros de la instancia al arrancar (o el que da `qd setup.token` en el contenedor). Solo sirve una vez y caduca 24 horas después de crearse.",
       "label": "Token",
       "open": "Empezar"
     },
@@ -510,7 +530,13 @@
         "public": "Una dirección pública necesita un nombre que apunte a la máquina y su puerto abierto desde Internet (o un proxy inverso) — y https para que los teléfonos instalen la aplicación.",
         "docker": "Docker Desktop, una red bridge: el contenedor no ve las direcciones de la propia máquina — defínelas en HOST_LAN_IPS."
       },
-      "expired": "Esta prueba expiró: vuelva a iniciarla."
+      "expired": "Esta prueba expiró: vuelva a iniciarla.",
+      "adoptHelp": "Cuando un teléfono llegue a una dirección, conviértela en la dirección para unirse de la instancia: cada sala de espera parte de ella (APP_PUBLIC_URL). Un anfitrión aún puede elegir otra para una partida.",
+      "adoptReadOnly": "La administración no puede cambiar los ajustes aquí: la dirección para unirse de la instancia sigue siendo la del operador (APP_PUBLIC_URL). Un anfitrión elige la dirección de cada partida en la sala de espera.",
+      "other": "Otra dirección",
+      "add": "Añadir",
+      "current": "La dirección para unirse de la instancia",
+      "use": "Usar para las invitaciones"
     },
     "access": {
       "firstAdmin": "Modo local: el nombre que administrará la instancia (inicia sesión con él). Los cambios desde la web también requieren ADMIN_TOKEN.",
@@ -700,6 +726,18 @@
       "failed_one": "{{count}} fallida",
       "failed_other": "{{count}} fallidas",
       "list": "Migraciones aplicadas, la más reciente primero"
+    },
+    "version": {
+      "title": "Versión",
+      "current": "Esta instancia: {{version}}",
+      "available": "{{version}} disponible desde el {{date}}",
+      "upToDate": "La última versión estable",
+      "dev": "Una versión de desarrollo: sin comparar",
+      "none": "Aún no se ha publicado ninguna versión estable",
+      "off": "Comprobación desactivada (UPDATE_CHECK)",
+      "failed": "GitHub no respondió: última versión desconocida",
+      "checked": "Última comprobación {{when}}",
+      "details": "Ver la actualización"
     },
     "level": {
       "ok": "Correcto",

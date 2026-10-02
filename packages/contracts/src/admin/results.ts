@@ -105,6 +105,31 @@ export interface MigrationsStatus {
   output: OutputEntry[];
 }
 
+/** The latest stable release GitHub announces, as the instance last read it. */
+export interface LatestRelease {
+  /** `0.13.1`: the image tag `quizdock upgrade` takes. */
+  version: string;
+  publishedAt: string;
+  url: string;
+  /** Its changes (*What's Changed*), one line each, without their author and link. */
+  changes: string[];
+  /** What to know before upgrading (*Upgrading*), Markdown inline, one item each. */
+  upgrading: string[];
+}
+
+/** The version this instance runs, and whether a newer one is out (`UPDATE_CHECK`). */
+export interface VersionStatus {
+  /** `0.13.0`, or `dev` for an image built without a version. */
+  current: string;
+  /** `off`: `UPDATE_CHECK=false`; `failed`: GitHub did not answer at the last try. */
+  check: 'on' | 'off' | 'failed';
+  latest: LatestRelease | null;
+  updateAvailable: boolean;
+  /** When GitHub was last asked (ISO); `null` when it never was. */
+  checkedAt: string | null;
+  output: OutputEntry[];
+}
+
 // ── Accounts ─────────────────────────────────────────────────────────────────
 
 export interface AccountItem {
@@ -228,6 +253,7 @@ export interface OperationResults {
   'presets.plan': { plan: PresetPlan };
   'health.doctor': { output: OutputEntry[] };
   'migrations.status': MigrationsStatus;
+  'version.check': VersionStatus;
   'users.search': AccountsPage;
   'quizzes.search': QuizSearchPage;
   'stats.live': LiveStats;

@@ -75,3 +75,13 @@ export function feedbackLinks(
     { kind: 'question', href: `${repository}/discussions/new?category=q-a` },
   ];
 }
+
+/**
+ * Where to star QuizDock on GitHub: only while the feedback links lead to its
+ * repository (the default) — an operator who points them elsewhere, or hides
+ * them, gets no invitation either.
+ */
+export function starLink(configured: string | undefined): string | null {
+  const url = configured?.trim() || QUIZDOCK_REPOSITORY;
+  return url.replace(/\/+$/, '') === QUIZDOCK_REPOSITORY ? QUIZDOCK_REPOSITORY : null;
+}

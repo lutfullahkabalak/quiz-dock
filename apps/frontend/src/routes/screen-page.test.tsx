@@ -131,7 +131,7 @@ describe('ScreenPage (projection)', () => {
 });
 
 /**
- * The hooks an instance's override.css targets (docs/self-hosting/branding.md):
+ * The hooks an instance's override.css targets (https://quizdock.github.io/docs/admin/branding/):
  * they must survive changes to the markup. See also branding-hooks.test.ts.
  */
 describe('ScreenPage: the branding hooks (lot 5)', () => {

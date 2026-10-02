@@ -114,7 +114,7 @@
     },
     "openInWindow": "Open in a window",
     "joinAddress": "Invitation address",
-    "joinAddressPublic": "public address",
+    "joinAddressPublic": "the instance's address",
     "joinAddressThisPage": "this page",
     "joinAddressCustom": "Other address…",
     "joinAddressApply": "Apply",
@@ -131,7 +131,10 @@
       "publicConfigured": "This instance is configured with a public address ({{url}}): use it, it is the one participants can reach from anywhere.",
       "lanKnown": "The addresses listed are this machine’s on the local network: pick the one of the network the participants are on (Wi‑Fi, wired).",
       "lanHidden": "This instance runs in Docker Desktop (or a container on a bridge network), which hides the computer’s network: no local address could be detected. Type it below — or add HOST_LAN_IPS=<your IP> to the .env file (or “-e HOST_LAN_IPS=…” on docker run) so it is listed here next time.",
-      "https": "This page is served over HTTPS: an http:// local address will show a warning on phones — a public address with a certificate is the clean way."
+      "https": "This page is served over HTTPS: an http:// local address will show a warning on phones — a public address with a certificate is the clean way.",
+      "phoneTest": "Test the addresses from a phone, and set the instance's",
+      "askAdmin": "The address every game starts from is set by the administrator.",
+      "docs": "Invite players, in the Documentation"
     },
     "backToLive": "Back to live",
     "restartMedia": "Restart the media from the top",
