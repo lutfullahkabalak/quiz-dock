@@ -457,7 +457,7 @@
     "finishedHelp": "Sihirbaz kalıcı olarak kapandı. Burada ayarlanan her şey daha sonra, ADMIN_WEB_SCOPE izin verdiği ölçüde yönetim ekranından değiştirilebilir.",
     "token": {
       "title": "Kurulum belirteci",
-      "help": "Yeni bir kuruluma erişen herkes onun sahibi olmamalı: kurulumun başlangıçta günlüklerine yazdığı kurulum belirtecini girin (veya konteynerde `qd setup.token` ile alın). Yalnızca bir kez ve bir gün boyunca geçerlidir.",
+      "help": "Yeni bir kuruluma erişen herkes onun sahibi olmamalı: kurulumun başlangıçta günlüklerine yazdığı kurulum belirtecini girin (veya konteynerde `qd setup.token` ile alın). Yalnızca bir kez kullanılabilir ve oluşturulduktan 24 saat sonra geçerliliğini yitirir.",
       "label": "Belirteç",
       "open": "Başla"
     },

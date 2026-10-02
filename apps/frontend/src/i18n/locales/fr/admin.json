@@ -457,7 +457,7 @@
     "finishedHelp": "L’assistant est fermé pour de bon. Tout ce qui a été réglé ici pourra être modifié plus tard depuis l’administration, dans la limite d’ADMIN_WEB_SCOPE.",
     "token": {
       "title": "Jeton de mise en service",
-      "help": "Qui atteint une instance neuve ne doit pas pouvoir se l’approprier : donnez le jeton de mise en service écrit dans les journaux de l’instance au démarrage (ou fourni par `qd setup.token` dans le conteneur). Il sert une seule fois, pendant une journée.",
+      "help": "Qui atteint une instance neuve ne doit pas pouvoir se l’approprier : donnez le jeton de mise en service écrit dans les journaux de l’instance au démarrage (ou fourni par `qd setup.token` dans le conteneur). Il ne sert qu’une fois et expire 24 heures après sa création.",
       "label": "Jeton",
       "open": "Commencer"
     },

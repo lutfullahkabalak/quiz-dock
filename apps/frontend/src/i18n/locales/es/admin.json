@@ -457,7 +457,7 @@
     "finishedHelp": "El asistente queda cerrado definitivamente. Todo lo definido aquí se puede cambiar más tarde desde la administración, según lo permita ADMIN_WEB_SCOPE.",
     "token": {
       "title": "Token de puesta en marcha",
-      "help": "Quien llegue a una instancia nueva no debe poder apropiársela: introduce el token de puesta en marcha escrito en los registros de la instancia al arrancar (o el que da `qd setup.token` en el contenedor). Sirve una sola vez, durante un día.",
+      "help": "Quien llegue a una instancia nueva no debe poder apropiársela: introduce el token de puesta en marcha escrito en los registros de la instancia al arrancar (o el que da `qd setup.token` en el contenedor). Solo sirve una vez y caduca 24 horas después de crearse.",
       "label": "Token",
       "open": "Empezar"
     },

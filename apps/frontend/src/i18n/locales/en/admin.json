@@ -457,7 +457,7 @@
     "finishedHelp": "The wizard is closed for good. Everything set here can be changed later from the administration, as ADMIN_WEB_SCOPE allows.",
     "token": {
       "title": "Setup token",
-      "help": "Whoever reaches a fresh instance must not own it: give the setup token written in the instance's logs at start (or given by `qd setup.token` in the container). It works once, for a day.",
+      "help": "Whoever reaches a fresh instance must not own it: give the setup token written in the instance's logs at start (or given by `qd setup.token` in the container). It works only once and expires 24 hours after it was created.",
       "label": "Token",
       "open": "Start"
     },
