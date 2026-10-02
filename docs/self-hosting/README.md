@@ -32,6 +32,9 @@ infrastructure — for operators and integrators (not contributors).
   on a dedicated computer).
 - **[Where participants connect](invitation-address.md)** — which address the
   QR code and the join link carry, per setup, and what to configure.
+- **[Community catalogue](community-store.md)** — browse and copy quizzes from
+  community registries (opt-in, `QUIZ_STORE_URL`): what the server contacts, and
+  what it never sends.
 - **[Bringing a quiz from another tool](import-from-other-tools.md)** — a
   chatbot prompt that turns a PDF, screenshots, a spreadsheet or text (a Kahoot
   quiz, for one) into a file QuizDock imports.

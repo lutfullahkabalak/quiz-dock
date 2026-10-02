@@ -28,6 +28,8 @@ const READ_DELAY_MS = Number(process.env.READ_DELAY_MS ?? 3000);
 const DESKTOP = { width: 1400, height: 860 };
 const SCREEN = { width: 1400, height: 788 };
 const PHONE = { width: 390, height: 780 };
+/** ADMIN_TOKEN of the demo stack (compose.yml): the administration may change things. */
+const ADMIN_TOKEN = 'demo-stack-admin-token-not-a-secret';
 /** Pieces for assemble.mjs: the phones to put side by side, the GIF's frames. */
 const WORK = `${OUT}/.work`;
 const FRAMES = `${WORK}/frames`;
@@ -74,12 +76,12 @@ async function attempt(name, fn) {
     log('FAILED', name, String(err).split('\n')[0]);
   }
 }
-async function shot(page, name, { locator, settleMs, piece = false } = {}) {
+async function shot(page, name, { locator, clip, settleMs, piece = false } = {}) {
   try {
     await settle(page, settleMs);
     const path = `${piece ? WORK : OUT}/${name}.png`;
     if (locator) await locator.screenshot({ path });
-    else await page.screenshot({ path });
+    else await page.screenshot({ path, clip });
     log('shot', name);
     return path;
   } catch (err) {
@@ -209,6 +211,10 @@ async function takeSamples() {
 async function authoring(browser, quizzes) {
   const context = await browser.newContext({ viewport: DESKTOP, locale: 'en-US' });
   await context.addInitScript((user) => localStorage.setItem('live.localUser', user), HOST);
+  await context.addInitScript(
+    (token) => sessionStorage.setItem('qd-admin-token', token),
+    ADMIN_TOKEN,
+  );
   const page = await context.newPage();
 
   await page.goto(`${URL}/quizzes`);
@@ -246,14 +252,18 @@ async function authoring(browser, quizzes) {
   await shot(page, 'preferences');
   await page.goto(`${URL}/admin/media`);
   await shot(page, 'admin-media');
+  // A file chosen in the list shows beside it.
   await attempt('admin-media-preview', async () => {
     await page
-      .getByRole('button', { name: /Preview marseillaise/ })
+      .getByRole('button', { name: /marseillaise/i })
       .first()
       .click();
     await shot(page, 'admin-media-preview');
   });
-  await page.keyboard.press('Escape');
+  await page.goto(`${URL}/admin/settings`);
+  await shot(page, 'admin-settings');
+  await page.goto(`${URL}/admin/quizzes`);
+  await shot(page, 'admin-quizzes');
 
   // Every question type and slide, as the big screen shows them (the preview).
   await page.setViewportSize({ width: 1760, height: 1240 });
@@ -296,6 +306,7 @@ async function authoring(browser, quizzes) {
 async function live(browser, quizzes) {
   const desk = await browser.newContext({ viewport: DESKTOP, locale: 'en-US' });
   await desk.addInitScript((user) => localStorage.setItem('live.localUser', user), HOST);
+  await desk.addInitScript((token) => sessionStorage.setItem('qd-admin-token', token), ADMIN_TOKEN);
   const consolePage = await desk.newPage();
 
   // Present: the access dialog, open access, then the console.
@@ -478,6 +489,14 @@ async function live(browser, quizzes) {
   await sleep(4000);
   await shot(screen, 'projection-podium');
   beside('player-end', ordering, await shot(lea, 'player-rate', { piece: true }));
+  // The administration's home while the game is still on: what is played right now.
+  const stats = await desk.newPage();
+  await stats.goto(`${URL}/admin/statistics`);
+  // Down to the instance's figures: the bank emptied at each run leaves no history to show.
+  const months = await stats.getByText('Over the last 12 months').boundingBox();
+  await shot(stats, 'admin-statistics', {
+    clip: months ? { x: 0, y: 0, width: DESKTOP.width, height: months.y - 16 } : undefined,
+  });
 
   host.emit('host:end');
   await sleep(500);

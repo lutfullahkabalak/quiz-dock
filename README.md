@@ -83,6 +83,12 @@ your phone to play.
 - 🏠 **Self-hosted and private** — one Docker image (`amd64` / `arm64`), no SaaS, no
   tracking, no ads; interface in English, French, Spanish, Simplified and Traditional
   Chinese, and Turkish; rebrand name, logo and CSS without a rebuild.
+- 🛠️ **An administration in the browser** — what is played right now and the last twelve
+  months of use; every setting with its value, where it comes from and its help, changed
+  from the page once the operator allows it; health checks, accounts and roles, every
+  quiz of the instance (hand one over, export, archive), the media, and an audit of every
+  action. A fresh instance opens on a setup wizard. Each operation is a `qd` command too:
+  [administration guide](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/administration.md).
 
 ## 📈 Performance
 
@@ -123,11 +129,13 @@ alongside, and a one-shot `migrate` service applies migrations.
 App **and** database in a single image, nothing else to install:
 
 ```bash
-docker run -p 18080:3000 -v quizdock:/data fchaussin/quizdock:standalone
+docker run --name quizdock -p 18080:3000 -v quizdock:/data fchaussin/quizdock:standalone
 # open http://localhost:18080
 ```
 
-Data persists in the `quizdock` volume. A deployment shortcut, not a different product:
+Data persists in the `quizdock` volume. A fresh instance offers a **setup wizard**
+(`/setup`, linked from the home page); its one-time token is in the container's logs
+(`docker logs quizdock`). A deployment shortcut, not a different product:
 same `AUTH_MODE` switch as below. For production, prefer a dedicated database.
 
 ### The `quizdock` script — recommended
@@ -154,7 +162,7 @@ docker compose -f docker-compose.prod.yml up -d
 # open http://localhost:18080
 ```
 
-Pin a version with `QUIZDOCK_TAG=0.10.0 docker compose -f docker-compose.prod.yml up -d`.
+Pin a version with `QUIZDOCK_TAG=0.13.0 docker compose -f docker-compose.prod.yml up -d`.
 From source: `git clone https://github.com/quizdock/quiz-dock.git`, then the same command
 with `--build`.
 
@@ -162,7 +170,7 @@ with `--build`.
 
 Migrations run **automatically** on every start: pull the new tag and `up` again.
 **Back up PostgreSQL first**, and **don't roll back** an image once its migrations ran —
-restore the backup instead. With the script: `./quizdock upgrade 0.10.0` (backup → pull →
+restore the backup instead. With the script: `./quizdock upgrade 0.13.0` (backup → pull →
 restart → doctor). Full procedure:
 [self-hosting → Upgrading](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/upgrading.md).
 
@@ -185,6 +193,12 @@ copy it to `.env` and adjust. The settings you are most likely to touch:
 | `APP_PUBLIC_URL` | — | Public address of the instance, offered first as the invitation address (QR code, join link) |
 | `DEMO_MODE` | `false` | Guards for an instance open to strangers: one shared host account, read-only templates, no uploads, hourly wipe |
 | `MEDIA_LIBRARY_LINKS` | *(seven free libraries)* | Free media libraries the editor links to (JSON list), or `none` |
+| `QUIZ_STORE_URL` | — | Community catalogue registries to browse from the templates; empty = no page, no outgoing request |
+| `ADMIN_WEB_SCOPE` | `read` | `write` lets administrators change settings from *Administration → Settings* |
+
+Most settings can also be changed from the administration, once `ADMIN_WEB_SCOPE=write`:
+a value changed there wins over `.env` (default < `.env` < administration), and the page
+shows the `.env` value it replaces.
 
 Rebrand without rebuilding: set `APP_NAME` / `APP_LANG` and drop a `logo.<svg|avif|webp|png|jpg|jpeg|gif>`
 + `override.css` into the mounted `branding/` folder (or point `APP_LOGO_URL` at a logo
@@ -207,6 +221,10 @@ hosted elsewhere).
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/media-library.png" alt="My media" /><br /><sub><b>My media</b> — reuse what you uploaded, sizes and usages; global media one tab away</sub></td>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/admin-media.png" alt="Instance media" /><br /><sub><b>Instance media</b> — disk, clean-up, every file with its owners, the global media</sub></td>
+  </tr>
+  <tr>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/admin-statistics.png" alt="Administration — statistics" /><br /><sub><b>Administration</b> — what is played right now, the instance at a glance, the last twelve months</sub></td>
+    <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/admin-settings.png" alt="Administration — settings" /><br /><sub><b>Settings</b> — every variable with its value, where it comes from and its help, changed from the page</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="https://raw.githubusercontent.com/quizdock/quiz-dock/main/docs/screenshots/projection-lobby.png" alt="Projection — lobby" /><br /><sub><b>Projection</b> — the big screen while players join and get ready</sub></td>
@@ -246,7 +264,8 @@ ordering and feedback screens, the global media, the account preferences:
 - 👁️ **Preview** — rehearse your quiz exactly as it will look on the big screen, answers shown.
 - 🤝 **Share with the other hosts** — one switch in a quiz's settings: the other hosts of the instance find it in their quizzes, marked with a lock, read it step by step (as it will show, and how each question is scored) and create their own copy from it. Off by default: a quiz stays yours alone.
 - 🧾 **Credits** — author, licence and source on every media, carried with a quiz when it is exported or shared; listed on the preview page and in small print under the podium, as a CC-BY licence asks.
-- 🗄️ **Instance media** _(administrators)_ — disk used by kind and by owner, the clean-up (unused media, stray files, run it now), every file with its size in pixels, owners and usages, as a list or a grid with a preview (sound on its waveform); global media uploaded or added from any file; a file deleted even when used (moderation), once its usages are listed.
+- 🗄️ **Instance media** _(administrators)_ — disk used by kind and by owner, the clean-up (unused media, stray files, run it now), every file as a list or a grid, the chosen one beside it with its size in pixels, owners and usages (a sound on its waveform); global media uploaded or added from any file; a file deleted even when used (moderation), once its usages are listed.
+- 🌐 **Community quizzes** _(opt-in)_ — with `QUIZ_STORE_URL` set, the templates link to a community catalogue: filter by language and tags, preview, check the source and licence, take an independent draft. Off by default: no outgoing request. [Community catalogue](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/community-store.md).
 - 🧹 **Media housekeeping** — each file stored once (SHA-256), unused media and stray files cleaned up hourly, older formats kept playing.
 - 🎛️ **Host in control** — Console / Projection / Participant views, the space bar pauses and resumes the game, look back over played questions without replaying anything, layout edits reach a running session at its next step, sessions survive a server restart.
 - 🎚️ **The sound in the host's hands** — from the console, play / pause the question's sound or video on every device at once, click or drag its waveform to a point, or take it back to the top; a waveform can be hidden from the screens and still show on the console; every start and stop fades, no clicks. The background track never plays over a question's own sound: it steps out and comes back; every mixer has a mute per channel. The game's own sounds, synthesised in the browser: a ding as a question appears, a tick per answer, a tick-tock on the last five seconds and a gong on zero — each can be switched off, previewed on the console, or replaced by a sound of the library.
@@ -266,6 +285,7 @@ ordering and feedback screens, the global media, the account preferences:
 - 📦 **Quiz import / export** — a quiz travels as a [portable bundle](https://github.com/quizdock/quiz-dock/blob/main/docs/quiz-bundle.md) (`quiz.json` + `media/`, zipped): back it up, move it between instances, share it — from the app or the operator CLI. Coming from Kahoot? Its spreadsheet template imports as a draft, the rows to finish flagged. From another tool, a [chatbot prompt](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/import-from-other-tools.md) turns a PDF, screenshots or a spreadsheet into a quiz to import, and a local [MCP connector](https://github.com/quizdock/quiz-dock/blob/main/docs/self-hosting/mcp.md) _(experimental)_ lets a chatbot client check the quiz and import it itself.
 - 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the six.
 - 🎨 **White-label** — name, logo and CSS via env + a mounted folder, no rebuild.
+- 📱 **On the home screen** — an icon and a manifest: it can be added to a phone's or a tablet's home screen, and the screen stays on during a game.
 - 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
 - 🔒 **Hardened runtime** — distroless image, non-root, read-only root FS, all Linux capabilities dropped, `no-new-privileges`; a Content-Security-Policy on every page (no inline script, no `eval`).
 
@@ -288,6 +308,10 @@ pnpm install
 docker compose up -d
 # Front: http://localhost:15173   ·   API: http://localhost:13000   ·   API docs: http://localhost:13000/api/docs
 ```
+
+With `AUTH_MODE=oidc`, the dev stack's Keycloak has two accounts: `host` / `animateur`
+(roles host and admin) and `player` / `participant`. Its own console is
+http://localhost:18080 (`admin` / `admin`), to manage Keycloak, not QuizDock.
 
 A hundred ready quizzes to stress the lists (`[stress]` titles, given to the host-seat holder;
 `--count N`, `--owner <subject>`, `--clean` to remove them):
