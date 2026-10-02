@@ -1,17 +1,17 @@
-import { type User, UserRole } from '@prisma/client';
+import { type Prisma, type User, UserRole } from '@prisma/client';
 import { parseRoles } from '../../auth/roles';
-import type { PrismaService } from '../../prisma/prisma.service';
 import type { SampleQuizzesService } from '../../quizzes/samples/sample-quizzes.service';
-import { CliError, type Output } from '../output';
+import { OperationError } from '../../admin/operations/operation';
+import type { Output } from '../output';
 
-type Db = Pick<PrismaService, 'user' | 'quiz'>;
+type Db = Pick<Prisma.TransactionClient, 'user' | 'quiz'>;
 
 /** Finds a user by OIDC subject (`local:<slug>` in local mode) or e-mail. */
 export async function findUser(prisma: Db, who: string): Promise<User> {
   const user = await prisma.user.findFirst({
     where: { OR: [{ oidcSubject: who }, { email: who }] },
   });
-  if (!user) throw new CliError(`No user with subject or e-mail "${who}".`);
+  if (!user) throw new OperationError('not_found', `No user with subject or e-mail "${who}".`);
   return user;
 }
 
@@ -53,9 +53,9 @@ export async function userSetRole(
   const revoke = wanted.length === 1 && wanted[0] === UserRole.player;
   const granted = revoke ? [] : parseRoles(wanted);
   if (!revoke && granted.length !== wanted.length) {
-    throw new CliError(
+    throw new OperationError(
+      'invalid_params',
       `Roles must be "host", "admin", "host,admin" (grant) or "player" (revoke).`,
-      2,
     );
   }
   const user = await findUser(prisma, who);

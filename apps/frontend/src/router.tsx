@@ -22,6 +22,14 @@ import { FeedbackPage } from './routes/feedback-page';
 import { RootLayout } from './routes/root-layout';
 import { ErrorPage, NotFoundPage } from './routes/fallback-pages';
 import { AdminMediaPage } from './routes/admin-media-page';
+import { AdminLayout } from './routes/admin/admin-layout';
+import { AccountsPage } from './routes/admin/admin-accounts-page';
+import { AuditPage } from './routes/admin/admin-audit-page';
+import { HealthPage } from './routes/admin/admin-health-page';
+import { AdminQuizzesPage } from './routes/admin/admin-quizzes-page';
+import { AdminStatsPage } from './routes/admin/admin-stats-page';
+import { AdminSettingsPage } from './routes/admin/admin-settings-page';
+import { SetupPage } from './routes/setup/setup-page';
 import type { QuizImportDtoImportReport } from './api/generated/model';
 
 const requireAuth = () => {
@@ -281,11 +289,64 @@ export const joinScreenRoute = createRoute({
   component: FollowScreenPage,
 });
 
-/** The instance's media, for administrators (#54). */
-export const adminMediaRoute = createRoute({
+/** The setup wizard of a fresh instance (SPECIFICATIONS-ADMIN §3.8): public, behind its token. */
+export const setupRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/admin/media',
+  path: '/setup',
+  component: SetupPage,
+});
+
+/** The administration (SPECIFICATIONS-ADMIN): its sections by domain, for administrators. */
+export const adminRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/admin',
   beforeLoad: requireAuth,
+  component: AdminLayout,
+});
+
+const adminIndexRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: '/',
+  beforeLoad: () => {
+    throw redirect({ to: '/admin/statistics' });
+  },
+});
+
+/** The administration's home: what is played right now, the instance at a glance. */
+export const adminStatsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'statistics',
+  component: AdminStatsPage,
+});
+export const adminSettingsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'settings',
+  component: AdminSettingsPage,
+});
+export const adminHealthRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'health',
+  component: HealthPage,
+});
+export const adminAccountsRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'accounts',
+  component: AccountsPage,
+});
+export const adminAuditRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'audit',
+  component: AuditPage,
+});
+export const adminQuizzesRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'quizzes',
+  component: AdminQuizzesPage,
+});
+/** The instance's media (#54). */
+export const adminMediaRoute = createRoute({
+  getParentRoute: () => adminRoute,
+  path: 'media',
   component: AdminMediaPage,
 });
 
@@ -300,7 +361,17 @@ export const routeTree = rootRoute.addChildren([
   templateRoute,
   liveRoute,
   profileRoute,
-  adminMediaRoute,
+  setupRoute,
+  adminRoute.addChildren([
+    adminIndexRoute,
+    adminStatsRoute,
+    adminSettingsRoute,
+    adminHealthRoute,
+    adminAccountsRoute,
+    adminAuditRoute,
+    adminQuizzesRoute,
+    adminMediaRoute,
+  ]),
   editorRoute,
   previewRoute,
   sessionsRoute,

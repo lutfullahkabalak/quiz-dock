@@ -43,7 +43,9 @@
     "templates": "模板",
     "profile": "我的账号",
     "template": "模板",
-    "instanceMedia": "实例媒体"
+    "instanceMedia": "实例媒体",
+    "admin": "管理",
+    "setup": "初始化"
   },
   "demo": {
     "banner": "公开演示——所有访客共用一个主持人账号；每小时清空一次。"
@@ -59,5 +61,7 @@
     "errorText": "此页面已停止运行。已保存的内容是安全的。",
     "backHome": "返回首页",
     "tryAgain": "重试"
-  }
+  },
+  "stale": "无法重新读取：显示的是上一次读取的内容。",
+  "retry": "重试"
 }

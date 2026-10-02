@@ -89,7 +89,8 @@
     "media_unsupported": "Unsupported media “{{path}}” (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
     "invalid_item": "Item {{item}} of the bundle is invalid ({{field}}).",
     "kahoot_template": "Use the original Kahoot spreadsheet template (.xlsx), with one sheet.",
-    "kahoot_empty": "No valid questions found. Check row {{row}} and the Kahoot template."
+    "kahoot_empty": "No valid questions found. Check row {{row}} and the Kahoot template.",
+    "file_too_large": "File too large to import (at most {{maxMb}} MB)."
   },
   "question": {
     "not_in_quiz": "Question not part of the quiz.",
@@ -183,5 +184,26 @@
     "disabled": "The community store is disabled.",
     "download_failed": "The quiz could not be downloaded or verified.",
     "busy": "The community store is busy. Try again shortly."
+  },
+  "admin": {
+    "unknown_operation": "Unknown administrative operation.",
+    "forbidden": "Administrator role required.",
+    "scope_read": "The web administration is read-only on this instance (ADMIN_WEB_SCOPE=read).",
+    "local_mode_token": "Local mode: give the administration token (ADMIN_TOKEN) to change anything.",
+    "locked": "Locked by ADMIN_LOCK: {{keys}}.",
+    "critical": "A critical setting is never changed from the web.",
+    "invalid_params": "Invalid parameters: {{message}}",
+    "confirmation_invalid": "The confirmation expired: try again.",
+    "dry_run_unsupported": "This operation cannot be previewed.",
+    "not_found": "Not found: {{message}}",
+    "conflict": "Not possible right now: {{message}}",
+    "timeout": "The operation took too long.",
+    "failed": "The operation failed: {{message}}",
+    "too_many_requests": "Too many attempts: wait a moment."
+  },
+  "setup": {
+    "token_invalid": "This setup token is not valid (wrong, used or expired): `qd setup.token` gives a new one.",
+    "session_invalid": "The setup session ended: give a new setup token.",
+    "too_many_attempts": "Too many wrong tokens: wait a quarter of an hour."
   }
 }

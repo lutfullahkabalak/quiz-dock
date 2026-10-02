@@ -43,7 +43,9 @@
     "templates": "Plantillas",
     "profile": "Mi cuenta",
     "template": "Plantilla",
-    "instanceMedia": "Medios de la instancia"
+    "instanceMedia": "Medios de la instancia",
+    "admin": "Administración",
+    "setup": "Puesta en marcha"
   },
   "demo": {
     "banner": "Demo pública — una sola cuenta de anfitrión compartida por todos los visitantes; todo se borra cada hora."
@@ -59,5 +61,7 @@
     "errorText": "Esta página ha dejado de funcionar. Lo que guardaste está a salvo.",
     "backHome": "Volver al inicio",
     "tryAgain": "Reintentar"
-  }
+  },
+  "stale": "No se pudo volver a leer: lo que se muestra es la última lectura.",
+  "retry": "Reintentar"
 }

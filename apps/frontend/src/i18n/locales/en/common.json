@@ -43,7 +43,9 @@
     "templates": "Templates",
     "profile": "My account",
     "template": "Template",
-    "instanceMedia": "Instance media"
+    "instanceMedia": "Instance media",
+    "admin": "Administration",
+    "setup": "Setup"
   },
   "demo": {
     "banner": "Public demo — one host account shared by all visitors; everything is wiped every hour."
@@ -59,5 +61,7 @@
     "errorText": "This page stopped working. What you saved is safe.",
     "backHome": "Back to home",
     "tryAgain": "Try again"
-  }
+  },
+  "stale": "Could not read again: what is shown is the last reading.",
+  "retry": "Try again"
 }

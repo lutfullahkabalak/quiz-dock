@@ -1,0 +1,199 @@
+import { customFetch } from '../../api/http';
+import {
+  keepPreviousData,
+  type UseQueryResult,
+  useQuery,
+  useQueryClient,
+} from '@tanstack/react-query';
+import { createContext, useCallback, useContext, useSyncExternalStore } from 'react';
+import type {
+  AuditEntry,
+  OperationDescriptor,
+  OperationNote,
+  OperationResult,
+  OperationResults,
+  OutputEntry,
+} from '@quiz-dock/contracts';
+import {
+  adminOperationsControllerCatalogue,
+  adminOperationsControllerRun,
+} from '../../api/generated/admin/admin';
+
+export type Answer =
+  | { kind: 'result'; result: OperationResult }
+  | { kind: 'confirm'; token: string; summary: string };
+
+export type { AuditEntry, OperationDescriptor, OperationNote, OperationResult, OutputEntry };
+
+// ── The local mode's administration token ───────────────────────────────────
+
+const TOKEN_KEY = 'qd-admin-token';
+const listeners = new Set<() => void>();
+
+function readToken(): string {
+  try {
+    return sessionStorage.getItem(TOKEN_KEY) ?? '';
+  } catch {
+    return '';
+  }
+}
+
+/** Kept for this tab only (sessionStorage): closing it forgets the token. */
+export function setAdminToken(token: string): void {
+  try {
+    if (token) sessionStorage.setItem(TOKEN_KEY, token);
+    else sessionStorage.removeItem(TOKEN_KEY);
+  } catch {
+    // storage blocked: the token lasts until the next reload
+    memoryToken = token;
+  }
+  listeners.forEach((l) => l());
+}
+
+let memoryToken = '';
+const currentToken = () => readToken() || memoryToken;
+
+export function useAdminToken(): string {
+  return useSyncExternalStore(
+    (l) => {
+      listeners.add(l);
+      return () => listeners.delete(l);
+    },
+    currentToken,
+    () => '',
+  );
+}
+
+const tokenHeaders = (): Record<string, string> => {
+  const token = currentToken();
+  return token ? { 'X-Admin-Token': token } : {};
+};
+
+// ── Calls ────────────────────────────────────────────────────────────────────
+
+/** Runs an operation: its result, or a confirmation to ask for. A refusal throws (`ApiError`, `admin.<code>`). */
+export async function runOperation(
+  id: string,
+  params: Record<string, unknown> = {},
+  options: { dryRun?: boolean; confirmation?: string } = {},
+): Promise<Answer> {
+  const { data } = await adminOperationsControllerRun(
+    id,
+    { params, ...options },
+    { headers: tokenHeaders() },
+  );
+  return data as Answer;
+}
+
+/**
+ * Runs an operation that takes a file (`upload` in its descriptor): the file
+ * as is, multipart — never base64 in a JSON body, which has a small limit.
+ */
+export async function runOperationWithFile(
+  id: string,
+  params: Record<string, unknown>,
+  file: File,
+  options: { dryRun?: boolean; confirmation?: string } = {},
+): Promise<Answer> {
+  const form = new FormData();
+  form.append('file', file);
+  form.append('params', JSON.stringify(params));
+  if (options.dryRun) form.append('dryRun', 'true');
+  if (options.confirmation) form.append('confirmation', options.confirmation);
+  const { data } = await customFetch<{ data: Answer }>(
+    `/api/v1/admin/operations/${encodeURIComponent(id)}/file`,
+    { method: 'POST', body: form, headers: tokenHeaders() },
+  );
+  return data;
+}
+
+/**
+ * How the pages reach the operations: the admin API, or the setup wizard's
+ * session (§3.8) — the same components on either.
+ */
+export interface OperationChannel {
+  name: 'admin' | 'setup';
+  /**
+   * What the cached readings belong to: the administration, or one wizard
+   * session — a new session never reads what an ended one cached.
+   */
+  scope: string;
+  run: typeof runOperation;
+}
+
+export const adminChannel: OperationChannel = { name: 'admin', scope: 'admin', run: runOperation };
+
+export const OperationChannelContext = createContext<OperationChannel>(adminChannel);
+
+/** Runs an operation through the page's channel. */
+export function useRunOperation(): typeof runOperation {
+  return useContext(OperationChannelContext).run;
+}
+
+export const operationKey = (
+  id: string,
+  params: Record<string, unknown> = {},
+  channel = 'admin',
+) => ['admin-operation', id, params, channel];
+
+/**
+ * A reading operation, as a query: run on mount, again on demand. It keeps the
+ * app's retry policy (a 5xx or a lost network is tried again, never a 4xx),
+ * and what it last read while it reads again — a new search, a refresh — so a
+ * page never blinks to a spinner, nor loses what is typed in it.
+ */
+export function useReadOperation<K extends keyof OperationResults>(
+  id: K,
+  params?: Record<string, unknown>,
+  enabled?: boolean,
+  refetchInterval?: number,
+): UseQueryResult<OperationResult<OperationResults[K]>>;
+/** An operation the results map does not name (`users.find`…): typed by the caller. */
+export function useReadOperation<T>(
+  id: string,
+  params?: Record<string, unknown>,
+  enabled?: boolean,
+  refetchInterval?: number,
+): UseQueryResult<OperationResult<T>>;
+export function useReadOperation<T>(
+  id: string,
+  params: Record<string, unknown> = {},
+  enabled = true,
+  /** Read again every so many ms (while the tab is shown), for live figures. */
+  refetchInterval?: number,
+) {
+  const channel = useContext(OperationChannelContext);
+  return useQuery({
+    queryKey: operationKey(id, params, channel.scope),
+    enabled,
+    refetchInterval,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const answer = await channel.run(id, params);
+      if (answer.kind !== 'result') throw new Error('A reading operation asked to confirm');
+      return answer.result as OperationResult<T>;
+    },
+  });
+}
+
+export function useCatalogue() {
+  return useQuery({
+    queryKey: ['admin-catalogue'],
+    staleTime: 30_000,
+    queryFn: async () =>
+      (await adminOperationsControllerCatalogue()).data.operations as OperationDescriptor[],
+  });
+}
+
+/** After a change: everything the administration reads, read again. */
+export function useRefreshAdmin() {
+  const client = useQueryClient();
+  return useCallback(
+    () =>
+      client.invalidateQueries({
+        predicate: (q) =>
+          q.queryKey[0] === 'admin-operation' || q.queryKey[0] === 'admin-catalogue',
+      }),
+    [client],
+  );
+}

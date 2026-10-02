@@ -1,0 +1,123 @@
+import type {
+  Actor,
+  OperationCategory,
+  OperationDomain,
+  OperationEffect,
+  OperationResult,
+  RefusalCode,
+} from '@quiz-dock/contracts';
+import type { RoleSet } from '../../auth/roles';
+import type { z } from 'zod';
+
+/** The caller as the runner sees it: the API adds the account's roles. */
+export interface CallActor extends Actor {
+  roles?: RoleSet;
+  /** API, local mode: the `ADMIN_TOKEN` the request carried. */
+  adminToken?: string;
+  /** The setup wizard, under its token (§3.8): the wizard's operations, whatever the scope. */
+  setup?: boolean;
+}
+
+export interface OperationContext {
+  actor: CallActor;
+  /** Say what would be done, change nothing (operations that declare `dryRun`). */
+  dryRun: boolean;
+  /** A timeout, a closed request. */
+  signal: AbortSignal;
+  /** What the access could not pass as parameters (an uploaded file). */
+  attachments: Record<string, unknown>;
+}
+
+/**
+ * An administrative action (administration spec §3.2, command pattern): its
+ * parameters, its domain and effect, its handler. Every access — `qd`, the
+ * admin API, the web — runs it the same way, through the `OperationRunner`.
+ */
+export interface AdminOperation<P = unknown, R = unknown> {
+  /** `seat.release`, `users.set-role`, `settings.set`… */
+  id: string;
+  domain: OperationDomain;
+  category: OperationCategory;
+  effect: OperationEffect;
+  /** What it does, one sentence. */
+  summary: string;
+  params: z.ZodType<P>;
+  /**
+   * Checks beyond the schema — against the registry, the rules — before any
+   * confirmation is asked; throws an `OperationError` to refuse.
+   */
+  validate?(params: P): void | Promise<void>;
+  /** Can say what it would do without doing it. */
+  dryRun?: boolean;
+  /** `cli`: from a shell only (a setup token is never handed to the web). */
+  access?: 'cli';
+  /** The setup wizard may run it (§3.8). */
+  wizard?: boolean;
+  /**
+   * What the caller is asked to confirm, when the operation needs it beyond
+   * being destructive (a critical setting, say); `null` when it does not.
+   */
+  confirmation?(params: P): string | null | Promise<string | null>;
+  /** How the confirmation of a destructive operation reads. */
+  describe?(params: P): string | Promise<string>;
+  /** The settings it changes: the gate checks `ADMIN_LOCK` against them. */
+  settings?(params: P): string[];
+  /**
+   * What the audit keeps of the parameters, as they came (valid or not): an
+   * operation masks there what they carry — a secret setting's value — before
+   * the runner masks the names that say a secret.
+   */
+  redact?(params: Record<string, unknown>): Record<string, unknown>;
+  /**
+   * A parameter that may come as an uploaded file (`POST …/:id/file`), and the
+   * largest file accepted (read at each upload). The handler finds the file in
+   * `ctx.attachments.file`.
+   */
+  upload?: {
+    param: string;
+    maxBytes(): number;
+    /** The error code past the limit. */ tooLarge: string;
+  };
+  /** Longer than the runner's default, for a long purge or an import. */
+  timeoutMs?: number;
+  run(ctx: OperationContext, params: P): Promise<OperationResult<R>>;
+}
+
+/** Declares an operation, its parameter type inferred from its schema. */
+export function defineOperation<S extends z.ZodType, R>(
+  op: Omit<AdminOperation<z.infer<S>, R>, 'params'> & { params: S },
+): AdminOperation<z.infer<S>, R> {
+  return op as AdminOperation<z.infer<S>, R>;
+}
+
+/**
+ * A refusal with a stable code, thrown by an operation or a step. It carries
+ * the exit code a shell gives it (the CLI reads `exitCode` on whatever it
+ * catches): the domain knows nothing of its accesses.
+ */
+export class OperationError extends Error {
+  readonly exitCode: number;
+
+  constructor(
+    readonly code: RefusalCode,
+    message: string,
+    readonly params?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = 'OperationError';
+    this.exitCode = code === 'invalid_params' ? 2 : 1;
+  }
+}
+
+/** A plain result. */
+export const done = <R>(data?: R, notes: OperationResult['notes'] = []): OperationResult<R> => ({
+  outcome: 'done',
+  notes,
+  data,
+});
+
+export const nothingToDo = <R>(text: string, code: string, data?: R): OperationResult<R> => ({
+  outcome: 'nothing-to-do',
+  notes: [{ level: 'info', code, text }],
+  data,
+});

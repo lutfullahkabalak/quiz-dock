@@ -89,7 +89,8 @@
     "media_unsupported": "Medio “{{path}}” no admitido (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
     "invalid_item": "El elemento {{item}} del paquete no es válido ({{field}}).",
     "kahoot_template": "Usa la plantilla original de Kahoot (.xlsx), con una sola hoja.",
-    "kahoot_empty": "No hay preguntas válidas. Revisa la fila {{row}} y la plantilla de Kahoot."
+    "kahoot_empty": "No hay preguntas válidas. Revisa la fila {{row}} y la plantilla de Kahoot.",
+    "file_too_large": "Archivo demasiado grande para importar (máximo {{maxMb}} MB)."
   },
   "question": {
     "not_in_quiz": "La pregunta no pertenece al quiz.",
@@ -183,5 +184,26 @@
     "disabled": "El catálogo de la comunidad está desactivado.",
     "download_failed": "No se pudo descargar o verificar el quiz.",
     "busy": "El catálogo de la comunidad está ocupado. Inténtalo de nuevo en un momento."
+  },
+  "admin": {
+    "unknown_operation": "Operación de administración desconocida.",
+    "forbidden": "Se requiere el rol de administrador.",
+    "scope_read": "La administración web es de solo lectura en esta instancia (ADMIN_WEB_SCOPE=read).",
+    "local_mode_token": "Modo local: proporciona el token de administración (ADMIN_TOKEN) para cambiar cualquier cosa.",
+    "locked": "Bloqueado por ADMIN_LOCK: {{keys}}.",
+    "critical": "Un ajuste crítico nunca se cambia desde la web.",
+    "invalid_params": "Parámetros no válidos: {{message}}",
+    "confirmation_invalid": "La confirmación ha caducado: inténtalo de nuevo.",
+    "dry_run_unsupported": "Esta operación no admite vista previa.",
+    "not_found": "No encontrado: {{message}}",
+    "conflict": "No es posible ahora mismo: {{message}}",
+    "timeout": "La operación tardó demasiado.",
+    "failed": "La operación falló: {{message}}",
+    "too_many_requests": "Demasiados intentos: espera un momento."
+  },
+  "setup": {
+    "token_invalid": "Este token de puesta en marcha no es válido (incorrecto, usado o caducado): `qd setup.token` da uno nuevo.",
+    "session_invalid": "La sesión de puesta en marcha ha terminado: introduce un nuevo token de puesta en marcha.",
+    "too_many_attempts": "Demasiados tokens incorrectos: espera un cuarto de hora."
   }
 }

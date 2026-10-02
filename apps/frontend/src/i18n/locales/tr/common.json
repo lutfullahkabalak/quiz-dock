@@ -43,7 +43,9 @@
     "templates": "Şablonlar",
     "profile": "Hesabım",
     "template": "Şablon",
-    "instanceMedia": "Kurulum medyası"
+    "instanceMedia": "Kurulum medyası",
+    "admin": "Yönetim",
+    "setup": "İlk ayarlar"
   },
   "demo": {
     "banner": "Herkese açık demo — tüm ziyaretçiler aynı sunucu hesabını paylaşır; veriler her saat silinir."
@@ -59,5 +61,7 @@
     "errorText": "Bu sayfa çalışmayı durdurdu. Kaydettiğiniz veriler güvende.",
     "backHome": "Ana sayfaya dön",
     "tryAgain": "Yeniden dene"
-  }
+  },
+  "stale": "Yeniden okunamadı: gösterilen son okumadır.",
+  "retry": "Yeniden dene"
 }

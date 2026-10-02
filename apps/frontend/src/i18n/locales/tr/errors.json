@@ -89,7 +89,8 @@
     "media_unsupported": "Desteklenmeyen medya “{{path}}” (png, jpg, gif, webp, avif, mp3, ogg, wav, m4a).",
     "invalid_item": "Paketin {{item}} öğesi geçersiz ({{field}}).",
     "kahoot_template": "Tek sayfalı özgün Kahoot elektronik tablo şablonunu (.xlsx) kullanın.",
-    "kahoot_empty": "Geçerli soru bulunamadı. {{row}}. satırı ve Kahoot şablonunu kontrol edin."
+    "kahoot_empty": "Geçerli soru bulunamadı. {{row}}. satırı ve Kahoot şablonunu kontrol edin.",
+    "file_too_large": "Dosya içe aktarmak için çok büyük (en fazla {{maxMb}} MB)."
   },
   "question": {
     "not_in_quiz": "Soru, quizin bir parçası değil.",
@@ -183,5 +184,26 @@
     "disabled": "Topluluk mağazası devre dışı.",
     "download_failed": "Quiz indirilemedi veya doğrulanamadı.",
     "busy": "Topluluk mağazası şu anda meşgul. Biraz sonra tekrar deneyin."
+  },
+  "admin": {
+    "unknown_operation": "Bilinmeyen yönetim işlemi.",
+    "forbidden": "Yönetici rolü gerekli.",
+    "scope_read": "Bu kurulumda web yönetimi salt okunurdur (ADMIN_WEB_SCOPE=read).",
+    "local_mode_token": "Yerel mod: herhangi bir şeyi değiştirmek için yönetim belirtecini (ADMIN_TOKEN) girin.",
+    "locked": "ADMIN_LOCK ile kilitli: {{keys}}.",
+    "critical": "Kritik bir ayar web üzerinden asla değiştirilmez.",
+    "invalid_params": "Geçersiz parametreler: {{message}}",
+    "confirmation_invalid": "Onayın süresi doldu: tekrar deneyin.",
+    "dry_run_unsupported": "Bu işlem önizlenemez.",
+    "not_found": "Bulunamadı: {{message}}",
+    "conflict": "Şu anda mümkün değil: {{message}}",
+    "timeout": "İşlem çok uzun sürdü.",
+    "failed": "İşlem başarısız oldu: {{message}}",
+    "too_many_requests": "Çok fazla deneme: biraz bekleyin."
+  },
+  "setup": {
+    "token_invalid": "Bu kurulum belirteci geçerli değil (yanlış, kullanılmış veya süresi dolmuş): `qd setup.token` yenisini verir.",
+    "session_invalid": "Kurulum oturumu sona erdi: yeni bir kurulum belirteci girin.",
+    "too_many_attempts": "Çok fazla yanlış belirteç: on beş dakika bekleyin."
   }
 }

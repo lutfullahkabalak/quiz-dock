@@ -43,7 +43,9 @@
     "templates": "Modèles",
     "profile": "Mon compte",
     "template": "Modèle",
-    "instanceMedia": "Médias de l’instance"
+    "instanceMedia": "Médias de l’instance",
+    "admin": "Administration",
+    "setup": "Mise en service"
   },
   "demo": {
     "banner": "Démo publique — un seul compte animateur partagé par tous les visiteurs ; tout est effacé chaque heure."
@@ -59,5 +61,7 @@
     "errorText": "Cette page a cessé de fonctionner. Ce que vous avez enregistré est en sécurité.",
     "backHome": "Retour à l’accueil",
     "tryAgain": "Réessayer"
-  }
+  },
+  "stale": "Impossible de relire : ce qui est affiché est la dernière lecture.",
+  "retry": "Réessayer"
 }

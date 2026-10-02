@@ -43,6 +43,7 @@ its sample users and admin. See [choose a setup](setups.md).
 | `doctor`, `seat:*`, `user:*`, `samples:load`, `quiz:list`, `sessions:purge` | Relayed to the in-image CLI (below). |
 | `quiz:export <id> <file.zip>` | Write a quiz bundle to a file **on the host** (streamed out of the container). |
 | `quiz:import <file> <sub\|email>` | Create a draft in that user's bank from a bundle file on the host. |
+| `qd <operation> …` | Any administrative operation ([below](#operations)). |
 | `admin <cmd…>` | Relay anything else (`admin help`). |
 
 Overrides: `QUIZDOCK_IMAGE`, `QUIZDOCK_COMPOSE_FILE`, `QUIZDOCK_ENV_FILE`,
@@ -64,7 +65,7 @@ which still works too.)
 
 | Command | Description |
 |---|---|
-| `doctor` | Checks `AUTH_MODE`, PostgreSQL, applied / pending / failed migrations, Redis, that `MEDIA_DIR` is writable, and in OIDC mode fetches the discovery document and the JWKS. Exit code 1 when something fails — the message says what to fix. |
+| `doctor` | Lists every configuration value it cannot read or that falls outside its range, and the settings that contradict each other (the same warnings the backend logs at start); checks PostgreSQL, applied / pending / failed migrations, Redis, that `MEDIA_DIR` and `STORE_DIR` are writable, and in OIDC mode fetches the discovery document and the JWKS. Exit code 1 when something fails, a critical variable included — the message says what to fix. |
 | `migrate:status` | Applied / pending / failed migrations (folders shipped in the image vs `_prisma_migrations`). |
 | `seat:status` | Local mode: who holds the host seat, since when, until when. |
 | `seat:release` | Operator override: free the seat whoever holds it (e.g. claimed with no expiry and abandoned). |
@@ -80,6 +81,35 @@ which still works too.)
 | `sessions:purge [--dry-run]` | Delete archived sessions past their retention date (`retain_until`, 365 days at archive time) with their results. Nothing else purges them — schedule it (cron) if you need the retention enforced. |
 
 Subjects: OIDC `sub`, or `local:<slug>` in local mode (`user:list` shows them).
+
+### Operations
+
+Each command above is an **operation** of the administration, also reachable by
+its own name: `qd operations` lists them with their parameters.
+
+```bash
+qd operations
+qd users.set-role --user=ada@example.org --roles=host,admin
+qd sessions.purge --dry-run          # what it would delete
+qd settings.list --key=APP_NAME      # a setting: value, source, default, problems
+qd audit.list --limit=20             # the last administrative actions
+qd settings.set --key=GAME_READ_DELAY_MS --value=4000   # an override, over .env
+qd settings.reset --key=GAME_READ_DELAY_MS              # back to .env (--all for every one)
+qd presets.apply --internet=offline --dry-run          # the quick setup's answers, previewed
+qd setup.token                       # a new setup token for the web wizard
+qd setup.complete                    # skip the wizard (automated deployments)
+```
+
+| Option | Effect |
+|---|---|
+| `--yes` | Confirms a destructive operation, or one that changes administrator rights. Without it, `qd` asks on a terminal and refuses elsewhere. The commands of the table above never ask, as before. |
+| `--dry-run` | Says what the operation would do, for those that can (`sessions.purge`, `presets.apply`). |
+| `--json` | The outcome as JSON, for scripts. |
+| `--as=<name>` | Who the audit records (default: the container's user). |
+
+Every change made this way, and every refusal, is kept in the **audit** (who,
+through what, which operation and its parameters, the outcome): `qd audit.list`.
+From the host: `./quizdock qd <operation> …`.
 
 ## 3. Recipes
 

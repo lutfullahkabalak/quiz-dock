@@ -89,7 +89,8 @@
     "media_unsupported": "不支持的媒体“{{path}}”（png、jpg、gif、webp、avif、mp3、ogg、wav、m4a）。",
     "invalid_item": "包中第 {{item}} 项无效（{{field}}）。",
     "kahoot_template": "请使用只有一个工作表的原始 Kahoot 电子表格模板（.xlsx）。",
-    "kahoot_empty": "没有有效题目。请检查第 {{row}} 行和 Kahoot 模板。"
+    "kahoot_empty": "没有有效题目。请检查第 {{row}} 行和 Kahoot 模板。",
+    "file_too_large": "文件过大，无法导入（最多 {{maxMb}} MB）。"
   },
   "question": {
     "not_in_quiz": "该题目不属于本测验。",
@@ -183,5 +184,26 @@
     "disabled": "社区题库已禁用。",
     "download_failed": "无法下载或验证测验。",
     "busy": "社区题库繁忙，请稍后重试。"
+  },
+  "admin": {
+    "unknown_operation": "未知的管理操作。",
+    "forbidden": "需要管理员角色。",
+    "scope_read": "本实例的网页管理为只读（ADMIN_WEB_SCOPE=read）。",
+    "local_mode_token": "本地模式：请提供管理令牌（ADMIN_TOKEN）后再进行更改。",
+    "locked": "被 ADMIN_LOCK 锁定：{{keys}}。",
+    "critical": "关键设置永远不能通过网页更改。",
+    "invalid_params": "参数无效：{{message}}",
+    "confirmation_invalid": "确认已过期：请重试。",
+    "dry_run_unsupported": "此操作无法预览。",
+    "not_found": "未找到：{{message}}",
+    "conflict": "目前无法执行：{{message}}",
+    "timeout": "操作耗时过长。",
+    "failed": "操作失败：{{message}}",
+    "too_many_requests": "尝试次数过多：请稍候。"
+  },
+  "setup": {
+    "token_invalid": "此初始化令牌无效（错误、已使用或已过期）：运行 `qd setup.token` 获取新令牌。",
+    "session_invalid": "初始化会话已结束：请提供新的初始化令牌。",
+    "too_many_attempts": "错误令牌过多：请等待一刻钟。"
   }
 }

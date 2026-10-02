@@ -1,0 +1,742 @@
+{
+  "title": "管理",
+  "adminOnly": "此頁面僅供本執行個體的管理員使用。",
+  "loading": "載入中…",
+  "domains": {
+    "instance": "執行個體",
+    "quizzes": "測驗",
+    "media": "媒體"
+  },
+  "sections": {
+    "statistics": "統計",
+    "settings": "設定",
+    "health": "健康狀態",
+    "accounts": "帳號",
+    "audit": "稽核",
+    "quizzes": "測驗",
+    "media": "媒體"
+  },
+  "token": {
+    "unset": "本機模式：在 .env 中設定 ADMIN_TOKEN（32 個字元以上）並重新啟動執行個體之前，無法從網頁變更任何內容。",
+    "ask": "本機模式：輸入管理權杖（ADMIN_TOKEN）才能進行變更。它只會保存在此分頁中。",
+    "use": "使用",
+    "given": "已為此分頁提供管理權杖。",
+    "forget": "清除"
+  },
+  "settings": {
+    "search": "搜尋設定",
+    "view": "版面配置",
+    "views": {
+      "cards": "卡片",
+      "split": "清單與詳細資料",
+      "table": "表格"
+    },
+    "filters": {
+      "label": "僅顯示",
+      "changed": "與預設值不同",
+      "overridden": "在此變更的",
+      "problem": "有問題的",
+      "editable": "可編輯的"
+    },
+    "none": "沒有符合的設定。",
+    "list": "設定",
+    "problem": "有問題",
+    "rules": "互相矛盾的設定：",
+    "envValue": "取代 .env：",
+    "access": {
+      "read": "網頁會顯示所有設定，但不變更任何設定（ADMIN_WEB_SCOPE=read）。",
+      "write": "網頁可以變更 C2 至 C4 級的設定（ADMIN_WEB_SCOPE=write）；C1 級永遠不行。",
+      "how": "這些在 .env 中設定，然後重新啟動執行個體。",
+      "locks": "被 ADMIN_LOCK 鎖定：",
+      "safeMode": "安全模式（ADMIN_OVERRIDES=ignore）：在此變更的值會保留，但不會套用。",
+      "token": "本機模式：變更需要管理權杖。",
+      "noToken": "本機模式：在設定 ADMIN_TOKEN 之前，無法從網頁變更任何內容。"
+    },
+    "columns": {
+      "variable": "變數",
+      "value": "值",
+      "source": "來源",
+      "env": ".env 值",
+      "default": "預設值",
+      "level": "等級",
+      "applies": "生效時機"
+    },
+    "issue": {
+      "unreadable": "無法讀取（接受：{{accepts}}）：使用預設值。",
+      "out-of-bounds": "超出可接受範圍（{{accepts}}）：暫時按原樣使用；後續版本將強制執行。"
+    }
+  },
+  "categories": {
+    "identity": "識別與品牌",
+    "access": "存取與驗證",
+    "network": "網路與邀請",
+    "storage": "儲存空間",
+    "limits": "限制",
+    "pace": "測驗節奏",
+    "admin": "管理",
+    "internal": "內部"
+  },
+  "source": {
+    "default": "預設值",
+    "env": "來自 .env",
+    "override": "在此變更"
+  },
+  "criticality": {
+    "C1": "關鍵：啟動、資料或安全性。僅顯示，永遠不能從網頁變更。",
+    "C2": "高：誰可以進入、可以儲存多少。每次變更都需確認。",
+    "C3": "一般：執行個體的運作方式。",
+    "C4": "外觀：樣式與用語。"
+  },
+  "applies": {
+    "live": "立即",
+    "next-room": "下一個房間",
+    "restart": "重新啟動後"
+  },
+  "appliesHelp": {
+    "live": "下次使用時生效：進行中的測驗也會遵循。",
+    "next-room": "在變更後開啟的房間中生效；進行中的房間保留原有的值。",
+    "restart": "僅在啟動時讀取一次：執行個體必須重新啟動。"
+  },
+  "readOnly": {
+    "critical": "關鍵：永遠不能從網頁變更",
+    "locked": "被 ADMIN_LOCK 鎖定",
+    "scope": "唯讀（ADMIN_WEB_SCOPE=read）",
+    "safe-mode": "安全模式"
+  },
+  "value": {
+    "empty": "—",
+    "set": "已設定",
+    "notSet": "未設定",
+    "on": "開啟",
+    "off": "關閉"
+  },
+  "units": {
+    "MB": "MB",
+    "s": "秒"
+  },
+  "help": {
+    "accepts": "可接受的值",
+    "default": "預設值",
+    "example": "在 .env 中",
+    "applies": "生效時機",
+    "rules": "相關設定",
+    "doc": "查看文件",
+    "history": "最近的變更",
+    "noHistory": "從未從管理頁面變更。"
+  },
+  "outside": {
+    "title": "應用程式之外",
+    "intro": "由 Docker Compose、quizdock 指令碼、映像檔建置或 Keycloak 讀取，而不是由應用程式讀取：它們在被讀取的地方變更，而不是在這裡。",
+    "readBy": "讀取者",
+    "what": "用途",
+    "readers": {
+      "compose": "Compose",
+      "keycloak": "Keycloak",
+      "script": "quizdock 指令碼",
+      "build": "映像檔建置",
+      "dev": "開發環境",
+      "image": "映像檔"
+    }
+  },
+  "labels": {
+    "APP_NAME": "應用程式名稱",
+    "APP_LANG": "介面語言",
+    "APP_LOGO_URL": "Logo 網址",
+    "APP_FEEDBACK_URL": "回饋連結的目標",
+    "AUTH_MODE": "驗證模式",
+    "DEMO_MODE": "公開示範",
+    "ALLOW_ANONYMOUS_PARTICIPANTS": "沒有帳號的參與者",
+    "OIDC_ISSUER": "身分提供者（簽發者）",
+    "OIDC_CLIENT_ID": "用戶端識別碼",
+    "OIDC_CLIENT_SECRET": "用戶端密碼",
+    "OIDC_INTERNAL_URL": "身分提供者的內部網址",
+    "OIDC_JWKS_URI": "金鑰端點",
+    "OIDC_AUDIENCE": "預期的對象",
+    "OIDC_ROLES_CLAIM": "角色宣告",
+    "OIDC_NAME_CLAIM": "顯示名稱宣告",
+    "OIDC_SESSION_SCOPE": "工作階段範圍（已忽略）",
+    "PORT": "容器內的連接埠",
+    "TRUST_PROXY": "受信任的 Proxy",
+    "APP_PUBLIC_URL": "公開網址",
+    "HOST_LAN_IPS": "區域網路位址",
+    "QUIZ_STORE_URL": "社群目錄",
+    "QUIZ_STORE_HOSTS": "允許下載的主機",
+    "DATABASE_URL": "資料庫",
+    "REDIS_URL": "Redis",
+    "MEDIA_DIR": "媒體資料夾",
+    "STORE_DIR": "共用範本資料夾",
+    "SAMPLES_DIR": "範例測驗資料夾",
+    "CLIENT_DIR": "網頁應用程式資料夾",
+    "MEDIA_MAX_BYTES": "圖片大小上限",
+    "MEDIA_MAX_VIDEO_MB": "影片大小上限",
+    "MEDIA_MAX_AUDIO_MB": "聲音大小上限",
+    "IMPORT_MAX_BYTES": "匯入測驗大小上限",
+    "PUBLICATION_MAX_MB": "發布測驗大小上限",
+    "MEDIA_LIBRARY_LINKS": "免費媒體庫",
+    "GAME_READ_DELAY_MS": "計時前的閱讀時間",
+    "GAME_ALL_ANSWERED_DELAY_MS": "全員作答後的停頓",
+    "GAME_AUTO_ADVANCE_MS": "自動模式：每步時長",
+    "GAME_MEDIA_WAIT_S": "等待聲音與影片",
+    "LIVE_MOTION": "即時畫面的轉場效果",
+    "GAME_HOST_GRACE_MS": "主持人離開前的寬限時間",
+    "GAME_HOST_WINDOW_MS": "主持人返回時限",
+    "ADMIN_WEB_SCOPE": "網頁可變更的範圍",
+    "ADMIN_LOCK": "永不從網頁變更的設定",
+    "ADMIN_TOKEN": "管理權杖（本機模式）",
+    "ADMIN_OVERRIDES": "從網頁變更的值",
+    "QUIZDOCK_FLAVOR": "映像檔版本類型",
+    "PRISMA_SKIP_CONNECT": "不連線資料庫啟動"
+  },
+  "operations": {
+    "health": {
+      "doctor": "健康檢查"
+    },
+    "migrations": {
+      "status": "資料庫遷移"
+    },
+    "seat": {
+      "status": "主持席位",
+      "release": "釋放主持席位"
+    },
+    "users": {
+      "list": "帳號",
+      "set-role": "授予或撤銷角色",
+      "find": "尋找帳號",
+      "search": "搜尋帳戶"
+    },
+    "samples": {
+      "load": "為帳號新增範例測驗"
+    },
+    "quizzes": {
+      "list": "測驗",
+      "transfer": "移交測驗",
+      "export": "匯出測驗",
+      "import": "為帳號匯入測驗",
+      "archive": "封存測驗",
+      "restore": "還原已封存的測驗",
+      "delete": "刪除測驗",
+      "orphans": "無人可存取的測驗",
+      "search": "搜尋測驗"
+    },
+    "sessions": {
+      "purge": "清除舊會話"
+    },
+    "settings": {
+      "list": "設定",
+      "set": "變更設定",
+      "reset": "復原變更",
+      "export": "以 .env 格式匯出變更"
+    },
+    "audit": {
+      "list": "稽核"
+    },
+    "media": {
+      "upload": "新增媒體到執行個體媒體",
+      "promote": "將檔案提升為執行個體媒體",
+      "credit": "媒體出處",
+      "remove": "從執行個體媒體中移除媒體",
+      "delete-file": "刪除檔案",
+      "sweep": "清理媒體"
+    },
+    "presets": {
+      "list": "快速設定",
+      "plan": "預覽快速設定",
+      "apply": "套用快速設定"
+    },
+    "setup": {
+      "status": "初始設定",
+      "token": "新的初始設定權杖",
+      "complete": "完成初始設定",
+      "reopen": "重新開啟初始設定",
+      "first-admin": "第一位管理員"
+    },
+    "invite": {
+      "test": "從手機測試網址",
+      "test-status": "手機測試"
+    },
+    "stats": {
+      "live": "目前正在進行的遊戲",
+      "history": "過去十二個月"
+    }
+  },
+  "params": {
+    "user": "帳號",
+    "roles": "角色",
+    "owner": "擁有者",
+    "quiz": "測驗（ID）",
+    "to": "新擁有者",
+    "bundle": "封裝檔（zip、quiz.json 或 Kahoot 試算表）",
+    "key": "設定",
+    "limit": "數量",
+    "operation": "操作",
+    "setting": "設定",
+    "value": "值",
+    "all": "全部",
+    "audience": "對象",
+    "name": "名稱",
+    "address": "網址",
+    "id": "ID",
+    "internet": "網際網路",
+    "accessibility": "無障礙",
+    "q": "搜尋",
+    "status": "狀態",
+    "orphans": "無人可存取",
+    "offset": "起始位置"
+  },
+  "columns": {
+    "name": "名稱",
+    "subject": "主體識別碼",
+    "email": "電子郵件",
+    "roles": "角色",
+    "granted": "已授予",
+    "quizzes": "測驗",
+    "createdAt": "建立時間",
+    "id": "ID",
+    "title": "標題",
+    "owner": "擁有者",
+    "status": "狀態",
+    "questions": "題目",
+    "slug": "代稱",
+    "revision": "修訂版本",
+    "updatedAt": "更新時間",
+    "holder": "持有者",
+    "claimedAt": "取得時間",
+    "expiresAt": "到期時間",
+    "why": "原因"
+  },
+  "effects": {
+    "write": "會變更",
+    "destructive": "會銷毀"
+  },
+  "run": {
+    "read": "顯示",
+    "write": "執行",
+    "preview": "預覽",
+    "confirm": "確認",
+    "again": "重新讀取",
+    "confirmTitle": "確認此變更？"
+  },
+  "form": {
+    "choose": "選擇…"
+  },
+  "result": {
+    "done": "完成。",
+    "nothing-to-do": "無需處理。",
+    "partial": "已完成，但有問題。",
+    "preview": "將執行的操作：",
+    "none": "無。",
+    "download": "儲存 {{name}}"
+  },
+  "refusals": {
+    "unknown_operation": "未知的操作。",
+    "forbidden": "僅限管理員。",
+    "scope_read": "唯讀：ADMIN_WEB_SCOPE=read。",
+    "local_mode_token": "本機模式：需要管理權杖。",
+    "locked": "被 ADMIN_LOCK 鎖定。",
+    "critical": "關鍵：永遠不能從網頁變更。",
+    "invalid_params": "參數無效。",
+    "confirmation_invalid": "確認已逾期。",
+    "dry_run_unsupported": "無法預覽。",
+    "not_found": "找不到。",
+    "conflict": "衝突。",
+    "timeout": "耗時過長。",
+    "failed": "失敗。"
+  },
+  "quizzes": {
+    "search": "搜尋測驗",
+    "owner": "擁有者",
+    "everyone": "所有人",
+    "status": "狀態",
+    "anyStatus": "全部",
+    "statuses": {
+      "draft": "草稿",
+      "ready": "就緒",
+      "archived": "已歸檔"
+    },
+    "orphans": "無人可存取",
+    "none": "沒有符合的測驗。",
+    "count_one": "{{count}} 個測驗",
+    "count_other": "{{count}} 個測驗",
+    "questions_one": "{{count}} 道題目",
+    "questions_other": "{{count}} 道題目",
+    "live": "正在房間中進行（PIN {{pin}}）",
+    "unreachable": "擁有者已無法存取",
+    "close": "關閉",
+    "columns": {
+      "quiz": "測驗",
+      "owner": "擁有者",
+      "updated": "更新時間",
+      "actions": "操作"
+    },
+    "actions": {
+      "quizzes_import": "為帳號匯入測驗",
+      "samples_load": "新增範例測驗",
+      "sessions_purge": "清除舊會話",
+      "open": "開啟",
+      "export": "匯出",
+      "transfer": "移交",
+      "archive": "封存",
+      "restore": "還原",
+      "delete": "刪除"
+    },
+    "transfer": {
+      "title": "移交「{{title}}」",
+      "help": "移交給另一個帳號：僅此測驗使用的媒體及其歷史會隨之轉移；其餘內容仍歸 {{owner}} 所有。",
+      "search": "名稱、主體識別碼或電子郵件",
+      "player": "參與者"
+    },
+    "actionsFor": "{{title}} 的操作"
+  },
+  "audit": {
+    "filter": "操作",
+    "empty": "稽核中尚無紀錄。",
+    "newer": "較新",
+    "older": "較舊",
+    "columns": {
+      "at": "時間",
+      "who": "操作者",
+      "operation": "操作",
+      "params": "參數",
+      "outcome": "結果"
+    },
+    "via": {
+      "cli": "命令列",
+      "api": "網頁"
+    },
+    "outcomes": {
+      "done": "完成",
+      "nothing-to-do": "無需處理",
+      "partial": "部分完成",
+      "refused": "已拒絕",
+      "failed": "失敗"
+    },
+    "anyOperation": "所有操作",
+    "previous": "被取代的內容"
+  },
+  "edit": {
+    "save": "儲存",
+    "back": "還原為 .env",
+    "cancel": "取消",
+    "accepts": "可接受 {{accepts}}。",
+    "remove": "移除",
+    "add": "新增",
+    "linkName": "名稱",
+    "linkUrl": "網址",
+    "kinds": {
+      "image": "圖片",
+      "video": "影片",
+      "audio": "聲音"
+    },
+    "noLinks": "沒有媒體庫：編輯器不顯示任何媒體庫（沒有網際網路的執行個體）。",
+    "saved": {
+      "live": "已儲存：立即生效。",
+      "next-room": "已儲存：對之後開啟的房間生效。",
+      "restart": "已儲存：下次重新啟動後生效。"
+    }
+  },
+  "overrides": {
+    "count_one": "在此變更了 {{count}} 項設定。",
+    "count_other": "在此變更了 {{count}} 項設定。",
+    "export": "匯出為 .env",
+    "exportHelp": "用於將它們固定到 .env 中（然後在此復原），或移到另一個執行個體：",
+    "resetAll": "全部復原"
+  },
+  "setup": {
+    "title": "初始設定此執行個體",
+    "invite": "此執行個體尚未完成初始設定。",
+    "inviteLink": "開始設定",
+    "closed": "此執行個體已完成初始設定：精靈已關閉（在 shell 中執行 `qd setup.reopen` 可重新開啟）。",
+    "home": "首頁",
+    "signIn": "使用身分提供者時，初始設定需要已登入的帳號——且需具有身分提供者授予的管理員角色才能完成。",
+    "signInLink": "登入",
+    "steps": "步驟",
+    "previous": "上一步",
+    "next": "下一步",
+    "finish": "完成初始設定",
+    "finished": "執行個體已完成初始設定。",
+    "finishedHelp": "精靈已永久關閉。此處設定的所有內容之後都可以在管理頁面中變更，以 ADMIN_WEB_SCOPE 允許的範圍為限。",
+    "token": {
+      "title": "初始設定權杖",
+      "help": "連到全新執行個體的人不應因此成為其擁有者：請輸入執行個體啟動時寫入記錄檔的初始設定權杖（或在容器中執行 `qd setup.token` 取得）。它只能使用一次，有效期一天。",
+      "label": "權杖",
+      "open": "開始"
+    },
+    "step": {
+      "usage": {
+        "title": "用途",
+        "help": "關於執行個體用途的三個問題：每個回答會同時設定多項設定。所有內容都可以在後續步驟中調整，或之後在管理頁面中變更。"
+      },
+      "health": {
+        "title": "健康狀態",
+        "help": "資料庫、Redis、遷移、資料夾、關鍵變數。此處失敗的項目需在 .env 中修正，然後重新啟動執行個體。"
+      },
+      "identity": {
+        "title": "識別",
+        "help": "名稱、語言、Logo、回饋連結的目標。"
+      },
+      "address": {
+        "title": "網址",
+        "help": "提供給參與者的網址（QR code、加入連結），以及從手機進行的測試。"
+      },
+      "access": {
+        "title": "存取",
+        "help": "誰可以進入。驗證模式需在啟動前於 .env 中設定。"
+      },
+      "limits": {
+        "title": "限制與節奏",
+        "help": "預設值適合大多數執行個體：僅在你的執行個體不同時才變更某個值。"
+      },
+      "content": {
+        "title": "內容",
+        "help": "範例測驗，可直接示範，放入某位主持人的題庫。"
+      },
+      "summary": {
+        "title": "摘要",
+        "help": "已設定的內容及其來源。完成後精靈將永久關閉。"
+      }
+    },
+    "phone": {
+      "title": "從手機測試",
+      "help": "伺服器無法判斷手機能否連到它：只有手機能判斷。用手機掃描某個網址的 QR code——連上訪客 Wi-Fi 或使用行動數據，就像參與者那樣。測試成功的網址會優先提供。",
+      "start": "測試此網址",
+      "again": "再次測試",
+      "scan": "用手機掃描：頁面會通知此處已成功連線。",
+      "reached": "已從手機連線（{{agent}}）。",
+      "why": {
+        "title": "無法連線？常見原因",
+        "network": "不在同一網路：區域網路位址（192.168…、10…）只回應該網路中的手機——訪客 Wi-Fi 往往是另一個網路；使用行動數據時永遠無法連線。",
+        "isolation": "訪客隔離：許多訪客或公共 Wi-Fi 會阻止裝置互相連線。請使用公開網址，或換用沒有隔離的網路。",
+        "firewall": "防火牆：本機可能拒絕應用程式連接埠上的連入連線。",
+        "public": "公開網址需要一個指向本機的網域名稱，且其連接埠可從網際網路連線（或透過反向 Proxy）——並需要 https，手機才能安裝應用程式。",
+        "docker": "Docker Desktop 的 bridge 網路：容器看不到本機自身的位址——請在 HOST_LAN_IPS 中設定。"
+      },
+      "expired": "此測試已過期：請重新開始。"
+    },
+    "access": {
+      "firstAdmin": "本機模式：將管理此執行個體的名稱（用它登入）。從網頁進行變更還需要 ADMIN_TOKEN。",
+      "oidcAdmin": "使用身分提供者時，管理員角色由其授予（或透過 `qd user:set-role`）。"
+    },
+    "content": {
+      "samples": "一個帳號（其主體識別碼——本機模式下為 local:<名稱>——或其電子郵件）：範例測驗將放入其題庫。"
+    },
+    "summary": {
+      "set": "與預設值不同的設定",
+      "env": "此處設定的內容，以 .env 片段呈現——可將其固定到 .env 中："
+    },
+    "blocked": "上方有阻擋性問題：修正它（在 .env 中，然後重新啟動），重新檢查後精靈繼續。"
+  },
+  "usage": {
+    "preview": "這些回答將設定：",
+    "nothing": "無需變更。",
+    "apply": "套用",
+    "applied": "已套用：後續步驟會呈現。",
+    "skipped": {
+      "locked": "未變更：被 ADMIN_LOCK 鎖定",
+      "not-applicable": "未變更：僅適用於身分提供者（AUTH_MODE=oidc）"
+    },
+    "internet": {
+      "question": "此執行個體能否連上網際網路？",
+      "answers": {
+        "connected": {
+          "title": "能",
+          "help": "編輯器會提供線上免費媒體庫。"
+        },
+        "offline": {
+          "title": "不能",
+          "help": "僅限區域網路：不提供線上媒體庫連結。請在後續步驟中從手機測試網址。"
+        }
+      }
+    },
+    "audience": {
+      "question": "誰來參與？",
+      "answers": {
+        "colleagues": {
+          "title": "同事、朋友",
+          "help": "標準設定。"
+        },
+        "class": {
+          "title": "班級、培訓",
+          "help": "參與者使用自己的帳號登入。"
+        },
+        "public": {
+          "title": "一般大眾、大型活動",
+          "help": "對所有人開放——需使用身分提供者——並在擁擠的 Wi-Fi 上為聲音和影片保留更多載入時間。"
+        },
+        "other": {
+          "title": "都有一些、其他",
+          "help": "不做任何變更：在後續步驟中依需要設定。"
+        }
+      }
+    },
+    "accessibility": {
+      "question": "是否有參與者需要更便利的體驗？",
+      "answers": {
+        "standard": {
+          "title": "否",
+          "help": "標準設定。"
+        },
+        "adapted": {
+          "title": "是",
+          "help": "無轉場效果、更多閱讀時間。"
+        }
+      }
+    }
+  },
+  "stats": {
+    "live": {
+      "title": "即時",
+      "updated": "更新於 {{time}}",
+      "stale": "無法重新讀取 — 資料來自 {{ago}}",
+      "games": "進行中的遊戲",
+      "players": "已連線的玩家",
+      "none": "目前沒有進行中的遊戲。",
+      "lobby_one": "{{count}} 個在等候室",
+      "lobby_other": "{{count}} 個在等候室",
+      "playing_one": "{{count}} 個進行中",
+      "playing_other": "{{count}} 個進行中"
+    },
+    "columns": {
+      "quiz": "測驗",
+      "host": "主持人",
+      "progress": "進度",
+      "players": "玩家",
+      "since": "開始",
+      "month": "月份"
+    },
+    "pin": "PIN {{pin}}",
+    "phase": {
+      "lobby": "等候室",
+      "question": "第 {{index}} 題，共 {{total}} 題"
+    },
+    "instance": {
+      "title": "實例",
+      "accounts": "帳戶",
+      "quizzes": "可開始的測驗",
+      "media": "媒體",
+      "mediaDetail_one": "{{count}} 個檔案",
+      "mediaDetail_other": "{{count}} 個檔案",
+      "history": "已進行的遊戲",
+      "lastGame": "最近一場結束於 {{ago}}",
+      "noGame": "尚無",
+      "hosts_one": "{{count}} 位主持人",
+      "hosts_other": "{{count}} 位主持人",
+      "admins_one": "{{count}} 位管理員",
+      "admins_other": "{{count}} 位管理員",
+      "drafts_one": "{{count}} 個草稿",
+      "drafts_other": "{{count}} 個草稿",
+      "archived_one": "{{count}} 個已封存",
+      "archived_other": "{{count}} 個已封存"
+    },
+    "history": {
+      "title": "過去 12 個月",
+      "none": "過去 12 個月沒有進行過遊戲。",
+      "games": "遊戲",
+      "players": "玩家",
+      "success": "正確率",
+      "withAccount": "有帳戶的玩家",
+      "accounts_one": "{{count}} 位有帳戶",
+      "accounts_other": "{{count}} 位有帳戶",
+      "guests_one": "{{count}} 位訪客",
+      "guests_other": "{{count}} 位訪客",
+      "byMonth": "按月",
+      "top": {
+        "quizzes": "最常玩的測驗",
+        "hosts": "最活躍的主持人"
+      },
+      "oldest": "歷史紀錄從 {{date}} 開始：更早的遊戲已被清除。"
+    }
+  },
+  "accounts": {
+    "search": "搜尋帳戶（名稱、識別碼、電子郵件）",
+    "role": "角色",
+    "anyRole": "所有角色",
+    "roles": {
+      "admin": "管理員",
+      "host": "主持人",
+      "player": "參與者"
+    },
+    "none": "沒有符合的帳戶。",
+    "count_one": "{{count}} 個帳戶",
+    "count_other": "{{count}} 個帳戶",
+    "columns": {
+      "account": "帳戶",
+      "roles": "角色",
+      "quizzes": "測驗",
+      "games": "主持的遊戲",
+      "created": "建立",
+      "actions": "操作"
+    },
+    "grantedHere": "由管理後台授予",
+    "actionsFor": "{{name}} 的操作",
+    "editRoles": "授予或撤銷角色…",
+    "rolesTitle": "授予 {{name}} 的角色",
+    "rolesHelp": "管理後台在身分提供者給予的角色之外授予的角色：身分提供者的角色不受此處勾選影響。",
+    "rolesHint": {
+      "host": "建立測驗並主持遊戲。",
+      "admin": "可進入管理後台。"
+    },
+    "cancel": "取消",
+    "save": "儲存",
+    "seat": {
+      "title": "主持席位",
+      "held": "由 {{name}} 占用，{{since}}",
+      "free": "空閒：下一個領取的人主持。",
+      "release": "釋放席位"
+    }
+  },
+  "health": {
+    "problems_one": "{{count}} 個問題需要查看",
+    "problems_other": "{{count}} 個問題需要查看",
+    "allGood": "一切正常",
+    "checked_one": "已完成 {{count}} 項檢查",
+    "checked_other": "已完成 {{count}} 項檢查",
+    "again": "重新檢查",
+    "migrations": {
+      "title": "資料庫遷移",
+      "applied_one": "{{count}} 個已套用",
+      "applied_other": "{{count}} 個已套用",
+      "pending_one": "{{count}} 個待套用",
+      "pending_other": "{{count}} 個待套用",
+      "failed_one": "{{count}} 個失敗",
+      "failed_other": "{{count}} 個失敗",
+      "list": "已套用的遷移，最新的在前"
+    },
+    "level": {
+      "ok": "正常",
+      "warn": "警告",
+      "fail": "問題"
+    }
+  },
+  "doctor": {
+    "group": {
+      "environment": "環境",
+      "database": "資料庫",
+      "redis": "Redis",
+      "media": "媒體",
+      "oidc": "身分提供者（OIDC）"
+    },
+    "issue": {
+      "unreadable": "{{key}}：無法讀取——使用預設值。",
+      "out-of-bounds": "{{key}}：超出可接受範圍——暫時按原樣使用。"
+    },
+    "unset": "{{key}} 未設定。",
+    "postgres_ok": "PostgreSQL 可連線",
+    "migrations_applied_one": "已套用 {{count}} 個遷移",
+    "migrations_applied_other": "已套用 {{count}} 個遷移",
+    "migrations_pending": "{{count}} 個遷移待套用：請執行遷移步驟。",
+    "migrations_failed": "{{count}} 個遷移失敗：參見 prisma migrate resolve。",
+    "postgres_failed": "PostgreSQL 無法連線：{{error}}",
+    "redis_ok": "Redis 可連線",
+    "redis_failed": "Redis 無法連線：{{error}}",
+    "dir_ok": "{{dir}} 可寫入",
+    "dir_failed": "{{dir}}：{{error}}",
+    "participants_open": "參與者：帳戶或開放存取，每次啟動時選擇",
+    "participants_accounts": "參與者：需要帳戶（未設定 ALLOW_ANONYMOUS_PARTICIPANTS）",
+    "provider_internal": "伺服器透過 {{url}} 連線身分提供者",
+    "discovery_ok": "探索成功——權杖端點 {{url}}",
+    "discovery_failed": "探索 {{url}} 失敗（{{error}}）：若伺服器無法連線簽發者，請設定 OIDC_INTERNAL_URL。",
+    "jwks_ok_one": "簽章金鑰可連線（{{count}} 個金鑰）",
+    "jwks_ok_other": "簽章金鑰可連線（{{count}} 個金鑰）",
+    "jwks_failed": "簽章金鑰 {{url}}：{{error}}"
+  }
+}

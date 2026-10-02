@@ -5,6 +5,8 @@ import type { AuthPrincipal, AuthProvider } from './auth-provider';
 import type { OidcClient } from './oidc/oidc-client';
 import type { OidcSessions } from './oidc/oidc-sessions';
 import { readCookie, SESSION_COOKIE } from './oidc/session-cookie';
+import { SETTINGS } from '@quiz-dock/contracts';
+import { settings } from '../admin/settings/settings.service';
 
 /** Reads a value by dotted path (`resource_access.app.roles`). */
 function getByPath(obj: unknown, path: string): unknown {
@@ -40,14 +42,12 @@ function getByPath(obj: unknown, path: string): unknown {
 export class OidcProvider implements AuthProvider {
   private readonly logger = new Logger(OidcProvider.name);
   private readonly rolesClaim: string;
-  private readonly nameClaim?: string;
 
   constructor(
     private readonly client: OidcClient,
     private readonly sessions: OidcSessions,
   ) {
-    this.rolesClaim = process.env.OIDC_ROLES_CLAIM || 'roles';
-    this.nameClaim = process.env.OIDC_NAME_CLAIM || undefined;
+    this.rolesClaim = settings.get(SETTINGS.OIDC_ROLES_CLAIM);
   }
 
   async authenticate(req: Request): Promise<AuthPrincipal | null> {
@@ -80,7 +80,9 @@ export class OidcProvider implements AuthProvider {
     // The configured claim wins when it carries a name; otherwise the standard
     // chain applies, so a deployment may point at `nickname` and still work for
     // the accounts that have none.
-    const configured = this.nameClaim ? getByPath(payload, this.nameClaim) : undefined;
+    // Read at each sign-in: the administration may change it (live).
+    const nameClaim = settings.get(SETTINGS.OIDC_NAME_CLAIM) || undefined;
+    const configured = nameClaim ? getByPath(payload, nameClaim) : undefined;
     const rolesRaw = getByPath(payload, this.rolesClaim);
     return {
       sub,

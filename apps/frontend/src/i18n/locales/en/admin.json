@@ -1,0 +1,742 @@
+{
+  "title": "Administration",
+  "adminOnly": "This page is for the instance's administrators.",
+  "loading": "Loading…",
+  "domains": {
+    "instance": "Instance",
+    "quizzes": "Quizzes",
+    "media": "Media"
+  },
+  "sections": {
+    "statistics": "Statistics",
+    "settings": "Settings",
+    "health": "Health",
+    "accounts": "Accounts",
+    "audit": "Audit",
+    "quizzes": "Quizzes",
+    "media": "Media"
+  },
+  "token": {
+    "unset": "Local mode: nothing can be changed from the web until ADMIN_TOKEN is set in .env (32 characters or more), then the instance restarted.",
+    "ask": "Local mode: enter the administration token (ADMIN_TOKEN) to change anything. It is kept in this tab only.",
+    "use": "Use",
+    "given": "Administration token given for this tab.",
+    "forget": "Forget it"
+  },
+  "settings": {
+    "search": "Search a setting",
+    "view": "Layout",
+    "views": {
+      "cards": "Cards",
+      "split": "List and detail",
+      "table": "Table"
+    },
+    "filters": {
+      "label": "Show only",
+      "changed": "Changed from the default",
+      "overridden": "Changed here",
+      "problem": "With a problem",
+      "editable": "Editable"
+    },
+    "none": "No setting matches.",
+    "list": "Settings",
+    "problem": "A problem",
+    "rules": "Settings that contradict each other:",
+    "envValue": "replaces .env:",
+    "access": {
+      "read": "The web shows every setting and changes none (ADMIN_WEB_SCOPE=read).",
+      "write": "The web may change the settings of levels C2 to C4 (ADMIN_WEB_SCOPE=write); C1 never.",
+      "how": "These are set in .env, then the instance restarted.",
+      "locks": "Locked by ADMIN_LOCK:",
+      "safeMode": "Safe mode (ADMIN_OVERRIDES=ignore): the values changed here are kept but not applied.",
+      "token": "Local mode: a change needs the administration token.",
+      "noToken": "Local mode: nothing can be changed from the web until ADMIN_TOKEN is set."
+    },
+    "columns": {
+      "variable": "Variable",
+      "value": "Value",
+      "source": "Source",
+      "env": ".env value",
+      "default": "Default",
+      "level": "Level",
+      "applies": "Applies"
+    },
+    "issue": {
+      "unreadable": "Cannot be read (accepts {{accepts}}): the default is used.",
+      "out-of-bounds": "Outside what it accepts ({{accepts}}): used as is for now; a later release will enforce it."
+    }
+  },
+  "categories": {
+    "identity": "Identity & branding",
+    "access": "Access & authentication",
+    "network": "Network & invitation",
+    "storage": "Storage",
+    "limits": "Limits",
+    "pace": "Game pace",
+    "admin": "Administration",
+    "internal": "Internal"
+  },
+  "source": {
+    "default": "Default",
+    "env": "From .env",
+    "override": "Changed here"
+  },
+  "criticality": {
+    "C1": "Critical: start-up, data or security. Shown, never changed from the web.",
+    "C2": "High: who may enter, how much may be stored. Each change confirmed.",
+    "C3": "Normal: how the instance behaves.",
+    "C4": "Cosmetic: look and wording."
+  },
+  "applies": {
+    "live": "Live",
+    "next-room": "Next room",
+    "restart": "At restart"
+  },
+  "appliesHelp": {
+    "live": "On its next use: a game in progress follows it.",
+    "next-room": "In the rooms opened after the change; a room in progress keeps its own.",
+    "restart": "Read once at start: the instance must restart."
+  },
+  "readOnly": {
+    "critical": "Critical: never from the web",
+    "locked": "Locked by ADMIN_LOCK",
+    "scope": "Read only (ADMIN_WEB_SCOPE=read)",
+    "safe-mode": "Safe mode"
+  },
+  "value": {
+    "empty": "—",
+    "set": "Set",
+    "notSet": "Not set",
+    "on": "On",
+    "off": "Off"
+  },
+  "units": {
+    "MB": "MB",
+    "s": "s"
+  },
+  "help": {
+    "accepts": "Accepts",
+    "default": "Default",
+    "example": "In .env",
+    "applies": "Applies",
+    "rules": "Goes with",
+    "doc": "In the documentation",
+    "history": "Last changes",
+    "noHistory": "Never changed from the administration."
+  },
+  "outside": {
+    "title": "Outside the application",
+    "intro": "Read by Docker Compose, the quizdock script, the image build or Keycloak, never by the application: they are changed where they are read, not here.",
+    "readBy": "Read by",
+    "what": "What",
+    "readers": {
+      "compose": "Compose",
+      "keycloak": "Keycloak",
+      "script": "quizdock script",
+      "build": "Image build",
+      "dev": "Development stack",
+      "image": "The image"
+    }
+  },
+  "labels": {
+    "APP_NAME": "Name of the application",
+    "APP_LANG": "Language of the interface",
+    "APP_LOGO_URL": "Address of the logo",
+    "APP_FEEDBACK_URL": "Where feedback links lead",
+    "AUTH_MODE": "Authentication mode",
+    "DEMO_MODE": "Public demo",
+    "ALLOW_ANONYMOUS_PARTICIPANTS": "Participants without an account",
+    "OIDC_ISSUER": "Identity provider (issuer)",
+    "OIDC_CLIENT_ID": "Client identifier",
+    "OIDC_CLIENT_SECRET": "Client secret",
+    "OIDC_INTERNAL_URL": "Provider's internal address",
+    "OIDC_JWKS_URI": "Key endpoint",
+    "OIDC_AUDIENCE": "Expected audience",
+    "OIDC_ROLES_CLAIM": "Claim of the roles",
+    "OIDC_NAME_CLAIM": "Claim of the display name",
+    "OIDC_SESSION_SCOPE": "Session scope (ignored)",
+    "PORT": "Port in the container",
+    "TRUST_PROXY": "Trusted proxies",
+    "APP_PUBLIC_URL": "Public address",
+    "HOST_LAN_IPS": "Local network addresses",
+    "QUIZ_STORE_URL": "Community catalogues",
+    "QUIZ_STORE_HOSTS": "Hosts allowed for downloads",
+    "DATABASE_URL": "Database",
+    "REDIS_URL": "Redis",
+    "MEDIA_DIR": "Media folder",
+    "STORE_DIR": "Shared templates folder",
+    "SAMPLES_DIR": "Sample quizzes folder",
+    "CLIENT_DIR": "Web application folder",
+    "MEDIA_MAX_BYTES": "Largest image",
+    "MEDIA_MAX_VIDEO_MB": "Largest video",
+    "MEDIA_MAX_AUDIO_MB": "Largest sound",
+    "IMPORT_MAX_BYTES": "Largest imported quiz",
+    "PUBLICATION_MAX_MB": "Largest quiz for publication",
+    "MEDIA_LIBRARY_LINKS": "Free media libraries",
+    "GAME_READ_DELAY_MS": "Reading time before the timer",
+    "GAME_ALL_ANSWERED_DELAY_MS": "Pause once everyone answered",
+    "GAME_AUTO_ADVANCE_MS": "Automatic mode: time on a step",
+    "GAME_MEDIA_WAIT_S": "Wait for sounds and videos",
+    "LIVE_MOTION": "Transitions on the live screens",
+    "GAME_HOST_GRACE_MS": "Host's grace before leaving",
+    "GAME_HOST_WINDOW_MS": "Host's way back",
+    "ADMIN_WEB_SCOPE": "What the web may change",
+    "ADMIN_LOCK": "Settings never changed from the web",
+    "ADMIN_TOKEN": "Administration token (local mode)",
+    "ADMIN_OVERRIDES": "Values changed from the web",
+    "QUIZDOCK_FLAVOR": "Image flavour",
+    "PRISMA_SKIP_CONNECT": "Start without a database"
+  },
+  "operations": {
+    "health": {
+      "doctor": "Health check"
+    },
+    "migrations": {
+      "status": "Database migrations"
+    },
+    "seat": {
+      "status": "Host seat",
+      "release": "Free the host seat"
+    },
+    "users": {
+      "list": "Accounts",
+      "set-role": "Grant or revoke a role",
+      "find": "Find an account",
+      "search": "Search the accounts"
+    },
+    "samples": {
+      "load": "Add the sample quizzes to an account"
+    },
+    "quizzes": {
+      "list": "Quizzes",
+      "transfer": "Hand a quiz over",
+      "export": "Export a quiz",
+      "import": "Import a quiz for an account",
+      "archive": "Archive a quiz",
+      "restore": "Restore an archived quiz",
+      "delete": "Delete a quiz",
+      "orphans": "Quizzes nobody can reach",
+      "search": "Search the quizzes"
+    },
+    "sessions": {
+      "purge": "Purge old sessions"
+    },
+    "settings": {
+      "list": "Settings",
+      "set": "Change a setting",
+      "reset": "Take a change back",
+      "export": "Changes as .env"
+    },
+    "audit": {
+      "list": "Audit"
+    },
+    "media": {
+      "upload": "Add a media to the instance's",
+      "promote": "Promote a file to the instance's media",
+      "credit": "Credit of a media",
+      "remove": "Take a media out of the instance's",
+      "delete-file": "Delete a file",
+      "sweep": "Clean up the media"
+    },
+    "presets": {
+      "list": "Quick setup",
+      "plan": "Preview the quick setup",
+      "apply": "Apply the quick setup"
+    },
+    "setup": {
+      "status": "Setup",
+      "token": "New setup token",
+      "complete": "Finish the setup",
+      "reopen": "Reopen the setup",
+      "first-admin": "First administrator"
+    },
+    "invite": {
+      "test": "Test an address from a phone",
+      "test-status": "Phone test"
+    },
+    "stats": {
+      "live": "What is played right now",
+      "history": "The last twelve months"
+    }
+  },
+  "params": {
+    "user": "Account",
+    "roles": "Roles",
+    "owner": "Owner",
+    "quiz": "Quiz (id)",
+    "to": "New owner",
+    "bundle": "Bundle (zip, quiz.json or Kahoot sheet)",
+    "key": "Setting",
+    "limit": "How many",
+    "operation": "Operation",
+    "setting": "Setting",
+    "value": "Value",
+    "all": "All of them",
+    "audience": "Audience",
+    "name": "Name",
+    "address": "Address",
+    "id": "Id",
+    "internet": "Internet",
+    "accessibility": "Accessibility",
+    "q": "Search",
+    "status": "Status",
+    "orphans": "Nobody can reach them",
+    "offset": "From"
+  },
+  "columns": {
+    "name": "Name",
+    "subject": "Subject",
+    "email": "E-mail",
+    "roles": "Roles",
+    "granted": "Granted",
+    "quizzes": "Quizzes",
+    "createdAt": "Created",
+    "id": "Id",
+    "title": "Title",
+    "owner": "Owner",
+    "status": "Status",
+    "questions": "Questions",
+    "slug": "Slug",
+    "revision": "Revision",
+    "updatedAt": "Updated",
+    "holder": "Holder",
+    "claimedAt": "Claimed",
+    "expiresAt": "Expires",
+    "why": "Why"
+  },
+  "effects": {
+    "write": "Changes",
+    "destructive": "Destroys"
+  },
+  "run": {
+    "read": "Show",
+    "write": "Run",
+    "preview": "Preview",
+    "confirm": "Confirm",
+    "again": "Read again",
+    "confirmTitle": "Confirm this change?"
+  },
+  "form": {
+    "choose": "Choose…"
+  },
+  "result": {
+    "done": "Done.",
+    "nothing-to-do": "Nothing to do.",
+    "partial": "Done, with problems.",
+    "preview": "What it would do:",
+    "none": "None.",
+    "download": "Save {{name}}"
+  },
+  "refusals": {
+    "unknown_operation": "Unknown operation.",
+    "forbidden": "Administrators only.",
+    "scope_read": "Read only: ADMIN_WEB_SCOPE=read.",
+    "local_mode_token": "Local mode: the administration token is needed.",
+    "locked": "Locked by ADMIN_LOCK.",
+    "critical": "Critical: never from the web.",
+    "invalid_params": "Invalid parameters.",
+    "confirmation_invalid": "Confirmation expired.",
+    "dry_run_unsupported": "No preview.",
+    "not_found": "Not found.",
+    "conflict": "Conflict.",
+    "timeout": "Took too long.",
+    "failed": "Failed."
+  },
+  "quizzes": {
+    "search": "Search a quiz",
+    "owner": "Owner",
+    "everyone": "Everyone",
+    "status": "Status",
+    "anyStatus": "Any",
+    "statuses": {
+      "draft": "Draft",
+      "ready": "Ready",
+      "archived": "Archived"
+    },
+    "orphans": "Nobody can reach them",
+    "none": "No quiz matches.",
+    "count_one": "{{count}} quiz",
+    "count_other": "{{count}} quizzes",
+    "questions_one": "{{count}} question",
+    "questions_other": "{{count}} questions",
+    "live": "Being played (PIN {{pin}})",
+    "unreachable": "Owner can no longer reach it",
+    "close": "Close",
+    "columns": {
+      "quiz": "Quiz",
+      "owner": "Owner",
+      "updated": "Updated",
+      "actions": "Actions"
+    },
+    "actions": {
+      "quizzes_import": "Import a quiz for an account",
+      "samples_load": "Add the sample quizzes",
+      "sessions_purge": "Purge old sessions",
+      "open": "Open",
+      "export": "Export",
+      "transfer": "Hand over",
+      "archive": "Archive",
+      "restore": "Restore",
+      "delete": "Delete"
+    },
+    "transfer": {
+      "title": "Hand “{{title}}” over",
+      "help": "To another account: the media only this quiz uses and its history follow it; {{owner}} keeps the rest.",
+      "search": "Name, subject or e-mail",
+      "player": "participant"
+    },
+    "actionsFor": "Actions for {{title}}"
+  },
+  "audit": {
+    "filter": "Operation",
+    "empty": "Nothing in the audit yet.",
+    "newer": "Newer",
+    "older": "Older",
+    "columns": {
+      "at": "When",
+      "who": "Who",
+      "operation": "Operation",
+      "params": "Parameters",
+      "outcome": "Outcome"
+    },
+    "via": {
+      "cli": "Command line",
+      "api": "Web"
+    },
+    "outcomes": {
+      "done": "Done",
+      "nothing-to-do": "Nothing to do",
+      "partial": "Partly",
+      "refused": "Refused",
+      "failed": "Failed"
+    },
+    "anyOperation": "Every operation",
+    "previous": "What it replaced"
+  },
+  "edit": {
+    "save": "Save",
+    "back": "Back to .env",
+    "cancel": "Cancel",
+    "accepts": "Accepts {{accepts}}.",
+    "remove": "Remove",
+    "add": "Add",
+    "linkName": "Name",
+    "linkUrl": "Address",
+    "kinds": {
+      "image": "Images",
+      "video": "Videos",
+      "audio": "Sounds"
+    },
+    "noLinks": "No library: the editor shows none (an instance without Internet).",
+    "saved": {
+      "live": "Saved: it applies now.",
+      "next-room": "Saved: it applies to the rooms opened from now on.",
+      "restart": "Saved: it applies at the next restart."
+    }
+  },
+  "overrides": {
+    "count_one": "{{count}} setting changed here.",
+    "count_other": "{{count}} settings changed here.",
+    "export": "Export as .env",
+    "exportHelp": "To pin them in .env (then take them back here), or to move them to another instance:",
+    "resetAll": "Take everything back"
+  },
+  "setup": {
+    "title": "Setting up this instance",
+    "invite": "This instance is not set up yet.",
+    "inviteLink": "Set it up",
+    "closed": "This instance is set up: the wizard is closed (`qd setup.reopen` opens it again, from a shell).",
+    "home": "Home",
+    "signIn": "With an identity provider, the setup needs a signed-in account — the administrator role from the provider, to finish.",
+    "signInLink": "Sign in",
+    "steps": "Steps",
+    "previous": "Previous",
+    "next": "Next",
+    "finish": "Finish the setup",
+    "finished": "The instance is set up.",
+    "finishedHelp": "The wizard is closed for good. Everything set here can be changed later from the administration, as ADMIN_WEB_SCOPE allows.",
+    "token": {
+      "title": "Setup token",
+      "help": "Whoever reaches a fresh instance must not own it: give the setup token written in the instance's logs at start (or given by `qd setup.token` in the container). It works once, for a day.",
+      "label": "Token",
+      "open": "Start"
+    },
+    "step": {
+      "usage": {
+        "title": "Usage",
+        "help": "Three questions about how the instance will be used: each answer sets several settings at once. Everything can be adjusted at the next steps, or later from the administration."
+      },
+      "health": {
+        "title": "Health",
+        "help": "The database, Redis, the migrations, the folders, the critical variables. What fails here is fixed in .env, then the instance restarted."
+      },
+      "identity": {
+        "title": "Identity",
+        "help": "The name, the language, the logo, where the feedback links lead."
+      },
+      "address": {
+        "title": "Address",
+        "help": "The addresses offered to participants (QR code, join link), and a test from a phone."
+      },
+      "access": {
+        "title": "Access",
+        "help": "Who may enter. The authentication mode is set in .env, before the start."
+      },
+      "limits": {
+        "title": "Limits & pace",
+        "help": "The defaults suit most instances: change a value only if yours differs."
+      },
+      "content": {
+        "title": "Content",
+        "help": "The sample quizzes, ready to present, for a host's bank."
+      },
+      "summary": {
+        "title": "Summary",
+        "help": "What is set, and where it comes from. Finishing closes the wizard for good."
+      }
+    },
+    "phone": {
+      "title": "Test from a phone",
+      "help": "The server cannot tell whether a phone reaches it: only a phone can. Scan the code of an address with a phone — on the guests' Wi-Fi or on mobile data, as a participant would be. A tested address is offered first.",
+      "start": "Test this address",
+      "again": "Test again",
+      "scan": "Scan with a phone: the page tells this one it got through.",
+      "reached": "Reached from a phone ({{agent}}).",
+      "why": {
+        "title": "Not reached? The usual causes",
+        "network": "Not the same network: a local address (192.168…, 10…) only answers phones on that network — the guests' Wi-Fi is often another one; on mobile data it never answers.",
+        "isolation": "Isolated guests: many guest or public Wi-Fi networks keep devices from seeing each other. Use the public address, or a network without it.",
+        "firewall": "A firewall: the machine may refuse incoming connections on the application's port.",
+        "public": "A public address needs a name pointing to the machine and its port open from the internet (or a reverse proxy) — and https for phones to install the app.",
+        "docker": "Docker Desktop, a bridge network: the container cannot see the machine's own addresses — set them in HOST_LAN_IPS."
+      },
+      "expired": "This test expired: start it again."
+    },
+    "access": {
+      "firstAdmin": "Local mode: the name that will administer the instance (they sign in with it). Changes from the web also need ADMIN_TOKEN.",
+      "oidcAdmin": "With an identity provider, the administrator role comes from it (or from `qd user:set-role`)."
+    },
+    "content": {
+      "samples": "An account (its subject — local:<name> in local mode — or its e-mail): the sample quizzes go to its bank."
+    },
+    "summary": {
+      "set": "Set apart from the defaults",
+      "env": "What was set here, as a .env excerpt — to pin it there:"
+    },
+    "blocked": "A blocking problem above: fix it (in .env, then restart), check again, and the wizard goes on."
+  },
+  "usage": {
+    "preview": "What these answers set:",
+    "nothing": "Nothing to change.",
+    "apply": "Apply",
+    "applied": "Applied: the next steps show it.",
+    "skipped": {
+      "locked": "left alone: locked by ADMIN_LOCK",
+      "not-applicable": "left alone: only with an identity provider (AUTH_MODE=oidc)"
+    },
+    "internet": {
+      "question": "Does this instance reach the Internet?",
+      "answers": {
+        "connected": {
+          "title": "Yes",
+          "help": "The editor offers free media libraries online."
+        },
+        "offline": {
+          "title": "No",
+          "help": "A local network only: no links to online libraries. Test the address from a phone at the next steps."
+        }
+      }
+    },
+    "audience": {
+      "question": "Who plays?",
+      "answers": {
+        "colleagues": {
+          "title": "Colleagues, friends",
+          "help": "The standard settings."
+        },
+        "class": {
+          "title": "A class, a training",
+          "help": "Participants sign in with their account."
+        },
+        "public": {
+          "title": "The public, a large event",
+          "help": "Open to all — with an identity provider — and more time for sounds and videos to load on a busy Wi-Fi."
+        },
+        "other": {
+          "title": "A bit of everything, other",
+          "help": "Nothing is changed: set what you need at the next steps."
+        }
+      }
+    },
+    "accessibility": {
+      "question": "Do some participants need it easier?",
+      "answers": {
+        "standard": {
+          "title": "No",
+          "help": "The standard settings."
+        },
+        "adapted": {
+          "title": "Yes",
+          "help": "No transitions, more time to read."
+        }
+      }
+    }
+  },
+  "stats": {
+    "live": {
+      "title": "Live",
+      "updated": "Updated at {{time}}",
+      "stale": "Could not be read again — figures from {{ago}}",
+      "games": "Games under way",
+      "players": "Players connected",
+      "none": "No game is being played right now.",
+      "lobby_one": "{{count}} in the lobby",
+      "lobby_other": "{{count}} in the lobby",
+      "playing_one": "{{count}} being played",
+      "playing_other": "{{count}} being played"
+    },
+    "columns": {
+      "quiz": "Quiz",
+      "host": "Host",
+      "progress": "Where it is",
+      "players": "Players",
+      "since": "Opened",
+      "month": "Month"
+    },
+    "pin": "PIN {{pin}}",
+    "phase": {
+      "lobby": "Lobby",
+      "question": "Question {{index}} of {{total}}"
+    },
+    "instance": {
+      "title": "The instance",
+      "accounts": "Accounts",
+      "quizzes": "Quizzes ready to play",
+      "media": "Media",
+      "mediaDetail_one": "{{count}} file",
+      "mediaDetail_other": "{{count}} files",
+      "history": "Games played",
+      "lastGame": "the last one ended {{ago}}",
+      "noGame": "none yet",
+      "hosts_one": "{{count}} host",
+      "hosts_other": "{{count}} hosts",
+      "admins_one": "{{count}} administrator",
+      "admins_other": "{{count}} administrators",
+      "drafts_one": "{{count}} draft",
+      "drafts_other": "{{count}} drafts",
+      "archived_one": "{{count}} archived",
+      "archived_other": "{{count}} archived"
+    },
+    "history": {
+      "title": "Over the last 12 months",
+      "none": "No game has been played in the last 12 months.",
+      "games": "Games",
+      "players": "Players",
+      "success": "Success rate",
+      "withAccount": "Players with an account",
+      "accounts_one": "{{count}} with an account",
+      "accounts_other": "{{count}} with an account",
+      "guests_one": "{{count}} guest",
+      "guests_other": "{{count}} guests",
+      "byMonth": "By month",
+      "top": {
+        "quizzes": "Most played quizzes",
+        "hosts": "Most active hosts"
+      },
+      "oldest": "The history starts on {{date}}: older games are purged."
+    }
+  },
+  "accounts": {
+    "search": "Search an account (name, subject, e-mail)",
+    "role": "Role",
+    "anyRole": "Any role",
+    "roles": {
+      "admin": "Administrator",
+      "host": "Host",
+      "player": "Participant"
+    },
+    "none": "No account matches.",
+    "count_one": "{{count}} account",
+    "count_other": "{{count}} accounts",
+    "columns": {
+      "account": "Account",
+      "roles": "Roles",
+      "quizzes": "Quizzes",
+      "games": "Games hosted",
+      "created": "Created",
+      "actions": "Actions"
+    },
+    "grantedHere": "Granted from the administration",
+    "actionsFor": "Actions for {{name}}",
+    "editRoles": "Grant or revoke a role…",
+    "rolesTitle": "Roles granted to {{name}}",
+    "rolesHelp": "What the administration grants, on top of what the identity provider gives: those roles stay whatever is ticked here.",
+    "rolesHint": {
+      "host": "Creates quizzes and hosts games.",
+      "admin": "Reaches the administration."
+    },
+    "cancel": "Cancel",
+    "save": "Save",
+    "seat": {
+      "title": "Host seat",
+      "held": "Held by {{name}}, since {{since}}",
+      "free": "Free: the next one to claim it hosts.",
+      "release": "Free the seat"
+    }
+  },
+  "health": {
+    "problems_one": "{{count}} problem to look at",
+    "problems_other": "{{count}} problems to look at",
+    "allGood": "Everything is fine",
+    "checked_one": "{{count}} check passed through",
+    "checked_other": "{{count}} checks passed through",
+    "again": "Check again",
+    "migrations": {
+      "title": "Database migrations",
+      "applied_one": "{{count}} applied",
+      "applied_other": "{{count}} applied",
+      "pending_one": "{{count}} pending",
+      "pending_other": "{{count}} pending",
+      "failed_one": "{{count}} failed",
+      "failed_other": "{{count}} failed",
+      "list": "Applied migrations, newest first"
+    },
+    "level": {
+      "ok": "OK",
+      "warn": "Warning",
+      "fail": "Problem"
+    }
+  },
+  "doctor": {
+    "group": {
+      "environment": "Environment",
+      "database": "Database",
+      "redis": "Redis",
+      "media": "Media",
+      "oidc": "Identity provider (OIDC)"
+    },
+    "issue": {
+      "unreadable": "{{key}}: cannot be read — the default is used.",
+      "out-of-bounds": "{{key}}: outside what it accepts — used as is for now."
+    },
+    "unset": "{{key}} is not set.",
+    "postgres_ok": "PostgreSQL reachable",
+    "migrations_applied_one": "{{count}} migration applied",
+    "migrations_applied_other": "{{count}} migrations applied",
+    "migrations_pending": "{{count}} migration(s) pending: run the migrate step.",
+    "migrations_failed": "{{count}} migration(s) failed: see prisma migrate resolve.",
+    "postgres_failed": "PostgreSQL unreachable: {{error}}",
+    "redis_ok": "Redis reachable",
+    "redis_failed": "Redis unreachable: {{error}}",
+    "dir_ok": "{{dir}} is writable",
+    "dir_failed": "{{dir}}: {{error}}",
+    "participants_open": "Participants: accounts or open access, chosen at each launch",
+    "participants_accounts": "Participants: accounts required (ALLOW_ANONYMOUS_PARTICIPANTS not set)",
+    "provider_internal": "Provider reached at {{url}} from the server",
+    "discovery_ok": "Discovery OK — token endpoint {{url}}",
+    "discovery_failed": "Discovery {{url}} failed ({{error}}): set OIDC_INTERNAL_URL if the issuer is not reachable from the server.",
+    "jwks_ok_one": "Signing keys reachable ({{count}} key)",
+    "jwks_ok_other": "Signing keys reachable ({{count}} keys)",
+    "jwks_failed": "Signing keys {{url}}: {{error}}"
+  }
+}
