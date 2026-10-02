@@ -286,7 +286,7 @@ ordering and feedback screens, the global media, the account preferences:
 - 🌍 **Multilingual** — one language per instance; a [glossary](https://github.com/quizdock/quiz-dock/blob/main/apps/frontend/src/i18n/GLOSSARY.md) keeps the wording consistent across the six.
 - 🎨 **White-label** — name, logo and CSS via env + a mounted folder, no rebuild.
 - 📱 **On the home screen** — an icon and a manifest: it can be added to a phone's or a tablet's home screen, and the screen stays on during a game.
-- 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
+- 💬 **Feedback** — under the version on the home page, links to report a bug, suggest a feature, fix a translation or ask a question, pre-filled with the version and the browser, and an invitation to star QuizDock on GitHub; pointed at your own repository or hidden with `APP_FEEDBACK_URL`.
 - 🔒 **Hardened runtime** — distroless image, non-root, read-only root FS, all Linux capabilities dropped, `no-new-privileges`; a Content-Security-Policy on every page (no inline script, no `eval`).
 
 </details>

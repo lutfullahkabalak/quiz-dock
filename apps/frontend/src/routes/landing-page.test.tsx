@@ -71,7 +71,7 @@ describe('LandingPage — the PIN', () => {
 });
 
 describe('LandingPage — feedback', () => {
-  it('invites bug reports, feature ideas, translation fixes and questions, as filled-in forms', async () => {
+  it('invites bug reports, feature ideas, translation fixes and questions, as filled-in forms, and a star', async () => {
     mockApi([]);
     renderApp('/');
     const bug = await screen.findByRole('link', { name: 'Signaler un bug' });
@@ -86,6 +86,10 @@ describe('LandingPage — feedback', () => {
     expect(screen.getByRole('link', { name: 'Poser une question' })).toHaveAttribute(
       'href',
       'https://github.com/quizdock/quiz-dock/discussions/new?category=q-a',
+    );
+    expect(screen.getByRole('link', { name: 'Donnez-lui une étoile sur GitHub' })).toHaveAttribute(
+      'href',
+      'https://github.com/quizdock/quiz-dock',
     );
   });
 });
