@@ -453,7 +453,7 @@ export function SettingDetail({
 /** What it does, what it takes, when it applies, what goes with it (§3.7, help). */
 function SettingHelp({ def, row }: { def: SettingDefinition; row: SettingRow }) {
   const { t } = useTranslation('admin');
-  const doc = docLink(def.category);
+  const doc = docLink(def);
   const related = RULES[def.key as keyof typeof RULES] ?? [];
   return (
     <div className="text-muted-foreground flex flex-col gap-2 text-sm">

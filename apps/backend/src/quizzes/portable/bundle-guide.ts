@@ -21,7 +21,7 @@ import {
 
 /**
  * The format guide: how to write a `quiz.json` by hand or with a chatbot
- * (docs/self-hosting/import-from-other-tools.md). Generated from the importer's
+ * (the website renders it on its import page, at each release). Generated from the importer's
  * own schemas, like the JSON Schema, so every bound and every name follows the
  * code; a test keeps the committed file in step. It covers the text-only part
  * of the format: what a converted quiz can carry. Unlike the JSON Schema it is

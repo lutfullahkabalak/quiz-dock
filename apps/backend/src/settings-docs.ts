@@ -1,18 +1,17 @@
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  CONFIGURATION_FILE,
   ENV_EXAMPLE_FILE,
-  configurationText,
+  SETTINGS_DATA_FILE,
   envExampleText,
+  settingsDataText,
 } from './admin/settings/settings-docs';
 
 /**
- * Writes the documentation generated from the settings registry
- * (`pnpm generate:settings-docs`): the environment reference of the
- * self-hosting guide and the development stack's `.env.example`.
+ * Writes what is generated from the settings registry
+ * (`pnpm generate:settings-docs`): the environment reference the website reads
+ * at each release, and the development stack's `.env.example`.
  */
 const ROOT = join(__dirname, '..', '..', '..');
-const guide = join(ROOT, CONFIGURATION_FILE);
-writeFileSync(guide, configurationText(readFileSync(guide, 'utf8')));
+writeFileSync(join(ROOT, SETTINGS_DATA_FILE), settingsDataText());
 writeFileSync(join(ROOT, ENV_EXAMPLE_FILE), envExampleText());

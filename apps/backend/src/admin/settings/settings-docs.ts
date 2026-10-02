@@ -7,70 +7,28 @@ import {
 } from '@quiz-dock/contracts';
 
 /**
- * The documentation generated from the settings registry (administration spec
- * §3.1): the environment reference of the self-hosting guide, between markers
- * (the prose around it stays hand-written), and the development stack's
+ * What is generated from the settings registry (administration spec §3.1):
+ * the environment reference as data, which the website reads at each release
+ * to render its configuration page, and the development stack's
  * `.env.example`. `pnpm generate:settings-docs` writes them; a test fails when
  * the committed files differ.
  */
 
-export const CONFIGURATION_FILE = 'docs/self-hosting/configuration.md';
+export const SETTINGS_DATA_FILE = 'schema/settings.json';
 export const ENV_EXAMPLE_FILE = '.env.example';
-export const BEGIN =
-  '<!-- BEGIN environment reference: generated from the settings registry (pnpm generate:settings-docs) -->';
-export const END = '<!-- END environment reference -->';
+/** The page of the website that renders the reference. */
+export const CONFIGURATION_URL = 'https://quizdock.github.io/docs/operator/configuration/';
 
-interface Group {
-  title: string;
-  categories: SettingCategory[];
-  /** Markdown under the table. */
-  note?: string;
-}
-
-const GROUPS: Group[] = [
-  {
-    title: 'Identity & branding',
-    categories: ['identity'],
-    note: 'How to replace the logo and the stylesheet: **[branding](branding.md)**.',
-  },
-  {
-    title: 'Access & authentication',
-    categories: ['access'],
-    note:
-      'How the two modes behave, how to register the client on your IdP and what open access means:\n' +
-      '**[authentication](auth.md)**. The public demo guards are described [below](#public-demo-instance).',
-  },
-  {
-    title: 'Network & invitation',
-    categories: ['network'],
-    note:
-      'Which setup offers which invitation address: [where participants connect](invitation-address.md).\n' +
-      'The community catalogue, its formats and download checks: [community store](community-store.md).',
-  },
-  {
-    title: 'Storage',
-    categories: ['storage'],
-    note: 'Back up `MEDIA_DIR` and `STORE_DIR` with the database: they are not in PostgreSQL.',
-  },
-  {
-    title: 'Limits',
-    categories: ['limits'],
-    note:
-      'Formats, conversion and playback: [audio & video](audio-video.md). **Behind a reverse proxy, raise its\n' +
-      'request body limit to the largest of these sizes** — nginx refuses anything over 1 MB by default\n' +
-      '(`client_max_body_size 50m;`).',
-  },
-  { title: 'Game pace', categories: ['pace'] },
-  {
-    title: 'Administration',
-    categories: ['admin'],
-    note: 'What the web administration may do, and the audit: [administration](administration.md).',
-  },
+/** The reference's sections, in the order the page shows them. */
+const GROUPS: { id: SettingCategory; title: string }[] = [
+  { id: 'identity', title: 'Identity & branding' },
+  { id: 'access', title: 'Access & authentication' },
+  { id: 'network', title: 'Network & invitation' },
+  { id: 'storage', title: 'Storage' },
+  { id: 'limits', title: 'Limits' },
+  { id: 'pace', title: 'Game pace' },
+  { id: 'admin', title: 'Administration' },
 ];
-
-const LEVELS =
-  'Level: **C1** critical (start-up, data, security — shown, never changed by the administration) · ' +
-  '**C2** access and resources · **C3** behaviour · **C4** look and wording.';
 
 /** A value as the documentation shows it. */
 function shown(value: unknown): string {
@@ -78,77 +36,71 @@ function shown(value: unknown): string {
   return `\`${Array.isArray(value) ? value.join(',') : String(value)}\``;
 }
 
-const cell = (text: string) => text.replace(/\|/g, '\\|').replace(/\n/g, ' ');
-
-function settingRow(def: SettingDefinition): string {
-  return `| \`${def.key}\` | ${cell(def.defaultText ?? shown(def.default))} | ${cell(def.accepts)} | ${def.criticality} | ${cell(def.description)} |`;
-}
-
-function deploymentRow(v: DeploymentVariable): string {
-  return `| \`${v.key}\` | ${cell(v.defaultText ?? '—')} | ${v.criticality} | ${cell(v.description)} |`;
-}
-
 const visible = (def: SettingDefinition) => !def.internal && !def.deprecated;
 
-/** The generated part of the self-hosting guide. */
-export function environmentReference(): string {
-  const parts: string[] = [LEVELS, ''];
-  for (const group of GROUPS) {
-    const defs = SETTING_LIST.filter((d) => group.categories.includes(d.category) && visible(d));
-    parts.push(
-      `### ${group.title}`,
-      '',
-      '| Variable | Default | Accepts | Level | Description |',
-      '|---|---|---|---|---|',
-      ...defs.map(settingRow),
-      '',
-    );
-    if (group.note) parts.push(group.note, '');
-  }
-  const compose = DEPLOYMENT_VARIABLES.filter(
-    (v) =>
-      v.readBy === 'compose' && !v.internal && !['PUBLIC_HOST', 'PUBLIC_SCHEME'].includes(v.key),
-  );
-  parts.push(
-    '### Deployment (Compose)',
-    '',
-    'Read by `docker-compose.prod.yml` and the `quizdock` script, never by the application.',
-    '',
-    '| Variable | Default | Level | Description |',
-    '|---|---|---|---|',
-    ...compose.map(deploymentRow),
-    ...DEPLOYMENT_VARIABLES.filter((v) => v.key === 'QUIZDOCK_MODE').map(deploymentRow),
-    '',
-  );
-  const keycloak = DEPLOYMENT_VARIABLES.filter(
-    (v) =>
-      (v.readBy === 'keycloak' || ['PUBLIC_HOST', 'PUBLIC_SCHEME'].includes(v.key)) && !v.internal,
-  );
-  parts.push(
-    '### Bundled Keycloak (full preset)',
-    '',
-    '`quizdock init --full` fetches `docker-compose.full.yml`, used alongside the production',
-    'Compose file. Only this overlay derives the app and OIDC URLs from `PUBLIC_HOST`.',
-    'Other presets keep their existing defaults even when that variable is set.',
-    '',
-    '| Variable | Default | Level | Description |',
-    '|---|---|---|---|',
-    ...keycloak.map(deploymentRow),
-    '',
-    'Explicit `APP_PUBLIC_URL`, `OIDC_ISSUER` and `OIDC_INTERNAL_URL` override the full',
-    "preset's derived defaults. Realm import creates accounts only on a fresh database;",
-    'changing the initial passwords does not reset existing accounts.',
-  );
-  return parts.join('\n');
+/** A variable as the reference shows it; texts are Markdown. */
+export interface ReferenceEntry {
+  key: string;
+  default: string;
+  level: string;
+  description: string;
+  /** Application settings only. */
+  accepts?: string;
+  applies?: SettingDefinition['applies'];
+  /** Whether the web administration may change it. */
+  administration?: boolean;
+  /** The quick setup's question that sets it. */
+  preset?: string;
 }
 
-/** The self-hosting guide with its environment reference regenerated. */
-export function configurationText(current: string): string {
-  const begin = current.indexOf(BEGIN);
-  const end = current.indexOf(END);
-  if (begin < 0 || end < begin) throw new Error(`${CONFIGURATION_FILE}: markers missing`);
-  return `${current.slice(0, begin + BEGIN.length)}\n\n${environmentReference()}\n\n${current.slice(end)}`;
+export interface SettingsData {
+  groups: { id: string; title: string; settings: ReferenceEntry[] }[];
+  /** Read by `docker-compose.prod.yml` and the `quizdock` script, never by the application. */
+  compose: ReferenceEntry[];
+  /** The `full` setup's bundled Keycloak. */
+  keycloak: ReferenceEntry[];
 }
+
+const settingEntry = (def: SettingDefinition): ReferenceEntry => ({
+  key: def.key,
+  default: def.defaultText ?? shown(def.default),
+  level: def.criticality,
+  description: def.description,
+  accepts: def.accepts,
+  applies: def.applies,
+  administration: def.overridable,
+  ...(def.preset ? { preset: def.preset.axis } : {}),
+});
+
+const deploymentEntry = (v: DeploymentVariable): ReferenceEntry => ({
+  key: v.key,
+  default: v.defaultText ?? '—',
+  level: v.criticality,
+  description: v.description,
+});
+
+/** The environment reference, as data. */
+export function settingsData(): SettingsData {
+  const own = ['PUBLIC_HOST', 'PUBLIC_SCHEME'];
+  return {
+    groups: GROUPS.map((group) => ({
+      ...group,
+      settings: SETTING_LIST.filter((d) => d.category === group.id && visible(d)).map(settingEntry),
+    })),
+    compose: [
+      ...DEPLOYMENT_VARIABLES.filter(
+        (v) => v.readBy === 'compose' && !v.internal && !own.includes(v.key),
+      ),
+      ...DEPLOYMENT_VARIABLES.filter((v) => v.key === 'QUIZDOCK_MODE'),
+    ].map(deploymentEntry),
+    keycloak: DEPLOYMENT_VARIABLES.filter(
+      (v) => (v.readBy === 'keycloak' || own.includes(v.key)) && !v.internal,
+    ).map(deploymentEntry),
+  };
+}
+
+/** The committed file. */
+export const settingsDataText = (): string => `${JSON.stringify(settingsData(), null, 2)}\n`;
 
 // ── .env.example (the development stack) ───────────────────────────────────
 
@@ -244,7 +196,7 @@ export function envExampleText(): string {
     '#',
     '# Generated from the settings registry (pnpm generate:settings-docs): edit',
     '# packages/contracts/src/admin/settings.ts, not this file. Every variable is',
-    '# described in docs/self-hosting/configuration.md.',
+    `# described in ${CONFIGURATION_URL}`,
     '',
   ];
   for (const section of SECTIONS) {
