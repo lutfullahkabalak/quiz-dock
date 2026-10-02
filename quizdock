@@ -46,6 +46,13 @@ env_get() {
 
 mode() { env_get QUIZDOCK_MODE compose; }
 tag() { env_get QUIZDOCK_TAG latest; }
+# The all-in-one image of that tag: `standalone` for latest, `standalone-X.Y.Z` for a release.
+standalone_image() {
+  case "$(tag)" in
+    latest | standalone) printf '%s:standalone\n' "$IMAGE" ;;
+    *) printf '%s:standalone-%s\n' "$IMAGE" "$(tag | sed 's/^standalone-//')" ;;
+  esac
+}
 http_port() { env_get HTTP_PORT 18080; }
 
 need_init() {
@@ -219,10 +226,10 @@ cmd_up() {
         info "starting container $CONTAINER"
         docker start "$CONTAINER" >/dev/null
       else
-        info "creating container $CONTAINER (image $IMAGE:standalone)"
+        info "creating container $CONTAINER (image $(standalone_image))"
         docker run -d --name "$CONTAINER" --restart unless-stopped \
           -p "$(http_port):3000" -v quizdock:/data --env-file "$ENV_FILE" \
-          "$IMAGE:standalone" >/dev/null
+          "$(standalone_image)" >/dev/null
       fi
       ;;
   esac
@@ -371,7 +378,7 @@ cmd_upgrade() {
       ;;
     standalone)
       info "pulling"
-      docker pull "$IMAGE:standalone"
+      docker pull "$(standalone_image)"
       info "recreating the container (data stays in the quizdock volume)"
       docker rm -f "$CONTAINER" >/dev/null 2>&1 || true
       cmd_up
