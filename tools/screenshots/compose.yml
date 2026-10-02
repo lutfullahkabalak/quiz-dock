@@ -15,6 +15,11 @@ services:
       APP_LANG: en
       # Local mode whatever the dev stack's .env says: the screenshots sign in by name.
       AUTH_MODE: none
+      ALLOW_ANONYMOUS_PARTICIPANTS: 'false'
+      # The administration as an operator who allows it: its controls, not its notices.
+      # A stack bound to this computer: the token is no secret (shoot.mjs gives it).
+      ADMIN_WEB_SCOPE: write
+      ADMIN_TOKEN: demo-stack-admin-token-not-a-secret
   frontend:
     image: quiz-dock-frontend:latest
     pull_policy: never
