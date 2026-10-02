@@ -68,6 +68,9 @@ void i18next.use(initReactI18next).init({
   react: { useSuspense: false }, // chargées avant le rendu → pas de Suspense
 });
 
+// The page says its language, for screen readers and the browser (index.html carries the default).
+if (typeof document !== 'undefined') document.documentElement.lang = resolveLang();
+
 /** Loads the instance's language, and English for a key it would miss, into i18next. */
 export async function loadLanguages(): Promise<void> {
   const langs = [...new Set([resolveLang(), DEFAULT_LANG])];

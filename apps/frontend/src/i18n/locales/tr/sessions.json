@@ -13,7 +13,7 @@
   "list": {
     "title": "Oturum geçmişi",
     "backToEditor": "Editöre geri dön",
-    "empty": "Bu quiz için arşivlenmiş oturum yok. Bir oturumun sonunda, sonuçları burada bulmak için \"Sonuçları arşivle\"yi seçin.",
+    "empty": "Bu quiz için arşivlenmiş oturum yok. Bir oturumun sonunda, sonuçları burada bulmak için \"Bu quizin sonuçlarını arşivle\" seçeneğini işaretleyin.",
     "capture": "Yanıt kaydı",
     "inRoom_one": "Oda · {{count}} quiz",
     "inRoom_other": "Oda · {{count}} quiz",

@@ -23,6 +23,19 @@
     "given": "已为此标签页提供管理令牌。",
     "forget": "清除"
   },
+  "update": {
+    "available": "QuizDock {{version}} 已发布。",
+    "running": "此实例运行的是 {{current}} · 发布于 {{date}}。",
+    "command": "在服务器上，实例所在的文件夹中：",
+    "does": "它会先备份，再更新镜像、执行迁移，最后检查实例的健康状况。",
+    "copy": "复制",
+    "copied": "已复制",
+    "changes": "新内容",
+    "upgrading": "升级之前",
+    "github": "在 GitHub 上查看",
+    "hide": "隐藏，直到下一个版本",
+    "close": "关闭"
+  },
   "settings": {
     "search": "搜索设置",
     "view": "布局",
@@ -50,7 +63,9 @@
       "locks": "被 ADMIN_LOCK 锁定：",
       "safeMode": "安全模式（ADMIN_OVERRIDES=ignore）：在此更改的值会保留，但不会生效。",
       "token": "本地模式：更改需要管理令牌。",
-      "noToken": "本地模式：在设置 ADMIN_TOKEN 之前，无法通过网页更改任何内容。"
+      "noToken": "本地模式：在设置 ADMIN_TOKEN 之前，无法通过网页更改任何内容。",
+      "readWhy": "这是默认设置：在服务器运维人员允许之前，任何人都不能通过浏览器修改实例。",
+      "doc": "如何允许修改"
     },
     "columns": {
       "variable": "变量",
@@ -161,6 +176,7 @@
     "HOST_LAN_IPS": "局域网地址",
     "QUIZ_STORE_URL": "社区目录",
     "QUIZ_STORE_HOSTS": "允许下载的主机",
+    "UPDATE_CHECK": "检查新版本",
     "DATABASE_URL": "数据库",
     "REDIS_URL": "Redis",
     "MEDIA_DIR": "媒体文件夹",
@@ -185,6 +201,7 @@
     "ADMIN_TOKEN": "管理令牌（本地模式）",
     "ADMIN_OVERRIDES": "通过网页更改的值",
     "QUIZDOCK_FLAVOR": "镜像版本类型",
+    "APP_VERSION": "版本",
     "PRISMA_SKIP_CONNECT": "不连接数据库启动"
   },
   "operations": {
@@ -193,6 +210,9 @@
     },
     "migrations": {
       "status": "数据库迁移"
+    },
+    "version": {
+      "check": "版本"
     },
     "seat": {
       "status": "主持席位",
@@ -457,7 +477,7 @@
     "finishedHelp": "向导已永久关闭。此处设置的所有内容以后都可以在管理页面中更改，以 ADMIN_WEB_SCOPE 允许的范围为限。",
     "token": {
       "title": "初始化令牌",
-      "help": "访问全新实例的人不应因此成为其所有者：请输入实例启动时写入日志的初始化令牌（或在容器中运行 `qd setup.token` 获得）。它只能使用一次，有效期一天。",
+      "help": "访问全新实例的人不应因此成为其所有者：请输入实例启动时写入日志的初始化令牌（或在容器中运行 `qd setup.token` 获得）。它只能使用一次，生成后 24 小时内有效。",
       "label": "令牌",
       "open": "开始"
     },
@@ -510,7 +530,13 @@
         "public": "公开地址需要一个指向本机的域名，且其端口可从互联网访问（或通过反向代理）——并需要 https，手机才能安装应用。",
         "docker": "Docker Desktop 的 bridge 网络：容器看不到本机自身的地址——请在 HOST_LAN_IPS 中设置。"
       },
-      "expired": "此测试已过期：请重新开始。"
+      "expired": "此测试已过期：请重新开始。",
+      "adoptHelp": "手机访问成功后，可将该地址设为实例的加入地址：每个等候室都以它为起点（APP_PUBLIC_URL）。主持人仍可为某一局选择其他地址。",
+      "adoptReadOnly": "此处的管理后台不能修改设置：实例的加入地址保持运维人员的设定（APP_PUBLIC_URL）。主持人在等候室为每一局选择地址。",
+      "other": "其他地址",
+      "add": "添加",
+      "current": "实例的加入地址",
+      "use": "用于邀请"
     },
     "access": {
       "firstAdmin": "本地模式：将管理此实例的名称（用它登录）。通过网页进行更改还需要 ADMIN_TOKEN。",
@@ -700,6 +726,18 @@
       "failed_one": "{{count}} 个失败",
       "failed_other": "{{count}} 个失败",
       "list": "已应用的迁移，最新的在前"
+    },
+    "version": {
+      "title": "版本",
+      "current": "此实例：{{version}}",
+      "available": "{{version}} 已于 {{date}} 发布",
+      "upToDate": "最新的稳定版本",
+      "dev": "开发版本：不作比较",
+      "none": "尚未发布稳定版本",
+      "off": "版本检查已关闭（UPDATE_CHECK）",
+      "failed": "GitHub 没有响应：最新版本未知",
+      "checked": "上次检查：{{when}}",
+      "details": "查看更新"
     },
     "level": {
       "ok": "正常",

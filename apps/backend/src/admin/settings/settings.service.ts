@@ -203,7 +203,7 @@ export interface SettingRule {
   check(settings: SettingsService): string | null;
 }
 
-/** What `client_max_body_size` lets through in the two-container setup's nginx. */
+/** The request body limit of the Documentation's reverse-proxy example (nginx `client_max_body_size 64m`). */
 const PROXY_BODY_LIMIT = 64 * 1024 * 1024;
 const MB = 1024 * 1024;
 
@@ -225,7 +225,7 @@ export const SETTING_RULES: SettingRule[] = [
         s.get(SETTINGS.IMPORT_MAX_BYTES),
       );
       return largest > PROXY_BODY_LIMIT
-        ? `The largest upload allowed (${Math.round(largest / MB)} MB) is above what the two-container setup's nginx lets through (64 MB): raise its client_max_body_size, or the limits.`
+        ? `The largest upload allowed (${Math.round(largest / MB)} MB) is above 64 MB: check that the reverse proxy in front lets it through (nginx: client_max_body_size), or lower the limits.`
         : null;
     },
   },

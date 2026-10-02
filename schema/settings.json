@@ -1,0 +1,531 @@
+{
+  "groups": [
+    {
+      "id": "identity",
+      "title": "Identity & branding",
+      "settings": [
+        {
+          "key": "APP_NAME",
+          "default": "`QuizDock`",
+          "level": "C4",
+          "description": "Brand name shown in the header, tab title and share text.",
+          "accepts": "1 to 40 characters",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "APP_LANG",
+          "default": "`en`",
+          "level": "C4",
+          "description": "UI language for the instance. One per deployment (no browser detection). New quizzes start in this language; each quiz can be set to another in its settings.",
+          "accepts": "`en` · `fr` · `es` · `zh` · `zh-TW` · `tr`",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "APP_LOGO_URL",
+          "default": "—",
+          "level": "C4",
+          "description": "Logo served from somewhere else (a CDN, a path outside `branding/`). Empty by default, which is the usual setup: the logo is then looked up in the mounted `branding/` folder.",
+          "accepts": "an `https://` URL",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "APP_FEEDBACK_URL",
+          "default": "—",
+          "level": "C4",
+          "description": "Where the home page's *Report a bug · Suggest a feature · Fix a translation · Ask a question* links lead. Empty: the QuizDock repository, its forms filled in with the version, the browser and the language, and an invitation to star it on GitHub. Another GitHub repository (`https://github.com/owner/repo`): the same forms there — copy `.github/ISSUE_TEMPLATE/` into it. Any other address: a single *Send feedback* link. `none`: no links.",
+          "accepts": "an `http(s)://` URL, or `none`",
+          "applies": "live",
+          "administration": true
+        }
+      ]
+    },
+    {
+      "id": "access",
+      "title": "Access & authentication",
+      "settings": [
+        {
+          "key": "AUTH_MODE",
+          "default": "`none`",
+          "level": "C1",
+          "description": "`none` = local mode (no IdP, single host seat); `oidc` = sign-in with any OpenID Connect provider, the session held by the backend.",
+          "accepts": "`none` · `oidc`",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "DEMO_MODE",
+          "default": "`false`",
+          "level": "C1",
+          "description": "`true` = public demo guards: every visitor shares one host account (`demo_user`), which holds the host seat without expiry; media uploads are refused, and everything is wiped every hour.",
+          "accepts": "`true` · `false`",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "ALLOW_ANONYMOUS_PARTICIPANTS",
+          "default": "`false`",
+          "level": "C2",
+          "description": "`AUTH_MODE=oidc` only: `true` lets hosts open a game to participants without an account, the PIN and a nickname alone — chosen at each launch.",
+          "accepts": "`true` · `false`",
+          "applies": "live",
+          "administration": true,
+          "preset": "audience"
+        },
+        {
+          "key": "OIDC_ISSUER",
+          "default": "—",
+          "level": "C1",
+          "description": "`iss` expected in tokens (your provider's issuer URL). Required when `AUTH_MODE=oidc`.",
+          "accepts": "an `http(s)://` URL, without query or fragment",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_CLIENT_ID",
+          "default": "`quiz-dock-frontend`",
+          "level": "C1",
+          "description": "The client registered with your provider.",
+          "accepts": "text",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_CLIENT_SECRET",
+          "default": "—",
+          "level": "C1",
+          "description": "Its secret, for a confidential client. Unset: a public client, protected by PKCE.",
+          "accepts": "text",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_INTERNAL_URL",
+          "default": "_(host of `OIDC_JWKS_URI`)_",
+          "level": "C1",
+          "description": "Where the backend reaches the provider when the browser's address is not reachable from its network (Docker): discovery, tokens and keys go through it. Defaults to the host of `OIDC_JWKS_URI` when that one points elsewhere than the issuer.",
+          "accepts": "an `http(s)://` URL",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_JWKS_URI",
+          "default": "_(discovery)_",
+          "level": "C1",
+          "description": "Key endpoint, when discovery's must not be used.",
+          "accepts": "an `http(s)://` URL",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_AUDIENCE",
+          "default": "—",
+          "level": "C1",
+          "description": "Expected `aud`. Left unset = audience check skipped.",
+          "accepts": "text",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_ROLES_CLAIM",
+          "default": "`roles`",
+          "level": "C1",
+          "description": "Dotted path to the roles array in the JWT (e.g. `groups`, `realm_access.roles`). A typo locks every administrator out.",
+          "accepts": "a dotted path",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "OIDC_NAME_CLAIM",
+          "default": "—",
+          "level": "C3",
+          "description": "Dotted path to the display-name claim (e.g. the standard `nickname`). Unset, or absent from a token: `preferred_username`, then `name`, then `email`.",
+          "accepts": "a dotted path",
+          "applies": "live",
+          "administration": true
+        }
+      ]
+    },
+    {
+      "id": "network",
+      "title": "Network & invitation",
+      "settings": [
+        {
+          "key": "PORT",
+          "default": "`3000`",
+          "level": "C1",
+          "description": "In-container HTTP port. Map it to a host port (`-p 18080:3000`).",
+          "accepts": "a port",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "TRUST_PROXY",
+          "default": "_(private addresses)_",
+          "level": "C1",
+          "description": "Which hops may speak for the client through `X-Forwarded-For` / `X-Forwarded-Proto` (client address of the wrong-PIN limit, `Secure` session cookie). Default: a peer on a private address.",
+          "accepts": "`false`, `true`, a number of proxies, or addresses and CIDR ranges",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "APP_PUBLIC_URL",
+          "default": "—",
+          "level": "C3",
+          "description": "Public address of the instance. Offered first as the invitation address (QR code, join link) on the host console.",
+          "accepts": "an `http(s)://` URL, without path",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "HOST_LAN_IPS",
+          "default": "—",
+          "level": "C3",
+          "description": "Comma-separated LAN IPs of the machine (bare IPs), for setups where the container cannot see the host's interfaces (Docker Desktop, bridge network). Offered as invitation addresses with the scheme and port of the page.",
+          "accepts": "comma-separated IPv4 addresses",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "QUIZ_STORE_URL",
+          "default": "_(disabled)_",
+          "level": "C2",
+          "description": "Comma-separated registry URLs of the community catalogue. Leave unset or empty to hide the community page and prevent all outgoing store requests. Enabling contacts the listed services from the server: its IP is visible, no user data is sent.",
+          "accepts": "up to five comma-separated `http(s)://` URLs",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "QUIZ_STORE_HOSTS",
+          "default": "`github.com,release-assets.githubusercontent.com`",
+          "level": "C2",
+          "description": "Additional exact host names allowed for source indexes, artifacts and redirects. Registry hosts are allowed automatically. Empty: the registry hosts only.",
+          "accepts": "comma-separated host names",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "UPDATE_CHECK",
+          "default": "`true`",
+          "level": "C4",
+          "description": "The administration and `quizdock status` say when a newer stable release of QuizDock is out: the server asks GitHub (`api.github.com`) at most once a day. Nothing is installed: the update stays `./quizdock upgrade`. GitHub sees the server's IP; nothing else is sent.",
+          "accepts": "`true` · `false`",
+          "applies": "live",
+          "administration": true,
+          "preset": "internet"
+        }
+      ]
+    },
+    {
+      "id": "storage",
+      "title": "Storage",
+      "settings": [
+        {
+          "key": "DATABASE_URL",
+          "default": "— (required)",
+          "level": "C1",
+          "description": "PostgreSQL connection string, e.g. `postgresql://user:pass@host:5432/quizdock`. **Required** (provided by Compose; baked into `:standalone`).",
+          "accepts": "a PostgreSQL URL",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "REDIS_URL",
+          "default": "— (provided by Compose)",
+          "level": "C1",
+          "description": "Redis connection string, e.g. `redis://host:6379`. Live-game state only.",
+          "accepts": "a Redis URL",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "MEDIA_DIR",
+          "default": "`/data/media` (images)",
+          "level": "C1",
+          "description": "Where uploaded images, videos and sounds are stored. Mount a volume here to persist.",
+          "accepts": "a path",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "STORE_DIR",
+          "default": "`/data/store` (images)",
+          "level": "C1",
+          "description": "Where the **catalogue of shared templates** lives: `index.json` plus one folder per template, in the bundle format. Its own volume, like `MEDIA_DIR` — **back it up with the database**, it is not in PostgreSQL. The sample quizzes are seeded here at start.",
+          "accepts": "a path",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "SAMPLES_DIR",
+          "default": "`/app/samples` (images)",
+          "level": "C1",
+          "description": "Where the image keeps the **sample quizzes** it ships: one bundle folder each, with their media. At its first start an instance also adds those media to the **instance's media**, unless an administrator already curates that library; a `.samples-media` marker in `MEDIA_DIR` keeps them from coming back once removed.",
+          "accepts": "a path",
+          "applies": "restart",
+          "administration": false
+        }
+      ]
+    },
+    {
+      "id": "limits",
+      "title": "Limits",
+      "settings": [
+        {
+          "key": "MEDIA_MAX_BYTES",
+          "default": "`10485760`",
+          "level": "C2",
+          "description": "Max size of an uploaded **image**, in bytes. Default 10 MiB.",
+          "accepts": "bytes, 1 to 50 MB",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "MEDIA_MAX_VIDEO_MB",
+          "default": "`50`",
+          "level": "C2",
+          "description": "Max size of an uploaded **video**, in MB. The editor converts to MP4 H.264 + AAC and compresses a long video to fit.",
+          "accepts": "1 to 500 (MB)",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "MEDIA_MAX_AUDIO_MB",
+          "default": "`10`",
+          "level": "C2",
+          "description": "Max size of an uploaded **sound**, in MB. The editor converts to M4A (AAC).",
+          "accepts": "1 to 100 (MB)",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "IMPORT_MAX_BYTES",
+          "default": "`52428800`",
+          "level": "C2",
+          "description": "Max size of an imported quiz bundle (zip), in bytes. Default 50 MiB.",
+          "accepts": "bytes, 1 to 500 MB",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "PUBLICATION_MAX_MB",
+          "default": "`20`",
+          "level": "C3",
+          "description": "Largest bundle the editor's *Export for publication* allows, in MB: the limit of the community store, kept under GitHub's 25 MB web-upload limit. An organisation running its own store may set another.",
+          "accepts": "1 to 100 (MB)",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "MEDIA_LIBRARY_LINKS",
+          "default": "_(seven free libraries)_",
+          "level": "C4",
+          "description": "The free media libraries the editor links to: a JSON list of `{\"name\", \"url\", \"kinds\"}` (`kinds` among `image`, `video`, `audio`), or `none` to hide them (an instance without Internet). Default, open licences only and several per kind: OpenSoundLibrary, Freesound, ccMixter, Openverse, Wikimedia Commons, NASA Image and Video Library, Internet Archive.",
+          "accepts": "a JSON list, or `none`",
+          "applies": "live",
+          "administration": true,
+          "preset": "internet"
+        }
+      ]
+    },
+    {
+      "id": "pace",
+      "title": "Game pace",
+      "settings": [
+        {
+          "key": "GAME_READ_DELAY_MS",
+          "default": "`3000`",
+          "level": "C3",
+          "description": "Reading window shown before a question's timer starts, in milliseconds.",
+          "accepts": "0 to 10000 (ms)",
+          "applies": "live",
+          "administration": true,
+          "preset": "accessibility"
+        },
+        {
+          "key": "GAME_ALL_ANSWERED_DELAY_MS",
+          "default": "`1000`",
+          "level": "C3",
+          "description": "Once every participant has answered, how long the question stays before its answer is revealed, in milliseconds.",
+          "accepts": "0 to 5000 (ms)",
+          "applies": "live",
+          "administration": true,
+          "preset": "accessibility"
+        },
+        {
+          "key": "GAME_AUTO_ADVANCE_MS",
+          "default": "`5000`",
+          "level": "C3",
+          "description": "Automatic mode: time spent on a reveal or a content slide before moving on, unless the question or slide sets its own, in milliseconds.",
+          "accepts": "1000 to 60000 (ms)",
+          "applies": "live",
+          "administration": true
+        },
+        {
+          "key": "GAME_MEDIA_WAIT_S",
+          "default": "`10`",
+          "level": "C3",
+          "description": "How long the room waits at most, before a question, for the devices that play its sound or video to load it (the host can start anyway), in seconds. `0` never waits.",
+          "accepts": "0 to 60 (s)",
+          "applies": "live",
+          "administration": true,
+          "preset": "audience"
+        },
+        {
+          "key": "LIVE_MOTION",
+          "default": "`on`",
+          "level": "C4",
+          "description": "Transitions between steps on the projection and the phones, as a new room starts: the previous background fades out, the step comes in, the standings slide. `off` for old projectors or low-end devices. The host switches it for their room at any time (console, *Animations*); a device asking the system to reduce motion keeps fades only.",
+          "accepts": "`on` · `off`",
+          "applies": "next-room",
+          "administration": true,
+          "preset": "accessibility"
+        }
+      ]
+    },
+    {
+      "id": "admin",
+      "title": "Administration",
+      "settings": [
+        {
+          "key": "ADMIN_WEB_SCOPE",
+          "default": "`read`",
+          "level": "C1",
+          "description": "What the web administration may change in the Instance domain (settings, accounts, host seat): `read` shows everything and changes nothing; `write` lets administrators change the C2–C4 settings and run the instance operations, each critical one confirmed. Media and quizzes are not concerned.",
+          "accepts": "`read` · `write`",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "ADMIN_LOCK",
+          "default": "—",
+          "level": "C1",
+          "description": "Variables the web administration may never change, whatever `ADMIN_WEB_SCOPE` says: comma-separated names (e.g. `APP_NAME,MEDIA_MAX_VIDEO_MB`). The CLI is not concerned.",
+          "accepts": "comma-separated variable names",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "ADMIN_TOKEN",
+          "default": "—",
+          "level": "C1",
+          "description": "Local mode (`AUTH_MODE=none`) has no accounts, so whoever reaches the instance could administer it: the web administration changes nothing there — the media library aside — unless this token is set, and asks for it before any change. At least 32 characters: a shorter one is ignored, as if unset.",
+          "accepts": "text, 32 characters or more",
+          "applies": "restart",
+          "administration": false
+        },
+        {
+          "key": "ADMIN_OVERRIDES",
+          "default": "`apply`",
+          "level": "C1",
+          "description": "`ignore` starts the instance on its environment alone: every value changed from the web administration is ignored (kept, not deleted) — the way back when one of them went wrong.",
+          "accepts": "`apply` · `ignore`",
+          "applies": "restart",
+          "administration": false
+        }
+      ]
+    }
+  ],
+  "compose": [
+    {
+      "key": "HTTP_PORT",
+      "default": "`18080`",
+      "level": "C1",
+      "description": "Host port mapped to the app."
+    },
+    {
+      "key": "QUIZDOCK_TAG",
+      "default": "`latest`",
+      "level": "C1",
+      "description": "Image tag to run (`0.4.0` to pin)."
+    },
+    {
+      "key": "POSTGRES_USER",
+      "default": "`live`",
+      "level": "C1",
+      "description": "Bundled PostgreSQL user (builds `DATABASE_URL`)."
+    },
+    {
+      "key": "POSTGRES_PASSWORD",
+      "default": "`live`",
+      "level": "C1",
+      "description": "Its password."
+    },
+    {
+      "key": "POSTGRES_DB",
+      "default": "`quizdock`",
+      "level": "C1",
+      "description": "Its database."
+    },
+    {
+      "key": "QUIZDOCK_MODE",
+      "default": "`compose`",
+      "level": "C1",
+      "description": "What the `quizdock` script runs: `compose`, `standalone` or `full`."
+    }
+  ],
+  "keycloak": [
+    {
+      "key": "PUBLIC_HOST",
+      "default": "`localhost`",
+      "level": "C1",
+      "description": "Full preset: browser-facing hostname or LAN IP for both services."
+    },
+    {
+      "key": "PUBLIC_SCHEME",
+      "default": "`http`",
+      "level": "C1",
+      "description": "Full preset: URL scheme; use `https` behind a TLS reverse proxy."
+    },
+    {
+      "key": "KEYCLOAK_PORT",
+      "default": "`18081` (full), `18080` (dev)",
+      "level": "C1",
+      "description": "Keycloak's published HTTP port."
+    },
+    {
+      "key": "KEYCLOAK_PUBLIC_URL",
+      "default": "Scheme, host and Keycloak port",
+      "level": "C1",
+      "description": "Full preset: override the browser-facing Keycloak URL, including a proxy path."
+    },
+    {
+      "key": "KEYCLOAK_APP_URL",
+      "default": "Scheme, host and app port (full)",
+      "level": "C1",
+      "description": "Override the app URL allowed for browser redirects. Dev also allows `localhost:15173`, and defaults to `localhost:18081`."
+    },
+    {
+      "key": "KEYCLOAK_DEV_URL",
+      "default": "`http://localhost:15173` (dev)",
+      "level": "C1",
+      "description": "Additional dev frontend redirect, alongside `KEYCLOAK_APP_URL`. The full preset uses only `KEYCLOAK_APP_URL`."
+    },
+    {
+      "key": "KEYCLOAK_ADMIN",
+      "default": "`admin`",
+      "level": "C1",
+      "description": "Keycloak bootstrap administrator."
+    },
+    {
+      "key": "KEYCLOAK_ADMIN_PASSWORD",
+      "default": "Generated by `init --full`",
+      "level": "C1",
+      "description": "Bootstrap administrator password; replace the manual example before first start."
+    },
+    {
+      "key": "KEYCLOAK_HOST_PASSWORD",
+      "default": "Generated by `init --full`",
+      "level": "C1",
+      "description": "Initial temporary full-preset host password; dev always uses `animateur`."
+    },
+    {
+      "key": "KEYCLOAK_PLAYER_PASSWORD",
+      "default": "Generated by `init --full`",
+      "level": "C1",
+      "description": "Initial temporary full-preset player password; dev always uses `participant`."
+    }
+  ]
+}

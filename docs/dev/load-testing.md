@@ -340,13 +340,13 @@ Raw results: [`load-results/2026-09-27-after-lots.json`](load-results/2026-09-27
 
 ### Sizing
 
-For operators, from these figures: [sizing the VM](../self-hosting/sizing.md).
+For operators, from these figures: [sizing the VM](https://quizdock.github.io/docs/operator/sizing/).
 
 ## 4. Not measured (yet)
 
 - **Media.** Questions with sound or video: the files are fetched by every
   device, the bandwidth and the reverse proxy matter more than the CPU. See
-  [audio & video](../self-hosting/audio-video.md).
+  [audio & video](https://quizdock.github.io/docs/host/media/).
 - **A real network.** Players on phones over Wi-Fi add their own latency; the
   spread between devices then depends on their connection more than on the
   server.

@@ -19,6 +19,7 @@ const USAGE = `QuizDock admin CLI — runs inside the app container.
 Usage: qd <command> [options]      (in the container; = node dist/cli.js)
 
   doctor            Check env, database, migrations, Redis, media dir, OIDC discovery
+  version           This instance's version, and the latest stable release (UPDATE_CHECK)
   migrate:status    List applied / pending migrations
   seat:status       Show who holds the local-mode host seat
   seat:release      Free the host seat, whoever holds it

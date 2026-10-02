@@ -17,7 +17,7 @@ checked afterwards.
 **Format guide.** [`schema/quiz-format-guide.md`](../schema/quiz-format-guide.md)
 is the same format in prose, text only, rules per type included: what someone —
 or a chatbot — needs to write a `quiz.json` by hand
-([self-hosting/import-from-other-tools.md](self-hosting/import-from-other-tools.md)).
+([import a quiz](https://quizdock.github.io/docs/host/import-a-quiz/)).
 It is generated too, from the content schemas this time, and follows the
 importer rather than a manifest version. A test fails when a field of the
 format is neither described in it nor listed as left out.
@@ -32,7 +32,7 @@ Contributors changing the bundle schema or a content schema run
 
 - **Export** — editor header → *Export*, `GET /api/v1/quizzes/:id/export`, or
   `qd quiz:export <id> <file.zip>` from the operator CLI
-  ([self-hosting/cli.md](self-hosting/cli.md)). An export fixes the quiz's `slug`
+  ([the CLI](https://quizdock.github.io/docs/operator/cli/)). An export fixes the quiz's `slug`
   (derived from the title the first time) and leaves its `revision` alone — that
   counter moves when the quiz is *shared* to the template catalogue.
 - **Export for publication** — editor header → *Export for publication*, for a
@@ -52,7 +52,7 @@ Contributors changing the bundle schema or a content schema run
   overwritten.
 - **From another tool** — no converter yet: a chatbot prompt writes the
   `quiz.json` from a PDF, screenshots or a spreadsheet
-  ([self-hosting/import-from-other-tools.md](self-hosting/import-from-other-tools.md)).
+  ([import a quiz](https://quizdock.github.io/docs/host/import-a-quiz/)).
 
 ## `quiz.json`
 

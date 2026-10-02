@@ -133,7 +133,7 @@ describe('SettingsService', () => {
       ).toEqual([]);
     });
 
-    it('an upload limit above the proxy of the two-container setup is flagged', () => {
+    it('an upload limit above the reverse-proxy example is flagged', () => {
       expect(rules({ MEDIA_MAX_VIDEO_MB: '64' })).toEqual([]);
       expect(rules({ MEDIA_MAX_VIDEO_MB: '65' })).toEqual(['MEDIA_MAX_VIDEO_MB']);
       expect(rules({ IMPORT_MAX_BYTES: String(100 * 1024 * 1024) })).toEqual([

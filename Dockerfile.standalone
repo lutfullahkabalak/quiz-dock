@@ -16,6 +16,9 @@ ARG APP_IMAGE_TAG=latest
 FROM fchaussin/quizdock:${APP_IMAGE_TAG} AS app
 
 FROM node:24-bookworm-slim AS runtime
+# The release tag (release.yml passes it): /health reports it, the update check compares it.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update \
  # Pull Debian security fixes even when the base layer is a few days old.

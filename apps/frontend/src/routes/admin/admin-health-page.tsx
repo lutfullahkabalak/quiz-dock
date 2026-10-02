@@ -1,12 +1,24 @@
-import { CircleAlert, CircleCheck, RefreshCw, TriangleAlert } from 'lucide-react';
+import type { VersionStatus } from '@quiz-dock/contracts';
+import {
+  CircleAlert,
+  CircleArrowUp,
+  CircleCheck,
+  Info,
+  RefreshCw,
+  TriangleAlert,
+} from 'lucide-react';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { StaleNotice } from '@/components/ui/stale-notice';
 import { Button } from '@/components/ui/button';
 import { Disclosure } from '@/components/ui/disclosure';
 import { LoadFailed, Spinner } from '@/components/ui/loading';
+import { Modal } from '@/components/ui/modal';
+import { formatAgo } from '@/lib/format';
 import { cn } from '@/lib/utils';
 import { PhoneTests } from './phone-tests';
 import { type OutputEntry, useReadOperation } from './admin-api';
+import { UpdateDetails } from './update-notice';
 
 type Check = {
   level: 'ok' | 'warn' | 'fail';
@@ -63,6 +75,7 @@ export function HealthPage() {
   const { t } = useTranslation('admin');
   const doctor = useReadOperation('health.doctor');
   const migrations = useReadOperation('migrations.status');
+  const version = useReadOperation('version.check');
   const list = useReadOperation('settings.list');
   const groups = doctor.data?.data ? groupChecks(doctor.data.data.output) : null;
   const checks = groups?.flatMap((g) => g.checks) ?? [];
@@ -153,10 +166,11 @@ export function HealthPage() {
                 </Disclosure>
               </section>
             ) : null}
+            {version.data?.data ? <VersionCard status={version.data.data} /> : null}
           </div>
         </>
       )}
-      {list.data?.data ? <PhoneTests data={list.data.data} /> : null}
+      {list.data?.data ? <PhoneTests data={list.data.data} adopt /> : null}
     </div>
   );
 }
@@ -220,5 +234,105 @@ function GroupMark({ checks }: { checks: Check[] }) {
     <span role="img" aria-label={t(`health.level.${level}`)}>
       <Icon aria-hidden className={cn('size-4', TONE[level])} />
     </span>
+  );
+}
+
+/**
+ * The version the instance runs, against the latest stable release
+ * (`UPDATE_CHECK`). A newer release is news, not a problem: the card stays OK.
+ */
+function VersionCard({ status }: { status: VersionStatus }) {
+  const { t, i18n } = useTranslation('admin');
+  const { latest } = status;
+  const [details, setDetails] = useState(false);
+  const date = (iso: string) =>
+    new Intl.DateTimeFormat(i18n.language, { dateStyle: 'long' }).format(new Date(iso));
+  const lines: { icon: typeof Info; tone: string; text: string }[] = [
+    {
+      icon: CircleCheck,
+      tone: TONE.ok,
+      text: t('health.version.current', { version: status.current }),
+    },
+  ];
+  const info = (text: string) => lines.push({ icon: Info, tone: 'text-muted-foreground', text });
+  if (status.check === 'off') info(t('health.version.off'));
+  else if (status.check === 'failed') info(t('health.version.failed'));
+  else if (!latest) info(t('health.version.none'));
+  else if (status.updateAvailable)
+    lines.push({
+      icon: CircleArrowUp,
+      tone: 'text-primary',
+      text: t('health.version.available', {
+        version: latest.version,
+        date: latest.publishedAt ? date(latest.publishedAt) : '',
+      }),
+    });
+  else if (status.current === 'dev') info(t('health.version.dev'));
+  else
+    lines.push({
+      icon: CircleCheck,
+      tone: TONE.ok,
+      text: t('health.version.upToDate'),
+    });
+  return (
+    <section className="flex flex-col gap-2 rounded-lg border p-4">
+      <h2 className="flex items-center justify-between gap-2 font-medium">
+        {t('health.version.title')}
+        <GroupMark checks={[{ level: 'ok', text: '' }]} />
+      </h2>
+      <ul className="flex flex-col gap-1.5 text-sm">
+        {lines.map(({ icon: Icon, tone, text }) => (
+          <li key={text} className="flex items-start gap-2">
+            <Icon aria-hidden className={cn('mt-0.5 size-4 shrink-0', tone)} />
+            <span className="break-words">{text}</span>
+          </li>
+        ))}
+      </ul>
+      {status.updateAvailable && latest ? (
+        <>
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="self-start"
+            onClick={() => setDetails(true)}
+          >
+            <CircleArrowUp aria-hidden className="size-4" />
+            {t('health.version.details')}
+          </Button>
+          <Modal
+            open={details}
+            onClose={() => setDetails(false)}
+            className="w-full max-w-2xl"
+            aria-label={t('update.available', { version: latest.version })}
+          >
+            <div className="p-4">
+              <UpdateDetails
+                current={status.current}
+                latest={latest}
+                action={
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="ghost"
+                    className="ml-auto"
+                    onClick={() => setDetails(false)}
+                  >
+                    {t('update.close')}
+                  </Button>
+                }
+              />
+            </div>
+          </Modal>
+        </>
+      ) : null}
+      {status.checkedAt ? (
+        <p className="text-muted-foreground text-xs">
+          {t('health.version.checked', {
+            when: formatAgo(status.checkedAt, i18n.language),
+          })}
+        </p>
+      ) : null}
+    </section>
   );
 }

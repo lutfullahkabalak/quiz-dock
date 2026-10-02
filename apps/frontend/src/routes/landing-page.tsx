@@ -1,6 +1,7 @@
+import { Star } from 'lucide-react';
 import { useTranslation } from 'react-i18next';
 import { APP_NAME, APP_VERSION, appConfig, getDemo, isStandalone } from '../config';
-import { feedbackLinks } from '@/lib/feedback';
+import { feedbackLinks, starLink } from '@/lib/feedback';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Link } from '@tanstack/react-router';
 import { JoinPin } from '@/components/join-pin';
@@ -51,7 +52,8 @@ export function LandingPage() {
 /**
  * An invitation to report a bug, suggest a feature, fix a translation or ask
  * a question — as GitHub forms filled in with the version, browser and
- * language. The operator points it elsewhere, or hides it, with `APP_FEEDBACK_URL`.
+ * language —, and to star QuizDock on GitHub. The operator points it elsewhere,
+ * or hides it, with `APP_FEEDBACK_URL`.
  */
 function Feedback() {
   const { t, i18n } = useTranslation('auth');
@@ -62,6 +64,7 @@ function Feedback() {
   });
   if (links.length === 0) return null;
   const single = links.length === 1;
+  const star = starLink(appConfig.feedbackUrl);
   return (
     <nav
       aria-label={t('landing.feedback.label')}
@@ -82,6 +85,20 @@ function Feedback() {
           </li>
         ))}
       </ul>
+      {star ? (
+        <p>
+          {t('landing.feedback.star')}{' '}
+          <a
+            href={star}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hover:text-foreground inline-flex items-center gap-1 underline underline-offset-2"
+          >
+            <Star aria-hidden className="size-3" />
+            {t('landing.feedback.starLink')}
+          </a>
+        </p>
+      ) : null}
     </nav>
   );
 }

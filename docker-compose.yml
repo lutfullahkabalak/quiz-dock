@@ -61,7 +61,7 @@ services:
       NODE_ENV: production
       PORT: '3000'
       AUTH_MODE: ${AUTH_MODE:-none}
-      # Démo publique (garde-fous, indépendant de AUTH_MODE) — cf. docs/self-hosting §4.
+      # Démo publique (garde-fous, indépendant de AUTH_MODE) — cf. https://quizdock.github.io/docs/operator/configuration/
       DEMO_MODE: ${DEMO_MODE:-false}
       DATABASE_URL: postgres://${POSTGRES_USER:-live}:${POSTGRES_PASSWORD:-live}@postgres:5432/${POSTGRES_DB:-quizdock}
       REDIS_URL: redis://redis:6379
@@ -74,6 +74,10 @@ services:
       IMPORT_MAX_BYTES: ${IMPORT_MAX_BYTES:-52428800}
       QUIZ_STORE_URL: ${QUIZ_STORE_URL:-}
       QUIZ_STORE_HOSTS: ${QUIZ_STORE_HOSTS-github.com,release-assets.githubusercontent.com}
+      UPDATE_CHECK: ${UPDATE_CHECK:-true}
+      # The release this stack passes for (an image sets it at build): APP_VERSION=0.12.0
+      # shows the administration's update notice.
+      APP_VERSION: ${APP_VERSION:-dev}
       PUBLICATION_MAX_MB: ${PUBLICATION_MAX_MB:-20}
       MEDIA_LIBRARY_LINKS: ${MEDIA_LIBRARY_LINKS:-}
       GAME_AUTO_ADVANCE_MS: ${GAME_AUTO_ADVANCE_MS:-5000}

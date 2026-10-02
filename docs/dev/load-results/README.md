@@ -12,5 +12,5 @@ the method, the limits, and every run.
 | [`2026-09-27-rooms.json`](2026-09-27-rooms.json) | 0.10.0: 1 to 60 rooms of 30 at once, and the one-room series again |
 
 How they were measured, the tables and how to read them:
-[load testing](../load-testing.md). For operators: [sizing the VM](../../self-hosting/sizing.md).
+[load testing](../load-testing.md). For operators: [sizing the VM](https://quizdock.github.io/docs/operator/sizing/).
 To measure again: `apps/backend/scripts/bench.sh`, whose `results.json` is kept here.
