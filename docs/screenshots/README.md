@@ -2,7 +2,7 @@
 
 Every shot, in the order of a session: manage your bank and the shared templates, build
 the quiz and its media, open the room, players join, questions, reveals, podium — then the
-administration of the instance's media. After them, every question type and slide as the
+administration of the instance. After them, every question type and slide as the
 big screen shows them. The README shows a selection.
 
 They are the sample quizzes the application ships (France, Taiwan, Türkiye), whose pictures
@@ -25,7 +25,9 @@ them all again, with the demo GIF, on the demo stack: see its header.
 | ![Player — the big screen on a phone](player-big-screen.png)<br /><sub><b>Remote player</b> — the whole question on their phone</sub> | ![Projection — reveal](projection-reveal.png)<br /><sub><b>Reveal</b> — distribution, explanation, live leaderboard</sub> |
 | ![Host console — reveal](console-reveal.png)<br /><sub><b>Host console</b> — the quiz outline to look back over, next question</sub> | ![Player — ordering and feedback](player-end.png)<br /><sub><b>Player</b> — ordering, then rate the quiz at the end</sub> |
 | ![Podium](projection-podium.png)<br /><sub><b>Podium</b> — final results on the big screen</sub> | ![Preferences](preferences.png)<br /><sub><b>My account</b> — who you are, what you can do, the choices made once</sub> |
-| ![Instance media](admin-media.png)<br /><sub><b>Instance media</b> — disk by kind and owner, clean-up, every file as a grid or a list</sub> | ![Preview](admin-media-preview.png)<br /><sub><b>Preview</b> — a sound on its waveform, with its format, length, owners and usages</sub> |
+| ![Administration — statistics](admin-statistics.png)<br /><sub><b>Administration</b> — what is played right now, the instance at a glance, the last twelve months</sub> | ![Administration — settings](admin-settings.png)<br /><sub><b>Settings</b> — every variable with its value, where it comes from, its help, and its control</sub> |
+| ![Administration — quizzes](admin-quizzes.png)<br /><sub><b>Every quiz of the instance</b> — whoever owns it: open, export, hand over, archive</sub> | ![Instance media](admin-media.png)<br /><sub><b>Instance media</b> — disk by kind and owner, clean-up, every file as a grid or a list</sub> |
+| ![Media detail](admin-media-preview.png)<br /><sub><b>A media file</b> — beside the list: a sound on its waveform, its format, length, owners and usages</sub> | |
 
 ## Every question type and slide
 
